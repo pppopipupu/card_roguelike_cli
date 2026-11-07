@@ -1,3 +1,7 @@
+import json
+import os
+import subprocess
+import sys
 import time
 import unittest
 from dataclasses import replace
@@ -7,6 +11,7 @@ from tempfile import TemporaryDirectory
 import jwt
 from fastapi.testclient import TestClient
 
+from server.accounts import AccountStore
 from server.app import create_app
 from server.config import Settings
 
@@ -201,6 +206,81 @@ class ServerTests(unittest.TestCase):
         self.assertTrue(body["ok"])
         self.assertIn("UUID", body["text"])
         self.assertIsNotNone(body["account"]["uuid"])
+
+    def test_im_secrets_returns_migration_uuid(self):
+        body = self.post(
+            {"command": "secrets", "channel": "im"}, self.im_headers("im-secrets-user")
+        ).json()
+        self.assertTrue(body["ok"])
+        self.assertIn(body["account"]["uuid"], body["text"])
+        self.assertIn("绑定", body["text"])
+        self.assertEqual(body["account"]["im_user_id"], "im-secrets-user")
+
+    def test_import_legacy_copies_saves_and_registry(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            legacy = root / "legacy"
+            legacy.mkdir()
+            (legacy / "stats_legacy-user.json").write_text(
+                json.dumps({"player_name": "旧玩家", "gp": 77}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            (legacy / "user_legacy-user.json").write_text(
+                json.dumps({"screen": "menu"}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            (legacy / "duel_decks_legacy-user.json").write_text(
+                json.dumps({"deck": ["a"]}, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            (legacy / "duel_registry.json").write_text(
+                json.dumps({"legacy-user": "duel-1"}), encoding="utf-8"
+            )
+            (legacy / "duel_duel-1.json").write_text(
+                json.dumps({"state": "x"}), encoding="utf-8"
+            )
+            db = root / "accounts.sqlite3"
+            players = root / "players"
+            csv_path = root / "migration.csv"
+            env = os.environ.copy()
+            env["PYTHONPATH"] = str(Path.cwd())
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "server.import_legacy",
+                    "--data-dir",
+                    str(legacy),
+                    "--db",
+                    str(db),
+                    "--player-dir",
+                    str(players),
+                    "--csv",
+                    str(csv_path),
+                ],
+                cwd=Path.cwd(),
+                env=env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            store = AccountStore(db, players)
+            try:
+                account = store.get_by_im("legacy-user")
+                self.assertIsNotNone(account)
+                player_uuid = account["uuid"]
+                self.assertEqual(account["display_name"], "旧玩家")
+            finally:
+                store.close()
+            self.assertTrue((players / f"user_{player_uuid}.json").exists())
+            self.assertTrue((players / f"stats_{player_uuid}.json").exists())
+            self.assertTrue((players / f"duel_decks_{player_uuid}.json").exists())
+            self.assertTrue((players / "duel_duel-1.json").exists())
+            registry = json.loads(
+                (players / "duel_registry.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(registry[player_uuid], "duel-1")
 
 
 if __name__ == "__main__":

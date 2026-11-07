@@ -68,6 +68,18 @@ class RogueService:
             lines.append("💡 当前网页账号已与即时通讯进度共享同一份存档。")
         return "\n".join(lines)
 
+    def _migration_text(self, account: dict) -> str:
+        return "\n".join(
+            [
+                "🔐 你的迁移码（UUID）：",
+                account["uuid"],
+                "",
+                "在网页版使用 GitHub 登录后，输入：",
+                f"绑定 {account['uuid']}",
+                "迁移码只用于关联存档，请勿公开。",
+            ]
+        )
+
     def _admin_accounts(self) -> str:
         rows = self.accounts.list_all()
         if not rows:
@@ -144,6 +156,24 @@ class RogueService:
                 "ok": True,
                 "handled": True,
                 "text": self._account_help(account, channel),
+                "state": None,
+                "account": _account_json(account),
+            }
+
+        if first in ("secrets", "迁移码", "migration"):
+            if channel != "im":
+                return {
+                    "ok": False,
+                    "handled": True,
+                    "text": "❌ 迁移码只能在即时通讯端通过 secrets 获取。",
+                    "error": "im_only",
+                    "state": None,
+                    "account": _account_json(account),
+                }
+            return {
+                "ok": True,
+                "handled": True,
+                "text": self._migration_text(account),
                 "state": None,
                 "account": _account_json(account),
             }

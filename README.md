@@ -104,6 +104,7 @@ Content-Type: application/json
 | 命令 | 说明 |
 | :--- | :--- |
 | `我的ID` / `uuid` | 返回当前账号 UUID |
+| `secrets` / `迁移码` | 即时通讯端私聊获取迁移码 UUID |
 | `绑定 <uuid>` | 网页账号关联即时通讯进度 |
 | `绑定 <uuid> force` | 放弃当前网页独立进度后关联 |
 | `admin accounts` | 导出 UUID / IM / Web 映射，需要管理员令牌 |
