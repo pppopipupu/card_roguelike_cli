@@ -499,7 +499,7 @@ class TestRogueSystem(unittest.TestCase):
         if "PYTHONPATH" in env:
             del env["PYTHONPATH"]
             
-        script = "import sys, asyncio; sys.path.insert(0, '" + parent_dir.replace('\\', '/') + "'); sys.path.insert(0, '" + cwd.replace('\\', '/') + "'); from main import MyPlugin; from scratch.rogue_tests.base import run_command; plugin = MyPlugin(None); stats = plugin.save_manager.load_stats('test_import'); stats.rogue_mode = True; plugin.save_manager.save_stats('test_import', stats); asyncio.run(run_command(plugin, 'overview', 'test_import'))"
+        script = "import sys, asyncio; sys.path.insert(0, '" + parent_dir.replace('\\', '/') + "'); sys.path.insert(0, '" + cwd.replace('\\', '/') + "'); from scratch.rogue_tests.base import MyPlugin; from scratch.rogue_tests.base import run_command; plugin = MyPlugin(None); stats = plugin.save_manager.load_stats('test_import'); stats.rogue_mode = True; plugin.save_manager.save_stats('test_import', stats); asyncio.run(run_command(plugin, 'overview', 'test_import'))"
         
         res = subprocess.run(
             [sys.executable, "-c", script],

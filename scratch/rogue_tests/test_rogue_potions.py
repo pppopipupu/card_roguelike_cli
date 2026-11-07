@@ -1,5 +1,5 @@
 from scratch.rogue_tests.base import *
-from main import MyPlugin
+from scratch.rogue_tests.base import MyPlugin
 from game.models.state import GameRun, PlayerState, EnemyState, MinionState, BuffState
 from game.renderer.query import render_query_info
 

@@ -350,7 +350,7 @@ NEUTRAL_CARD_SPELLS = {
         "type": "spell",
         "cost_a": 1,
         "cost_ba": 0,
-        "desc": "选择手牌中的一张手牌，消耗除选择牌以外的所有牌，获得等同于消耗牌数量的随机除对决模式外的卡牌。消耗。",
+        "desc": "选择手牌中的一张手牌，消耗除选择牌以外的所有牌，获得等同于消耗牌数量的随机卡牌。消耗。",
         "rarity": "legendary",
         "exhaust": True,
         "feedback": "使用了【霸瞳天星】！"

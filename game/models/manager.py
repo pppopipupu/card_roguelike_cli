@@ -1,9 +1,26 @@
 import os
 import json
+import tempfile
 from dataclasses import asdict
 from typing import Optional, Tuple, Dict, List
 from .state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, BuffState, UserStats, current_user_id, register_stat_recorder, get_user_id
 from ..data.map_config import MapConfig
+
+def _atomic_write_json(path: str, data, indent: int = 2) -> None:
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(prefix=".rogue-", suffix=".tmp", dir=directory or None)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=indent)
+        os.replace(tmp_path, path)
+    except BaseException:
+        try:
+            os.remove(tmp_path)
+        except OSError:
+            pass
+        raise
 
 class SaveManager:
     _default_data_dir = None
@@ -74,8 +91,7 @@ class SaveManager:
         path = self.get_stats_path(user_id)
         try:
             d = asdict(stats)
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(d, f, ensure_ascii=False, indent=2)
+            _atomic_write_json(path, d)
             return True
         except:
             return False
@@ -117,8 +133,7 @@ class SaveManager:
     def save_duel_registry(self, reg: dict) -> bool:
         path = self.get_duel_registry_path()
         try:
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(reg, f, ensure_ascii=False, indent=2)
+            _atomic_write_json(path, reg)
             return True
         except:
             return False
@@ -156,8 +171,7 @@ class SaveManager:
     def save_duel_decks(self, user_id: str, decks: dict) -> bool:
         path = self.get_duel_deck_path(user_id)
         try:
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(decks, f, ensure_ascii=False, indent=2)
+            _atomic_write_json(path, decks)
             return True
         except:
             return False
@@ -177,8 +191,7 @@ class SaveManager:
         path = self.get_save_path(user_id)
         try:
             d = self.to_dict(run)
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(d, f, ensure_ascii=False, indent=2)
+            _atomic_write_json(path, d)
             return True
         except:
             return False
@@ -227,8 +240,7 @@ class SaveManager:
             if p2_id == user_id:
                 run.player, run.player2 = run.player2, run.player
                 run.user_id = user_id
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(d, f, ensure_ascii=False, indent=2)
+            _atomic_write_json(path, d)
             return True
         except:
             if p2_id == user_id:
@@ -457,8 +469,7 @@ class SaveManager:
     def save_admin_config(self, cfg: dict) -> bool:
         path = self.get_admin_config_path()
         try:
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(cfg, f, ensure_ascii=False, indent=2)
+            _atomic_write_json(path, cfg)
             return True
         except:
             return False

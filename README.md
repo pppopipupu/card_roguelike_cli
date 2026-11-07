@@ -1,30 +1,123 @@
-# 魔法肉鸽卡牌游戏 (DND 5.5E)
+# 魔法肉鸽卡牌游戏核心
 
-这是一款运行在 AstrBot 机器人框架上的文字策略肉鸽卡牌游戏，无需LLM。
+基于 DND 5.5E 背景的文字回合制肉鸽卡牌游戏。本仓库是无头游戏核心、单接口后端和本地控制台入口；AstrBot 插件与网页前端在独立仓库中运行。
 
-## 游戏玩法
+## 目录
 
-玩家将扮演法师领主，在由遭遇战、精英怪、随机事件、营地和商店组成的分支路线中前行。通过合理规划每回合的动作（A）与附赠动作（BA）打出法术、部署护符并召唤随从，指挥随从协同作战，在保持血量和收集卡牌的过程中不断变强，最终战胜关底的BOSS。
+| 路径 | 说明 |
+| :--- | :--- |
+| `game/` | 游戏核心：卡牌、战斗、地图、探索、主城、咖啡馆、渲染与存档 |
+| `server/` | FastAPI 单接口后端：`POST /api/v1/action` |
+| `play_rogue.py` | 本地控制台入口，免前缀游玩 |
+| `scratch/rogue_tests/` | 核心单元与集成测试 |
+| `scratch/server_tests/` | 后端账号、认证与接口测试 |
+| `deploy/` | systemd、Cloudflare Tunnel 与环境变量模板 |
 
-## 游戏指令
+## 本地游玩
 
-游戏内所有交互通过在会话中输入子指令完成：
+```bash
+py play_rogue.py
+```
 
-| 指令 | 说明 | 示例 |
-| :--- | :--- | :--- |
-| `/rogue start` | 开启一局新游戏 | `/rogue start` |
-| `/rogue s` | 查看玩家当前的血量、护盾、金币以及战场Buff | `/rogue s` |
-| `/rogue deck` | 查看当前拥有的全部卡牌 | `/rogue deck` |
-| `/rogue p <序号或拼音首字母> [目标]` | 消耗动作打出手牌，序号也可用卡牌名称拼音首字母贪婪匹配。目标包括敌方（e1-eN）和我方（p0为自己，p1-p5为随从） | `/rogue p ssxs` |
-| `/rogue m <我方格子> a/s <目标>` | 控制我方格子的随从进行攻击或发动技能 | `/rogue m 1 a 1` |
-| `/rogue c <序号>` | 在地图分岔路口、随机事件抉择、商店购买时进行选择 | `/rogue c 1` |
-| `/rogue e` | 结束本回合，进入敌方行动结算 | `/rogue e` |
-| `/rogue f` | 展开或折叠战斗及关卡界面的操作指南 | `/rogue f` |
-| `/rogue abandon` | 放弃当前正在进行的战局并清空存档 | `/rogue abandon` |
+输入 `exit` 或 `quit` 退出。控制台模式默认使用 `data/` 下的存档。
 
-### 指令队列功能
+## 核心测试
 
-支持一键批量发送指令：
-- `/rogue q [指令1, 指令2, ...]`
-- 示例：`/rogue q [p 1 e1, m 1 a 1, e]`
+```bash
+PYTHONPATH="." PYTHONIOENCODING="utf-8" py scratch/test_flow.py
+```
 
+## 后端
+
+安装依赖：
+
+```bash
+uv venv .venv --python 3.15
+uv pip install --python .venv/Scripts/python.exe -e ".[dev]"
+```
+
+启动：
+
+```bash
+PYTHONPATH="." .venv/Scripts/python.exe -m uvicorn server.app:create_app --factory --host 127.0.0.1 --port 8787 --workers 1
+```
+
+后端必须单进程。游戏核心包含进程级状态，多 worker 会破坏每用户串行与存档一致性。
+
+### 环境变量
+
+| 变量 | 说明 |
+| :--- | :--- |
+| `ROGUE_DATA_DIR` | 存档与 SQLite 根目录，默认 `data/server` |
+| `ROGUE_DB_PATH` | 账号数据库，默认 `<ROGUE_DATA_DIR>/accounts.sqlite3` |
+| `ROGUE_PLAYER_DIR` | 每玩家 JSON 存档目录，默认 `<ROGUE_DATA_DIR>/players` |
+| `ROGUE_IM_TOKEN` | 即时通讯令牌 |
+| `ROGUE_ADMIN_TOKEN` | 管理员令牌 |
+| `ROGUE_ORIGIN_KEY` | Worker 来源校验头，可留空关闭 |
+| `SUPABASE_URL` | Supabase 项目地址 |
+| `SUPABASE_JWKS_URL` | Supabase JWKS 地址 |
+| `SUPABASE_JWT_ISSUER` | JWT issuer |
+| `SUPABASE_JWT_AUD` | JWT audience，默认 `authenticated` |
+| `SUPABASE_JWT_SECRET` | 可选，仅用于 HS256 兼容 |
+| `ROGUE_ALLOWED_ORIGINS` | CORS 白名单，逗号分隔 |
+| `ROGUE_IM_PREFIXES` | 即时通讯指令前缀，逗号分隔 |
+
+### 接口
+
+```http
+POST /api/v1/action
+Content-Type: application/json
+
+{
+  "command": "p 1 e1",
+  "channel": "web",
+  "name": "可选显示名",
+  "force": false,
+  "prefixes": [".rogue"]
+}
+```
+
+认证：
+
+| 来源 | 请求头 |
+| :--- | :--- |
+| 网页 | `Authorization: Bearer <Supabase access token>` |
+| 即时通讯 | `X-Rogue-IM-Token: <token>` + `X-Rogue-IM-User: <平台用户 ID>` |
+| 管理命令 | 额外 `X-Rogue-Admin-Token: <token>` |
+
+响应：
+
+```json
+{
+  "ok": true,
+  "handled": true,
+  "text": "渲染文本",
+  "state": { "v": 1, "screen": "battle" },
+  "account": { "uuid": "...", "linked": false }
+}
+```
+
+`state` 只对网页通道返回。`handled=false` 表示即时通讯消息不是游戏指令，前端不应回复。
+
+账号命令也走同一接口：
+
+| 命令 | 说明 |
+| :--- | :--- |
+| `我的ID` / `uuid` | 返回当前账号 UUID |
+| `绑定 <uuid>` | 网页账号关联即时通讯进度 |
+| `绑定 <uuid> force` | 放弃当前网页独立进度后关联 |
+| `admin accounts` | 导出 UUID / IM / Web 映射，需要管理员令牌 |
+
+## 测试
+
+```bash
+PYTHONPATH="." PYTHONIOENCODING="utf-8" .venv/Scripts/python.exe -m unittest discover -s scratch/server_tests -p "test_*.py" -v
+```
+
+## 相关仓库
+
+| 仓库 | 说明 |
+| :--- | :--- |
+| `pppopipupu/card_roguelike_cli` | 本仓库，无头核心与后端 |
+| `pppopipupu/astrbot_plugin_text_roguelike` | AstrBot 薄客户端插件 |
+| `pppopipupu/rogue_frontend` | Solid + WebGL 网页前端与 Cloudflare Worker |

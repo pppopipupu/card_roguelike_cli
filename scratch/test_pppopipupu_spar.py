@@ -1,14 +1,10 @@
 import unittest
-from game.models.manager import SaveManager
+from game.core.headless_server import HeadlessGameServer
 from game.models.state import CardState
-from main import MyPlugin
-
-class DummyContext:
-    pass
 
 class TestPppopipupuSpar(unittest.TestCase):
     def test_spar_awakening_flow(self):
-        plugin = MyPlugin(DummyContext())
+        plugin = HeadlessGameServer()
         router = plugin.cli_router
         save_manager = plugin.save_manager
 

@@ -207,3 +207,8 @@ marimo/_lsp/
 __marimo__/
 
 /data/
+
+# Agent planning/status files (local only)
+.agent/
+
+.cloudflare/

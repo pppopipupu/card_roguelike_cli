@@ -1,22 +1,33 @@
-# 魔法肉鸽卡牌游戏插件开发规范指引
+# 魔法肉鸽卡牌游戏核心与后端开发规范指引
 
 > [!IMPORTANT]
 > ## AI 助手强制阅读指令 
 >
 > **在开始开发、修改或测试本项目代码之前，你必须完整阅读并严格遵守本文档所规定的所有规范！** 绝对禁止代码行为与本规范指引脱节。
 >
-> 本文档面向在此文字肉鸽卡牌插件上进行开发和维护的 AI 助手及开发人员，定义了专有的代码开发规范、目录结构以及测试准则。
+> 本文档面向在此文字肉鸽卡牌核心与单接口后端上进行开发和维护的 AI 助手及开发人员，定义了专有的代码开发规范、目录结构以及测试准则。AstrBot 薄插件与网页前端位于独立仓库，不在本规范的文件结构约束内。
 
 ---
 
 ## 1. 项目目录结构
 
-整个插件的目录结构设计如下：
+整个核心仓库的目录结构设计如下：
 
-- `main.py`: 插件主要入口，用于注册 /rogue 命令，进行多级子指令分发并截获未处理异常（已兼容无 AstrBot 纯 Python 环境下直接导入）。
 - `play_rogue.py`: 项目根目录下的控制台游戏入口，提供免前缀快捷命令行交互游玩。
-- `metadata.yaml`: 插件元数据配置文件，声明插件版本、唯一标识等。
+- `pyproject.toml`: Python 项目元数据与后端依赖声明。
 - `AGENTS.md`: 本项目规范指引文档（本文档）。
+- `server/`: 单接口后端包。
+  - `app.py`: FastAPI 应用，唯一业务接口 `POST /api/v1/action` 与探活接口 `/healthz`。
+  - `auth.py`: Supabase JWT、即时通讯令牌与管理员令牌校验。
+  - `accounts.py`: SQLite 玩家账号、UUID 与绑定关系管理。
+  - `service.py`: 每用户串行锁、游戏指令分发与账号命令处理。
+  - `snapshot.py`: `GameRun` / `UserStats` 到网页结构化状态的转换。
+  - `config.py`: 环境变量配置。
+  - `import_legacy.py`: 旧即时通讯玩家 UUID 映射导入脚本。
+- `deploy/`: systemd、Cloudflare Tunnel 与环境变量模板。
+- `supabase/`: Supabase CLI 项目配置与迁移目录。
+- `data/`: 运行期存档、账号数据库与日志，不提交。
+- `README.md`: 核心、后端、测试与部署入口说明。
 - `game/`: 游戏核心逻辑包。
   - `__init__.py`: 包初始化空文件。
   - `cards.py`: 静态卡牌配置桥接与数据导出。
@@ -97,12 +108,12 @@
     - `explore.py`: 荒野事件、奇妙商店、古老宝箱、战利品等界面渲染.
     - `query.py`: 随从、遗物、Buff及卡牌模糊匹配查询效果渲染。
 - `scratch/`: 本地临时测试与仿真目录。
-  - `test_flow.py`: 自动化测试入口（肉鸽模式），采用自动扫描机制，加载运行 rogue_tests/ 下的所有测试用例。
+  - `test_flow.py`: 核心自动化测试入口，采用自动扫描机制，加载运行 rogue_tests/ 下的所有测试用例。
   - `test_game.py`: 包含交互式与自动随机仿真的控制台测试程序。
-  - `test_astrbot_load.py`: 用于在宿主机验证 Docker 容器内插件加载与依赖导入状况。
-  - `run_tests_docker.bat`: 依次在容器中运行上述核心测试文件。
+  - `server_tests/`: 后端账号、认证、绑定与接口测试包。
+    - `test_server.py`: FastAPI TestClient 集成用例。
   - `rogue_tests/`: 肉鸽模式拆分后的高内聚单元与集成测试包。
-    - `base.py`: 基础 Dummy 测试桩与环境配置。
+    - `base.py`: 基础 Dummy 测试桩、CorePlugin 无头测试入口与环境配置。
     - `test_rogue_basic.py`: 基础游戏流程、选择主/子职业、中英文指令别名等基础用例。
     - `test_rogue_card_mech1.py`: 护盾与保留、回响形态及死亡律动交互、钢铁意志卡牌升级与护盾治疗叠加等机制测试。
     - `test_rogue_card_mech2.py`: 0 费消耗牌、多重重放、Arcane Torrent 伤害判定与法术黑名单限制、冲击波与回响形态交互等机制测试.
@@ -113,6 +124,8 @@
     - `test_rogue_town.py`: 主城任务承接、商店购买、切磋交互流程测试用例.
     - `test_rogue_cafe.py`: 咖啡馆日常经营、菜单升级、顾客接待逻辑测试用例.
     - `test_rogue_chaos_update.py`: 复杂混乱战局下的机制联动与状态更新测试用例。
+  - `server_tests/`: 后端账号、认证、快照与单接口集成测试包。
+    - `test_server.py`: Supabase/IM 认证、绑定、管理员、来源校验与游戏指令转发用例。
 
 ---
 
@@ -121,7 +134,7 @@
 为确保多端运行顺畅与规范统一，在编写代码时必须严格遵守以下规范：
 
 ### 2.1 注释约束
-- 绝对不要在 Python 源代码（包括 main.py, game/*.py, scratch/*.py）及 JSON 配置文件中编写任何注释。
+- 绝对不要在 Python 源代码（包括 server/*.py, game/*.py, scratch/*.py）及 JSON 配置文件中编写任何注释。
 
 ### 2.2 视觉与渲染规范
 - 游戏中的渲染逻辑全部集中于 game/renderer/ 模块包中。
@@ -141,10 +154,10 @@
 - **伤害结算与类型规范**：游戏中包含 14 种具体的伤害类型（挥砍 slashing、穿刺 piercing、钝击 bludgeoning、火焰 fire、寒冷 cold、闪电 lightning、雷鸣 thunder、强酸 acid、毒素 poison、黯蚀 necrotic、光耀 radiant、心灵 psychic、力场 force、真实 true）。允许在宏观描述（如卡牌描述、遗物机制、Buff 状态说明、任务目标）中继续使用“物理伤害”（作为挥砍、穿刺、钝击的合称）和“魔法伤害”作为宏观代指；但在具体的伤害计算、伤害播报、战斗日志和结算文字中，严禁出现诸如“造成了 X 点物理伤害”或“造成了 X 点魔法伤害”的描述，实际造成的每一笔伤害必须精细到上述 14 种具体伤害类型之一（例如，随从和怪物普通物理攻击必须直接调用并显示为“钝击伤害”，狂暴撕咬等动作归为“穿刺伤害”）。在代码判断、Buff 触发或逻辑计算时，绝对禁止存在 `"physical"` 这样的硬编码类型，物理伤害在计算层必须且仅以是否为 `slashing`、`piercing`、`bludgeoning` 之一进行判定。此外，虚弱（weak）Buff 并非固定点数减免，其结算效果定义为削减 50% 所有类型伤害（结算伤害向下取整），其 `stacks` 仅代表持续回合数。
 
 ### 2.4 指令调度与全局命令规范
-- 指令分支由 main.py 的统一分发器 _execute_sub_action 路由。所有指令以元组 (res_text, should_terminate) 形式返回。
+- 指令分支由 game/core/cli_router.py 的 CLIRouter 与 game/core/headless_server.py 的 HeadlessGameServer 统一分发。所有指令以元组 (res_text, should_terminate) 形式返回。
 - 指令前缀配置项 shortcut_prefix 类型变更为 list 以支持多个前缀别名。匹配时对所有前缀按长度由长至短倒序排列，规避较短的前缀提前截断损坏指令单词。
 - 提供“帮助”及“help”专用子命令，调用 GameRenderer.render_help() 列出指令的使用教程和中英文别名（包含免前缀模式提示），当输入未知指令时系统应当引导用户使用帮助指令。
-- 新增命令设计规范：系统在添加任何新指令时，必须同步添加对应的纯英文命令变体，并且必须支持至少一个快捷命令（如英文缩写、别名或单字快捷指令）。同时，必须在 main.py 的免前缀拦截白名单（如 valid_cmds 或 town_cmds）中同步补全注册这些新增命令及其英文别名，强制确保新命令的免前缀快捷支持。
+- 新增命令设计规范：系统在添加任何新指令时，必须同步添加对应的纯英文命令变体，并且必须支持至少一个快捷命令（如英文缩写、别名或单字快捷指令）。同时，必须在 HeadlessGameServer 的免前缀拦截白名单（如 valid_cmds 或 town_cmds 对应的状态判定逻辑）以及 CLIRouter 的 allowed_states 注册中同步补全这些新增命令及其英文别名，强制确保新命令的免前缀快捷支持。
 - **始终豁免指令规范**：确立“队列”（queue/q）、“查询”（query/info/i）、“任务”（quest/quests）和“背包”（bag/inventory/inv）为系统级的始终豁免指令。这些指令在包含当前及未来可能引入的所有游戏状态中（如战斗、探索、主城、对话、主菜单等）均被允许执行；并且在对话等特殊输入拦截状态中，必须作为系统指令优先处理，绝对禁止作为非指令文本或对话选项被消费。特别地，必须确保 `q`（队列）和 `i`（查询）命令在包括任何状态栈活跃（如等待发掘、等待升级/移除、等待选目标等特殊输入拦截状态）下的所有场景均可用，指令分发系统必须在最外层优先拦截并派发这些命令，绝对禁止状态栈拦截器或输入消费流对其进行屏蔽或吞掉。
 - **分支选择免指令规范**：在需要用户进行交互选项抉择（包括主城对话、事件探索、篝火、商店、卡牌发掘选择等）的全部状态下，系统必须支持用户直接输入数字序号（如直接发送 `1`）代替完整的 `c 1` / `选择 1` 命令，以便提升游戏操作连贯性。
 - **状态专属退出与取消规范**：在任何临时性交互拦截状态下（如等待选择单体攻击目标、等待发掘卡牌、等待霸瞳天星选择等），系统必须提供无损退出机制。一旦收到 `取消`、`cancel`、`abandon`、`放弃`、`exit`、`quit` 或 `退出` 指令，必须立刻清空当前拦截状态并退回到常规的战斗或探索出牌决策阶段。
@@ -267,10 +280,13 @@
 ## 4. 测试与运行指引
 
 ### 4.1 本地测试手段
+- 开发与本地测试统一使用 Python 3.15.2（`py -3.15`，本机 `py` 默认已指向 3.15.2）。后端部署目标为 Python 3.12 及以上，因此代码须同时兼容 3.12 与 3.15。
 - 本地控制台交互式游玩：在项目根目录下执行 `py play_rogue.py` 即可直接免前缀在命令行中游玩游戏。
-- 本地交互式控制台测试：在插件根目录下执行 `py scratch/test_game.py` 验证指令容错性。
-- 本地自动化仿真：在插件根目录下执行 `py scratch/test_game.py --auto`，自动识别“进行中的游戏”提示并随机执行 150 步卡牌释放和行路动作。
-- 本地综合单元测试：在插件根目录下执行 `py scratch/test_flow.py`，依次测试游戏核心业务及边界场景。
+- 本地交互式控制台测试：在项目根目录下执行 `py scratch/test_game.py` 验证指令容错性。
+- 本地自动化仿真：在项目根目录下执行 `py scratch/test_game.py --auto`，自动识别“进行中的游戏”提示并随机执行 150 步卡牌释放和行路动作。
+- 本地综合单元测试：在项目根目录下执行 `py scratch/test_flow.py`，依次测试游戏核心业务及边界场景。
+- 后端测试：先创建 `.venv` 并安装 `fastapi uvicorn PyJWT[crypto] httpx`，然后执行 `PYTHONPATH="." .venv/Scripts/python.exe -m unittest discover -s scratch/server_tests -p "test_*.py" -v`。
+- 后端本地启动：`PYTHONPATH="." .venv/Scripts/python.exe -m uvicorn server.app:app --host 127.0.0.1 --port 8787 --workers 1`。必须单 worker。
 
 ### 4.2 Windows 本地命令行测试运行异常提示
 - 在 Windows 环境下使用 PowerShell 或 CMD 直接运行测试脚本时，若遇到 ModuleNotFoundError 模块导入失败，需在运行前显式指定 PYTHONPATH 环境变量（例如在 PowerShell 中执行：`$env:PYTHONPATH="."`）。
@@ -279,7 +295,7 @@
 
 ### 4.3 单元测试编写规范
 - 源码零注释约束：所有的测试代码与测试脚本均视为源码的一部分，其中绝对禁止包含任何以井号字符开头的注释和 docstring 文档字符串。
-- 免前缀与用户输入模拟：新编写的单元和集成测试禁止直接调用底层 cli_router.handle_command，必须默认开启 stats.rogue_mode = True，并且全部通过调用 run_command(plugin, "command_string") 传入完整命令文本来模拟真实用户的输入行为。
+- 免前缀与用户输入模拟：新编写的单元和集成测试禁止直接调用底层 cli_router.handle_command，必须默认开启 stats.rogue_mode = True，并且全部通过调用 run_command(plugin, "command_string") 传入完整命令文本来模拟真实用户的输入行为。核心测试的 plugin 使用 scratch/rogue_tests/base.py 中的 CorePlugin 无头入口；后端测试通过 FastAPI TestClient 调用 `POST /api/v1/action` 模拟真实 HTTP 请求。
 - 禁止篡改关卡节点状态及选项列表：在编写集成测试时，严禁通过直接修改内存（如强行赋值 run.node_type = "rest" 或覆盖 run.node_data = {}）来强行跳转游戏关卡阶段。若需要测试某种关卡状态（例如商店、事件、篝火、宝箱房等），必须通过 run_command 模拟真实的地图节点分支选择（.rogue c <分支序号>）或通过标准的关卡流转过程切入。
 - 禁止伪造实体属性与内存状态：严禁在测试中强行篡改怪物的 hp/max_hp、动作点或卡牌大循环堆的内部结构。所有的战斗结算（伤害、治疗、充能等）必须完全通过打出卡牌、随从攻击等指令真实发生；如果需要高血量靶子以防止目标死亡，必须直接利用测试专用注册的“测试训练假人”（具有 999999 HP，只具备交替的攻击与防御意图，且不会在常规游戏中出现）进行测试，禁止伪造数值。
 - 测试豁免规则：针对仅涉及纯数值微调或修正的改动（如修改卡牌伤害、治疗数值等静态数据配置），无需运行自动化仿真及流验证测试。
