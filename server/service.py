@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 
 from game.core.headless_server import HeadlessGameServer
@@ -135,6 +136,74 @@ class RogueService:
             )
         return "\n".join(lines)
 
+    def _is_online(self, last_seen: str, window_seconds: int = 300) -> bool:
+        if not last_seen:
+            return False
+        try:
+            seen = datetime.fromisoformat(last_seen)
+        except ValueError:
+            return False
+        if seen.tzinfo is None:
+            seen = seen.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - seen).total_seconds() <= window_seconds
+
+    def _leaderboard_rows(self) -> list[dict]:
+        rows = []
+        for account in self.accounts.list_all():
+            stats = self.save_manager.load_stats(account["uuid"])
+            run = self.save_manager.load_save(account["uuid"])
+            stage = 0
+            if run is not None and run.player is not None:
+                stage = int(getattr(run.player, "stage", 0))
+            rows.append(
+                {
+                    "name": account["display_name"] or "匿名玩家",
+                    "gp": int(getattr(stats, "gp", 0)),
+                    "stage": stage,
+                    "online": self._is_online(account["last_seen"]),
+                    "last_seen": account["last_seen"] or "",
+                }
+            )
+        return rows
+
+    def _leaderboard_text(self, online_only: bool = False) -> str:
+        rows = self._leaderboard_rows()
+        online_rows = [row for row in rows if row["online"]]
+        if online_only:
+            online_rows.sort(key=lambda row: row["last_seen"], reverse=True)
+            lines = [
+                "━━━━━━━━━━━━━━━━━━━━",
+                f"🟢 当前在线玩家（最近 5 分钟，共 {len(online_rows)} 人）",
+                "",
+            ]
+            if not online_rows:
+                lines.append("当前没有在线玩家。")
+            else:
+                for index, row in enumerate(online_rows[:20], 1):
+                    lines.append(
+                        f"{index}. {row['name']} — 第 {row['stage']} 层 — {row['gp']} GP"
+                    )
+            lines.append("━━━━━━━━━━━━━━━━━━━━")
+            return "\n".join(lines)
+        rows.sort(key=lambda row: (-row["gp"], row["name"]))
+        lines = [
+            "━━━━━━━━━━━━━━━━━━━━",
+            "🏆 GP 排行榜（前 20）",
+            "",
+        ]
+        if not rows:
+            lines.append("当前还没有玩家记录。")
+        else:
+            for index, row in enumerate(rows[:20], 1):
+                marker = "🟢 " if row["online"] else ""
+                lines.append(
+                    f"{index}. {marker}{row['name']} — {row['gp']} GP — 第 {row['stage']} 层"
+                )
+        lines.append("")
+        lines.append(f"🟢 当前在线：{len(online_rows)} 人")
+        lines.append("━━━━━━━━━━━━━━━━━━━━")
+        return "\n".join(lines)
+
     async def _handle_bind(self, account: dict, command: str, channel: str) -> tuple[dict, str]:
         if channel != "web":
             return account, "❌ 绑定操作请在网页端进行。"
@@ -186,6 +255,16 @@ class RogueService:
         normalized = _strip_prefix(command, active_prefixes)
         parts = normalized.split(maxsplit=1)
         first = parts[0].lower().lstrip("/") if parts else ""
+
+        if first in ("leaderboard", "排行", "排行榜", "lb"):
+            sub = parts[1].strip().lower() if len(parts) > 1 else ""
+            if sub and sub not in ("online", "在线", "当前在线"):
+                return self._text_response(
+                    account, channel, "❌ 用法：leaderboard 或 leaderboard online"
+                )
+            return self._text_response(
+                account, channel, self._leaderboard_text(sub in ("online", "在线", "当前在线"))
+            )
 
         if channel == "web":
             self._ensure_web_rogue(account["uuid"])

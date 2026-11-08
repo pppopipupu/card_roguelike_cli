@@ -50,6 +50,26 @@ class CombatResolver:
             return "我方随随从"
         return "未知"
 
+    def get_source_name(self, run: GameRun, source: str) -> str:
+        if not source:
+            return "未知力量"
+        if source.startswith("enemy:"):
+            return source[6:]
+        if source.startswith("e"):
+            try:
+                idx = int(source[1:]) - 1
+            except ValueError:
+                idx = -1
+            if 0 <= idx < len(run.enemies):
+                return run.enemies[idx].name
+        if source in ("p0", "player", "effect"):
+            return "自身"
+        if source.startswith("relic:"):
+            return "遗物"
+        if source == "curse":
+            return "诅咒"
+        return source
+
     def get_first_alive_enemy(self, run: GameRun) -> str:
         for idx, enemy in enumerate(run.enemies, 1):
             if enemy.hp > 0:
@@ -247,6 +267,12 @@ class CombatResolver:
             is_true = True
         elif hasattr(damage_type, "value") and (damage_type.value == "true" or damage_type.value == "TRUE"):
             is_true = True
+        if target == "p0" and final_dmg > 0:
+            source_name = self.get_source_name(game_run_context, source)
+            game_run_context.node_data["last_damage_source"] = source_name
+            game_run_context.node_data["last_damage_type"] = (
+                damage_type.value if hasattr(damage_type, "value") else str(damage_type)
+            )
         shield_dmg = 0
         hp_dmg = 0
         if target.startswith("e"):
@@ -283,6 +309,7 @@ class CombatResolver:
                 take_evt = DamageTakeEvent(game_run_context, source, target, final_dmg, is_fatal, damage_type)
                 self.engine.event_bus.dispatch(take_evt)
         elif target == "p0":
+            was_alive = p.hp > 0
             game_run_context.node_data["last_shield_before_dmg"] = p.shield
             if final_dmg > 0:
                 game_run_context.node_data["player_damaged_this_turn"] = True
@@ -300,6 +327,12 @@ class CombatResolver:
                     p.shield = 0
             if p.hp <= 0:
                 is_fatal = True
+                if was_alive:
+                    killer = self.get_source_name(game_run_context, source)
+                    if killer == "自身":
+                        game_run_context.node_data["death_cause"] = "被自身的力量反噬"
+                    else:
+                        game_run_context.node_data["death_cause"] = f"被【{killer}】击败"
             if final_dmg > 0:
                 barrier_buff = next((b for b in p.buffs if b.id in ("prismatic_barrier", "prismatic_barrier_upgraded")), None)
                 if barrier_buff:

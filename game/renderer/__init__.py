@@ -3,7 +3,7 @@ from .menu import render_menu, render_card_library, render_relic_library, render
 from .battle import render_battle, render_detailed_battle, render_draw_pile, render_discard_pile, render_exhaust_pile, render_minion_graveyard, render_enemy_graveyard
 
 from .map import render_map_select, render_start_ancient, render_ancient
-from .explore import render_event, render_shop, render_rest, render_reward, render_treasure, render_card_select, render_boss_chest
+from .explore import render_event, render_shop, render_rest, render_reward, render_treasure, render_card_select, render_boss_chest, render_corpse_reward
 from .query import render_query_info
 
 from .town import render_town
@@ -70,6 +70,8 @@ class GameRenderer:
             return render_treasure(run)
         elif nt == "card_select":
             return render_card_select(run)
+        elif nt == "corpse_reward":
+            return render_corpse_reward(run)
         elif nt == "boss_chest":
             return render_boss_chest(run)
         elif nt == "gem_insert":

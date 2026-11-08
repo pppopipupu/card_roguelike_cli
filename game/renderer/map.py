@@ -30,7 +30,8 @@ def render_map_select(run: GameRun) -> str:
         "shop": "奇妙商店",
         "rest": "篝火营地",
         "treasure": "古老宝箱房",
-        "boss": "首领战"
+        "boss": "首领战",
+        "corpse": "尸体"
     }
     max_preview_stage = min(20, p.stage + 3)
     curr_layer_nodes = []

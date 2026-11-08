@@ -4,6 +4,7 @@ import tempfile
 from dataclasses import asdict
 from typing import Optional, Tuple, Dict, List
 from .state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, BuffState, UserStats, current_user_id, register_stat_recorder, get_user_id
+from .corpse_registry import CorpseRegistry
 from ..data.map_config import MapConfig
 
 def _atomic_write_json(path: str, data, indent: int = 2) -> None:
@@ -37,6 +38,7 @@ class SaveManager:
                 self.data_dir = os.path.join(os.path.dirname(os.path.dirname(current_dir)), "data")
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
+        self.corpses = CorpseRegistry(self.data_dir)
 
     def get_save_path(self, user_id: str) -> str:
         safe_id = "".join([c for c in user_id if c.isalnum() or c in ("-", "_")])
@@ -422,15 +424,25 @@ class SaveManager:
             player2=player2
         )
 
-    def settle_game_and_delete(self, user_id: str, run: GameRun, is_victory: bool = False) -> str:
+    def settle_game_and_delete(self, user_id: str, run: GameRun, is_victory: bool = False, create_corpse: bool = True) -> str:
         if not run or not run.player:
             self.delete_save(user_id)
             return "本局结算：未找到有效的角色进度，未获得 GP。"
         stage = run.player.stage
         gold = run.player.gold
+        corpse_note = ""
+        if create_corpse and not is_victory:
+            cause = ""
+            if run.node_data:
+                cause = str(run.node_data.get("death_cause", "")).strip()
+            if not cause:
+                cause = f"在第 {stage} 层倒下"
+            corpse = self.corpses.create_from_run(run, cause)
+            if corpse:
+                corpse_note = f"\n💀 你的尸体留在了第 {stage} 层，其他玩家可以前往搜刮。"
         if stage < 5:
             self.delete_save(user_id)
-            return f"本局结算：由于在第 {stage} 层结束，未获得 GP。"
+            return f"本局结算：由于在第 {stage} 层结束，未获得 GP。{corpse_note}"
         gp_gained = gold * 10
         victory_bonus = ""
         unlock_msg = ""
@@ -451,7 +463,7 @@ class SaveManager:
         stats.gp += gp_gained
         self.save_stats(user_id, stats)
         self.delete_save(user_id)
-        return f"本局结算：剩余金币 {gold}，折算获得 {gp_gained} GP{victory_bonus}！当前总 GP：{stats.gp}。{unlock_msg}"
+        return f"本局结算：剩余金币 {gold}，折算获得 {gp_gained} GP{victory_bonus}！当前总 GP：{stats.gp}。{unlock_msg}{corpse_note}"
 
     def get_admin_config_path(self) -> str:
         return os.path.join(self.data_dir, "admin_config.json")

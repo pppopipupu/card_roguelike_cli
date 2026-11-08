@@ -110,5 +110,8 @@ def register_enemy(name: str):
     return decorator
 
 def get_enemy_template(name: str) -> EnemyTemplate:
+    if name.startswith("冤魂"):
+        from .ghost import GhostEnemyTemplate
+        return GhostEnemyTemplate(name)
     base_name = name.split(" ")[0] if name else ""
     return ALL_ENEMIES.get(base_name, EnemyTemplate(base_name))

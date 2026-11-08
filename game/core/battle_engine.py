@@ -286,6 +286,19 @@ class BattleEngine(BaseBattleEngine):
                 max_actions=actions,
                 max_bonus_actions=bonus_actions
             ))
+        elif difficulty == "ghost":
+            ghost_name = str(run.node_data.get("ghost_name", "冤魂"))
+            ghost_hp = max(1, int(run.node_data.get("ghost_max_hp", 60) or 60))
+            run.enemies = [EnemyState(
+                name=ghost_name,
+                hp=ghost_hp,
+                max_hp=ghost_hp,
+                shield=0,
+                actions=1,
+                bonus_actions=0,
+                max_actions=1,
+                max_bonus_actions=0
+            )]
         else:
             from ..data.enemy_data import ENEMY_CONFIG
             if p.stage <= 12:

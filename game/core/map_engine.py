@@ -2,6 +2,7 @@ import random
 from typing import Optional, List, Dict
 from ..models.state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, Card
 from ..data.map_config import MapConfig
+from ..data.corpse_config import CorpseConfig
 from .explore_engine import ExploreEngine
 
 class MapEngine:
@@ -157,53 +158,94 @@ class MapEngine:
             if p.stage in MapConfig.STAGE_NETWORKS:
                 s_start, s_end = MapConfig.STAGE_NETWORKS[p.stage]
                 self._generate_map_network(run, s_start, s_end)
-            
             run.node_type = "map_select"
-            nodes_layer = run.map_data.get("nodes", {}).get(str(p.stage), [])
-            curr_id = run.map_data.get("current_node_id")
-            
-            opts = []
-            if not curr_id:
-                opts = nodes_layer
-            else:
-                nodes_dict = {}
-                for layer in run.map_data.get("nodes", {}).values():
-                    for node in layer:
-                        nodes_dict[node["id"]] = node
-                curr_node = nodes_dict.get(curr_id)
-                if curr_node:
-                    next_ids = curr_node.get("next", [])
-                    opts = [nodes_dict[nid] for nid in next_ids if nid in nodes_dict]
-            
-            if not opts and nodes_layer:
-                opts = nodes_layer
-                
-            options_data = []
-            desc_map = {
-                "battle": "遭遇战 (遇到 1~3 个普通的敌人)",
-                "elite": "精英战 (遭遇强力敌人，获胜金币更多)",
-                "event": "神秘事件 (可能获得宝物或遭遇危险)",
-                "shop": "奇妙商店 (购买强力卡牌、遗物或移除卡牌)",
-                "rest": "篝火营地 (恢复生命值或冥想领悟卡牌)",
-                "treasure": "古老宝箱 (献祭卡牌以获取稀有遗物及宝藏)",
-                "boss": "首领战 (击败守关的首领)"
-            }
-            emoji_map = {
-                "battle": "遭遇战",
-                "elite": "精英战",
-                "event": "神秘事件",
-                "shop": "奇妙商店",
-                "rest": "篝火营地",
-                "treasure": "古老宝箱",
-                "boss": "首领战"
-            }
-            for o in opts:
-                options_data.append({
-                    "node_id": o["id"],
-                    "node_type": o["type"],
-                    "desc": f"{emoji_map.get(o['type'], o['type'])} ({desc_map.get(o['type'], o['type'])})"
-                })
-            run.node_data = {"options": options_data}
+            self._build_map_options(run)
+
+    def _build_map_options(self, run: GameRun):
+        p = run.player
+        nodes_layer = run.map_data.get("nodes", {}).get(str(p.stage), [])
+        curr_id = run.map_data.get("current_node_id")
+        opts = []
+        if not curr_id:
+            opts = nodes_layer
+        else:
+            nodes_dict = {}
+            for layer in run.map_data.get("nodes", {}).values():
+                for node in layer:
+                    nodes_dict[node["id"]] = node
+            curr_node = nodes_dict.get(curr_id)
+            if curr_node:
+                next_ids = curr_node.get("next", [])
+                opts = [nodes_dict[nid] for nid in next_ids if nid in nodes_dict]
+        if not opts and nodes_layer:
+            opts = nodes_layer
+        options_data = []
+        desc_map = {
+            "battle": "遭遇战 (遇到 1~3 个普通的敌人)",
+            "elite": "精英战 (遭遇强力敌人，获胜金币更多)",
+            "event": "神秘事件 (可能获得宝物或遭遇危险)",
+            "shop": "奇妙商店 (购买强力卡牌、遗物或移除卡牌)",
+            "rest": "篝火营地 (恢复生命值或冥想领悟卡牌)",
+            "treasure": "古老宝箱 (献祭卡牌以获取稀有遗物及宝藏)",
+            "boss": "首领战 (击败守关的首领)"
+        }
+        emoji_map = {
+            "battle": "遭遇战",
+            "elite": "精英战",
+            "event": "神秘事件",
+            "shop": "奇妙商店",
+            "rest": "篝火营地",
+            "treasure": "古老宝箱",
+            "boss": "首领战"
+        }
+        for o in opts:
+            options_data.append({
+                "node_id": o["id"],
+                "node_type": o["type"],
+                "desc": f"{emoji_map.get(o['type'], o['type'])} ({desc_map.get(o['type'], o['type'])})"
+            })
+        run.node_data = {
+            "options": list(options_data),
+            "base_options": list(options_data),
+        }
+        self.sync_corpse_options(run)
+
+    def sync_corpse_options(self, run: GameRun) -> bool:
+        if run is None or run.node_type != "map_select":
+            return False
+        data = run.node_data if run.node_data is not None else {}
+        base = data.get("base_options")
+        if base is None:
+            base = [
+                option for option in data.get("options", [])
+                if option.get("node_type") != "corpse"
+            ]
+            data["base_options"] = list(base)
+        options = list(base)
+        registry = getattr(self.save_manager, "corpses", None)
+        corpses = registry.list_at_stage(
+            run.player.stage, exclude_user=run.user_id
+        ) if registry is not None else []
+        for corpse in corpses:
+            options.append({
+                "node_id": f"corpse_{corpse.get('id')}",
+                "node_type": "corpse",
+                "corpse_id": corpse.get("id"),
+                "desc": (
+                    f"尸体：{corpse.get('player_name', '玩家')}"
+                    f"（{corpse.get('cause', '死因不明')}）"
+                ),
+            })
+        changed = options != data.get("options")
+        data["options"] = options
+        run.node_data = data
+        return changed
+
+    def return_to_map_select(self, run: GameRun):
+        run.node_type = "map_select"
+        run.enemies.clear()
+        run.node_data = {}
+        self._build_map_options(run)
 
     def _generate_map_network(self, run: GameRun, start_s: int, end_s: int):
         nodes = {}
@@ -283,7 +325,35 @@ class MapEngine:
         chosen = options[option_idx - 1]
         node_type = chosen["node_type"]
         node_id = chosen["node_id"]
-        
+
+        if node_type == "corpse":
+            corpse_id = chosen.get("corpse_id")
+            corpse = self.save_manager.corpses.get(corpse_id)
+            if not corpse or corpse.get("claimed_by"):
+                self.sync_corpse_options(run)
+                self.save_manager.save_save(run.user_id, run)
+                return "❌ 这具尸体已经被其他玩家搜刮，尸体节点消失了。"
+            dead_name = str(corpse.get("player_name", "玩家"))
+            cause = str(corpse.get("cause", "死因不明"))
+            run.node_type = "battle"
+            run.node_data = {
+                "corpse_battle": True,
+                "corpse_id": corpse.get("id"),
+                "corpse_stage": int(corpse.get("stage", run.player.stage)),
+                "corpse_dead_name": dead_name,
+                "corpse_cause": cause,
+                "ghost_name": f"冤魂·{dead_name}",
+                "ghost_max_hp": max(CorpseConfig.GHOST_MIN_HP, int(corpse.get("max_hp", 60) or 60)),
+                "ghost_deck": list(corpse.get("deck", [])),
+            }
+            self.battle_engine._init_battle_node(run, "ghost")
+            self.save_manager.save_save(run.user_id, run)
+            return self.battle_engine._append_logs_to_res(
+                run,
+                f"你踏入【尸体：{dead_name}】的阴影。死因：{cause}。\n"
+                f"冤魂从遗体中站起，手中浮现着死者生前的卡组。进入冤魂战！"
+            )
+
         if node_type in ("battle", "elite", "boss"):
             run.node_type = "battle"
         else:

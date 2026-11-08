@@ -344,5 +344,39 @@ class ServerTests(unittest.TestCase):
         self.assertNotIn("/rogue ", menu)
 
 
+    def test_leaderboard_and_online_commands(self):
+        high = self.post(
+            {"command": "start confirm", "channel": "web", "name": "高GP"},
+            self.web_headers("web-lb-high"),
+        ).json()
+        low = self.post(
+            {"command": "start confirm", "channel": "web", "name": "低GP"},
+            self.web_headers("web-lb-low"),
+        ).json()
+        high_stats = self.app.state.service.save_manager.load_stats(high["account"]["uuid"])
+        high_stats.gp = 5000
+        self.app.state.service.save_manager.save_stats(high["account"]["uuid"], high_stats)
+        low_stats = self.app.state.service.save_manager.load_stats(low["account"]["uuid"])
+        low_stats.gp = 100
+        self.app.state.service.save_manager.save_stats(low["account"]["uuid"], low_stats)
+
+        ranking = self.post(
+            {"command": "leaderboard", "channel": "web"},
+            self.web_headers("web-lb-high"),
+        ).json()
+        self.assertIn("GP 排行榜", ranking["text"])
+        self.assertIn("高GP", ranking["text"])
+        self.assertIn("5000 GP", ranking["text"])
+        self.assertLess(ranking["text"].index("高GP"), ranking["text"].index("低GP"))
+
+        online = self.post(
+            {"command": "leaderboard online", "channel": "web"},
+            self.web_headers("web-lb-low"),
+        ).json()
+        self.assertIn("当前在线玩家", online["text"])
+        self.assertIn("高GP", online["text"])
+        self.assertIn("低GP", online["text"])
+
+
 if __name__ == "__main__":
     unittest.main()

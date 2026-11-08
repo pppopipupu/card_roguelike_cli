@@ -404,6 +404,43 @@ class ExploreEngine:
             self.save_manager.save_save(run.user_id, run)
             return res
 
+        elif run.node_type == "corpse_reward":
+            cards = run.node_data.get("cards", [])
+            picks_left = int(run.node_data.get("picks_left", 0))
+            skip_idx = len(cards) + 1
+            if picks_left <= 0:
+                stage = p.stage
+                self.map_engine.return_to_map_select(run)
+                self.save_manager.save_save(run.user_id, run)
+                return f"搜刮已经完成，你回到了第 {stage} 层地图。"
+            if option_idx < 1 or option_idx > skip_idx:
+                return get_locale_text("err_invalid_option_idx")
+            if option_idx == skip_idx:
+                msg = "你跳过了这次选卡。"
+            else:
+                from ..models.state import ensure_card_state
+                c_state = ensure_card_state(cards[option_idx - 1])
+                from ..models.events import CardObtainEvent
+                obtain_evt = CardObtainEvent(run, c_state)
+                self.map_engine.battle_engine.event_bus.dispatch(obtain_evt)
+                p.deck.append(c_state)
+                cards.pop(option_idx - 1)
+                card = ALL_CARDS.get(c_state)
+                msg = f"你从尸体中取走了【{card.name if card else c_state.id}】。"
+            picks_left -= 1
+            run.node_data["picks_left"] = picks_left
+            run.node_data["cards"] = cards
+            if picks_left <= 0:
+                corpse_id = run.node_data.get("corpse_id")
+                if corpse_id:
+                    self.save_manager.corpses.remove(corpse_id)
+                stage = p.stage
+                self.map_engine.return_to_map_select(run)
+                self.save_manager.save_save(run.user_id, run)
+                return f"{msg}\n搜刮完毕，你回到了第 {stage} 层地图。"
+            self.save_manager.save_save(run.user_id, run)
+            return f"{msg}\n你还可以从尸体中挑选 {picks_left} 张卡牌，或跳过。"
+
         elif run.node_type == "card_select":
             cards = run.node_data.get("cards", [])
             can_skip = run.node_data.get("can_skip", True)

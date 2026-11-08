@@ -360,6 +360,8 @@ def render_help() -> str:
         "👉 deck -- 查看当前拥有的全部卡组及卡牌序号",
         "👉 overview [card/relic] -- 查看全部卡牌或遗物总览信息",
         "👉 stat -- 查看勇士生涯累计统计数据",
+        "👉 leaderboard -- 查看 GP 排行榜（前 20）",
+        "👉 leaderboard online -- 查看最近 5 分钟在线玩家",
         "👉 class -- 查看及选择子职业",
         "👉 shop -- 访问局外商店，使用 GP 购买子职业或神秘物品",
         "👉 abandon -- 放弃当前战局（需输入 abandon confirm 确认）",

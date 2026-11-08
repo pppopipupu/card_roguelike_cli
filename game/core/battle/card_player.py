@@ -2,6 +2,7 @@ import random
 from typing import Optional
 from ...models.state import GameRun, PlayerState, EnemyState, MinionState, Card, check_and_replace_fireball
 from ...data.map_config import MapConfig
+from ...data.corpse_config import CorpseConfig
 
 from ...entities import ALL_CARDS, ALL_MINIONS, ALL_AMULETS, get_relic_name, get_relic_impl
 from ...models.events import (
@@ -739,6 +740,9 @@ class CardPlayer:
         p.hp = min(p.max_hp, p.hp)
         evt_win = BattleWinEvent(run)
         self.engine.event_bus.dispatch(evt_win)
+        if run.node_data.get("corpse_battle"):
+            self.handle_corpse_win(run)
+            return
         if run.node_data.get("is_town_combat"):
             self.engine.save_manager.save_save(run.user_id, run)
             return
@@ -930,6 +934,46 @@ class CardPlayer:
                 run.node_data["is_town_combat"] = True
                 run.node_data["npc_name"] = npc_n
             self.engine.save_manager.save_save(run.user_id, run)
+
+    def handle_corpse_win(self, run: GameRun):
+        corpse_id = run.node_data.get("corpse_id")
+        dead_name = str(run.node_data.get("corpse_dead_name", "玩家"))
+        cause = str(run.node_data.get("corpse_cause", "死因不明"))
+        corpse = self.engine.save_manager.corpses.claim(corpse_id, run.user_id)
+        map_engine = getattr(self.engine, "map_engine", None)
+        if not corpse:
+            if map_engine is not None:
+                map_engine.return_to_map_select(run)
+                run.node_data["notice"] = "❌ 这具尸体已经被其他玩家搜刮，尸体节点消失了。"
+            else:
+                run.node_type = "map_select"
+                run.node_data = {}
+            self.engine.save_manager.save_save(run.user_id, run)
+            return
+        gp_reward = int(corpse.get("gp_reward", 0))
+        stats = self.engine.save_manager.load_stats(run.user_id)
+        stats.gp += gp_reward
+        self.engine.save_manager.save_stats(run.user_id, stats)
+        deck = list(corpse.get("deck", []))
+        cards = random.sample(deck, min(CorpseConfig.REWARD_CARD_POOL, len(deck))) if deck else []
+        run.node_type = "corpse_reward"
+        run.enemies.clear()
+        run.node_data = {
+            "corpse_reward": True,
+            "corpse_id": corpse_id,
+            "dead_name": dead_name,
+            "cause": cause,
+            "gp": gp_reward,
+            "cards": cards,
+            "picks_left": CorpseConfig.REWARD_CARD_PICKS,
+            "picked": [],
+            "notice": (
+                f"你击败了【冤魂·{dead_name}】，从尸体中搜刮到 {gp_reward} GP。\n"
+                f"死因：{cause}。你可以从死者卡组中挑选 {CorpseConfig.REWARD_CARD_PICKS} 张卡牌，每次都可以跳过。"
+            ),
+        }
+        self.engine.save_manager.save_save(run.user_id, run)
+        self.engine.save_manager.corpses.remove(corpse_id)
 
     def _reindex_minions(self, p: PlayerState):
         self.engine._reindex_minions(p)

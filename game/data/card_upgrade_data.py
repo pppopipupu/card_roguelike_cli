@@ -84,6 +84,7 @@ CARD_UPGRADE_CONFIG = {
     },
     "magic_missile": {
         "base_dmg": 4,
+        "count": 4,
         "desc": "造成 4 次 4 点真实伤害，无视护盾。"
     },
     "fireball": {

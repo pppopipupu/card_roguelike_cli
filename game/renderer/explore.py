@@ -231,6 +231,46 @@ def render_treasure(run: GameRun) -> str:
     lines.append("━━━━━━━━━━━━━━━━━━━━")
     return "\n".join(lines)
 
+def render_corpse_reward(run: GameRun) -> str:
+    p = run.player
+    data = run.node_data
+    dead_name = data.get("dead_name", "玩家")
+    cause = data.get("cause", "死因不明")
+    cards = data.get("cards", [])
+    picks_left = int(data.get("picks_left", 0))
+    lines = [
+        "━━━━━━━━━━━━━━━━━━━━",
+        f"💀 【第 {p.stage} 层：搜刮尸体】",
+        f"{run.player.name}：❤️ HP {p.hp}/{p.max_hp} | 🪙 金币 {p.gold}",
+        "",
+        f"尸体主人：{dead_name}",
+        f"死因：{cause}",
+        f"已获得：{data.get('gp', 0)} GP",
+        "",
+        data.get("notice", ""),
+        "",
+        f"还可以挑选 {picks_left} 张卡牌（每次都可以跳过）："
+    ]
+    from ..models.state import ensure_card_state
+    for idx, card_data in enumerate(cards, 1):
+        state = ensure_card_state(card_data)
+        card = ALL_CARDS.get(state)
+        if card:
+            color_ch = "⚫" if card.color == "curse" else ("🔵" if card.color == "wizard" else "⚪")
+            cost_str = get_card_cost_str(card)
+            suffix = ""
+            if state.upgraded:
+                suffix += " [已升级]"
+            if state.gems:
+                suffix += f" [宝石:{','.join(state.gems)}]"
+            lines.append(f" [{idx}] {color_ch} {card.name} (消耗: {cost_str}){suffix} - {card.desc}")
+    lines.append(f" [{len(cards) + 1}] 跳过本次选卡")
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    lines.append("💬 选择指令：/rogue c <序号>")
+    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    return "\n".join(lines)
+
+
 def render_card_select(run: GameRun) -> str:
     p = run.player
     data = run.node_data

@@ -152,7 +152,8 @@ def ensure_card_state(c) -> CardState:
             return_left=c.get("return_left", 0),
             replay=c.get("replay", 0),
             fragile=c.get("fragile", 0),
-            no_copy=c.get("no_copy", False)
+            no_copy=c.get("no_copy", False),
+            power_penalty=c.get("power_penalty", 0)
         )
     return c
 

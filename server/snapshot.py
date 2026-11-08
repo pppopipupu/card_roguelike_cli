@@ -18,6 +18,7 @@ NODE_LABELS = {
     "rest": "篝火营地",
     "treasure": "古老宝箱",
     "boss": "首领战",
+    "corpse": "尸体",
 }
 
 SCREEN_LABELS = {
@@ -32,6 +33,7 @@ SCREEN_LABELS = {
     "treasure": "古老宝箱",
     "card_select": "卡牌选择",
     "boss_chest": "神话宝箱",
+    "corpse_reward": "搜刮尸体",
     "gem_insert": "宝石镶嵌",
     "cafe": "咖啡馆",
     "victory": "胜利",
@@ -257,6 +259,18 @@ def _map_json(run: Optional[GameRun]) -> Optional[dict]:
                     "next": list(node.get("next", [])),
                 }
             )
+    for option in (run.node_data or {}).get("options", []):
+        if option.get("node_type") != "corpse":
+            continue
+        nodes.append(
+            {
+                "id": option.get("node_id"),
+                "stage": run.player.stage if run.player else 0,
+                "type": "corpse",
+                "label": NODE_LABELS["corpse"],
+                "next": [],
+            }
+        )
     reachable = set()
     if run.node_type == "map_select":
         for option in run.node_data.get("options", []):
@@ -448,6 +462,31 @@ def _options_json(run: Optional[GameRun]) -> list[dict]:
         if node_type == "treasure" and data.get("state", "pending_remove") == "pending_remove":
             return []
         return _items_options(data.get("items", []))
+    if node_type == "corpse_reward":
+        cards = data.get("cards", [])
+        options = []
+        for index, value in enumerate(cards, 1):
+            state = ensure_card_state(value)
+            card = _card_json(state)
+            label = f"🃏 {card['name']}"
+            if state.upgraded:
+                label += " [已升级]"
+            if state.gems:
+                label += f" [宝石:{','.join(state.gems)}]"
+            options.append(
+                _option(
+                    index,
+                    "card",
+                    label,
+                    desc=card["desc"],
+                    cost=card["cost"],
+                    card_id=state.id,
+                )
+            )
+        options.append(
+            _option(len(cards) + 1, "skip", "跳过本次选卡")
+        )
+        return options
     if node_type == "card_select":
         cards = data.get("cards", [])
         options = []
