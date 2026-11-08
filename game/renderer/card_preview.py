@@ -77,32 +77,37 @@ def _replace_damage_numbers(text: str, bonus: int) -> str:
     return re.sub(r"造成\s*(\d+)\s*点", repl, text)
 
 
-def _xiaomei_description(card, run) -> str:
-    cfg = MINION_CONFIG.get("elf_archer_xiaomei", {})
-    thresholds = cfg.get("enter_hit_thresholds", [4, 6, 8])
-    damage = int(cfg.get("enter_damage", 16))
-    damage_name = cfg.get("enter_damage_name", "穿刺")
+def _cards_played_entry_description(card, run) -> str:
+    card_id = getattr(card, "id", "").rstrip("+")
+    cfg = MINION_CONFIG.get(card_id, {})
+    thresholds = cfg.get("enter_hit_thresholds") or []
+    damage = int(cfg.get("enter_damage", 0))
+    if not thresholds or damage <= 0:
+        return card.desc
+    damage_name = cfg.get("enter_damage_name", "伤害")
+    damage_type = cfg.get("enter_damage_type", "effect")
     count = run.node_data.get("cards_played_this_turn", 0)
     hits = sum(1 for threshold in thresholds if count >= threshold)
-    piercing_bonus = 0
+    damage_bonus = 0
     for effect in _daily_effects(run):
-        if effect.get("type") == "damage_type_bonus" and effect.get("damage_type") == cfg.get("enter_damage_type", "piercing"):
-            piercing_bonus += int(effect.get("value", 0))
-    actual = damage + piercing_bonus
+        if effect.get("type") == "damage_type_bonus" and effect.get("damage_type") == damage_type:
+            damage_bonus += int(effect.get("value", 0))
+    actual = damage + damage_bonus
     desc = card.desc
     if actual != damage:
         desc = desc.replace(f"{damage} 点", f"{damage}（{actual}）点")
     if hits:
-        desc += f"（当前本回合已打出 {count} 张，进入战场将触发 {hits} 次{damage_name}射击）"
+        desc += f"（当前本回合已打出 {count} 张，进入战场将触发 {hits} 次{damage_name}伤害）"
     else:
-        first = min(thresholds) if thresholds else 4
-        desc += f"（当前本回合已打出 {count} 张，尚未达到 {first} 张）"
+        desc += f"（当前本回合已打出 {count} 张，尚未达到 {min(thresholds)} 张）"
     return desc
 
 
 def render_card_description(card, run) -> str:
-    if getattr(card, "id", "") == "elf_archer_xiaomei":
-        text = _xiaomei_description(card, run)
+    card_id = getattr(card, "id", "").rstrip("+")
+    cfg = MINION_CONFIG.get(card_id, {})
+    if cfg.get("enter_hit_thresholds") and cfg.get("enter_damage"):
+        text = _cards_played_entry_description(card, run)
     else:
         text = _replace_damage_numbers(card.desc, _card_damage_bonus(card, run))
     return highlight_conditions(text)

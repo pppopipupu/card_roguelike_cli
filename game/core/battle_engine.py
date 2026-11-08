@@ -109,7 +109,6 @@ class BattleEngine(BaseBattleEngine):
         p.bonus_actions = 1
         p.shield = 0
         run.node_data["cards_played_this_turn"] = 0
-        run.node_data.pop("instant_summon_counts", None)
         run.node_data["turn_count"] = 1
         selected_class = "法师"
         stats = self.save_manager.load_stats(run.user_id) if hasattr(self, "save_manager") and self.save_manager else None

@@ -253,6 +253,7 @@ class Card:
     gems: List[str] = field(default_factory=list)
     instant_summon: bool = False
     instant_summon_thresholds: tuple = ()
+    instant_summon_piles: tuple = ()
 
     def get_gem_slots_count(self) -> int:
         rarities = {

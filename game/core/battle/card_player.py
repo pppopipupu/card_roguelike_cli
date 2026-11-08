@@ -727,7 +727,6 @@ class CardPlayer:
 
         self.engine._roll_enemy_intent(run)
         run.node_data["cards_played_this_turn"] = 0
-        run.node_data.pop("instant_summon_counts", None)
         run.node_data["action_surge_turn_used"] = False
         self._reindex_minions(p)
         run.node_data["turn_count"] = run.node_data.get("turn_count", 1) + 1

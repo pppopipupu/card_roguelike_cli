@@ -157,3 +157,96 @@ class TestRogueMinions(unittest.TestCase):
         self.assertTrue(term)
         self.assertEqual(run.node_type, "reward")
         self.assertIn("战斗胜利！你击败了敌方所有单位。", res)
+
+    def test_instant_summon_uses_configured_sources(self):
+        from game.models.state import CardState
+        from game.models.events import CardPlayedCountEvent
+        from game.data.keyword_data import KEYWORD_CONFIG
+
+        class DummySaveManager:
+            def save_save(self, user_id, run):
+                pass
+            def delete_save(self, user_id):
+                pass
+
+        engine = BattleEngine(DummySaveManager())
+        player = PlayerState(
+            hp=50,
+            max_hp=50,
+            shield=0,
+            gold=100,
+            stage=1,
+            draw_pile=[CardState("elf_archer_xiaomei")],
+            discard_pile=[CardState("elf_archer_xiaomei")],
+            exhaust_pile=[CardState("elf_archer_xiaomei")],
+            actions=5,
+            bonus_actions=5
+        )
+        run = GameRun(
+            user_id="test_instant_summon",
+            node_type="battle",
+            player=player,
+            enemies=[EnemyState("训练假人", 999, 999, 0)],
+            node_data={"cards_played_this_turn": 4}
+        )
+        engine.event_bus.dispatch(CardPlayedCountEvent(run, 4))
+        self.assertEqual(len(player.minions), 2)
+        self.assertEqual(player.draw_pile, [])
+        self.assertEqual(player.discard_pile, [])
+        self.assertEqual(len(player.exhaust_pile), 1)
+        logs = "\n".join(run.node_data.get("battle_logs", []))
+        self.assertIn("抽牌堆", logs)
+        self.assertIn("弃牌堆", logs)
+        self.assertNotIn("消耗堆", logs)
+        for pile_name in ("抽牌堆", "弃牌堆", "手牌", "消耗堆"):
+            self.assertIn(pile_name, KEYWORD_CONFIG["instant_summon"]["desc"])
+
+    def test_instant_summon_sources_are_card_specific(self):
+        from game.models.state import Card, CardState
+        from game.models.events import CardPlayedCountEvent
+        from game.entities.cards.base import ALL_CARDS
+
+        class DummySaveManager:
+            def save_save(self, user_id, run):
+                pass
+            def delete_save(self, user_id):
+                pass
+
+        test_id = "test_instant_summon_variant"
+        card = Card(test_id, "测试瞬念随从", "neutral", "minion", 0, 0)
+        card.minion_hp = 5
+        card.minion_atk = 1
+        card.instant_summon = True
+        card.instant_summon_thresholds = (4,)
+        card.instant_summon_piles = ("hand", "exhaust")
+        ALL_CARDS[test_id] = card
+        try:
+            engine = BattleEngine(DummySaveManager())
+            player = PlayerState(
+                hp=50,
+                max_hp=50,
+                shield=0,
+                gold=100,
+                stage=1,
+                hand=[CardState(test_id)],
+                exhaust_pile=[CardState(test_id)],
+                draw_pile=[CardState(test_id)],
+                discard_pile=[CardState(test_id)],
+                actions=5,
+                bonus_actions=5
+            )
+            run = GameRun(
+                user_id="test_instant_summon_variant",
+                node_type="battle",
+                player=player,
+                enemies=[EnemyState("训练假人", 999, 999, 0)],
+                node_data={"cards_played_this_turn": 4}
+            )
+            engine.event_bus.dispatch(CardPlayedCountEvent(run, 4))
+            self.assertEqual(len(player.minions), 2)
+            self.assertEqual(player.hand, [])
+            self.assertEqual(player.exhaust_pile, [])
+            self.assertEqual(len(player.draw_pile), 1)
+            self.assertEqual(len(player.discard_pile), 1)
+        finally:
+            ALL_CARDS.pop(test_id, None)
