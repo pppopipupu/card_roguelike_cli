@@ -7,6 +7,8 @@ from .battle.combat_resolver import CombatResolver
 from .battle.card_player import CardPlayer
 from .battle.enemy_controller import EnemyTurnController
 from .battle.observers import RelicTriggerHandler, BuffTriggerHandler, AmuletTriggerHandler, RallyTriggerHandler, MinionTriggerHandler, EnemyTriggerHandler, CardTriggerHandler
+from .battle.instant_summon import InstantSummonHandler
+from .daily_blessing import DailyBlessingHandler
 
 class BattleEngine(BaseBattleEngine):
     def __init__(self, save_manager):
@@ -21,6 +23,8 @@ class BattleEngine(BaseBattleEngine):
         self.minion_handler = MinionTriggerHandler(self.event_bus, self)
         self.enemy_handler = EnemyTriggerHandler(self.event_bus, self)
         self.card_handler = CardTriggerHandler(self.event_bus, self)
+        self.instant_summon_handler = InstantSummonHandler(self.event_bus, self)
+        self.daily_blessing_handler = DailyBlessingHandler(self.event_bus, self)
 
     def _log_event(self, run: Optional[GameRun], msg: str):
         if run is None:
@@ -75,6 +79,13 @@ class BattleEngine(BaseBattleEngine):
     def _get_free_grid(self, p: PlayerState) -> Optional[str]:
         return self.combat_resolver.get_free_grid(p)
 
+    def _register_card_played(self, run: GameRun) -> int:
+        count = run.node_data.get("cards_played_this_turn", 0) + 1
+        run.node_data["cards_played_this_turn"] = count
+        from ..models.events import CardPlayedCountEvent
+        self.event_bus.dispatch(CardPlayedCountEvent(run, count))
+        return count
+
     def _draw_cards(self, p: PlayerState, count: int, run: Optional[GameRun] = None, ignore_focus: bool = False):
         self.card_player.draw_cards(p, count, run, ignore_focus)
 
@@ -98,6 +109,7 @@ class BattleEngine(BaseBattleEngine):
         p.bonus_actions = 1
         p.shield = 0
         run.node_data["cards_played_this_turn"] = 0
+        run.node_data.pop("instant_summon_counts", None)
         run.node_data["turn_count"] = 1
         selected_class = "法师"
         stats = self.save_manager.load_stats(run.user_id) if hasattr(self, "save_manager") and self.save_manager else None
@@ -559,7 +571,6 @@ class BattleEngine(BaseBattleEngine):
         if hasattr(card, "execute_tags"):
             card.execute_tags(run, None, self)
 
-        played_count = run.node_data.get("cards_played_this_turn", 0)
         from ..models.events import CardPlayedEvent
         played_evt = CardPlayedEvent(run, card, None, "")
         self.event_bus.dispatch(played_evt)
@@ -569,7 +580,7 @@ class BattleEngine(BaseBattleEngine):
         if extra_copy_msg:
             self._log_event(run, extra_copy_msg.strip())
         
-        run.node_data["cards_played_this_turn"] = played_count + 1
+        self._register_card_played(run)
 
     def rollback_suspended_card(self, run: GameRun):
         suspended_state = run.node_data.pop("suspended_card_cid", None)

@@ -76,6 +76,8 @@ class CardRegistryDict(dict):
             inst.ethereal = cfg.get("ethereal", False)
             inst.unplayable = cfg.get("unplayable", False)
             inst.damage_type = cfg.get("damage_type", "effect")
+            inst.instant_summon = cfg.get("instant_summon", False)
+            inst.instant_summon_thresholds = tuple(cfg.get("instant_summon_thresholds", ()))
             fragile_val = cfg.get("fragile", 0)
             if fragile_val > 0:
                 from ...entities.tags import FragileTag
@@ -402,6 +404,8 @@ for cid, cfg in _get_card_config().items():
     inst.ethereal = cfg.get("ethereal", False)
     inst.unplayable = cfg.get("unplayable", False)
     inst.damage_type = cfg.get("damage_type", "effect")
+    inst.instant_summon = cfg.get("instant_summon", False)
+    inst.instant_summon_thresholds = tuple(cfg.get("instant_summon_thresholds", ()))
     fragile_val = cfg.get("fragile", 0)
     if fragile_val > 0:
         from ...entities.tags import FragileTag

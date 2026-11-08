@@ -346,6 +346,35 @@ class MinionTemplate:
         pass
 
 
+class XiaomeiTemplate(MinionTemplate):
+    def on_minion_summon(self, run, grid, event, engine):
+        if grid != event.grid:
+            return
+        if event.minion_state.id != self.id:
+            return
+        count = run.node_data.get("cards_played_this_turn", 0)
+        if run.node_data.get("current_playing_card_id"):
+            count += 1
+        cfg = MINION_CONFIG[self.id]
+        thresholds = cfg.get("enter_hit_thresholds", [4, 6, 8])
+        if not thresholds or count < min(thresholds):
+            return
+        hits = sum(1 for threshold in thresholds if count >= threshold)
+        damage = int(cfg.get("enter_damage", 16))
+        damage_type = cfg.get("enter_damage_type", "piercing")
+        import random
+        hit_count = 0
+        for _ in range(hits):
+            alive = [idx for idx, enemy in enumerate(run.enemies) if enemy.hp > 0]
+            if not alive:
+                break
+            idx = random.choice(alive)
+            engine._damage_target(run, f"e{idx+1}", damage, source=f"p{grid}", damage_type=damage_type)
+            hit_count += 1
+        if hit_count:
+            engine._log_event(run, f"🏹 【{self.name}】进入战场时，本回合已打出 {count} 张牌，触发了 {hit_count} 次{cfg.get('enter_damage_name', '穿刺')}射击！")
+
+
 class ShieldGuardTemplate(MinionTemplate):
     def on_minion_summon(self, run, grid, event, engine):
         if event.minion_state.id == self.id:
@@ -690,6 +719,11 @@ ALL_MINIONS = {
                 MINION_CONFIG["gate_guard"]["skills"][0]["desc"]
             )
         ]
+    ),
+    "elf_archer_xiaomei": XiaomeiTemplate(
+        "elf_archer_xiaomei",
+        MINION_CONFIG["elf_archer_xiaomei"]["name"],
+        []
     ),
     "officer_recruit_vanguard": RecruitVanguardTemplate(
         "officer_recruit_vanguard",

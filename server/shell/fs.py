@@ -105,12 +105,6 @@ def build_nodes(user: str) -> dict[str, Node]:
         "\n"
         "本机是卡牌肉鸽终端。玩家可以在当前目录写入文本笔记。\n"
         "\n"
-        "可写区域：/home 与 /home/dungeon 下的现有目录。\n"
-        "禁止操作：mkdir、mv、cp、chmod、sudo 以及其他系统变更。\n"
-        "单文件上限：512 KB。\n"
-        "\n"
-        "彩蛋文件与 .secrets 目录受只读保护，rm 无法删除。\n"
-        "\n"
         "试试：ls -la、cat dungeon/deck.json、uname -a、neofetch。\n",
         now - 86400 * 3,
     )

@@ -4,6 +4,7 @@ import random
 from typing import Optional, List, Dict, Any, Tuple
 from ..models.state import UserStats, GameRun, PlayerState, EnemyState, BuffState
 from ..entities import ALL_CARDS
+from ..entities.cards.market import MARKET_SHELF_CARDS, get_market_price, is_card_available
 
 class TownEngine:
     def __init__(self, save_manager, engine):
@@ -96,13 +97,11 @@ class TownEngine:
                         r = getattr(card_obj, "rarity", "common")
                         if r == "common":
                             rarity_str = "普通"
-                            price = 100
                         elif r == "rare":
                             rarity_str = "稀有"
-                            price = 300
                         else:
                             rarity_str = "珍奇"
-                            price = 700
+                    price = get_market_price(cid, card_obj)
                     options.append(zh_cn.get("global", {}).get("market_buy_option", "").format(idx=idx+1, name=c_name, rarity=rarity_str, price=price))
             options.append(f"{len(shelf)+1}. " + zh_cn.get("global", {}).get("back_to_previous", "返回上一级"))
         elif npc_id == "Market_Merchant" and sub_menu == "lock":
@@ -242,15 +241,10 @@ class TownEngine:
         return "\n".join(lines)
 
     def _get_market_shelf(self, stats: UserStats) -> List[str]:
-        fixed_cards = [
-            "warrior_blood_fury", "neutral_power_word_pain",
-            "warrior_shield_bash", "wizard_antimagic_field", "neutral_power_word_stun",
-            "warrior_hell_raider", "wizard_prismatic_wall", "wizard_time_ravage", "neutral_power_word_kill", "neutral_plane_shift"
-        ]
         already_bought = set(getattr(stats, "purchased_pool", []) or []) | set(getattr(stats, "unlocked_new_cards", []) or [])
         shelf = stats.town_flags.get("market_shelf")
-        if not isinstance(shelf, list) or len(shelf) != 10 or any(c and c not in fixed_cards for c in shelf):
-            shelf = [c if c not in already_bought else "" for c in fixed_cards]
+        if not isinstance(shelf, list) or len(shelf) != len(MARKET_SHELF_CARDS) or any(c and c not in MARKET_SHELF_CARDS for c in shelf):
+            shelf = [c if c not in already_bought else "" for c in MARKET_SHELF_CARDS]
         else:
             shelf = [c if (c and c not in already_bought) else "" for c in shelf]
         stats.town_flags["market_shelf"] = shelf
@@ -556,9 +550,9 @@ class TownEngine:
         hp_bonus = getattr(stats, "town_health_bonus", 0)
         hp += hp_bonus
         max_hp += hp_bonus
-        commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop"]
-        rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop"]
-        epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop"]
+        commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and is_card_available(cid, stats)]
+        rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and is_card_available(cid, stats)]
+        epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and is_card_available(cid, stats)]
         locked_cards = list(getattr(stats, "locked_cards", []) or [])
         g_card = getattr(stats, "guaranteed_card", None)
         if g_card:

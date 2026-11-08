@@ -49,5 +49,20 @@ NEUTRAL_CARD_MINIONS = {
         "minion_hp": 12,
         "minion_atk": 2,
         "feedback_success": "在格子 [{grid}] 召唤了【{name}】并使【{target}】眩晕。"
+    },
+    "elf_archer_xiaomei": {
+        "name": "精灵射手小梅",
+        "color": "neutral",
+        "type": "minion",
+        "cost_a": 0,
+        "cost_ba": 1,
+        "desc": "生命 4，攻击 1。进入战场时，若本回合你已打出的卡牌数量达到 4，对随机敌人造成 16 点穿刺伤害；达到 6 再造成 16 点；达到 8 再造成 16 点。瞬念召唤：本回合第 4、6、8 张牌被打出时，从弃牌堆或抽牌堆跃入战场，不消耗费用。",
+        "rarity": "rare",
+        "minion_hp": 4,
+        "minion_atk": 1,
+        "instant_summon": True,
+        "instant_summon_thresholds": [4, 6, 8],
+        "feedback_success": "在格子 [{grid}] 召唤了【{name}】。",
+        "feedback_fail": "战场已满，召唤失败。"
     }
 }

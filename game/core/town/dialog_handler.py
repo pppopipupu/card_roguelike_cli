@@ -2,6 +2,7 @@ import random
 from typing import Optional, Dict, Any
 from ...models.state import UserStats
 from ...cards import ALL_CARDS
+from ...entities.cards.market import get_market_price
 
 def handle_sub_dialog(town_engine, stats: UserStats, npc_id: str, choice_lower: str, choice: str, user_id: str, zh_cn: Dict[str, Any]) -> Optional[str]:
     jack_riddle_step = stats.town_flags.get("jack_riddle_step")
@@ -93,26 +94,18 @@ def handle_sub_dialog(town_engine, stats: UserStats, npc_id: str, choice_lower: 
 
     if npc_id == "Market_Merchant" and sub_menu == "buy":
         shelf = town_engine._get_market_shelf(stats)
-        if choice_lower == "11":
+        if choice_lower == str(len(shelf) + 1):
             stats.town_flags.pop("market_sub_menu", None)
             town_engine.save_manager.save_stats(user_id, stats)
             return town_engine._render_dialog_window(stats, npc_id, zh_cn)
-        if choice_lower in ("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"):
+        if choice_lower.isdigit() and 1 <= int(choice_lower) <= len(shelf):
             idx = int(choice_lower) - 1
             cid = shelf[idx]
             if not cid:
                 return zh_cn.get("global", {}).get("card_buy_not_on_shelf", "").format(name="")
             
             card_obj = ALL_CARDS.get(cid)
-            price = 100
-            if card_obj:
-                r = getattr(card_obj, "rarity", "common")
-                if r == "common":
-                    price = 100
-                elif r == "rare":
-                    price = 300
-                else:
-                    price = 700
+            price = get_market_price(cid, card_obj)
 
             if stats.gp < price:
                 return zh_cn.get("global", {}).get("gp_insufficient", "").format(req=price, owned=stats.gp)

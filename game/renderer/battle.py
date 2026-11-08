@@ -5,6 +5,7 @@ from ..entities import get_relic_name, get_relic_desc
 from ..data.buff_data import BUFF_CONFIG
 from ..data.minion_data import MINION_CONFIG
 from .menu import get_card_cost_str
+from .card_preview import render_card_description
 
 def void_corrupt_text(text: str) -> str:
     import random
@@ -159,7 +160,7 @@ def render_battle(run: GameRun) -> str:
                 }
                 rname = rarity_map.get(getattr(card, "rarity", "common"), "普通")
                 c_name = card.name
-                c_desc = card.desc
+                c_desc = render_card_description(card, run)
                 if run.node_data.get("is_void_corrupted"):
                     c_name = void_corrupt_text(c_name)
                     c_desc = void_corrupt_text(c_desc)

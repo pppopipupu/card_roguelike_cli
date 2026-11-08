@@ -327,7 +327,6 @@ class CardPlayer:
             run.node_data.pop("split_to_ten_active", None)
 
         if not suspend_post_play:
-            played_count = run.node_data.get("cards_played_this_turn", 0)
             played_evt = CardPlayedEvent(run, card, target, res)
             self.engine.event_bus.dispatch(played_evt)
             res = played_evt.feedback
@@ -395,7 +394,7 @@ class CardPlayer:
             if extra_copy_msg:
                 res += extra_copy_msg
 
-            run.node_data["cards_played_this_turn"] = played_count + 1
+            self.engine._register_card_played(run)
             self.engine.save_manager.save_save(run.user_id, run)
         else:
             self.engine.save_manager.save_save(run.user_id, run)
@@ -728,6 +727,7 @@ class CardPlayer:
 
         self.engine._roll_enemy_intent(run)
         run.node_data["cards_played_this_turn"] = 0
+        run.node_data.pop("instant_summon_counts", None)
         run.node_data["action_surge_turn_used"] = False
         self._reindex_minions(p)
         run.node_data["turn_count"] = run.node_data.get("turn_count", 1) + 1

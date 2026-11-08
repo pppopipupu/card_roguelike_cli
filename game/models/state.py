@@ -42,7 +42,7 @@ class UserStats:
     total_damage: int = 0
     total_kills: int = 0
     total_stages: int = 0
-    rogue_mode: bool = True
+    rogue_mode: bool = False
     duel_mode: bool = False
     gp: int = 0
     unlocked_subclasses: List[str] = field(default_factory=list)
@@ -68,6 +68,10 @@ class UserStats:
     town_health_bonus: int = 0
     player_name: str = "玩家"
     unlocked_new_cards: List[str] = field(default_factory=list)
+    last_checkin_date: str = ""
+    daily_blessing: str = ""
+    checkin_pending_stamp: bool = False
+    collection_stamps: Dict[str, int] = field(default_factory=dict)
 
 
 
@@ -247,6 +251,8 @@ class Card:
     upgraded: bool = False
     tags: List[CardTag] = field(default_factory=list)
     gems: List[str] = field(default_factory=list)
+    instant_summon: bool = False
+    instant_summon_thresholds: tuple = ()
 
     def get_gem_slots_count(self) -> int:
         rarities = {
@@ -377,6 +383,7 @@ class PlayerState:
     subclass: str = ""
     selected_class: str = "法师"
     potions: List[str] = field(default_factory=list)
+    daily_blessing_id: str = ""
 
     def __post_init__(self):
         if not hasattr(self, "potions") or self.potions is None:

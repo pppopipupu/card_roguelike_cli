@@ -25,8 +25,8 @@ class GameRenderer:
         return render_menu(stats)
 
     @staticmethod
-    def render_help() -> str:
-        return render_help()
+    def render_help(include_mode: bool = True) -> str:
+        return render_help(include_mode)
 
     @staticmethod
     def render_tutorial() -> str:
@@ -90,8 +90,8 @@ class GameRenderer:
         return render_detailed_battle(run)
 
     @staticmethod
-    def render_stats(stats: UserStats) -> str:
-        return render_stats(stats)
+    def render_stats(stats: UserStats, include_mode: bool = True) -> str:
+        return render_stats(stats, include_mode)
 
 
     @staticmethod

@@ -104,16 +104,22 @@ class TestRogueBasic(unittest.TestCase):
 
         asyncio.run(go_save())
 
-    def test_rogue_shortcut_default(self):
+    def test_rogue_mode_and_shortcut(self):
         plugin = MyPlugin(DummyContext())
         plugin.save_manager.delete_save("test_user_rogue")
         stats_path = plugin.save_manager.get_stats_path("test_user_rogue")
         if os.path.exists(stats_path):
             os.remove(stats_path)
         stats = plugin.save_manager.load_stats("test_user_rogue")
-        self.assertTrue(stats.rogue_mode)
+        self.assertFalse(stats.rogue_mode)
         
         async def go():
+            event_toggle = DummyEvent(".rogue mode", sender_id="test_user_rogue")
+            await plugin.shortcut_rogue(event_toggle)
+            loaded_stats = plugin.save_manager.load_stats("test_user_rogue")
+            self.assertTrue(loaded_stats.rogue_mode)
+            self.assertIn("免前缀肉鸽模式已开启", "\n".join(event_toggle.results))
+            
             event_start = DummyEvent("开启", sender_id="test_user_rogue")
             await plugin.shortcut_rogue(event_start)
             self.assertTrue(event_start.stopped)
@@ -169,10 +175,14 @@ class TestRogueBasic(unittest.TestCase):
             await plugin.shortcut_rogue(event_num_no_save)
             self.assertFalse(event_num_no_save.stopped)
             
-            event_mode = DummyEvent("mode", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_mode)
-            self.assertFalse(event_mode.stopped)
-            self.assertTrue(plugin.save_manager.load_stats("test_user_rogue").rogue_mode)
+            event_toggle_off = DummyEvent("模式", sender_id="test_user_rogue")
+            await plugin.shortcut_rogue(event_toggle_off)
+            off_stats = plugin.save_manager.load_stats("test_user_rogue")
+            self.assertFalse(off_stats.rogue_mode)
+            
+            event_start_disabled = DummyEvent("开启", sender_id="test_user_rogue")
+            await plugin.shortcut_rogue(event_start_disabled)
+            self.assertFalse(event_start_disabled.stopped)
             
         asyncio.run(go())
 

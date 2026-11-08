@@ -59,8 +59,8 @@ class SaveManager:
                 total_damage=d.get("total_damage", 0),
                 total_kills=d.get("total_kills", 0),
                 total_stages=d.get("total_stages", 0),
-                rogue_mode=True,
-                duel_mode=False,
+                rogue_mode=d.get("rogue_mode", False),
+                duel_mode=d.get("duel_mode", False),
                 gp=d.get("gp", 0),
                 unlocked_subclasses=d.get("unlocked_subclasses", []),
                 selected_class=d.get("selected_class", "法师"),
@@ -84,7 +84,11 @@ class SaveManager:
                 town_flags=d.get("town_flags", {}),
                 town_health_bonus=d.get("town_health_bonus", 0),
                 player_name=d.get("player_name", "玩家"),
-                unlocked_new_cards=d.get("unlocked_new_cards", [])
+                unlocked_new_cards=d.get("unlocked_new_cards", []),
+                last_checkin_date=d.get("last_checkin_date", ""),
+                daily_blessing=d.get("daily_blessing", ""),
+                checkin_pending_stamp=d.get("checkin_pending_stamp", False),
+                collection_stamps=d.get("collection_stamps", {})
             )
         except:
             return UserStats()
@@ -351,7 +355,8 @@ class SaveManager:
             relics=p_data.get("relics", []),
             subclass=p_data.get("subclass", ""),
             selected_class=p_data.get("selected_class", "法师"),
-            potions=p_data.get("potions", [])
+            potions=p_data.get("potions", []),
+            daily_blessing_id=p_data.get("daily_blessing_id", "")
         )
 
     def from_dict(self, d: dict) -> GameRun:

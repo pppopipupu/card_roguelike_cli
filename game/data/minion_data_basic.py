@@ -288,15 +288,23 @@ MINION_BASIC_CONFIG = {
         "name": "门扉守卫",
         "skills": [
             {
-                "id": "gate_strike",
+                "id": "guard_strike",
                 "name": "守卫痛击",
                 "cost_a": 2,
                 "cost_ba": 0,
                 "desc": "消耗 2A，造成 6 点钝击伤害并使目标下回合动作 A 减少 1。",
                 "damage": 6,
-                "feedback": "对【{target}】造成了 {damage} 点钝击伤害并使其下回合动作点 A 减少 1。"
+                "feedback": "对【{target}】造成了 {damage} 点钝击伤害。"
             }
         ]
+    },
+    "elf_archer_xiaomei": {
+        "name": "精灵射手小梅",
+        "enter_damage": 16,
+        "enter_hit_thresholds": [4, 6, 8],
+        "enter_damage_type": "piercing",
+        "enter_damage_name": "穿刺",
+        "skills": []
     },
     "gate_guard+": {
         "name": "门扉守卫+",

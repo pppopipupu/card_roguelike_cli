@@ -2,6 +2,7 @@ import random
 from typing import Optional, List, Dict
 from .models.state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, Card
 from .entities import ALL_CARDS
+from .entities.cards.market import is_card_available
 from .models.manager import SaveManager
 from .core.battle_engine import BattleEngine
 from .core.map_engine import MapEngine
@@ -32,9 +33,9 @@ class GameEngine:
         hp_bonus = getattr(stats, "town_health_bonus", 0)
         hp += hp_bonus
         max_hp += hp_bonus
-        commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop"]
-        rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop"]
-        epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop"]
+        commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and is_card_available(cid, stats)]
+        rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and is_card_available(cid, stats)]
+        epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and is_card_available(cid, stats)]
         locked_cards = list(getattr(stats, "locked_cards", []) or [])
         g_card = getattr(stats, "guaranteed_card", None)
         if g_card:
@@ -70,7 +71,6 @@ class GameEngine:
             initial_deck.append(random.choice(epics))
         if selected_class == "法师" and selected_subclass == "时序法师":
             initial_deck.append("time_stop")
-        self.save_manager.save_stats(user_id, stats)
         player = PlayerState(
             hp=hp,
             max_hp=max_hp,
@@ -97,6 +97,9 @@ class GameEngine:
             enemies=[],
             node_data={}
         )
+        from .core.daily_blessing import apply_pending_blessing
+        apply_pending_blessing(run, stats)
+        self.save_manager.save_stats(user_id, stats)
         self.enter_next_stage(run)
         self.save_manager.save_save(user_id, run)
         return run

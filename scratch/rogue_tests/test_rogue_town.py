@@ -3,6 +3,7 @@ import unittest
 import asyncio
 import sys
 from scratch.rogue_tests.base import *
+from game.entities.cards.market import MARKET_SHELF_CARDS
 
 class TestRogueTown(unittest.TestCase):
     def test_town_full_loop(self):
@@ -33,6 +34,11 @@ class TestRogueTown(unittest.TestCase):
 
             res = await run_command(plugin, ".rogue talk Guide_Elder")
             self.assertIn("与向导长老闲聊", res)
+
+            res_mode = await run_command(plugin, ".rogue mode")
+            self.assertIn("免前缀肉鸽模式已", res_mode)
+            res_mode = await run_command(plugin, ".rogue 模式")
+            self.assertIn("免前缀肉鸽模式已", res_mode)
 
             res = await run_command(plugin, ".rogue 2")
             self.assertIn("游览商业 A 区", res)
@@ -334,7 +340,7 @@ class TestRogueTown(unittest.TestCase):
             from game.core.town_engine import TownEngine
             town_eng = TownEngine(save_manager, None)
             shelf = town_eng._get_market_shelf(stats)
-            self.assertEqual(len(shelf), 10)
+            self.assertEqual(len(shelf), len(MARKET_SHELF_CARDS))
             self.assertEqual(shelf[0], "")
             self.assertEqual(shelf[1], "")
             self.assertEqual(shelf[2], "")

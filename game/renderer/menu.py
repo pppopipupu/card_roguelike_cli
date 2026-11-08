@@ -34,6 +34,7 @@ def render_menu(stats: UserStats = None) -> str:
         "👉 /rogue s  -- 查看当前局内状态",
         "👉 /rogue deck  -- 查看当前拥有的卡组",
         "👉 /rogue stat  -- 查看你的生涯统计数据",
+        "👉 /rogue 签到  -- 每日签到，领取下一局祝福并盖集换章",
         "👉 /rogue abandon  -- 放弃当前局内游戏",
         "",
         "💡 提示：输入 /rogue help 或 help 可查看指令用法帮助。",
@@ -329,7 +330,9 @@ def render_deck(run: GameRun) -> str:
     lines.append("━━━━━━━━━━━━━━━━━━━━")
     return "\n".join(lines)
 
-def render_stats(stats: UserStats) -> str:
+def render_stats(stats: UserStats, include_mode: bool = True) -> str:
+    mode_str = "开启" if getattr(stats, "rogue_mode", False) else "关闭"
+    mode_line = [f"🎮 免前缀肉鸽模式：【{mode_str}】"] if include_mode else []
     lines = [
         "━━━━━━━━━━━━━━━━━━━━",
         "📊 魔法肉鸽卡牌生涯统计",
@@ -337,13 +340,16 @@ def render_stats(stats: UserStats) -> str:
         f"💥 累计输出伤害：{stats.total_damage} 点",
         f"💀 累计击败怪物：{stats.total_kills} 只",
         f"🧗 累计游玩层数：{stats.total_stages} 层",
+        *mode_line,
         "",
         "这些数据属于你的勇士生涯，不会随着放弃游戏而消失。",
         "━━━━━━━━━━━━━━━━━━━━"
     ]
     return "\n".join(lines)
 
-def render_help() -> str:
+def render_help(include_mode: bool = True) -> str:
+    mode_line = ["👉 mode -- 切换个人免前缀快捷指令模式（即时通讯端）"] if include_mode else []
+    mode_tip = ["  • 免前缀模式：即时通讯端通过发送 /rogue mode 切换；网页端固定开启。开启后，只要你有活跃游戏存档，所有游戏相关的指令都可以直接发送（例如直接发送“e”、“1”、“p 1”、“bag”、“s”），无须添加前缀。此功能仅限个人生效。"] if include_mode else []
     lines = [
         "━━━━━━━━━━━━━━━━━━━━",
         "🔮 魔法肉鸽卡牌游戏指令帮助",
@@ -362,9 +368,11 @@ def render_help() -> str:
         "👉 stat -- 查看勇士生涯累计统计数据",
         "👉 leaderboard -- 查看 GP 排行榜（前 20）",
         "👉 leaderboard online -- 查看最近 5 分钟在线玩家",
+        "👉 checkin (签到) [集换卡] -- 每日 UTC+0 签到，领取下一局祝福并给集换卡盖章",
         "👉 class -- 查看及选择子职业",
         "👉 shop -- 访问局外商店，使用 GP 购买子职业或神秘物品",
         "👉 abandon -- 放弃当前战局（需输入 abandon confirm 确认）",
+        *mode_line,
         "👉 bag (inv/inventory) -- 查看主城背包与拥有的物品资产",
         "👉 quest (quests) -- 查看当前主城任务列表及进度",
         "👉 lock (unlock) -- 进入开局卡牌锁定构筑管理系统",
@@ -396,7 +404,7 @@ def render_help() -> str:
         "💡 快捷输入与免前缀技巧：",
         "  • 简写支持：战斗和交互指令均支持简写，如 p（出牌）、m（随从）、c（选择）、e（结束）、i（查询）、s（状态）。",
         "  • 选择免指令：在面临事件选择、商店购买或选择打出卡牌的等待输入状态下，直接发送目标数字（如“1”）即可触发对应选项，无须输入 c 前缀。",
-        "  • 免前缀快捷：肉鸽模式默认开启，只要你有活跃游戏存档，所有游戏相关的指令都可以直接发送（例如直接发送“e”、“1”、“p 1”、“bag”、“s”），无须添加前缀。",
+        *mode_tip,
         "━━━━━━━━━━━━━━━━━━━━"
     ]
     return "\n".join(lines)

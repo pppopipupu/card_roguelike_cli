@@ -117,6 +117,42 @@ class ServerTests(unittest.TestCase):
             {"command": "uuid", "channel": "web"}, self.web_headers()
         ).json()
         self.assertIn(start["account"]["uuid"], uuid_body["text"])
+        stats = self.app.state.service.save_manager.load_stats(start["account"]["uuid"])
+        self.assertTrue(stats.rogue_mode)
+
+    def test_im_mode_toggle(self):
+        start = self.post(
+            {"command": "start confirm", "channel": "im", "force": True},
+            self.im_headers("im-mode"),
+        ).json()
+        uuid = start["account"]["uuid"]
+        stats = self.app.state.service.save_manager.load_stats(uuid)
+        self.assertFalse(stats.rogue_mode)
+
+        help_text = self.post(
+            {"command": ".rogue help", "channel": "im", "force": True},
+            self.im_headers("im-mode"),
+        ).json()["text"]
+        self.assertIn("mode --", help_text)
+        self.assertIn("免前缀模式", help_text)
+
+        enabled = self.post(
+            {"command": ".rogue mode", "channel": "im", "force": True},
+            self.im_headers("im-mode"),
+        ).json()
+        self.assertIn("免前缀肉鸽模式已开启", enabled["text"])
+        self.assertTrue(
+            self.app.state.service.save_manager.load_stats(uuid).rogue_mode
+        )
+
+        disabled = self.post(
+            {"command": ".rogue 模式", "channel": "im", "force": True},
+            self.im_headers("im-mode"),
+        ).json()
+        self.assertIn("免前缀肉鸽模式已关闭", disabled["text"])
+        self.assertFalse(
+            self.app.state.service.save_manager.load_stats(uuid).rogue_mode
+        )
 
     def test_web_bind_requires_force(self):
         im = self.post(
@@ -284,6 +320,20 @@ class ServerTests(unittest.TestCase):
 
 
     def test_web_shell_commands(self):
+        help_game = self.post(
+            {"command": "help", "channel": "web"}, self.web_headers("web-shell")
+        ).json()
+        self.assertIn("魔法肉鸽卡牌游戏指令帮助", help_game["text"])
+        self.assertNotIn("可用终端命令", help_game["text"])
+
+        help_system = self.post(
+            {"command": "help system", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertIn("可用终端命令", help_system["text"])
+        self.assertNotIn("可写：", help_system["text"])
+        self.assertNotIn("受保护：", help_system["text"])
+
         listing = self.post(
             {"command": "ls", "channel": "web"}, self.web_headers("web-shell")
         ).json()
@@ -291,6 +341,13 @@ class ServerTests(unittest.TestCase):
         self.assertIn("README.md", listing["text"])
         self.assertEqual(listing["shell"]["cwd"], "~")
         self.assertEqual(listing["shell"]["status"], 0)
+
+        readme = self.post(
+            {"command": "cat README.md", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertNotIn("可写区域", readme["text"])
+        self.assertNotIn("512 KB", readme["text"])
 
         self.post(
             {"command": "echo hello > note.txt", "channel": "web"},
@@ -336,12 +393,37 @@ class ServerTests(unittest.TestCase):
         self.assertNotIn("免前缀肉鸽模式", help_text)
         self.assertNotIn("/rogue ", help_text)
 
+        stat_text = self.post(
+            {"command": "stats", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()["text"]
+        self.assertIn("生涯统计", stat_text)
+        self.assertNotIn("免前缀肉鸽模式", stat_text)
+
         menu = self.post(
             {"command": "", "channel": "web"},
             self.web_headers("web-shell"),
         ).json()["text"]
         self.assertNotIn("对决模式", menu)
         self.assertNotIn("/rogue ", menu)
+
+        idle_exit = self.post(
+            {"command": "exit", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertIn("无法退出", idle_exit["text"])
+        self.assertEqual(idle_exit["shell"]["status"], 1)
+
+        self.post(
+            {"command": "start confirm", "channel": "web"},
+            self.web_headers("web-shell"),
+        )
+        active_exit = self.post(
+            {"command": "exit", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertNotIn("无法退出", active_exit["text"])
+        self.assertEqual(active_exit["shell"]["status"], 0)
 
 
     def test_leaderboard_and_online_commands(self):

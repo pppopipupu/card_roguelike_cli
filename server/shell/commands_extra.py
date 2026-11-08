@@ -166,7 +166,7 @@ class ExtraCommands:
                 '-  "ascension": 6\n'
                 '+  "ascension": 7\n'
             )
-        return ShellResult(f"git: '{command}' 在只读沙箱中不可用。\n", 1)
+        return ShellResult(f"git: '{command}' 不可用。\n", 1)
 
     @_command("docker")
     def _cmd_docker(self, context: ShellContext, args: list[str], stdin: str | None) -> ShellResult:
@@ -183,7 +183,7 @@ class ExtraCommands:
                 "rogue/cardd      7.9.3     7f3a91c20d6b   184MB\n"
                 "rogue/vault      sealed    91c20d6b7a1f   96MB\n"
             )
-        return ShellResult(f"docker: '{command}' 在只读沙箱中不可用。\n", 1)
+        return ShellResult(f"docker: '{command}' 不可用。\n", 1)
 
     @_command("systemctl")
     def _cmd_systemctl(self, context: ShellContext, args: list[str], stdin: str | None) -> ShellResult:
@@ -198,7 +198,7 @@ class ExtraCommands:
                 "     Memory: 148.9M\n"
                 "        CPU: 1.220s\n"
             )
-        return ShellResult("systemctl: 权限被拒（沙箱限制）。\n", 1)
+        return ShellResult("systemctl: 权限被拒。\n", 1)
 
     @_command("journalctl")
     def _cmd_journalctl(self, context: ShellContext, args: list[str], stdin: str | None) -> ShellResult:

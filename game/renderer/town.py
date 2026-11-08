@@ -3,6 +3,7 @@ import json
 from typing import List, Dict, Any
 from ..models.state import UserStats
 from ..entities import ALL_CARDS
+from ..entities.cards.market import MARKET_SHELF_CARDS, get_market_price
 
 def _load_zh_cn() -> Dict[str, Any]:
     from ..core.locale_manager import LocaleManager
@@ -246,14 +247,9 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
 
     if current_id == "market":
         shelf = stats.town_flags.get("market_shelf", [])
-        if not shelf or len(shelf) != 10:
-            fixed_cards = [
-                "warrior_blood_fury", "neutral_power_word_pain",
-                "warrior_shield_bash", "wizard_antimagic_field", "neutral_power_word_stun",
-                "warrior_hell_raider", "wizard_prismatic_wall", "wizard_time_ravage", "neutral_power_word_kill", "neutral_plane_shift"
-            ]
+        if not shelf or len(shelf) != len(MARKET_SHELF_CARDS):
             already_bought = set(getattr(stats, "purchased_pool", []) or []) | set(getattr(stats, "unlocked_new_cards", []) or [])
-            shelf = [c if c not in already_bought else "" for c in fixed_cards]
+            shelf = [c if c not in already_bought else "" for c in MARKET_SHELF_CARDS]
             stats.town_flags["market_shelf"] = shelf
         
         shelf_strs = []
@@ -264,18 +260,15 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
                 c_name = ALL_CARDS[cid].name if cid in ALL_CARDS else cid
                 card_obj = ALL_CARDS.get(cid)
                 rarity_str = "普通"
-                price = 100
                 if card_obj:
                     r = getattr(card_obj, "rarity", "common")
                     if r == "common":
                         rarity_str = "普通"
-                        price = 100
                     elif r == "rare":
                         rarity_str = "稀有"
-                        price = 300
                     else:
                         rarity_str = "珍奇"
-                        price = 700
+                price = get_market_price(cid, card_obj)
                 shelf_strs.append(f"{idx+1}. 【{c_name}】({rarity_str} ─ {price} GP)")
         desc += zh_cn.get("global", {}).get("market_shelf_header", "\n\n🏷️ 今日货架商品：\n") + "\n".join(shelf_strs)
         desc += zh_cn.get("global", {}).get("market_shelf_footer", "\n（输入 交互/talk 卡牌商人 即可开启选购或锁定必带卡）")

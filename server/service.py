@@ -5,6 +5,7 @@ from typing import Optional
 
 from game.core.headless_server import HeadlessGameServer
 from game.models.manager import SaveManager
+from game.renderer import GameRenderer
 
 from .accounts import AccountStore
 from .auth import Principal
@@ -274,7 +275,10 @@ class RogueService:
                 account, channel, "模式切换指令已移除，肉鸽模式固定开启。\n"
             )
 
-        if self.shell.handles(normalized):
+        shell_handled = self.shell.handles(normalized)
+        if shell_handled and first == "exit":
+            shell_handled = self.save_manager.load_save(account["uuid"]) is None
+        if shell_handled:
             async with self._lock_for(account["uuid"]):
                 result = self.shell.execute(
                     account["uuid"],
@@ -283,6 +287,23 @@ class RogueService:
                 )
             return self._text_response(
                 account, channel, result.text, result.status, result.clear
+            )
+
+        if channel == "web" and first in ("help", "帮助"):
+            return self._text_response(
+                account,
+                channel,
+                self._strip_web_prefixes(GameRenderer.render_help(include_mode=False)),
+            )
+
+        if channel == "web" and first in ("stat", "stats", "统计"):
+            return self._text_response(
+                account,
+                channel,
+                GameRenderer.render_stats(
+                    self.save_manager.load_stats(account["uuid"]),
+                    include_mode=False,
+                ),
             )
 
         if first in ("我的id", "uuid", "myid"):

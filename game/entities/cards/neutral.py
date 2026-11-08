@@ -165,6 +165,7 @@ class DeployAmuletCard(Card):
 @register_card("arcane_golem")
 @register_card("water_elemental")
 @register_card("gate_guard")
+@register_card("elf_archer_xiaomei")
 class SummonMinionCard(Card):
     def __init__(self, id, name, color, type, cost_a, cost_ba, minion_hp, minion_atk, desc=""):
         super().__init__(id, name, color, type, cost_a, cost_ba, desc=desc)

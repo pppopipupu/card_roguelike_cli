@@ -45,6 +45,11 @@ class CardPlayedEvent(GameEvent):
     is_extra: bool = False
 
 @dataclass
+class CardPlayedCountEvent(GameEvent):
+    run: GameRun
+    count: int
+
+@dataclass
 class DamageCalculateEvent(GameEvent):
     run: GameRun
     card: Optional[Card]

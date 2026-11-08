@@ -137,8 +137,8 @@ class ShellService(ExtraCommands):
         if not tokens:
             return False
         first = tokens[0].lower()
-        if first == "help" and len(tokens) > 1 and tokens[1].lower() == "shell":
-            return True
+        if first == "help":
+            return len(tokens) > 1 and tokens[1].lower() in ("system", "shell")
         return first in COMMANDS or first in DENIED
 
     def prompt_info(self, uuid: str, user: str, status: int = 0) -> dict:
@@ -343,19 +343,19 @@ class ShellService(ExtraCommands):
             return "没有那个目录"
         payload = content.encode("utf-8")
         if len(payload) > MAX_FILE_BYTES:
-            return "文件超过 512 KB 限制"
+            return "写入失败"
         target = self._player_path(context, path)
         if target is None:
             return "权限被拒"
         existing_size = target.stat().st_size if target.is_file() else 0
         files = self._player_files(context)
         if target not in files.values() and len(files) >= MAX_FILES:
-            return "文件数量超过限制"
+            return "写入失败"
         total = sum(item.stat().st_size for item in files.values())
         if total - existing_size + len(payload) > MAX_TOTAL_BYTES:
-            return "终端存储空间不足"
+            return "没有空间"
         if not self._rate_allowed(context):
-            return "写入过于频繁，请稍后再试"
+            return "写入失败"
         try:
             target.parent.mkdir(parents=True, exist_ok=True)
             if append and target.exists():
@@ -378,7 +378,7 @@ class ShellService(ExtraCommands):
         if not target.is_file():
             return "没有那个文件"
         if not self._rate_allowed(context):
-            return "写入过于频繁，请稍后再试"
+            return "写入失败"
         try:
             target.unlink()
         except OSError:
@@ -403,7 +403,7 @@ class ShellService(ExtraCommands):
         tokens = self._tokens(raw)
         if not tokens:
             return ShellResult("bash: 语法错误。\n", 1)
-        if tokens[0].lower() == "help" and len(tokens) > 1 and tokens[1].lower() == "shell":
+        if tokens[0].lower() == "help" and len(tokens) > 1 and tokens[1].lower() in ("system", "shell"):
             return self._cmd_help(context, [], None)
         segments: list[list[str]] = []
         current: list[str] = []
@@ -434,9 +434,9 @@ class ShellService(ExtraCommands):
             first = args[0].lower()
             if first in DENIED:
                 if first == "sudo":
-                    return ShellResult("sudo: 权限被拒。此终端受沙箱限制。\n", 1)
+                    return ShellResult("sudo: 权限被拒。\n", 1)
                 return ShellResult(
-                    f"bash: {first}: 权限被拒（沙箱限制）。\n", 1
+                    f"bash: {first}: 权限被拒。\n", 1
                 )
             handler_name = COMMANDS.get(first)
             if handler_name is None:
@@ -945,14 +945,14 @@ class ShellService(ExtraCommands):
         )
 
 MANUAL = {
-    "ls": "ls [-a] [-l] [path]\n列出目录内容。玩家文件与只读彩蛋文件会同时显示。",
-    "cd": "cd [path]\n切换目录。.secrets 目录禁止进入。",
-    "cat": "cat <file>\n读取文本文件。彩蛋文件可读，但不可删除。",
-    "echo": "echo [-n] <text> [> file] [>> file]\n输出文本，或写入/追加到可写目录中的文本文件。",
-    "rm": "rm [-f] <file>\n删除玩家创建的文本文件。彩蛋文件、.secrets 与目录受保护。",
+    "ls": "ls [-a] [-l] [path]\n列出目录内容。",
+    "cd": "cd [path]\n切换目录。",
+    "cat": "cat <file>\n读取文本文件。",
+    "echo": "echo [-n] <text> [> file] [>> file]\n输出文本，或写入/追加到文本文件。",
+    "rm": "rm [-f] <file>\n删除文本文件。",
     "uname": "uname [-a]\n显示伪造的 Rogue Core 内核信息。",
     "neofetch": "neofetch\n显示终端与卡牌周目摘要。",
-    "git": "git status|log|branch|remote|diff\n只读仓库信息。",
+    "git": "git status|log|branch|remote|diff\n查看仓库信息。",
 }
 
 HELP_TEXT = (
@@ -963,9 +963,4 @@ HELP_TEXT = (
     "  head / tail / wc / grep / find / tree / stat / file / du\n"
     "  which / man / neofetch / git / docker / systemctl / journalctl\n"
     "  ip / ss / lscpu / lsblk / mount / printf\n"
-    "\n"
-    "可写：/home 与 /home/dungeon 下的现有目录。\n"
-    "限制：单文件 512 KB，8 次写入/分钟，最多 32 个文件。\n"
-    "受保护：彩蛋文件与 .secrets 目录不可删除。\n"
-    "其他变更命令一律权限被拒。\n"
 )
