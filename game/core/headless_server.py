@@ -165,7 +165,6 @@ class HeadlessGameServer:
                 "地图", "map",
                 "队列", "queue", "q",
                 "锁定", "lock", "锁定管理", "解锁", "unlock",
-                "mode", "模式",
                 "qi", "queue_interrupt", "中断队列"
             }
             if first_word.isdigit() or first_word in ("离开", "退出", "返回", "exit", "quit") or first_word in dialog_valid_cmds:
@@ -197,7 +196,6 @@ class HeadlessGameServer:
                     "地图", "map",
                     "队列", "queue", "q",
                     "锁定", "lock", "锁定管理", "解锁", "unlock",
-                    "mode", "模式",
                     "qi", "queue_interrupt", "中断队列"
                 }
                 if first_word.isdigit() or first_word in ("离开", "退出", "返回", "exit", "quit", "leave") or first_word in dialog_valid_cmds or first_word in ("选择", "c"):

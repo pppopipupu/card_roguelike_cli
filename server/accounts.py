@@ -156,7 +156,6 @@ class AccountStore:
         if any(data.get(key) for key in counters):
             return True
         flags = (
-            "rogue_mode",
             "in_town",
             "killed_icerainboww",
             "unlocked_gatekey",

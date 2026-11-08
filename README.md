@@ -8,6 +8,7 @@
 | :--- | :--- |
 | `game/` | 游戏核心：卡牌、战斗、地图、探索、主城、咖啡馆、渲染与存档 |
 | `server/` | FastAPI 单接口后端：`POST /api/v1/action` |
+| `server/shell/` | 沙箱终端：文件系统、历史、补全提示与路径保护 |
 | `play_rogue.py` | 本地控制台入口，免前缀游玩 |
 | `scratch/rogue_tests/` | 核心单元与集成测试 |
 | `scratch/server_tests/` | 后端账号、认证与接口测试 |
@@ -93,11 +94,34 @@ Content-Type: application/json
   "handled": true,
   "text": "渲染文本",
   "state": { "v": 1, "screen": "battle" },
-  "account": { "uuid": "...", "linked": false }
+  "account": { "uuid": "...", "linked": false },
+  "shell": {
+    "user": "tester",
+    "host": "rogue-core",
+    "cwd": "~",
+    "branch": "master",
+    "status": 0
+  },
+  "clear": false
 }
 ```
 
-`state` 只对网页通道返回。`handled=false` 表示即时通讯消息不是游戏指令，前端不应回复。
+`state` 只对网页通道返回。`handled=false` 表示即时通讯消息不是游戏指令，前端不应回复。`shell` 是终端提示符状态，`clear=true` 表示前端应清空屏幕。
+
+### 终端命令
+
+终端命令与游戏指令共用同一输入框；命中终端命令时优先执行沙箱命令，其余输入交给游戏。终端命令在主菜单和战斗中都可用。
+
+| 类别 | 示例 |
+| :--- | :--- |
+| 文件 | `ls`、`ls -la`、`cd dungeon`、`pwd`、`cat README.md` |
+| 写入 | `echo 文本 > note.txt`、`echo 追加 >> note.txt`、`touch note.txt`、`rm note.txt` |
+| 查询 | `uname -a`、`whoami`、`date`、`df -h`、`free -h`、`ps aux`、`top` |
+| 检索 | `grep card README.md`、`find . -name "*.md"`、`head`、`tail`、`wc`、`tree` |
+| 彩蛋 | `neofetch`、`git status`、`systemctl status rogue-core`、`journalctl -u rogue-core` |
+| 帮助 | `help shell`、`man ls`、`history`、`clear` |
+
+文件写入限制为单文件 512 KB、每分钟 8 次、最多 32 个文件。可写目录仅限玩家沙箱中的现有目录；`.secrets`、彩蛋文件和目录删除受保护。肉鸽模式固定开启，`mode` 切换指令已移除；网页端不再显示切换提示。
 
 账号命令也走同一接口：
 

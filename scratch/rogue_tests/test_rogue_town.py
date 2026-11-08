@@ -34,11 +34,6 @@ class TestRogueTown(unittest.TestCase):
             res = await run_command(plugin, ".rogue talk Guide_Elder")
             self.assertIn("与向导长老闲聊", res)
 
-            res_mode = await run_command(plugin, ".rogue mode")
-            self.assertIn("免前缀肉鸽模式已", res_mode)
-            res_mode = await run_command(plugin, ".rogue 模式")
-            self.assertIn("免前缀肉鸽模式已", res_mode)
-
             res = await run_command(plugin, ".rogue 2")
             self.assertIn("游览商业 A 区", res)
             stats = save_manager.load_stats("test_user")

@@ -283,5 +283,66 @@ class ServerTests(unittest.TestCase):
             self.assertEqual(registry[player_uuid], "duel-1")
 
 
+    def test_web_shell_commands(self):
+        listing = self.post(
+            {"command": "ls", "channel": "web"}, self.web_headers("web-shell")
+        ).json()
+        self.assertTrue(listing["ok"])
+        self.assertIn("README.md", listing["text"])
+        self.assertEqual(listing["shell"]["cwd"], "~")
+        self.assertEqual(listing["shell"]["status"], 0)
+
+        self.post(
+            {"command": "echo hello > note.txt", "channel": "web"},
+            self.web_headers("web-shell"),
+        )
+        reading = self.post(
+            {"command": "cat note.txt", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertIn("hello", reading["text"])
+
+        protected = self.post(
+            {"command": "rm README.md", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertTrue(protected["ok"])
+        self.assertEqual(protected["shell"]["status"], 1)
+        self.assertIn("权限被拒", protected["text"])
+
+        changed = self.post(
+            {"command": "cd dungeon", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertEqual(changed["shell"]["cwd"], "~/dungeon")
+
+        cleared = self.post(
+            {"command": "clear", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertTrue(cleared["clear"])
+
+        fixed_mode = self.post(
+            {"command": "mode", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertIn("模式切换指令已移除", fixed_mode["text"])
+
+        help_text = self.post(
+            {"command": "help", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()["text"]
+        self.assertNotIn("mode --", help_text)
+        self.assertNotIn("免前缀肉鸽模式", help_text)
+        self.assertNotIn("/rogue ", help_text)
+
+        menu = self.post(
+            {"command": "", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()["text"]
+        self.assertNotIn("对决模式", menu)
+        self.assertNotIn("/rogue ", menu)
+
+
 if __name__ == "__main__":
     unittest.main()

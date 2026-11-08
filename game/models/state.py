@@ -42,7 +42,7 @@ class UserStats:
     total_damage: int = 0
     total_kills: int = 0
     total_stages: int = 0
-    rogue_mode: bool = False
+    rogue_mode: bool = True
     duel_mode: bool = False
     gp: int = 0
     unlocked_subclasses: List[str] = field(default_factory=list)

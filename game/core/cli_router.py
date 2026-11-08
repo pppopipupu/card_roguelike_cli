@@ -103,7 +103,6 @@ class CLIRouter:
                 "统计", "stat", "stats",
                 "地图", "map",
                 "队列", "queue", "q",
-                "mode", "模式",
                 "qi", "queue_interrupt", "中断队列",
                 "药水", "喝药水", "potion", "drink", "use_potion", "丢弃药水", "discard_potion", "drop_potion", "丢药", "dp", "dr", "pot", "投掷", "投", "throw", "t"
             )

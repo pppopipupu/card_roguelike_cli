@@ -8,6 +8,7 @@ from game.models.manager import SaveManager
 from .accounts import AccountStore
 from .auth import Principal
 from .config import Settings
+from .shell import ShellService
 from .snapshot import build_snapshot
 
 logger = logging.getLogger("rogue.server")
@@ -42,6 +43,7 @@ class RogueService:
         self.accounts = AccountStore(settings.db_path, settings.player_dir)
         self.server = HeadlessGameServer(str(settings.player_dir))
         self.save_manager: SaveManager = self.server.save_manager
+        self.shell = ShellService(settings.data_dir / "shell")
         self._locks: dict[str, asyncio.Lock] = {}
 
     def _lock_for(self, key: str) -> asyncio.Lock:
@@ -50,6 +52,40 @@ class RogueService:
             lock = asyncio.Lock()
             self._locks[key] = lock
         return lock
+
+    def _ensure_web_rogue(self, uuid: str) -> None:
+        stats = self.save_manager.load_stats(uuid)
+        if not stats.rogue_mode:
+            stats.rogue_mode = True
+            stats.duel_mode = False
+            self.save_manager.save_stats(uuid, stats)
+
+    def _text_response(
+        self,
+        account: dict,
+        channel: str,
+        text: str,
+        status: int = 0,
+        clear: bool = False,
+    ) -> dict:
+        run = self.save_manager.load_save(account["uuid"])
+        stats = self.save_manager.load_stats(account["uuid"])
+        state = build_snapshot(run, stats, text) if channel == "web" else None
+        return {
+            "ok": True,
+            "handled": True,
+            "text": text,
+            "state": state,
+            "account": _account_json(account),
+            "shell": self.shell.prompt_info(
+                account["uuid"], account["display_name"] or "rogue", status
+            ),
+            "clear": clear,
+        }
+
+    def _strip_web_prefixes(self, text: str) -> str:
+        text = text.replace("/rogue ", "").replace(".rogue ", "")
+        return text.replace("help 或 help", "help")
 
     def _resolve_account(self, principal: Principal, display_name: str) -> dict:
         if principal.kind == "web":
@@ -151,6 +187,25 @@ class RogueService:
         parts = normalized.split(maxsplit=1)
         first = parts[0].lower().lstrip("/") if parts else ""
 
+        if channel == "web":
+            self._ensure_web_rogue(account["uuid"])
+
+        if channel == "web" and first in ("mode", "模式"):
+            return self._text_response(
+                account, channel, "模式切换指令已移除，肉鸽模式固定开启。\n"
+            )
+
+        if self.shell.handles(normalized):
+            async with self._lock_for(account["uuid"]):
+                result = self.shell.execute(
+                    account["uuid"],
+                    account["display_name"] or name or "rogue",
+                    normalized,
+                )
+            return self._text_response(
+                account, channel, result.text, result.status, result.clear
+            )
+
         if first in ("我的id", "uuid", "myid"):
             return {
                 "ok": True,
@@ -242,6 +297,8 @@ class RogueService:
                 handled = text is not None
             if text is None:
                 text = ""
+            if channel == "web":
+                text = self._strip_web_prefixes(text)
 
             run = self.save_manager.load_save(account["uuid"])
             stats = self.save_manager.load_stats(account["uuid"])
@@ -253,4 +310,7 @@ class RogueService:
             "text": text,
             "state": state,
             "account": _account_json(account),
+            "shell": self.shell.prompt_info(
+                account["uuid"], account["display_name"] or name or "rogue"
+            ),
         }
