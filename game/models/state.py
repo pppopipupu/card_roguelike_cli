@@ -67,11 +67,17 @@ class UserStats:
     town_flags: Dict[str, Any] = field(default_factory=dict)
     town_health_bonus: int = 0
     player_name: str = "玩家"
+    im_account: str = ""
     unlocked_new_cards: List[str] = field(default_factory=list)
     last_checkin_date: str = ""
     daily_blessing: str = ""
     checkin_pending_stamp: bool = False
     collection_stamps: Dict[str, int] = field(default_factory=dict)
+    friends: List[str] = field(default_factory=list)
+    friend_requests_in: List[Dict[str, Any]] = field(default_factory=list)
+    friend_requests_out: List[str] = field(default_factory=list)
+    active_lobby_id: str = ""
+    active_coop_id: str = ""
 
 
 
@@ -216,6 +222,7 @@ class BuffState:
     stacks: int = 1
     stacks2: Optional[int] = None
     desc: str = ""
+    source_uid: str = ""
 
 
 @dataclass
@@ -385,6 +392,7 @@ class PlayerState:
     selected_class: str = "法师"
     potions: List[str] = field(default_factory=list)
     daily_blessing_id: str = ""
+    downed: bool = False
 
     def __post_init__(self):
         if not hasattr(self, "potions") or self.potions is None:
@@ -527,6 +535,19 @@ class GameRun:
     node_data: Dict = field(default_factory=dict)
     map_data: Dict = field(default_factory=dict)
     player2: Optional[PlayerState] = None
+    coop_id: str = ""
+    leader_id: str = ""
+    party_order: List[str] = field(default_factory=list)
+    players: Dict[str, PlayerState] = field(default_factory=dict)
+
+    def uid_for(self, player: PlayerState) -> str:
+        for uid, candidate in self.players.items():
+            if candidate is player:
+                return uid
+        return self.user_id
+
+    def is_coop(self) -> bool:
+        return bool(self.coop_id)
 
 def check_and_replace_fireball(run: 'GameRun', card_id: str) -> str:
     import random

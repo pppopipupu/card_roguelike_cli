@@ -21,7 +21,7 @@ class ResonateScrollOption(EventOption, action="resonate_scroll", text="用魔�
         if p.gold < 15:
             return "❌ 你的金币不足 15 点。"
         p.gold -= 15
-        spells = [cid for cid, c in ALL_CARDS.items() if c.type == "spell" and c.rarity not in ("legendary", "mythic", "artifact") and not cid.startswith("curse_")]
+        spells = [cid for cid, c in ALL_CARDS.items() if c.type == "spell" and c.rarity not in ("legendary", "mythic", "artifact") and not cid.startswith("curse_") and not getattr(c, "coop_only", False)]
         got_card = random.choice(spells) if spells else "dagger_throw"
         p.deck.append(got_card)
         engine.enter_next_stage(run)

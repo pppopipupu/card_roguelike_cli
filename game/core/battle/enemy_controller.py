@@ -125,6 +125,9 @@ class EnemyTurnController:
             self.sync_enemy_intents(enemy)
 
     def enemy_turn(self, run: GameRun) -> str:
+        if getattr(run, "coop_id", ""):
+            from ..coop_engine import CoopEngine
+            return CoopEngine(self.engine.save_manager, self.engine).enemy_turn(run, self)
         logs = []
         pending = run.node_data.get("pending_transitions", {})
         if pending:

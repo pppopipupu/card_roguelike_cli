@@ -46,6 +46,17 @@ def get_market_price(cid: str, card_obj=None) -> int:
         return 300
     return 700
 
+def is_coop_only(cid: str) -> bool:
+    if not cid:
+        return False
+    clean_cid = cid.split(":")[0]
+    if clean_cid.endswith("+"):
+        clean_cid = clean_cid[:-1]
+    from .base import ALL_CARDS
+    card = ALL_CARDS.get(clean_cid)
+    return bool(getattr(card, "coop_only", False))
+
+
 def is_card_available(cid: str, stats) -> bool:
     if not cid:
         return False

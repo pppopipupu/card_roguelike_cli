@@ -8,6 +8,7 @@ from .cli.queue_processor import QueueProcessor
 from .cli.base.aliases import normalize_node_alias, STATE_STACK_CANCEL_ALIASES
 from .town_engine import TownEngine
 from .checkin_service import CheckinService
+from .social_service import SocialService
 
 
 class CLIRouter:
@@ -21,6 +22,7 @@ class CLIRouter:
         self._command_handlers = CommandHandler.registry
         self.town_engine = TownEngine(save_manager, engine)
         self.checkin_service = CheckinService(save_manager)
+        self.social_service = SocialService(save_manager, engine)
 
     def _execute_sub_action(self, user_id: str, run, parts: list[str]) -> Tuple[str, bool, bool]:
         return self.action_router.execute_action(self, user_id, run, parts)
@@ -109,6 +111,8 @@ class CLIRouter:
                 "地图", "map",
                 "队列", "queue", "q",
                 "mode", "模式",
+                "friend", "好友", "fr",
+                "team", "队伍", "组队", "tm", "lobby",
                 "签到", "checkin", "check_in", "qd", "每日签到",
                 "qi", "queue_interrupt", "中断队列",
                 "药水", "喝药水", "potion", "drink", "use_potion", "丢弃药水", "discard_potion", "drop_potion", "丢药", "dp", "dr", "pot", "投掷", "投", "throw", "t"

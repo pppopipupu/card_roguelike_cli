@@ -2,7 +2,7 @@ import random
 from ..data.checkin_data import DAILY_BLESSINGS
 from ..models.state import CardState
 from ..models.events import BattleStartEvent, DamageCalculateEvent, CardPlayedEvent
-from ..entities.cards.market import is_card_available
+from ..entities.cards.market import is_card_available, is_coop_only
 
 
 def roll_daily_blessing() -> str:
@@ -17,7 +17,7 @@ def _pick_random_card(card_filter: str, stats):
     from ..entities.cards.base import ALL_CARDS
     candidates = []
     for cid, card in ALL_CARDS.items():
-        if cid.endswith("+") or cid.startswith("curse_") or cid.startswith("duel_"):
+        if cid.endswith("+") or cid.startswith("curse_") or cid.startswith("duel_") or is_coop_only(cid):
             continue
         if not is_card_available(cid, stats):
             continue
@@ -36,6 +36,7 @@ def _pick_random_card(card_filter: str, stats):
             if not cid.endswith("+")
             and not cid.startswith("curse_")
             and not cid.startswith("duel_")
+            and not is_coop_only(cid)
             and is_card_available(cid, stats)
         ]
     return random.choice(candidates) if candidates else None

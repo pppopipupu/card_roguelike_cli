@@ -98,6 +98,8 @@ class ActionRouter:
                             success = "❌" not in res
                             if run.player.hp <= 0:
                                 settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
+                                if getattr(run, "coop_id", ""):
+                                    return f"{res}\n💀 你已倒地。\n{settle_msg}", True, success
                                 return f"{res}\n💀 你被击败了！当前进度已清空。\n{settle_msg}", True, success
                             if self.engine.is_battle_won(run):
                                 self.engine._handle_battle_win(run)
@@ -120,6 +122,8 @@ class ActionRouter:
                             success = "❌" not in res
                             if run.player.hp <= 0:
                                 settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
+                                if getattr(run, "coop_id", ""):
+                                    return f"{res}\n💀 你已倒地。\n{settle_msg}", True, success
                                 return f"{res}\n💀 你被击败了！当前进度已清空。\n{settle_msg}", True, success
                             if self.engine.is_battle_won(run):
                                 self.engine._handle_battle_win(run)
@@ -208,6 +212,8 @@ class ActionRouter:
                 success = "❌" not in res
                 if run.player.hp <= 0:
                     settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
+                    if getattr(run, "coop_id", ""):
+                        return f"{res}\n💀 你已倒地。\n{settle_msg}", True, success
                     return f"{res}\n💀 你被击败了！当前进度已清空。\n{settle_msg}", True, success
                 if self.engine.is_battle_won(run):
                     self.engine._handle_battle_win(run)

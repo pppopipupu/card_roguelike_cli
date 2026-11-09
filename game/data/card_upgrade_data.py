@@ -1,4 +1,11 @@
+from .coop_card_data import COOP_UPGRADE_CONFIG
+
 CARD_UPGRADE_CONFIG = {
+    "coop_tactical_command": COOP_UPGRADE_CONFIG["coop_tactical_command"],
+    "coop_phalanx_bulwark": COOP_UPGRADE_CONFIG["coop_phalanx_bulwark"],
+    "coop_resonance_hymn": COOP_UPGRADE_CONFIG["coop_resonance_hymn"],
+    "coop_soul_link": COOP_UPGRADE_CONFIG["coop_soul_link"],
+    "coop_unison_crusade": COOP_UPGRADE_CONFIG["coop_unison_crusade"],
     "meteor_strike": {
         "desc": "对场上的随机敌人造成 40 点钝击伤害，此操作重复执行 4 次，在自己的战场上召唤一个【能量核心+】护符。"
     },

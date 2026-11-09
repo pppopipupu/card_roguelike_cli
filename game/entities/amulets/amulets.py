@@ -58,7 +58,9 @@ class MageWardAmulet(AmuletTemplate):
 class ThornsNecklaceAmulet(AmuletTemplate):
     def on_take_damage(self, run, grid, source, amount, engine) -> str:
         av = run.player.amulets.get(grid)
-        is_upgraded = av.id.endswith("+") if av else False
+        if not av:
+            return ""
+        is_upgraded = av.id.endswith("+")
         if is_upgraded:
             dmg = 4
             run.player.shield += 1
@@ -68,9 +70,11 @@ class ThornsNecklaceAmulet(AmuletTemplate):
         engine._damage_target(run, source, dmg, damage_type="true")
         src_name = engine._get_target_name(run, source)
         msg = f"【荆棘项链】反弹了 {dmg} 点伤害给【{src_name}】。"
+        if run.player.amulets.get(grid) is not av:
+            return msg
         av.countdown -= 1
         if av.countdown <= 0:
-            del run.player.amulets[grid]
+            run.player.amulets.pop(grid, None)
             run.player.minion_graveyard.append(av.id)
             lw = self.on_death(run, grid, is_upgraded, engine)
             msg += f"\n🔔 [谢幕曲] 我方【{av.name}】吟唱结束进入墓地：{lw}"

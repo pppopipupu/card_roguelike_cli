@@ -97,6 +97,7 @@ def _player_json(run: Optional[GameRun]) -> Optional[dict]:
         "bonus_actions": p.bonus_actions,
         "selected_class": getattr(p, "selected_class", ""),
         "subclass": getattr(p, "subclass", ""),
+        "downed": bool(getattr(p, "downed", False)),
         "relics": [
             {"id": rid, "name": get_relic_name(rid), "desc": get_relic_desc(rid)}
             for rid in p.relics
@@ -112,6 +113,35 @@ def _player_json(run: Optional[GameRun]) -> Optional[dict]:
             for index, pid in enumerate(p.potions, 1)
         ],
     }
+
+
+def _party_json(run: Optional[GameRun]) -> list[dict]:
+    if run is None or not getattr(run, "coop_id", ""):
+        return []
+    data = run.node_data or {}
+    stage_ready = data.get("stage_ready", {}) or {}
+    turn_ready = data.get("turn_ready", {}) or {}
+    result = []
+    for slot, uid in enumerate(getattr(run, "party_order", []) or [], 1):
+        member = (getattr(run, "players", {}) or {}).get(uid)
+        if member is None:
+            continue
+        result.append({
+            "slot": slot,
+            "user_id": uid,
+            "name": member.name,
+            "hp": member.hp,
+            "max_hp": member.max_hp,
+            "shield": member.shield,
+            "gold": member.gold,
+            "downed": bool(member.downed or member.hp <= 0),
+            "is_self": uid == run.user_id,
+            "selected_class": getattr(member, "selected_class", ""),
+            "subclass": getattr(member, "subclass", ""),
+            "stage_ready": bool(stage_ready.get(uid, False)),
+            "turn_ready": bool(turn_ready.get(uid, False)),
+        })
+    return result
 
 
 def _enemies_json(run: Optional[GameRun]) -> list[dict]:
@@ -143,6 +173,7 @@ def _enemies_json(run: Optional[GameRun]) -> list[dict]:
                 "actions": enemy.actions,
                 "bonus_actions": enemy.bonus_actions,
                 "is_summon": bool(enemy.is_summon),
+                "attack_target": (run.node_data.get("enemy_targets", {}) or {}).get(str(index), ""),
                 "buffs": [_buff_json(b) for b in enemy.buffs],
                 "intents": intents,
                 "intent_a": {
@@ -322,6 +353,11 @@ def _item_label(item: dict) -> str:
         return get_locale_text("render_rest_meditate")
     if itype == "rest_upgrade":
         return get_locale_text("render_rest_upgrade")
+    if itype == "rest_mend":
+        return "🩹 救治队友（恢复 30% 最大生命并净化 1 层负面状态）"
+    if itype == "shared_relic":
+        rid = item.get("relic_id")
+        return f"🎒 共享遗物【{get_relic_name(rid)}】"
     return str(itype or "选项")
 
 
@@ -342,6 +378,10 @@ def _item_desc(item: dict) -> str:
         cid = item.get("card_id") or item.get("id")
         card = ALL_CARDS.get(cid)
         return card.desc if card else ""
+    if itype == "shared_relic":
+        return "全队争夺；多名玩家选择同一遗物时以石头剪刀布裁决，未获得者得到 25 金币补偿。"
+    if itype == "rest_mend":
+        return "指定一名队友，恢复其 30% 最大生命值并净化 1 层负面状态。"
     return ""
 
 
@@ -389,6 +429,26 @@ def _options_json(run: Optional[GameRun]) -> list[dict]:
         return []
     node_type = run.node_type
     data = run.node_data or {}
+    if data.get("coop_done"):
+        return []
+    if data.get("pending_cards") is not None:
+        cards = data.get("pending_cards", [])
+        options = []
+        for index, cid in enumerate(cards, 1):
+            card = _card_json(CardState(id=cid, upgraded=bool(data.get("pending_card_upgraded"))))
+            options.append(
+                _option(
+                    index,
+                    "card",
+                    f"🃏 {card['name']}",
+                    desc=card["desc"],
+                    cost=card["cost"],
+                    card_id=cid,
+                )
+            )
+        if data.get("pending_card_can_skip", True):
+            options.append(_option(len(cards) + 1, "skip", "跳过本次选卡"))
+        return options
     if node_type == "map_select":
         options = []
         for index, option in enumerate(data.get("options", []), 1):
@@ -519,6 +579,8 @@ def _pending_action(run: Optional[GameRun]) -> Optional[str]:
     stack = data.get("state_stack") or []
     if stack:
         return stack[-1].get("type")
+    if data.get("pending_cards") is not None:
+        return "card_reward"
     if data.get("pending_upgrade"):
         return "upgrade_card"
     if data.get("pending_remove"):
@@ -551,6 +613,8 @@ def build_snapshot(run: Optional[GameRun], stats: Optional[UserStats], text: str
         "screen_label": SCREEN_LABELS.get(screen, screen),
         "text": text,
         "player": _player_json(run),
+        "party": _party_json(run),
+        "coop": bool(getattr(run, "coop_id", "")) if run is not None else False,
         "enemies": _enemies_json(run),
         "minions": _minions_json(run),
         "amulets": _amulets_json(run),

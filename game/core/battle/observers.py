@@ -304,14 +304,24 @@ class AmuletTriggerHandler:
 
     def on_damage_take(self, event):
         from ...entities.amulets.amulets import ALL_AMULETS
-        if event.target == "p0" and event.amount > 0:
-            for ak, av in list(event.run.player.amulets.items()):
+        if event.target != "p0" or event.amount <= 0:
+            return
+        run = event.run
+        if getattr(run, "_amulet_damage_trigger_active", False):
+            return
+        run._amulet_damage_trigger_active = True
+        try:
+            for ak, av in list(run.player.amulets.items()):
+                if run.player.amulets.get(ak) is not av:
+                    continue
                 base_id = av.id[:-1] if av.id.endswith("+") else av.id
                 template = ALL_AMULETS.get(base_id)
                 if template and hasattr(template, "on_take_damage"):
-                    msg = template.on_take_damage(event.run, ak, event.source, event.amount, self.engine)
+                    msg = template.on_take_damage(run, ak, event.source, event.amount, self.engine)
                     if msg:
-                        self.engine._log_event(event.run, msg)
+                        self.engine._log_event(run, msg)
+        finally:
+            run._amulet_damage_trigger_active = False
 
     def on_minion_summon(self, event):
         from ...entities.amulets.amulets import ALL_AMULETS

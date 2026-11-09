@@ -166,6 +166,8 @@ class HeadlessGameServer:
                 "队列", "queue", "q",
                 "锁定", "lock", "锁定管理", "解锁", "unlock",
                 "mode", "模式",
+                "friend", "好友", "fr",
+                "team", "队伍", "组队", "tm", "lobby",
                 "签到", "checkin", "check_in", "qd", "每日签到",
                 "qi", "queue_interrupt", "中断队列"
             }
@@ -199,6 +201,8 @@ class HeadlessGameServer:
                     "队列", "queue", "q",
                     "锁定", "lock", "锁定管理", "解锁", "unlock",
                     "mode", "模式",
+                    "friend", "好友", "fr",
+                    "team", "队伍", "组队", "tm", "lobby",
                     "签到", "checkin", "check_in", "qd", "每日签到",
                     "qi", "queue_interrupt", "中断队列"
                 }
@@ -217,6 +221,8 @@ class HeadlessGameServer:
                     "统计", "stat", "stats",
                     "地图", "map",
                     "队列", "queue", "q",
+                    "friend", "好友", "fr",
+                    "team", "队伍", "组队", "tm", "lobby",
                     "签到", "checkin", "check_in", "qd", "每日签到"
                 }
                 if first_word in cafe_lobby_cmds:

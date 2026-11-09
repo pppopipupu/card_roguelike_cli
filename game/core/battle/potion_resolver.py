@@ -9,8 +9,9 @@ class PotionResolver:
     def use_potion(self, run: GameRun, potion_id: str, target: str, is_throw: bool) -> str:
         p = run.player
         name = get_potion_name(potion_id)
-        
-        target_name = self.engine.battle_engine.combat_resolver.get_target_name(run, target)
+        resolver = self.engine.battle_engine.combat_resolver
+        ally_info = resolver.resolve_ally(run, target)
+        target_name = resolver.get_target_name(run, target)
         
         if is_throw:
             self.engine.battle_engine._log_event(run, f"💥 {target_name}被你投掷的【{name}】击中了！")
@@ -66,6 +67,10 @@ class PotionResolver:
         elif potion_id == "strength_potion":
             if target == "p0":
                 self.engine.battle_engine.combat_resolver.add_buff_to(p, "strength", "力量", "造成的伤害增加", 2)
+            elif ally_info:
+                ally = ally_info[1]
+                ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
+                resolver.add_buff_to(ally_minion or ally, "strength", "力量", "造成的伤害增加", 2)
             elif target.startswith("p"):
                 grid = target[1:]
                 if grid in p.minions:
@@ -85,6 +90,18 @@ class PotionResolver:
                 p.bonus_actions += 1
                 self.engine.battle_engine.card_player.draw_cards(p, 1, run)
                 return f"🧪 喝下了【{name}】，本回合获得 1A 1BA 并抽取 1 张牌。"
+            elif ally_info:
+                ally = ally_info[1]
+                ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
+                if ally_minion:
+                    ally_minion.actions += 1
+                    ally_minion.bonus_actions += 1
+                    ally_minion.attack_actions += 1
+                    return f"🧪 对【{ally.name}】的随从【{ally_minion.name}】使用了【{name}】，其获得 1A 1BA 1AA。"
+                ally.actions += 1
+                ally.bonus_actions += 1
+                self.engine.battle_engine.card_player.draw_cards(ally, 1, run)
+                return f"🧪 对【{ally.name}】使用了【{name}】，其获得 1A 1BA 并抽取 1 张牌。"
             else:
                 if target.startswith("p"):
                     grid = target[1:]
@@ -127,6 +144,18 @@ class PotionResolver:
                 for b in to_remove:
                     p.buffs.remove(b)
                 return f"🧪 喝下了【{name}】，清除了自身所有的负面状态。"
+            elif ally_info:
+                ally = ally_info[1]
+                ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
+                target_entity = ally_minion or ally
+                to_remove = []
+                for b in target_entity.buffs:
+                    cfg = BUFF_CONFIG.get(b.id, {})
+                    if cfg.get("is_debuff") or b.id in ("bleed", "tactical_focus", "beat_of_death", "void_exhaustion", "mana_leak", "minor_vulnerable", "vulnerable", "weak", "grappled", "discard_next_turn", "drain_ba", "drain_a", "forge_backfire", "void_weakness"):
+                        to_remove.append(b)
+                for b in to_remove:
+                    target_entity.buffs.remove(b)
+                return f"🧪 对【{ally.name}】使用了【{name}】，清除了其所有的负面状态。"
             else:
                 if target.startswith("p"):
                     grid = target[1:]
@@ -165,6 +194,18 @@ class PotionResolver:
                 self.engine.battle_engine.combat_resolver.gain_shield(run, "p0", 20)
                 self.engine.battle_engine.combat_resolver.heal_target(run, "p0", 10)
                 self.engine.battle_engine.combat_resolver.add_buff_to(p, "iron_will", "钢铁意志", "最大生命上限增加 10 并回复 10 生命", 1)
+            elif ally_info:
+                ally = ally_info[1]
+                ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
+                if ally_minion:
+                    ally_minion.max_hp += 5
+                    ally_minion.hp += 5
+                else:
+                    ally.max_hp += 5
+                    ally.hp += 5
+                resolver.gain_shield(run, target, 20)
+                resolver.heal_target(run, target, 10)
+                resolver.add_buff_to(ally_minion or ally, "iron_will", "钢铁意志", "最大生命上限增加 10 并回复 10 生命", 1)
             elif target.startswith("p"):
                 grid = target[1:]
                 if grid in p.minions:
@@ -192,6 +233,15 @@ class PotionResolver:
             if target == "p0":
                 p.actions += 2
                 return f"🧪 喝下了【{name}】，本回合额外获得 2 个动作点 (A)。"
+            elif ally_info:
+                ally = ally_info[1]
+                ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
+                if ally_minion:
+                    ally_minion.actions += 2
+                    ally_minion.attack_actions += 1
+                    return f"🧪 对【{ally.name}】的随从【{ally_minion.name}】使用了【{name}】，其获得 2A 1AA。"
+                ally.actions += 2
+                return f"🧪 对【{ally.name}】使用了【{name}】，其获得 2 个动作点 (A)。"
             else:
                 if target.startswith("p"):
                     grid = target[1:]
@@ -208,6 +258,12 @@ class PotionResolver:
                 self.engine.battle_engine.combat_resolver.damage_target(run, "p0", 5, source="potion:fury_potion", damage_type="true")
                 self.engine.battle_engine.card_player.draw_cards(p, 3, run)
                 return f"🧪 喝下了【{name}】，损失 5 生命，获得了 3 层【力量】并抽 3 张牌。"
+            elif ally_info:
+                ally = ally_info[1]
+                ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
+                resolver.add_buff_to(ally_minion or ally, "strength", "力量", "造成的伤害增加", 3)
+                self.engine.battle_engine.card_player.draw_cards(p, 3, run)
+                return f"🧪 对【{ally.name}】使用了【{name}】，其获得 3 层【力量】，你额外抽取了 3 张牌。"
             else:
                 if target.startswith("p"):
                     grid = target[1:]
@@ -226,6 +282,10 @@ class PotionResolver:
         elif potion_id == "intellect_potion":
             if target == "p0":
                 self.engine.battle_engine.combat_resolver.add_buff_to(p, "arcane_charge", "奥术充能", "法术伤害 +3", 2)
+            elif ally_info:
+                ally = ally_info[1]
+                ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
+                resolver.add_buff_to(ally_minion or ally, "arcane_charge", "奥术充能", "法术伤害 +3", 2)
             elif target.startswith("p"):
                 grid = target[1:]
                 if grid in p.minions:

@@ -4,14 +4,40 @@ from ..models.state import GameRun, PlayerState
 from ..data.map_config import MapConfig
 from ..entities import ALL_CARDS, get_relic_name
 from ..entities.events import ALL_EVENTS, get_option_by_action
+from ..entities.cards.market import is_coop_only
 from ..data.locale_data import get_locale_text
+from .coop_explore import CoopExploreMixin
 
-class ExploreEngine:
+class ExploreEngine(CoopExploreMixin):
     def __init__(self, save_manager, map_engine):
         self.save_manager = save_manager
         self.map_engine = map_engine
 
     def _init_rest_node(self, run: GameRun):
+        if getattr(run, "coop_id", ""):
+            views = {}
+            ready = {}
+            for uid in run.party_order:
+                views[uid] = {
+                    "node_type": "rest",
+                    "data": {
+                        "items": [
+                            {"type": "rest_heal", "taken": False},
+                            {"type": "rest_meditate", "taken": False},
+                            {"type": "rest_upgrade", "taken": False},
+                            {"type": "rest_mend", "taken": False},
+                        ]
+                    },
+                }
+                ready[uid] = run.players[uid].downed
+            run.node_type = "rest"
+            run.node_data = {
+                "coop_node_type": "rest",
+                "player_views": views,
+                "stage_ready": ready,
+            }
+            self._coop(run).apply_view(run, run.user_id)
+            return
         run.node_data = {
             "items": [
                 {"type": "rest_heal", "taken": False},
@@ -69,11 +95,18 @@ class ExploreEngine:
             self.start_gem_insert_flow(run, gem_id, run.node_type, run.node_data)
             from ..entities import get_gem_name
             res = f"开启宝石【{get_gem_name(gem_id)}】的强制镶嵌。"
+        elif itype == "shared_relic":
+            rid = item.get("relic_id")
+            uid = run.uid_for(p)
+            count = self._coop(run).gain_shared_relic(run, uid, rid)
+            res = f"🎒 你登记争夺共享遗物【{get_relic_name(rid)}】（当前 {count} 人争夺，全队完成本节点后猜拳裁决）。"
         elif itype == "card_reward":
             reward_cards = item.get("cards", [])
             from ..models.events import CardSelectInitEvent
             init_evt = CardSelectInitEvent(run, reward_cards)
             self.map_engine.battle_engine.event_bus.dispatch(init_evt)
+            previous_node_type = run.node_type
+            previous_node_data = run.node_data
             run.node_type = "card_select"
             run.node_data = {
                 "title": get_locale_text("render_card_select_title"),
@@ -81,8 +114,8 @@ class ExploreEngine:
                 "cards": reward_cards,
                 "can_skip": init_evt.can_skip,
                 "force_upgraded": init_evt.upgraded,
-                "next_node_type": "reward" if run.node_type != "treasure" else "treasure",
-                "next_node_data": run.node_data
+                "next_node_type": "treasure" if previous_node_type == "treasure" else "reward",
+                "next_node_data": previous_node_data
             }
             res = "开启卡牌三选一奖励。"
         
@@ -118,6 +151,33 @@ class ExploreEngine:
         }
 
     def _init_shop_node(self, run: GameRun):
+        if getattr(run, "coop_id", ""):
+            views = {}
+            ready = {}
+            shop_map = {}
+            for uid in run.party_order:
+                previous = run.player
+                previous_user = run.user_id
+                run.player = run.players[uid]
+                run.user_id = uid
+                items = self._build_shop_items(run)
+                views[uid] = {"node_type": "shop", "data": {"items": items}}
+                shop_map[uid] = items
+                ready[uid] = run.players[uid].downed
+                run.player = previous
+                run.user_id = previous_user
+            run.node_type = "shop"
+            run.node_data = {
+                "coop_node_type": "shop",
+                "player_views": views,
+                "player_shops": shop_map,
+                "stage_ready": ready,
+            }
+            self._coop(run).apply_view(run, run.user_id)
+            return
+        run.node_data = {"items": self._build_shop_items(run)}
+
+    def _build_shop_items(self, run: GameRun):
         allowed_colors = ("warrior", "neutral") if getattr(run.player, "selected_class", "法师") == "战士" else ("wizard", "neutral")
         unlocked_new = set()
         stats = None
@@ -130,9 +190,10 @@ class ExploreEngine:
             and getattr(c, "color", "") in allowed_colors
             and not cid.startswith("curse_")
             and not cid.startswith("duel_")
+            and (getattr(run, "coop_id", "") or not is_coop_only(cid))
             and is_card_available(cid, stats)
         ]
-        shop_cards = random.sample(card_pool, 3)
+        shop_cards = random.sample(card_pool, min(3, len(card_pool)))
         from ..models.state import check_and_replace_fireball
         shop_cards = [check_and_replace_fireball(run, cid) for cid in shop_cards]
         items = []
@@ -198,18 +259,64 @@ class ExploreEngine:
             "price": 0,
             "sold": False
         })
-        run.node_data = {"items": items}
+        return items
 
     def _init_treasure_node(self, run: GameRun):
+        if getattr(run, "coop_id", ""):
+            views = {}
+            ready = {}
+            text = "你面前放着一个巨大的【古老宝箱】。宝箱上缠绕着锁链，上面刻着契约符文：‘欲获秘宝，必献此身部分知识。’\n请选择你想要献祭（移除）的卡牌序号（使用 选择 <卡牌序号>，可输入 /rogue 牌组 查看）："
+            for uid in run.party_order:
+                views[uid] = {
+                    "node_type": "treasure",
+                    "data": {"state": "pending_remove", "text": text},
+                }
+                ready[uid] = run.players[uid].downed
+            from .coop_engine import TREASURE_RELIC_POOL
+            run.node_type = "treasure"
+            run.node_data = {
+                "coop_node_type": "treasure",
+                "player_views": views,
+                "stage_ready": ready,
+                "coop_shared_relic": random.choice(TREASURE_RELIC_POOL),
+            }
+            self._coop(run).apply_view(run, run.user_id)
+            return
         run.node_data = {
             "state": "pending_remove",
             "text": "你面前放着一个巨大的【古老宝箱】。宝箱上缠绕着锁链，上面刻着契约符文：‘欲获秘宝，必献此身部分知识。’\n请选择你想要献祭（移除）的卡牌序号（使用 选择 <卡牌序号>，可输入 /rogue 牌组 查看）："
         }
 
-    def choose_option(self, run: GameRun, option_idx: int) -> str:
+    def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str:
+        if getattr(run, "coop_id", "") and run.node_type == "reward":
+            return self._choose_coop_reward(run, option_idx)
+        if getattr(run, "coop_id", "") and run.node_type == "rest":
+            return self._choose_coop_rest(run, option_idx, target)
         p = run.player
         if run.node_type == "start_ancient":
             options = run.node_data.get("options", [])
+            if getattr(run, "coop_id", ""):
+                if option_idx < 1 or option_idx > len(options):
+                    return "❌ 无效的选择序号。"
+                chosen = options[option_idx - 1]
+                rid = chosen["relic"]
+                p.relics.append(rid)
+                if rid == "mark_of_fury":
+                    p.max_hp = max(5, p.max_hp - 5)
+                    p.hp = min(p.hp, p.max_hp)
+                elif rid == "vampiric_touch":
+                    p.max_hp = max(5, p.max_hp - 4)
+                    p.hp = min(p.hp, p.max_hp)
+                elif rid == "glacier_armor":
+                    p.max_hp = max(5, p.max_hp - 6)
+                    p.hp = min(p.hp, p.max_hp)
+                bonus_str = f"获得了先古遗物：【{get_relic_name(rid)}】"
+                if chosen["type"] == "contract":
+                    cid = chosen["card"]
+                    from ..models.state import ensure_card_state
+                    p.deck.append(ensure_card_state(cid))
+                    bonus_str += f" ➕ 先古卡牌：【{ALL_CARDS[cid].name}】"
+                return self._coop_finish(run, f"🌌 契约达成！你{bonus_str}。")
             if option_idx < 1 or option_idx > len(options):
                 return "❌ 无效的选择序号。"
             chosen = options[option_idx - 1]
@@ -229,7 +336,8 @@ class ExploreEngine:
             bonus_str = f"获得了先古遗物：【{get_relic_name(rid)}】"
             if chosen["type"] == "contract":
                 cid = chosen["card"]
-                p.deck.append(cid)
+                from ..models.state import ensure_card_state
+                p.deck.append(ensure_card_state(cid))
                 bonus_str += f" ➕ 先古卡牌：【{ALL_CARDS[cid].name}】"
                 
             self.map_engine.enter_next_stage(run)
@@ -246,7 +354,8 @@ class ExploreEngine:
             cid = chosen.get("card")
             p.relics.append(rid)
             if cid:
-                p.deck.append(cid)
+                from ..models.state import ensure_card_state
+                p.deck.append(ensure_card_state(cid))
                 bonus_str = f"传奇卡牌【{ALL_CARDS[cid].name}】与珍奇遗物【{get_relic_name(rid)}】"
             else:
                 bonus_str = f"珍奇遗物【{get_relic_name(rid)}】"
@@ -298,6 +407,7 @@ class ExploreEngine:
                         and getattr(ALL_CARDS[cid_], "color", "") in allowed_colors
                         and not cid_.startswith("curse_")
                         and not cid_.startswith("duel_")
+                        and not is_coop_only(cid_)
                         and is_card_available(cid_, stats)
                     ]
                     reward_cards = random.sample(card_pool, 3) if len(card_pool) >= 3 else card_pool
@@ -356,6 +466,8 @@ class ExploreEngine:
                     return res
                 available = [it for it in items if not it.get("taken")]
                 if not available:
+                    if getattr(run, "coop_id", ""):
+                        return self._coop_finish(run, f"{res}\n{get_locale_text('msg_rewards_claimed_finished')}")
                     self.map_engine.enter_next_stage(run)
                     self.save_manager.save_save(run.user_id, run)
                     return f"{res}\n{get_locale_text('msg_rewards_claimed_finished')}"
@@ -375,6 +487,8 @@ class ExploreEngine:
                 return res
             available = [it for it in items if not it.get("taken")]
             if not available:
+                if getattr(run, "coop_id", ""):
+                    return self._coop_finish(run, f"{res}\n{get_locale_text('msg_boss_chest_finished')}")
                 self.map_engine.enter_next_stage(run)
                 self.save_manager.save_save(run.user_id, run)
                 return f"{res}\n{get_locale_text('msg_boss_chest_finished')}"
@@ -471,11 +585,15 @@ class ExploreEngine:
                 self.save_manager.save_save(run.user_id, run)
                 available = [it for it in run.node_data.setdefault("items", []) if not it.get("taken")]
                 if not available:
+                    if getattr(run, "coop_id", ""):
+                        return self._coop_finish(run, f"{msg}\n{get_locale_text('msg_rewards_claimed_finished')}")
                     self.map_engine.enter_next_stage(run)
                     self.save_manager.save_save(run.user_id, run)
                     return f"{msg}\n{get_locale_text('msg_rewards_claimed_finished')}"
                 return msg
             else:
+                if getattr(run, "coop_id", ""):
+                    return self._coop_finish(run, msg)
                 self.map_engine.enter_next_stage(run)
                 self.save_manager.save_save(run.user_id, run)
                 return f"{msg}开启下一关。"
@@ -566,7 +684,11 @@ class ExploreEngine:
             if itype == "card":
                 p.gold -= price
                 cid = item.get("card_id")
-                p.deck.append(cid)
+                from ..models.state import ensure_card_state
+                c_state = ensure_card_state(cid)
+                from ..models.events import CardObtainEvent
+                self.map_engine.battle_engine.event_bus.dispatch(CardObtainEvent(run, c_state))
+                p.deck.append(c_state)
                 item["sold"] = True
                 self.save_manager.save_save(run.user_id, run)
                 return f"购买成功！已将【{ALL_CARDS[cid].name}】加入你的卡组。"
@@ -594,6 +716,8 @@ class ExploreEngine:
                 run.node_data["upgrade_source"] = "shop"
                 return "UPGRADE_FLOW"
             elif itype == "leave":
+                if getattr(run, "coop_id", ""):
+                    return self._coop_finish(run, "你离开了商店。")
                 self.map_engine.enter_next_stage(run)
                 self.save_manager.save_save(run.user_id, run)
                 return "你离开了商店，继续冒险。已开启下一关。"
@@ -631,6 +755,7 @@ class ExploreEngine:
                 and getattr(c, "color", "") in allowed_colors
                 and not cid.startswith("curse_")
                 and not cid.startswith("duel_")
+                and not is_coop_only(cid)
                 and is_card_available(cid, stats)
             ]
             reward_cards = random.sample(card_pool, 3) if len(card_pool) >= 3 else card_pool
@@ -647,6 +772,10 @@ class ExploreEngine:
             ]
             if got_relic:
                 items.append({"type": "relic", "relic_id": got_relic, "taken": False})
+            if getattr(run, "coop_id", ""):
+                shared_rid = run.node_data.get("coop_shared_relic")
+                if shared_rid:
+                    items.append({"type": "shared_relic", "relic_id": shared_rid, "taken": False})
                 
             from ..models.events import RewardGenerateEvent
             evt = RewardGenerateEvent(run, items)
@@ -713,6 +842,9 @@ class ExploreEngine:
             if "items" in run.node_data:
                 for it in run.node_data["items"]:
                     it["taken"] = True
+            if getattr(run, "coop_id", ""):
+                msg = get_locale_text("msg_upgrade_success_rest", old_card_name=old_card_name, new_card_name=new_card_name)
+                return self._coop_finish(run, msg)
             self.map_engine.enter_next_stage(run)
             self.save_manager.save_save(run.user_id, run)
             return get_locale_text("msg_upgrade_success_rest", old_card_name=old_card_name, new_card_name=new_card_name)
@@ -734,6 +866,7 @@ class ExploreEngine:
         from ..data.gem_data import GEM_CONFIG
         gem_name = GEM_CONFIG[gem_id]["name"]
         gem_desc = GEM_CONFIG[gem_id]["desc"]
+        previous = run.node_data if getattr(run, "coop_id", "") else None
         run.node_type = "gem_insert"
         run.node_data = {
             "pending_gem": gem_id,
@@ -741,14 +874,15 @@ class ExploreEngine:
             "next_node_data": next_node_data,
             "text": f"💎 你获得了宝石：【{gem_name}】（{gem_desc}）。\n当前无法将宝石放入行囊，必须立即进行强制镶嵌！\n请选择你要镶嵌的卡牌序号（输入 c <卡牌序号> 镶嵌，可输入 c 0 或是 c 取消 选择跳过镶嵌）："
         }
+        self._begin_coop_gem(run, previous)
         self.save_manager.save_save(run.user_id, run)
         return f"你获得了宝石：【{gem_name}】。"
 
     def gem_insert_cancel(self, run: GameRun) -> str:
-        next_type = run.node_data["next_node_type"]
-        next_data = run.node_data["next_node_data"]
-        run.node_type = next_type
-        run.node_data = next_data
+        gem_data = run.node_data
+        next_type = gem_data["next_node_type"]
+        next_data = gem_data["next_node_data"]
+        self._end_coop_gem(run, gem_data, next_type, next_data)
         self.save_manager.save_save(run.user_id, run)
         return "你决定不进行镶嵌，丢弃了该宝石。继续前进。"
 
@@ -775,7 +909,8 @@ class ExploreEngine:
         max_slots = card_obj.get_gem_slots_count()
         if len(old_gems) >= max_slots:
             return f"❌ 该卡牌的宝石插槽已满（当前槽位数：{max_slots}，已镶嵌：{len(old_gems)}），无法继续镶嵌。"
-        gem_id = run.node_data["pending_gem"]
+        gem_data = run.node_data
+        gem_id = gem_data["pending_gem"]
         from ..data.gem_data import GEM_CONFIG
         gem_name = GEM_CONFIG[gem_id]["name"]
         p.deck.remove(cid)
@@ -783,9 +918,8 @@ class ExploreEngine:
         new_card_state = copy.copy(cid)
         new_card_state.gems = old_gems + [gem_id]
         p.deck.append(new_card_state)
-        next_type = run.node_data["next_node_type"]
-        next_data = run.node_data["next_node_data"]
-        run.node_type = next_type
-        run.node_data = next_data
+        next_type = gem_data["next_node_type"]
+        next_data = gem_data["next_node_data"]
+        self._end_coop_gem(run, gem_data, next_type, next_data)
         self.save_manager.save_save(run.user_id, run)
         return f"💎 镶嵌成功！已将【{gem_name}】成功镶嵌到了卡牌【{card_obj.name}】上。"

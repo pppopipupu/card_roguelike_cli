@@ -450,6 +450,58 @@ class TestRogueCardMech2(unittest.TestCase):
             self.assertIn(f"吟唱时间减少 {reduction}", res)
         card_key.upgraded = False
 
+    def test_multiple_thorns_amulet_reflect_does_not_reenter(self):
+        from game.models.state import AmuletState
+
+        class DummySaveManager:
+            def save_save(self, user_id, run):
+                pass
+            def delete_save(self, user_id):
+                pass
+
+        engine = BattleEngine(DummySaveManager())
+        player = PlayerState(50, 50, 0, 0, 1, name="测试")
+        for grid in "123456":
+            player.amulets[grid] = AmuletState("thorns_necklace", "荆棘项链", 1, "")
+        enemy = EnemyState(
+            "终焉测试",
+            100,
+            100,
+            0,
+            buffs=[BuffState("doomsday_gate_passive", "终焉庇护")],
+        )
+        run = GameRun("test_thorns_user", "battle", player, [enemy], {}, {})
+        engine._damage_target(run, "e1", 5, source="relic:djinn_shard", damage_type="force")
+        self.assertEqual(player.amulets, {})
+        self.assertEqual(player.minion_graveyard.count("thorns_necklace"), 6)
+        self.assertFalse(getattr(run, "_amulet_damage_trigger_active", False))
+
+    def test_end_turn_amulet_trigger_deletion_is_safe(self):
+        from game.models.state import AmuletState
+
+        class DummySaveManager:
+            def save_save(self, user_id, run):
+                pass
+            def delete_save(self, user_id):
+                pass
+
+        engine = BattleEngine(DummySaveManager())
+        player = PlayerState(500, 500, 0, 0, 1, name="测试")
+        player.amulets["1"] = AmuletState("void_beacon", "虚空信标", 3, "")
+        for grid in "234567":
+            player.amulets[grid] = AmuletState("thorns_necklace", "荆棘项链", 1, "")
+        enemy = EnemyState(
+            "终焉测试",
+            1000,
+            1000,
+            0,
+            buffs=[BuffState("end_gate_passive", "终焉之门")],
+        )
+        run = GameRun("test_amulet_end_turn_user", "battle", player, [enemy], {}, {})
+        engine.card_player._end_player_phase(run, player)
+        self.assertEqual(list(player.amulets), ["1"])
+        self.assertEqual(player.minion_graveyard.count("thorns_necklace"), 6)
+
     def test_flow_more_special_cards_and_buffs(self):
         class DummySaveManager:
             def save_save(self, user_id, run):

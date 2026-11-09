@@ -29,9 +29,65 @@ class CombatResolver:
     def __init__(self, engine):
         self.engine = engine
 
+    def resolve_ally(self, run: GameRun, target: Optional[str]):
+        if not run or not getattr(run, "coop_id", "") or not target:
+            return None
+        text = str(target).strip().lower()
+        if text.startswith("t"):
+            text = "a" + text[1:]
+        if not text.startswith("a"):
+            return None
+        rest = text[1:]
+        grid = None
+        if "p" in rest:
+            index_part, grid = rest.split("p", 1)
+            if not grid.isdigit():
+                return None
+        else:
+            index_part = rest
+        if not index_part.isdigit():
+            return None
+        index = int(index_part) - 1
+        if index < 0 or index >= len(run.party_order):
+            return None
+        uid = run.party_order[index]
+        player = run.players.get(uid)
+        if player is None:
+            return None
+        return uid, player, grid
+
+    def _redirect_ally(self, run: GameRun, target: str, operation) -> bool:
+        resolved = self.resolve_ally(run, target)
+        if not resolved:
+            return False
+        uid, player, grid = resolved
+        if player is run.player:
+            inner = "p0" if grid is None else f"p{grid}"
+            operation(inner)
+            return True
+        previous = run.player
+        previous_user = run.user_id
+        run.player = player
+        run.user_id = uid
+        try:
+            inner = "p0" if grid is None else f"p{grid}"
+            operation(inner)
+        finally:
+            run.player = previous
+            run.user_id = previous_user
+        return True
+
     def get_target_name(self, run: GameRun, target: Optional[str]) -> str:
         if not target:
             return "无"
+        resolved = self.resolve_ally(run, target)
+        if resolved:
+            uid, player, grid = resolved
+            if grid is None:
+                return player.name
+            if grid in player.minions:
+                return player.minions[grid].name
+            return "队友随从"
         if target == "p0":
             return run.player.name
         if target.startswith("e"):
@@ -139,6 +195,8 @@ class CombatResolver:
                     self.engine._log_event(run, "💎 [影魔触角] 触发！敌人被施加负面 Buff，玩家获得 2 点护盾！")
 
     def gain_shield(self, run: GameRun, target: str, amount: int):
+        if self._redirect_ally(run, target, lambda inner: self.gain_shield(run, inner, amount)):
+            return
         if target == "p0":
             cid = run.node_data.get("current_playing_card_cid")
             if cid:
@@ -169,6 +227,8 @@ class CombatResolver:
                 run.enemies[idx].shield += final_amount
 
     def heal_target(self, run: GameRun, target: str, heal: int):
+        if self._redirect_ally(run, target, lambda inner: self.heal_target(run, inner, heal)):
+            return
         if target == "p0" or target.startswith("p"):
             cid = run.node_data.get("current_playing_card_cid")
             if cid:
@@ -229,6 +289,12 @@ class CombatResolver:
         return None
 
     def damage_target(self, game_run_context: GameRun, target: str, dmg: int, source: str = "effect", damage_type: str = "effect", card: Optional[Card] = None):
+        if self._redirect_ally(
+            game_run_context,
+            target,
+            lambda inner: self.damage_target(game_run_context, inner, dmg, source, damage_type, card),
+        ):
+            return
         target_name = self.get_target_name(game_run_context, target)
         if card is None:
             cid = game_run_context.node_data.get("current_playing_card_cid")
@@ -333,6 +399,9 @@ class CombatResolver:
                         game_run_context.node_data["death_cause"] = "被自身的力量反噬"
                     else:
                         game_run_context.node_data["death_cause"] = f"被【{killer}】击败"
+                if getattr(game_run_context, "coop_id", ""):
+                    from ..coop_engine import CoopEngine
+                    CoopEngine(self.engine.save_manager, self.engine).mark_downed(game_run_context, p)
             if final_dmg > 0:
                 barrier_buff = next((b for b in p.buffs if b.id in ("prismatic_barrier", "prismatic_barrier_upgraded")), None)
                 if barrier_buff:

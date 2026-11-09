@@ -44,6 +44,16 @@ class SaveManager:
         safe_id = "".join([c for c in user_id if c.isalnum() or c in ("-", "_")])
         return os.path.join(self.data_dir, f"user_{safe_id}.json")
 
+    def get_coop_save_path(self, coop_id: str) -> str:
+        safe_id = "".join([c for c in coop_id if c.isalnum() or c in ("-", "_")])
+        return os.path.join(self.data_dir, f"coop_{safe_id}.json")
+
+    def get_lobbies_path(self) -> str:
+        return os.path.join(self.data_dir, "coop_lobbies.json")
+
+    def has_personal_save(self, user_id: str) -> bool:
+        return os.path.exists(self.get_save_path(user_id))
+
     def get_stats_path(self, user_id: str) -> str:
         safe_id = "".join([c for c in user_id if c.isalnum() or c in ("-", "_")])
         return os.path.join(self.data_dir, f"stats_{safe_id}.json")
@@ -84,11 +94,17 @@ class SaveManager:
                 town_flags=d.get("town_flags", {}),
                 town_health_bonus=d.get("town_health_bonus", 0),
                 player_name=d.get("player_name", "玩家"),
+                im_account=d.get("im_account", ""),
                 unlocked_new_cards=d.get("unlocked_new_cards", []),
                 last_checkin_date=d.get("last_checkin_date", ""),
                 daily_blessing=d.get("daily_blessing", ""),
                 checkin_pending_stamp=d.get("checkin_pending_stamp", False),
-                collection_stamps=d.get("collection_stamps", {})
+                collection_stamps=d.get("collection_stamps", {}),
+                friends=d.get("friends", []),
+                friend_requests_in=d.get("friend_requests_in", []),
+                friend_requests_out=d.get("friend_requests_out", []),
+                active_lobby_id=d.get("active_lobby_id", ""),
+                active_coop_id=d.get("active_coop_id", "")
             )
         except:
             return UserStats()
@@ -183,6 +199,12 @@ class SaveManager:
             return False
 
     def load_save(self, user_id: str) -> GameRun:
+        stats = self.load_stats(user_id)
+        coop_id = getattr(stats, "active_coop_id", "")
+        if coop_id:
+            run = self.load_coop_save(user_id, coop_id)
+            if run:
+                return run
         path = self.get_save_path(user_id)
         if not os.path.exists(path):
             return None
@@ -194,6 +216,8 @@ class SaveManager:
             return None
 
     def save_save(self, user_id: str, run: GameRun) -> bool:
+        if run and getattr(run, "coop_id", "") and user_id in getattr(run, "players", {}):
+            return self.save_coop_save(user_id, run)
         path = self.get_save_path(user_id)
         try:
             d = self.to_dict(run)
@@ -203,6 +227,9 @@ class SaveManager:
             return False
 
     def delete_save(self, user_id: str) -> bool:
+        stats = self.load_stats(user_id)
+        if getattr(stats, "active_coop_id", ""):
+            return False
         path = self.get_save_path(user_id)
         if os.path.exists(path):
             try:
@@ -211,6 +238,111 @@ class SaveManager:
             except:
                 return False
         return False
+
+    def load_coop_save(self, user_id: str, coop_id: str) -> GameRun:
+        path = self.get_coop_save_path(coop_id)
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                d = json.load(f)
+            run = self.from_dict(d)
+            if run and user_id in run.players:
+                run.player = run.players[user_id]
+                run.user_id = user_id
+                from ..core.coop_engine import CoopEngine
+                CoopEngine(self).apply_view(run, user_id)
+            return run
+        except:
+            return None
+
+    def save_coop_save(self, user_id: str, run: GameRun) -> bool:
+        run.players[user_id] = run.player
+        run.user_id = user_id
+        try:
+            from ..core.coop_engine import CoopEngine
+            CoopEngine(self).persist_view(run, user_id)
+        except Exception:
+            pass
+        path = self.get_coop_save_path(run.coop_id)
+        try:
+            d = self.to_dict(run)
+            _atomic_write_json(path, d)
+            return True
+        except:
+            return False
+
+    def delete_coop_save(self, coop_id: str) -> bool:
+        path = self.get_coop_save_path(coop_id)
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+                return True
+            except:
+                return False
+        return False
+
+    def load_lobbies(self) -> dict:
+        path = self.get_lobbies_path()
+        if not os.path.exists(path):
+            return {}
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            return data if isinstance(data, dict) else {}
+        except:
+            return {}
+
+    def save_lobbies(self, lobbies: dict) -> bool:
+        try:
+            _atomic_write_json(self.get_lobbies_path(), lobbies)
+            return True
+        except:
+            return False
+
+    def get_lobby(self, lobby_id: str) -> dict:
+        lobbies = self.load_lobbies()
+        return lobbies.get(lobby_id)
+
+    def save_lobby(self, lobby: dict) -> bool:
+        lobbies = self.load_lobbies()
+        lobbies[lobby["lobby_id"]] = lobby
+        return self.save_lobbies(lobbies)
+
+    def delete_lobby(self, lobby_id: str) -> bool:
+        lobbies = self.load_lobbies()
+        if lobby_id in lobbies:
+            del lobbies[lobby_id]
+            return self.save_lobbies(lobbies)
+        return False
+
+    def list_player_profiles(self) -> List[dict]:
+        profiles = []
+        if not os.path.isdir(self.data_dir):
+            return profiles
+        for name in os.listdir(self.data_dir):
+            if not name.startswith("stats_") or not name.endswith(".json"):
+                continue
+            path = os.path.join(self.data_dir, name)
+            uid = name[len("stats_"):-len(".json")]
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                profiles.append({
+                    "user_id": uid,
+                    "name": data.get("player_name", "玩家"),
+                    "im_account": data.get("im_account", ""),
+                    "selected_class": data.get("selected_class", "法师"),
+                    "selected_subclass": data.get("selected_subclass", ""),
+                    "gp": data.get("gp", 0),
+                    "active_coop_id": data.get("active_coop_id", ""),
+                    "active_lobby_id": data.get("active_lobby_id", ""),
+                    "in_town": data.get("in_town", False),
+                    "mtime": os.path.getmtime(path)
+                })
+            except:
+                continue
+        return profiles
 
     def load_duel_save(self, user_id: str) -> GameRun:
         game_id = self.get_duel_game_id(user_id)
@@ -295,7 +427,8 @@ class SaveManager:
                     name=b["name"],
                     stacks=b.get("stacks", 1),
                     stacks2=b.get("stacks2", None),
-                    desc=b.get("desc", "")
+                    desc=b.get("desc", ""),
+                    source_uid=b.get("source_uid", "")
                 ))
             p_minions[k] = MinionState(
                 id=v["id"],
@@ -318,7 +451,8 @@ class SaveManager:
                 name=b["name"],
                 stacks=b.get("stacks", 1),
                 stacks2=b.get("stacks2", None),
-                desc=b.get("desc", "")
+                desc=b.get("desc", ""),
+                source_uid=b.get("source_uid", "")
             ))
         minion_gy = list(p_data.get("minion_graveyard", []))
         enemy_gy = list(p_data.get("enemy_graveyard", []))
@@ -356,7 +490,8 @@ class SaveManager:
             subclass=p_data.get("subclass", ""),
             selected_class=p_data.get("selected_class", "法师"),
             potions=p_data.get("potions", []),
-            daily_blessing_id=p_data.get("daily_blessing_id", "")
+            daily_blessing_id=p_data.get("daily_blessing_id", ""),
+            downed=p_data.get("downed", False)
         )
 
     def from_dict(self, d: dict) -> GameRun:
@@ -364,6 +499,11 @@ class SaveManager:
             return None
         player = self._parse_player_state(d["player"])
         player2 = self._parse_player_state(d.get("player2"))
+        players = {}
+        for uid, pdata in (d.get("players") or {}).items():
+            parsed = self._parse_player_state(pdata)
+            if parsed is not None:
+                players[uid] = parsed
         enemies = []
         if "enemies" in d:
             from .state import EnemyIntentState
@@ -377,7 +517,8 @@ class SaveManager:
                         name=b["name"],
                         stacks=b.get("stacks", 1),
                         stacks2=b.get("stacks2", None),
-                        desc=b.get("desc", "")
+                        desc=b.get("desc", ""),
+                        source_uid=b.get("source_uid", "")
                     ))
                 intent_list = []
                 if "intents" in ed:
@@ -426,12 +567,22 @@ class SaveManager:
             enemies=enemies,
             node_data=d.get("node_data", {}),
             map_data=d.get("map_data", {}),
-            player2=player2
+            player2=player2,
+            coop_id=d.get("coop_id", ""),
+            leader_id=d.get("leader_id", ""),
+            party_order=d.get("party_order", []),
+            players=players
         )
 
     def settle_game_and_delete(self, user_id: str, run: GameRun, is_victory: bool = False, create_corpse: bool = True) -> str:
+        if run is not None and getattr(run, "coop_id", ""):
+            return self.settle_coop_game_and_delete(user_id, run, is_victory, create_corpse)
+        return self._settle_single_game(user_id, run, is_victory, create_corpse, delete_personal=True)
+
+    def _settle_single_game(self, user_id: str, run: GameRun, is_victory: bool = False, create_corpse: bool = True, delete_personal: bool = True) -> str:
         if not run or not run.player:
-            self.delete_save(user_id)
+            if delete_personal:
+                self.delete_save(user_id)
             return "本局结算：未找到有效的角色进度，未获得 GP。"
         stage = run.player.stage
         gold = run.player.gold
@@ -446,7 +597,8 @@ class SaveManager:
             if corpse:
                 corpse_note = f"\n💀 你的尸体留在了第 {stage} 层，其他玩家可以前往搜刮。"
         if stage < 5:
-            self.delete_save(user_id)
+            if delete_personal:
+                self.delete_save(user_id)
             return f"本局结算：由于在第 {stage} 层结束，未获得 GP。{corpse_note}"
         gp_gained = gold * 10
         victory_bonus = ""
@@ -467,8 +619,45 @@ class SaveManager:
         stats.town_flags.pop("market_shelf", None)
         stats.gp += gp_gained
         self.save_stats(user_id, stats)
-        self.delete_save(user_id)
+        if delete_personal:
+            self.delete_save(user_id)
         return f"本局结算：剩余金币 {gold}，折算获得 {gp_gained} GP{victory_bonus}！当前总 GP：{stats.gp}。{unlock_msg}{corpse_note}"
+
+    def settle_coop_game_and_delete(self, user_id: str, run: GameRun, is_victory: bool = False, create_corpse: bool = True, force: bool = False) -> str:
+        alive_uids = [uid for uid in run.party_order if uid in run.players and run.players[uid].hp > 0]
+        if not force and not is_victory and alive_uids:
+            downed = run.players.get(user_id)
+            if downed is not None:
+                downed.downed = True
+            self.save_coop_save(user_id, run)
+            return "💀 你已倒地，无法继续行动。请等待队友赢得战斗，或在下一层以 1 HP 复活。"
+        original_player = run.player
+        original_user = run.user_id
+        lines = []
+        for uid in run.party_order:
+            player = run.players.get(uid)
+            if player is None:
+                continue
+            run.player = player
+            run.user_id = uid
+            result = self._settle_single_game(uid, run, is_victory, create_corpse, delete_personal=False)
+            lines.append(f"【{player.name}】{result}")
+            stats = self.load_stats(uid)
+            stats.active_coop_id = ""
+            stats.active_lobby_id = ""
+            self.save_stats(uid, stats)
+        run.player = original_player
+        run.user_id = original_user
+        self.delete_coop_save(run.coop_id)
+        lobbies = self.load_lobbies()
+        changed = False
+        for lobby_id, lobby in list(lobbies.items()):
+            if lobby.get("coop_id") == run.coop_id:
+                del lobbies[lobby_id]
+                changed = True
+        if changed:
+            self.save_lobbies(lobbies)
+        return "\n".join(lines)
 
     def get_admin_config_path(self) -> str:
         return os.path.join(self.data_dir, "admin_config.json")

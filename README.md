@@ -135,6 +135,8 @@ Content-Type: application/json
 | `leaderboard` | 查看 GP 排行榜前 20，显示昵称、GP 与当前层数 |
 | `leaderboard online` | 查看最近 5 分钟在线玩家 |
 | `签到` / `checkin` | 每日 UTC+0 签到，领取下一局祝福并给集换卡盖章 |
+| `friend` / `好友` | 好友列表、搜索、申请、接受、删除与组队邀请 |
+| `team` / `队伍` | 创建 2~4 人队伍、邀请、准备并开启联机合作牌局 |
 
 ## 尸体与冤魂
 

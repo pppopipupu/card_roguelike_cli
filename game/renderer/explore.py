@@ -31,8 +31,11 @@ def render_event(run: GameRun) -> str:
     return "\n".join(lines)
 
 def render_shop(run: GameRun) -> str:
+    from .party import render_party_status, render_waiting
     p = run.player
     data = run.node_data
+    if getattr(run, "coop_id", "") and data.get("coop_done"):
+        return render_waiting(run)
     relics_str = ""
     if p.relics:
         relics_str = "\n🎒 遗物：" + " ".join([f"【{get_relic_name(r)}】" for r in p.relics])
@@ -41,9 +44,13 @@ def render_shop(run: GameRun) -> str:
         f"🛒 【第 {p.stage} 关：奇妙商店】",
         f"{run.player.name}：❤️ HP {p.hp}/{p.max_hp} | 🪙 金币 {p.gold}" + relics_str,
         "",
-        "一位旅商展示着他的精致收藏：",
-        ""
     ]
+    if getattr(run, "coop_id", ""):
+        lines.append(render_party_status(run))
+        lines.append("🛒 商人摊开多份货架，每名队员的货架与金币彼此独立。")
+        lines.append("")
+    lines.append("一位旅商展示着他的精致收藏：")
+    lines.append("")
     items = data.get("items", [])
     for idx, item in enumerate(items, 1):
         itype = item.get("type")
@@ -61,6 +68,11 @@ def render_shop(run: GameRun) -> str:
         elif itype == "relic":
             rid = item.get("relic_id")
             lines.append(f" [{idx}] 🎒 {get_relic_name(rid)} (遗物) - 🪙 {price}金币 | {get_relic_desc(rid)}")
+        elif itype == "gem":
+            from ..data.gem_data import GEM_CONFIG
+            gid = item.get("gem_id")
+            g_cfg = GEM_CONFIG.get(gid, {})
+            lines.append(f" [{idx}] 💎 {g_cfg.get('name', gid)} (宝石) - 🪙 {price}金币 | {g_cfg.get('desc', '')}")
         elif itype == "remove":
             lines.append(f" [{idx}] 🧹 净化服务 (移除卡组中任意一张牌) - 🪙 {price}金币")
         elif itype == "upgrade":
@@ -76,8 +88,26 @@ def render_shop(run: GameRun) -> str:
     return "\n".join(lines)
 
 def render_rest(run: GameRun) -> str:
+    from .party import render_party_status, render_waiting
     p = run.player
     data = run.node_data
+    if getattr(run, "coop_id", "") and data.get("coop_done"):
+        return render_waiting(run)
+    if getattr(run, "coop_id", "") and data.get("pending_cards") is not None:
+        cards = data.get("pending_cards", [])
+        lines = [
+            "━━━━━━━━━━━━━━━━━━━━",
+            f"🔥 【第 {p.stage} 关：篝火营地 · 冥想】",
+            render_party_status(run),
+            "",
+            "你面对篝火静静冥想，脑海中浮现出了三道奥术灵光：",
+        ]
+        for idx, cid in enumerate(cards, 1):
+            card = ALL_CARDS.get(cid)
+            lines.append(f" [{idx}] {card.name if card else cid}")
+        lines.append(f" [{len(cards) + 1}] 放弃感悟")
+        lines.append("━━━━━━━━━━━━━━━━━━━━")
+        return "\n".join(lines)
     relics_str = ""
     if p.relics:
         relics_str = "\n🎒 遗物：" + " ".join([f"【{get_relic_name(r)}】" for r in p.relics])
@@ -86,8 +116,11 @@ def render_rest(run: GameRun) -> str:
         get_locale_text("render_rest_title", stage=p.stage),
         f"{run.player.name}：❤️ HP {p.hp}/{p.max_hp}" + relics_str,
         "",
-        get_locale_text("render_rest_desc")
     ]
+    if getattr(run, "coop_id", ""):
+        lines.append(render_party_status(run))
+        lines.append("")
+    lines.append(get_locale_text("render_rest_desc"))
     items = data.get("items", [])
     available_items = [it for it in items if not it.get("taken")]
     for idx, it in enumerate(available_items, 1):
@@ -98,6 +131,8 @@ def render_rest(run: GameRun) -> str:
             lines.append(f" [{idx}] {get_locale_text('render_rest_meditate')}")
         elif itype == "rest_upgrade":
             lines.append(f" [{idx}] {get_locale_text('render_rest_upgrade')}")
+        elif itype == "rest_mend":
+            lines.append(f" [{idx}] 🩹 救治队友：指定一名队友，恢复其 30% 最大生命值并净化 1 层负面状态")
     lines.append("━━━━━━━━━━━━━━━━━━━━")
     if not available_items:
         lines.append(get_locale_text("render_rest_completed"))
@@ -106,8 +141,26 @@ def render_rest(run: GameRun) -> str:
     return "\n".join(lines)
 
 def render_reward(run: GameRun) -> str:
+    from .party import render_party_status, render_waiting
     p = run.player
     data = run.node_data
+    if getattr(run, "coop_id", "") and data.get("coop_done"):
+        return render_waiting(run)
+    if getattr(run, "coop_id", "") and data.get("pending_cards") is not None:
+        cards = data.get("pending_cards", [])
+        lines = [
+            "━━━━━━━━━━━━━━━━━━━━",
+            "🃏 【个人卡牌三选一】",
+            render_party_status(run),
+            "",
+            "请选择一张加入你的卡组：",
+        ]
+        for idx, cid in enumerate(cards, 1):
+            card = ALL_CARDS.get(cid)
+            lines.append(f" [{idx}] {card.name if card else cid}")
+        lines.append(f" [{len(cards) + 1}] 跳过本次选卡")
+        lines.append("━━━━━━━━━━━━━━━━━━━━")
+        return "\n".join(lines)
     if data.get("no_reward"):
         lines = [
             "━━━━━━━━━━━━━━━━━━━━",
@@ -128,6 +181,9 @@ def render_reward(run: GameRun) -> str:
         f"{run.player.name}：❤️ HP {p.hp}/{p.max_hp} | 🪙 金币 {p.gold}",
         ""
     ]
+    if getattr(run, "coop_id", ""):
+        lines.append(render_party_status(run))
+        lines.append("")
     if quest_bonus:
         lines.append(quest_bonus)
         lines.append("")
@@ -163,6 +219,9 @@ def render_reward(run: GameRun) -> str:
             from ..data.potion_data import get_potion_name, get_potion_desc
             pid = it.get("potion_id")
             lines.append(f" [{idx}] {prefix}🧪 {get_potion_name(pid)} (药水) - {get_potion_desc(pid)}")
+        elif itype == "shared_relic":
+            rid = it.get("relic_id")
+            lines.append(f" [{idx}] {prefix}🎒 共享遗物【{get_relic_name(rid)}】 (全队争夺，猜拳裁决)")
     lines.append("━━━━━━━━━━━━━━━━━━━━")
     if not available_items:
         lines.append(get_locale_text("render_reward_completed"))
@@ -175,8 +234,11 @@ def render_reward(run: GameRun) -> str:
     return "\n".join(lines)
 
 def render_treasure(run: GameRun) -> str:
+    from .party import render_party_status, render_waiting
     p = run.player
     data = run.node_data
+    if getattr(run, "coop_id", "") and data.get("coop_done"):
+        return render_waiting(run)
     text = data.get("text", "")
     state = data.get("state", "pending_remove")
     lines = [
@@ -187,6 +249,9 @@ def render_treasure(run: GameRun) -> str:
         text,
         ""
     ]
+    if getattr(run, "coop_id", ""):
+        lines.insert(3, render_party_status(run))
+        lines.insert(4, "")
     if state == "pending_remove":
         lines.append(get_locale_text("render_treasure_sacrifice"))
     else:
@@ -215,6 +280,9 @@ def render_treasure(run: GameRun) -> str:
                 gid = it.get("gem_id")
                 g_cfg = GEM_CONFIG.get(gid, {})
                 lines.append(f" [{idx}] {prefix}💎 {g_cfg.get('name', gid)} (宝石) - {g_cfg.get('desc', '')}")
+            elif itype == "shared_relic":
+                rid = it.get("relic_id")
+                lines.append(f" [{idx}] {prefix}🎒 共享遗物【{get_relic_name(rid)}】 (全队争夺，猜拳裁决)")
     lines.append("━━━━━━━━━━━━━━━━━━━━")
     if state == "pending_remove":
         lines.append(get_locale_text("render_treasure_exit_sacrifice"))

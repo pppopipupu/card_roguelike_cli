@@ -16,6 +16,9 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
             
         cmd = parts[0].lower()
         is_discard = cmd in ("丢弃药水", "discard_potion", "drop_potion", "丢药", "dp")
+        if getattr(run, "coop_id", "") and p.downed and not is_discard:
+            yield "💀 你已倒地，无法使用药水。"
+            return
         
         if len(parts) < 2:
             if is_discard:
@@ -82,6 +85,8 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
                 if grid != "0" and grid not in p.minions:
                     yield f"❌ 我方格子 [{grid}] 没有随从。"
                     return
+            elif getattr(run, "coop_id", "") and router.engine.battle_engine.combat_resolver.resolve_ally(run, target):
+                is_throw = False
             else:
                 yield "❌ 无效的目标选择。"
                 return

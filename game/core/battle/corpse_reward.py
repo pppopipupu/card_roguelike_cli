@@ -1,0 +1,45 @@
+import random
+
+from ...data.corpse_config import CorpseConfig
+from ...models.state import GameRun
+
+
+def handle_corpse_win(owner, run: GameRun):
+    corpse_id = run.node_data.get("corpse_id")
+    dead_name = str(run.node_data.get("corpse_dead_name", "玩家"))
+    cause = str(run.node_data.get("corpse_cause", "死因不明"))
+    corpse = owner.engine.save_manager.corpses.claim(corpse_id, run.user_id)
+    map_engine = getattr(owner.engine, "map_engine", None)
+    if not corpse:
+        if map_engine is not None:
+            map_engine.return_to_map_select(run)
+            run.node_data["notice"] = "❌ 这具尸体已经被其他玩家搜刮，尸体节点消失了。"
+        else:
+            run.node_type = "map_select"
+            run.node_data = {}
+        owner.engine.save_manager.save_save(run.user_id, run)
+        return
+    gp_reward = int(corpse.get("gp_reward", 0))
+    stats = owner.engine.save_manager.load_stats(run.user_id)
+    stats.gp += gp_reward
+    owner.engine.save_manager.save_stats(run.user_id, stats)
+    deck = list(corpse.get("deck", []))
+    cards = random.sample(deck, min(CorpseConfig.REWARD_CARD_POOL, len(deck))) if deck else []
+    run.node_type = "corpse_reward"
+    run.enemies.clear()
+    run.node_data = {
+        "corpse_reward": True,
+        "corpse_id": corpse_id,
+        "dead_name": dead_name,
+        "cause": cause,
+        "gp": gp_reward,
+        "cards": cards,
+        "picks_left": CorpseConfig.REWARD_CARD_PICKS,
+        "picked": [],
+        "notice": (
+            f"你击败了【冤魂·{dead_name}】，从尸体中搜刮到 {gp_reward} GP。\n"
+            f"死因：{cause}。你可以从死者卡组中挑选 {CorpseConfig.REWARD_CARD_PICKS} 张卡牌，每次都可以跳过。"
+        ),
+    }
+    owner.engine.save_manager.save_save(run.user_id, run)
+    owner.engine.save_manager.corpses.remove(corpse_id)

@@ -2,7 +2,8 @@ import random
 from typing import Optional
 from ...models.state import GameRun, PlayerState, EnemyState, MinionState, Card, check_and_replace_fireball
 from ...data.map_config import MapConfig
-from ...data.corpse_config import CorpseConfig
+from .corpse_reward import handle_corpse_win as handle_corpse_reward
+from .coop_targeting import validate_coop_target
 
 from ...entities import ALL_CARDS, ALL_MINIONS, ALL_AMULETS, get_relic_name, get_relic_impl
 from ...models.events import (
@@ -166,6 +167,8 @@ class CardPlayer:
         p = run.player
         if run.node_type != "battle":
             return "❌ 只有在战斗中才能使用卡牌。"
+        if getattr(run, "coop_id", "") and p.downed:
+            return "💀 你已倒地，无法出牌。你可以输入 status 观战，等待队友获胜后在下一层以 1 HP 复活。"
         if hand_idx < 1 or hand_idx > len(p.hand):
             return "❌ 无效的手牌序号。"
         from ...models.state import ensure_card_state
@@ -179,9 +182,14 @@ class CardPlayer:
         base_id = card.id
         is_discover = base_id == "discover"
         is_emperor_eye = base_id.startswith("neutral_emperor_eye")
+        is_coop_card = bool(getattr(card, "coop_only", False))
+        if is_coop_card:
+            error = validate_coop_target(self.engine, run, card, base_id, target)
+            if error:
+                return error
         if not is_discover:
             if target is None:
-                if is_emperor_eye:
+                if is_emperor_eye or is_coop_card:
                     pass
                 elif card.type in ("spell", "attack"):
                     p0_spells = {"first_aid", "get_ready", "adrenaline", "mana_potion", "mass_healing_word", "refresh_spirit", "shield", "misty_step", "arcane_intellect", "calculated_gamble", "time_warp", "time_stop", "archmage_wish"}
@@ -200,7 +208,11 @@ class CardPlayer:
                         target = "e1"
                     elif target == "p":
                         target = "p0"
-                    if target.startswith("e"):
+                    if is_coop_card and (target.startswith("a") or target.startswith("t")):
+                        resolved = self.engine.combat_resolver.resolve_ally(run, target)
+                        if not resolved:
+                            return f"❌ 队友目标 [{target}] 不存在。"
+                    elif target.startswith("e"):
                         try:
                             grid = int(target[1:]) - 1
                         except ValueError:
@@ -419,6 +431,8 @@ class CardPlayer:
         p = run.player
         if run.node_type != "battle":
             return "❌ 只有在战斗中才能使用卡牌的特殊行动。"
+        if getattr(run, "coop_id", "") and p.downed:
+            return "💀 你已倒地，无法行动。"
         if hand_idx < 1 or hand_idx > len(p.hand):
             return "❌ 无效的手牌序号。"
         c_state = p.hand[hand_idx - 1]
@@ -492,6 +506,8 @@ class CardPlayer:
         p = run.player
         if run.node_type != "battle":
             return "❌ 只有在战斗中才能控制随从攻击。"
+        if getattr(run, "coop_id", "") and p.downed:
+            return "💀 你已倒地，无法指挥随从。"
         if my_grid not in p.minions:
             return f"❌ 我方格子 [{my_grid}] 没有随从。"
         m = p.minions[my_grid]
@@ -533,6 +549,8 @@ class CardPlayer:
         p = run.player
         if run.node_type != "battle":
             return "❌ 只有在战斗中才能发动随从技能。"
+        if getattr(run, "coop_id", "") and p.downed:
+            return "💀 你已倒地，无法发动随从技能。"
         if my_grid not in p.minions:
             return f"❌ 我方格子 [{my_grid}] 没有随从。"
         m = p.minions[my_grid]
@@ -600,15 +618,12 @@ class CardPlayer:
         self._reindex_minions(p)
         return self.engine._append_logs_to_res(run, msg)
 
-    def end_turn(self, run: GameRun) -> str:
-        if run.node_type != "battle":
-            return "❌ 只有在战斗中才能结束回合。"
-        p = run.player
+    def _end_player_phase(self, run: GameRun, p) -> str:
         evt_end = TurnEndEvent(run, is_player=True)
         self.engine.event_bus.dispatch(evt_end)
-
+        retain_key = "temp_retain_cards" if not run.coop_id else f"temp_retain_cards:{run.uid_for(p)}"
         retained = []
-        temp_retains = list(run.node_data.get("temp_retain_cards", []))
+        temp_retains = list(run.node_data.get(retain_key, []))
         for c_state in p.hand:
             card = ALL_CARDS.get(c_state)
             if card and (getattr(card, "retain", False) or (hasattr(card, "gems") and card.gems and "gem_retain" in card.gems)):
@@ -630,15 +645,17 @@ class CardPlayer:
             else:
                 p.discard_pile.append(c_state)
         p.hand = retained
-        run.node_data["temp_retain_cards"] = []
+        run.node_data[retain_key] = []
         for ak, av in list(p.amulets.items()):
             base_id = av.id[:-1] if av.id.endswith("+") else av.id
             template = ALL_AMULETS.get(base_id)
             if template:
                 template.on_end_turn(run, ak, self.engine)
+            if p.amulets.get(ak) is not av:
+                continue
             av.countdown -= 1
             if av.countdown <= 0:
-                del p.amulets[ak]
+                p.amulets.pop(ak, None)
                 p.minion_graveyard.append(av.id)
                 lw_msg = ""
                 if template:
@@ -648,23 +665,9 @@ class CardPlayer:
                     self.engine._log_event(run, f"🔔 [谢幕曲] 我方【{av.name}】吟唱结束进入墓地：{lw_msg}")
                 else:
                     self.engine._log_event(run, f"🔔 我方【{av.name}】吟唱结束进入墓地。")
-        if self.engine.is_battle_won(run):
-            self.handle_battle_win(run)
-            self._reindex_minions(p)
-            return self.engine._append_logs_to_res(run, "战斗胜利！敌方单位已被全部击败。")
-        extra_turns = run.node_data.get("extra_turns_left", 0)
-        if extra_turns > 0:
-            run.node_data["extra_turns_left"] = extra_turns - 1
-            enemy_actions = f"⏳ [时间停止] 额外回合进行中（剩余 {extra_turns - 1} 个额外回合），敌人全部陷入静止。"
-        else:
-            enemy_actions = self.engine._enemy_turn(run)
-        if self.engine.is_battle_won(run):
-            self.handle_battle_win(run)
-            self._reindex_minions(p)
-            return self.engine._append_logs_to_res(run, f"{enemy_actions}\n🎉 战斗胜利！敌方单位已被全部击败。")
-        if p.hp <= 0:
-            settle_msg = self.engine.save_manager.settle_game_and_delete(run.user_id, run, is_victory=False)
-            return f"{enemy_actions}\n💀 冒险结束。你被击败了！存档已被清除。\n{settle_msg}"
+        return f"【{p.name}】结束了本回合行动。"
+
+    def _begin_player_phase(self, run: GameRun, p, advance_global: bool = True) -> str:
         decay_msgs = []
         has_barricade = any(b.id.startswith("barricade") for b in p.buffs)
         if p.shield > 0 and not has_barricade:
@@ -700,12 +703,13 @@ class CardPlayer:
                 mv.atk = 6
             elif mv.id == "arcane_golem+":
                 mv.atk = 8
-        if run.enemies and any(e.name == "腐化之心" for e in run.enemies):
-            run.node_data["heart_turn"] = run.node_data.get("heart_turn", 1) + 1
-        if run.enemies and any(e.name == "Icerainboww" for e in run.enemies):
-            run.node_data["icerainboww_turn"] = run.node_data.get("icerainboww_turn", 1) + 1
-        if run.enemies and any(e.name == "雷霆领主" for e in run.enemies):
-            run.node_data["thunder_lord_turn"] = run.node_data.get("thunder_lord_turn", 1) + 1
+        if advance_global:
+            if run.enemies and any(e.name.startswith("腐化之心") for e in run.enemies):
+                run.node_data["heart_turn"] = run.node_data.get("heart_turn", 1) + 1
+            if run.enemies and any(e.name.startswith("Icerainboww") for e in run.enemies):
+                run.node_data["icerainboww_turn"] = run.node_data.get("icerainboww_turn", 1) + 1
+            if run.enemies and any(e.name.startswith("雷霆领主") for e in run.enemies):
+                run.node_data["thunder_lord_turn"] = run.node_data.get("thunder_lord_turn", 1) + 1
         draw_count = 6
         if run.node_data.get("draw_penalty_next_turn"):
             draw_count = max(0, draw_count - run.node_data["draw_penalty_next_turn"])
@@ -724,16 +728,52 @@ class CardPlayer:
             p.buffs.remove(discard_buff)
             if discarded_names:
                 self.engine._log_event(run, f"💨 [回合开始弃牌] 由于受到怪物的干扰，你被迫丢弃了手牌：{', '.join(discarded_names)}。")
-
-        self.engine._roll_enemy_intent(run)
         run.node_data["cards_played_this_turn"] = 0
-        run.node_data["action_surge_turn_used"] = False
+        if getattr(run, "coop_id", ""):
+            run.node_data[f"action_surge_turn_used:{run.uid_for(p)}"] = False
+        else:
+            run.node_data["action_surge_turn_used"] = False
         self._reindex_minions(p)
-        run.node_data["turn_count"] = run.node_data.get("turn_count", 1) + 1
+        if advance_global:
+            run.node_data["turn_count"] = run.node_data.get("turn_count", 1) + 1
+        return f"{decay_info}进入【{p.name}】回合。已重置动作并抽取手牌。"
+
+    def end_turn(self, run: GameRun) -> str:
+        if run.node_type != "battle":
+            return "❌ 只有在战斗中才能结束回合。"
+        if getattr(run, "coop_id", ""):
+            from ..coop_engine import CoopEngine
+            return CoopEngine(self.engine.save_manager, self.engine).handle_battle_turn_end(run)
+        p = run.player
+        self._end_player_phase(run, p)
+        if self.engine.is_battle_won(run):
+            self.handle_battle_win(run)
+            self._reindex_minions(p)
+            return self.engine._append_logs_to_res(run, "战斗胜利！敌方单位已被全部击败。")
+        extra_turns = run.node_data.get("extra_turns_left", 0)
+        if extra_turns > 0:
+            run.node_data["extra_turns_left"] = extra_turns - 1
+            enemy_actions = f"⏳ [时间停止] 额外回合进行中（剩余 {extra_turns - 1} 个额外回合），敌人全部陷入静止。"
+        else:
+            enemy_actions = self.engine._enemy_turn(run)
+        if self.engine.is_battle_won(run):
+            self.handle_battle_win(run)
+            self._reindex_minions(p)
+            return self.engine._append_logs_to_res(run, f"{enemy_actions}\n🎉 战斗胜利！敌方单位已被全部击败。")
+        if p.hp <= 0:
+            settle_msg = self.engine.save_manager.settle_game_and_delete(run.user_id, run, is_victory=False)
+            return f"{enemy_actions}\n💀 冒险结束。你被击败了！存档已被清除。\n{settle_msg}"
+        begin_info = self._begin_player_phase(run, p, advance_global=True)
+        self.engine._roll_enemy_intent(run)
         self.engine.save_manager.save_save(run.user_id, run)
-        return self.engine._append_logs_to_res(run, f"{enemy_actions}\n{decay_info}进入【{p.name}】回合。已重置动作并抽取手牌。")
+        return self.engine._append_logs_to_res(run, f"{enemy_actions}\n{begin_info}")
 
     def handle_battle_win(self, run: GameRun):
+        if getattr(run, "coop_id", ""):
+            from ..coop_engine import CoopEngine
+            CoopEngine(self.engine.save_manager, self.engine).handle_coop_battle_win(run)
+            self.engine.save_manager.save_save(run.user_id, run)
+            return
         p = run.player
         p.buffs.clear()
         p.hp = min(p.max_hp, p.hp)
@@ -894,6 +934,7 @@ class CardPlayer:
                 if ALL_CARDS[cid].rarity not in ("legendary", "mythic", "artifact")
                 and not cid.startswith("curse_")
                 and not cid.startswith("duel_")
+                and not getattr(ALL_CARDS[cid], "coop_only", False)
                 and ALL_CARDS[cid].color in (target_color, "neutral")
                 and is_card_available(cid, stats)
             ]
@@ -935,44 +976,7 @@ class CardPlayer:
             self.engine.save_manager.save_save(run.user_id, run)
 
     def handle_corpse_win(self, run: GameRun):
-        corpse_id = run.node_data.get("corpse_id")
-        dead_name = str(run.node_data.get("corpse_dead_name", "玩家"))
-        cause = str(run.node_data.get("corpse_cause", "死因不明"))
-        corpse = self.engine.save_manager.corpses.claim(corpse_id, run.user_id)
-        map_engine = getattr(self.engine, "map_engine", None)
-        if not corpse:
-            if map_engine is not None:
-                map_engine.return_to_map_select(run)
-                run.node_data["notice"] = "❌ 这具尸体已经被其他玩家搜刮，尸体节点消失了。"
-            else:
-                run.node_type = "map_select"
-                run.node_data = {}
-            self.engine.save_manager.save_save(run.user_id, run)
-            return
-        gp_reward = int(corpse.get("gp_reward", 0))
-        stats = self.engine.save_manager.load_stats(run.user_id)
-        stats.gp += gp_reward
-        self.engine.save_manager.save_stats(run.user_id, stats)
-        deck = list(corpse.get("deck", []))
-        cards = random.sample(deck, min(CorpseConfig.REWARD_CARD_POOL, len(deck))) if deck else []
-        run.node_type = "corpse_reward"
-        run.enemies.clear()
-        run.node_data = {
-            "corpse_reward": True,
-            "corpse_id": corpse_id,
-            "dead_name": dead_name,
-            "cause": cause,
-            "gp": gp_reward,
-            "cards": cards,
-            "picks_left": CorpseConfig.REWARD_CARD_PICKS,
-            "picked": [],
-            "notice": (
-                f"你击败了【冤魂·{dead_name}】，从尸体中搜刮到 {gp_reward} GP。\n"
-                f"死因：{cause}。你可以从死者卡组中挑选 {CorpseConfig.REWARD_CARD_PICKS} 张卡牌，每次都可以跳过。"
-            ),
-        }
-        self.engine.save_manager.save_save(run.user_id, run)
-        self.engine.save_manager.corpses.remove(corpse_id)
+        handle_corpse_reward(self, run)
 
     def _reindex_minions(self, p: PlayerState):
         self.engine._reindex_minions(p)

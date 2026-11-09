@@ -12,6 +12,13 @@ class MapEngine:
         self.explore_engine = ExploreEngine(save_manager, self)
 
     def enter_next_stage(self, run: GameRun):
+        if getattr(run, "coop_id", ""):
+            from .coop_engine import CoopEngine
+            CoopEngine(self.save_manager, self.battle_engine).enter_next_stage(run)
+            return
+        self._enter_next_stage_solo(run)
+
+    def _enter_next_stage_solo(self, run: GameRun):
         p = run.player
         p.stage += 1
         if "espresso_relic" in p.relics:
@@ -180,15 +187,26 @@ class MapEngine:
         if not opts and nodes_layer:
             opts = nodes_layer
         options_data = []
-        desc_map = {
-            "battle": "遭遇战 (遇到 1~3 个普通的敌人)",
-            "elite": "精英战 (遭遇强力敌人，获胜金币更多)",
-            "event": "神秘事件 (可能获得宝物或遭遇危险)",
-            "shop": "奇妙商店 (购买强力卡牌、遗物或移除卡牌)",
-            "rest": "篝火营地 (恢复生命值或冥想领悟卡牌)",
-            "treasure": "古老宝箱 (献祭卡牌以获取稀有遗物及宝藏)",
-            "boss": "首领战 (击败守关的首领)"
-        }
+        if getattr(run, "coop_id", ""):
+            desc_map = {
+                "battle": "遭遇战 (遇到双倍数量的普通敌人)",
+                "elite": "精英战 (遭遇双倍数量的强力敌人，获胜金币更多)",
+                "event": "神秘事件 (可能获得宝物或遭遇危险)",
+                "shop": "奇妙商店 (各自独立货架，购买强力卡牌、遗物或移除卡牌)",
+                "rest": "篝火营地 (恢复生命值、冥想领悟或救治队友)",
+                "treasure": "古老宝箱 (献祭卡牌以获取稀有遗物及宝藏)",
+                "boss": "首领战 (击败双倍数量的守关首领)"
+            }
+        else:
+            desc_map = {
+                "battle": "遭遇战 (遇到 1~3 个普通的敌人)",
+                "elite": "精英战 (遭遇强力敌人，获胜金币更多)",
+                "event": "神秘事件 (可能获得宝物或遭遇危险)",
+                "shop": "奇妙商店 (购买强力卡牌、遗物或移除卡牌)",
+                "rest": "篝火营地 (恢复生命值或冥想领悟卡牌)",
+                "treasure": "古老宝箱 (献祭卡牌以获取稀有遗物及宝藏)",
+                "boss": "首领战 (击败守关的首领)"
+            }
         emoji_map = {
             "battle": "遭遇战",
             "elite": "精英战",
@@ -212,6 +230,8 @@ class MapEngine:
 
     def sync_corpse_options(self, run: GameRun) -> bool:
         if run is None or run.node_type != "map_select":
+            return False
+        if getattr(run, "coop_id", ""):
             return False
         data = run.node_data if run.node_data is not None else {}
         base = data.get("base_options")
@@ -322,6 +342,13 @@ class MapEngine:
         options = run.node_data.get("options", [])
         if option_idx < 1 or option_idx > len(options):
             return "❌ 无效的分支序号。"
+        if getattr(run, "coop_id", ""):
+            from .coop_engine import CoopEngine
+            coop = CoopEngine(self.save_manager, self.battle_engine)
+            vote_result = coop.vote_map_node(run, run.user_id, option_idx)
+            if vote_result is not None:
+                return vote_result
+            run.node_data["votes"] = {}
         chosen = options[option_idx - 1]
         node_type = chosen["node_type"]
         node_id = chosen["node_id"]
@@ -401,12 +428,12 @@ class MapEngine:
     def _init_treasure_node(self, run: GameRun):
         self.explore_engine._init_treasure_node(run)
 
-    def choose_option(self, run: GameRun, option_idx: int) -> str:
+    def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str:
         if run.node_type == "battle":
             return "❌ 战斗中无法使用选择命令。"
         if run.node_type == "map_select":
             return self.choose_map_node(run, option_idx)
-        return self.explore_engine.choose_option(run, option_idx)
+        return self.explore_engine.choose_option(run, option_idx, target)
 
     def remove_card_from_deck(self, run: GameRun, deck_idx: int) -> str:
         return self.explore_engine.remove_card_from_deck(run, deck_idx)

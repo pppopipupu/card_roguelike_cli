@@ -6,6 +6,7 @@ from . import wizard
 from . import legendary
 from . import curse
 from . import warrior
+from . import coop
 
 import copy
 
@@ -13,10 +14,12 @@ def _get_card_config():
     from ...data.neutral_card_data import NEUTRAL_CARD_CONFIG
     from ...data.wizard_card_data import WIZARD_CARD_CONFIG
     from ...data.warrior_card_data import WARRIOR_CARD_CONFIG
+    from ...data.coop_card_data import COOP_CARD_CONFIG
     cfg = {}
     cfg.update(NEUTRAL_CARD_CONFIG)
     cfg.update(WIZARD_CARD_CONFIG)
     cfg.update(WARRIOR_CARD_CONFIG)
+    cfg.update(COOP_CARD_CONFIG)
     return cfg
 
 class CardRegistryDict(dict):
@@ -79,6 +82,7 @@ class CardRegistryDict(dict):
             inst.instant_summon = cfg.get("instant_summon", False)
             inst.instant_summon_thresholds = tuple(cfg.get("instant_summon_thresholds", ()))
             inst.instant_summon_piles = tuple(cfg.get("instant_summon_piles", ()))
+            inst.coop_only = cfg.get("coop_only", False)
             fragile_val = cfg.get("fragile", 0)
             if fragile_val > 0:
                 from ...entities.tags import FragileTag
@@ -408,6 +412,7 @@ for cid, cfg in _get_card_config().items():
     inst.instant_summon = cfg.get("instant_summon", False)
     inst.instant_summon_thresholds = tuple(cfg.get("instant_summon_thresholds", ()))
     inst.instant_summon_piles = tuple(cfg.get("instant_summon_piles", ()))
+    inst.coop_only = cfg.get("coop_only", False)
     fragile_val = cfg.get("fragile", 0)
     if fragile_val > 0:
         from ...entities.tags import FragileTag

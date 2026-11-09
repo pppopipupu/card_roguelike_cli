@@ -3,6 +3,7 @@ from ..entities import get_relic_name, get_relic_desc
 from ..cards import ALL_CARDS
 
 def render_map_select(run: GameRun) -> str:
+    from .party import render_party_status
     p = run.player
     options = run.node_data.get("options", [])
     relics_str = ""
@@ -79,6 +80,17 @@ def render_map_select(run: GameRun) -> str:
             preview_lines.append(f"    [{idx}] {type_names.get(nd['type'], nd['type'])}{next_str}")
     lines.extend(preview_lines)
     lines.append("")
+    if getattr(run, "coop_id", ""):
+        lines.append(render_party_status(run))
+        votes = run.node_data.get("votes", {})
+        if votes:
+            vote_names = []
+            for uid, vote in votes.items():
+                member = run.players.get(uid)
+                vote_names.append(f"{member.name if member else uid}→{vote}")
+            lines.append("🗳️ 当前投票：" + "，".join(vote_names))
+        lines.append("💡 联机路线：队长选择即通过；队员全员选择同一分支也会通过。")
+        lines.append("")
     lines.append("前方道路出现了分支，请选择你前往的下一个节点：")
     for idx, opt in enumerate(options, 1):
         lines.append(f" [{idx}] {opt.get('desc', '')}")
@@ -91,7 +103,10 @@ def render_map_select(run: GameRun) -> str:
     return "\n".join(lines)
 
 def render_start_ancient(run: GameRun) -> str:
+    from .party import render_waiting
     p = run.player
+    if getattr(run, "coop_id", "") and run.node_data.get("coop_done"):
+        return render_waiting(run)
     options = run.node_data.get("options", [])
     style = run.node_data.get("style", "default")
     style_names = {

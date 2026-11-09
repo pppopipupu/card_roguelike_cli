@@ -31,6 +31,7 @@ def adjust_intent_desc_with_modifiers(desc: str, strength: int, weak: int) -> st
     return re.sub(pattern, repl, desc)
 
 def render_battle(run: GameRun) -> str:
+    from .party import render_party_status
     p = run.player
     will_buff = next((b for b in p.buffs if b.id == "iron_will"), None)
     will_stacks = will_buff.stacks if will_buff else 0
@@ -48,6 +49,10 @@ def render_battle(run: GameRun) -> str:
         f"⚔️ 【第 {p.stage} 关：战斗阶段 (第 {turn_count} 回合)】",
         f"{run.player.name}：❤️ HP {p.hp}/{cur_max} | 🛡️ 护盾 {p.shield} | ⚡ 动作 {p.actions}A {p.bonus_actions}BA" + relics_str + potions_str
     ]
+    if getattr(run, "coop_id", ""):
+        lines.append(render_party_status(run))
+        if p.downed or p.hp <= 0:
+            lines.append("💀 你已倒地，无法行动，正在观战。")
     if p.buffs:
         buff_strs = []
         for b in p.buffs:
@@ -137,7 +142,14 @@ def render_battle(run: GameRun) -> str:
             if run.node_data.get("is_void_corrupted"):
                 e_name = void_corrupt_text(e_name)
                 intent_str = void_corrupt_text(intent_str)
-            lines.append(f" 格子 [{idx}] 敌人：{e_name} (❤️ HP {hp_text}{shield_str}{buff_desc} | ⚡ 动作 {enemy.actions}A {enemy.bonus_actions}BA | ⚔️ 意图：{intent_str})")
+            target_label = ""
+            if getattr(run, "coop_id", ""):
+                target_uid = run.node_data.get("enemy_targets", {}).get(str(idx))
+                if target_uid == "ALL":
+                    target_label = " | 🎯 全体"
+                elif target_uid in getattr(run, "party_order", []):
+                    target_label = f" | 🎯 a{run.party_order.index(target_uid) + 1}"
+            lines.append(f" 格子 [{idx}] 敌人：{e_name} (❤️ HP {hp_text}{shield_str}{buff_desc} | ⚡ 动作 {enemy.actions}A {enemy.bonus_actions}BA | ⚔️ 意图：{intent_str}{target_label})")
     lines.append("")
     lines.append("【你的手牌】")
     if not p.hand:

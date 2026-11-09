@@ -32,6 +32,12 @@ class BattleEngine(BaseBattleEngine):
         if "battle_logs" not in run.node_data:
             run.node_data["battle_logs"] = []
         run.node_data["battle_logs"].append(msg)
+        if getattr(run, "coop_id", ""):
+            history = run.node_data.setdefault("coop_battle_log_history", [])
+            prefix = f"[{run.player.name}] " if run.player else ""
+            history.append(prefix + msg)
+            if len(history) > 60:
+                del history[:-60]
 
     def _append_logs_to_res(self, run: GameRun, res: str) -> str:
         if "battle_logs" in run.node_data:
@@ -90,7 +96,72 @@ class BattleEngine(BaseBattleEngine):
         self.card_player.draw_cards(p, count, run, ignore_focus)
 
     def _init_battle_node(self, run: GameRun, difficulty: str = "normal"):
-        p = run.player
+        if getattr(run, "coop_id", ""):
+            self._init_coop_battle(run, difficulty)
+            return
+        self._init_battle_node_solo(run, difficulty)
+
+    init_battle = _init_battle_node
+
+    def _init_battle_node_solo(self, run: GameRun, difficulty: str = "normal"):
+        self._init_player_battle(run, run.player, difficulty)
+        self._generate_battle_enemies(run, difficulty)
+        from ..models.events import TurnStartEvent
+        evt_turn = TurnStartEvent(run, is_player=True)
+        self.event_bus.dispatch(evt_turn)
+        self._roll_enemy_intent(run)
+
+    def _init_coop_battle(self, run: GameRun, difficulty: str = "normal"):
+        from .coop_engine import CoopEngine
+        coop = CoopEngine(self.save_manager, self)
+        caller = run.user_id
+        viewer = run.player
+        if run.node_data.get("temp_minus_1a"):
+            run.node_data["drain_a"] = True
+            run.node_data.pop("temp_minus_1a", None)
+        run.node_data = {
+            "cards_played_this_turn": 0,
+            "turn_count": 1,
+            "difficulty": difficulty,
+            "turn_ready": {},
+            "coop_battle_log_history": [],
+        }
+        for uid in run.party_order:
+            player = run.players[uid]
+            run.player = player
+            run.user_id = uid
+            self._init_player_battle(run, player, difficulty)
+            run.node_data["turn_ready"][uid] = player.downed
+        run.player = viewer
+        run.user_id = caller
+        self._generate_battle_enemies(run, difficulty)
+        coop.scale_coop_enemies(run)
+        coop.assign_enemy_targets(run)
+        from ..models.events import TurnStartEvent
+        for uid in run.party_order:
+            player = run.players[uid]
+            if player.downed:
+                continue
+            run.player = player
+            run.user_id = uid
+            self.event_bus.dispatch(TurnStartEvent(run, is_player=True))
+        run.player = viewer
+        run.user_id = caller
+        self._roll_enemy_intent(run)
+        coop.assign_enemy_targets(run)
+        self.save_manager.save_coop_save(caller, run)
+
+    def _init_player_battle(self, run: GameRun, p, difficulty: str):
+        player_uid = run.uid_for(p) if getattr(run, "coop_id", "") else run.user_id
+        if player_uid:
+            stats = self.save_manager.load_stats(player_uid)
+            stats_class = getattr(stats, "selected_class", "")
+            if stats_class:
+                p.selected_class = stats_class
+                if stats_class == "战士":
+                    p.subclass = ""
+                else:
+                    p.subclass = getattr(stats, "selected_subclass", "") or p.subclass
         if run.node_data.get("temp_minus_1a"):
             run.node_data["drain_a"] = True
             run.node_data.pop("temp_minus_1a", None)
@@ -110,17 +181,17 @@ class BattleEngine(BaseBattleEngine):
         p.shield = 0
         run.node_data["cards_played_this_turn"] = 0
         run.node_data["turn_count"] = 1
-        selected_class = "法师"
-        stats = self.save_manager.load_stats(run.user_id) if hasattr(self, "save_manager") and self.save_manager else None
-        if stats:
-            selected_class = getattr(stats, "selected_class", "法师")
-        elif hasattr(p, "selected_class"):
-            selected_class = getattr(p, "selected_class", "法师")
+        selected_class = getattr(p, "selected_class", "法师")
         if selected_class == "战士":
-            run.node_data["action_surge_uses"] = 2
-            run.node_data["action_surge_turn_used"] = False
+            if getattr(run, "coop_id", ""):
+                surge_uid = run.uid_for(p)
+                run.node_data[f"action_surge_uses:{surge_uid}"] = 2
+                run.node_data[f"action_surge_turn_used:{surge_uid}"] = False
+            else:
+                run.node_data["action_surge_uses"] = 2
+                run.node_data["action_surge_turn_used"] = False
 
-        from ..models.events import BattleStartEvent, TurnStartEvent
+        from ..models.events import BattleStartEvent
         evt_start = BattleStartEvent(run)
         self.event_bus.dispatch(evt_start)
 
@@ -139,6 +210,8 @@ class BattleEngine(BaseBattleEngine):
         self._draw_cards(p, init_draw, run, ignore_focus=True)
         run.node_data["difficulty"] = difficulty
 
+    def _generate_battle_enemies(self, run: GameRun, difficulty: str):
+        p = run.player
         if difficulty == "boss":
             if p.stage == 12:
                 boss_name = random.choice(["远古红龙", "雷霆领主"])
@@ -349,12 +422,6 @@ class BattleEngine(BaseBattleEngine):
                     max_bonus_actions=bonus_actions
                 ))
 
-        evt_turn = TurnStartEvent(run, is_player=True)
-        self.event_bus.dispatch(evt_turn)
-        self._roll_enemy_intent(run)
-
-    init_battle = _init_battle_node
-
     def play_card(self, run: GameRun, hand_idx: int, target: Optional[str] = None) -> str:
         return self.card_player.play_card(run, hand_idx, target)
 
@@ -390,9 +457,17 @@ class BattleEngine(BaseBattleEngine):
         return self.card_player.end_turn(run)
 
     def _enemy_turn(self, run: GameRun) -> str:
+        if getattr(run, "coop_id", ""):
+            from .coop_engine import CoopEngine
+            return CoopEngine(self.save_manager, self).enemy_turn(run, self.enemy_controller)
         return self.enemy_controller.enemy_turn(run)
 
     def _handle_battle_win(self, run: GameRun):
+        if getattr(run, "coop_id", ""):
+            from .coop_engine import CoopEngine
+            CoopEngine(self.save_manager, self).handle_coop_battle_win(run)
+            self.save_manager.save_save(run.user_id, run)
+            return
         self.card_player.handle_battle_win(run)
 
     def _roll_enemy_intent(self, run: GameRun):
@@ -432,7 +507,7 @@ class BattleEngine(BaseBattleEngine):
         card_pool = []
         for cid, card_obj in ALL_CARDS.items():
             if not cid.startswith("duel_") and not cid.startswith("curse_") and not cid.endswith("+"):
-                if not getattr(card_obj, "unplayable", False):
+                if not getattr(card_obj, "unplayable", False) and not getattr(card_obj, "coop_only", False):
                     card_pool.append(cid)
         drawn = []
         if card_pool and exhausted_count > 0:

@@ -22,6 +22,8 @@ class UseAction(ActionHandler, actions=["使用", "p"]):
         success = "❌" not in res
         if run.player.hp <= 0:
             settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
+            if getattr(run, "coop_id", ""):
+                return f"{res}\n💀 你已倒地。\n{settle_msg}", True, success
             return f"{res}\n💀 你被击败了！当前进度已清空。\n{settle_msg}", True, success
         if router.engine.is_battle_won(run):
             router.engine._handle_battle_win(run)
@@ -93,6 +95,8 @@ class MinionAction(ActionHandler, actions=["随从", "m"]):
         success = not any("❌" in r for r in results) if results else False
         if run.player.hp <= 0:
             settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
+            if getattr(run, "coop_id", ""):
+                return f"{res_combined}\n💀 你已倒地。\n{settle_msg}", True, success
             return f"{res_combined}\n💀 你被击败了！当前进度已清空。\n{settle_msg}", True, success
         if router.engine.is_battle_won(run):
             router.engine._handle_battle_win(run)
@@ -149,6 +153,10 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                                 forced_names.append(f"宝石【{get_gem_name(gid)}】")
                         names_str = "、".join(forced_names)
                         return get_locale_text("err_must_claim_forced", names_str=names_str), False, False
+                    if getattr(run, "coop_id", ""):
+                        from ..coop_engine import CoopEngine
+                        msg = CoopEngine(router.save_manager, router.engine.battle_engine).finish_player_node(run, user_id, get_locale_text("msg_leave_node"))
+                        return msg, False, True
                     router.engine.map_engine.enter_next_stage(run)
                     router.save_manager.save_save(run.user_id, run)
                     return get_locale_text("msg_leave_node"), False, True
@@ -163,17 +171,24 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
             success = "❌" not in res
             if run.player.hp <= 0:
                 settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
+                if getattr(run, "coop_id", ""):
+                    return f"{res}\n💀 你已倒地。\n{settle_msg}", True, success
                 return f"{res}\n💀 你在荒野的意外中丧生了！当前进度已清空。\n{settle_msg}", True, success
+            if getattr(run, "coop_id", ""):
+                router.save_manager.save_save(user_id, run)
             return res, False, success
         elif run.node_data.get("pending_remove"):
             res = router.engine.remove_card_from_deck(run, idx)
+            if getattr(run, "coop_id", ""):
+                router.save_manager.save_save(user_id, run)
             return res, False, "❌" not in res
         else:
-            res = router.engine.choose_option(run, idx)
+            target = parts[2] if len(parts) > 2 else None
+            res = router.engine.choose_option(run, idx, target)
             success = "❌" not in res
             if run.player.hp <= 0:
                 settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                return f"{res}\n💀 你在荒野的意外中丧生了！当前进度已清空。\n{settle_msg}", True, success
+                return f"{res}\n💀 你倒下了。\n{settle_msg}", True, success
             if res == "REMOVE_FLOW":
                 run.node_data["pending_remove"] = True
                 router.save_manager.save_save(user_id, run)
@@ -183,6 +198,8 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                 router.save_manager.save_save(user_id, run)
                 return "🔨 卡牌升级强化已启动。请查看你的卡组，并输入 c <卡牌序号> 来使你的卡牌永久升级为带【+】的强力变体。可以通过 /rogue deck 查看卡牌序号。", False, True
             else:
+                if getattr(run, "coop_id", ""):
+                    router.save_manager.save_save(user_id, run)
                 return res, False, success
 
 class SpecialAction(ActionHandler, actions=["特殊", "sa"]):
@@ -198,6 +215,8 @@ class SpecialAction(ActionHandler, actions=["特殊", "sa"]):
         success = "❌" not in res
         if run.player.hp <= 0:
             settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
+            if getattr(run, "coop_id", ""):
+                return f"{res}\n💀 你已倒地。\n{settle_msg}", True, success
             return f"{res}\n💀 你被击败了！当前进度已清空。\n{settle_msg}", True, success
         if router.engine.is_battle_won(run):
             router.engine._handle_battle_win(run)
@@ -217,7 +236,11 @@ class EndTurnAction(ActionHandler, actions=["结束", "e"]):
     def execute(self, router, user_id: str, run, parts: list[str]) -> Tuple[str, bool, bool]:
         res = router.engine.end_turn(run)
         success = "❌" not in res
-        if "冒险结束" in res or router.engine.is_battle_won(run):
+        if run.node_type == "victory":
+            settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=True)
+            boss_name = run.node_data.get("boss_name") or "最终BOSS"
+            return f"{res}\n🎉 恭喜你击败了{boss_name}，通关成功！\n{settle_msg}", True, success
+        if "冒险结束" in res or "全队阵亡" in res or router.engine.is_battle_won(run):
             return res, True, success
         return res, False, success
 

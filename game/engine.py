@@ -2,7 +2,7 @@ import random
 from typing import Optional, List, Dict
 from .models.state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, Card
 from .entities import ALL_CARDS
-from .entities.cards.market import is_card_available
+from .entities.cards.market import is_card_available, is_coop_only
 from .models.manager import SaveManager
 from .core.battle_engine import BattleEngine
 from .core.map_engine import MapEngine
@@ -16,7 +16,7 @@ class GameEngine:
         from .core.battle.potion_resolver import PotionResolver
         self.potion_resolver = PotionResolver(self)
 
-    def start_new_game(self, user_id: str) -> GameRun:
+    def _build_player_state(self, user_id: str) -> PlayerState:
         stats = self.save_manager.load_stats(user_id)
         stats.town_flags.pop("market_shelf", None)
         selected_class = getattr(stats, "selected_class", "法师")
@@ -33,9 +33,9 @@ class GameEngine:
         hp_bonus = getattr(stats, "town_health_bonus", 0)
         hp += hp_bonus
         max_hp += hp_bonus
-        commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and is_card_available(cid, stats)]
-        rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and is_card_available(cid, stats)]
-        epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and is_card_available(cid, stats)]
+        commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not is_coop_only(cid) and is_card_available(cid, stats)]
+        rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not is_coop_only(cid) and is_card_available(cid, stats)]
+        epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not is_coop_only(cid) and is_card_available(cid, stats)]
         locked_cards = list(getattr(stats, "locked_cards", []) or [])
         g_card = getattr(stats, "guaranteed_card", None)
         if g_card:
@@ -90,6 +90,15 @@ class GameEngine:
             subclass=selected_subclass,
             selected_class=selected_class
         )
+        self.save_manager.save_stats(user_id, stats)
+        return player
+
+    def start_new_game(self, user_id: str) -> GameRun:
+        stats = self.save_manager.load_stats(user_id)
+        if getattr(stats, "active_coop_id", "") or getattr(stats, "active_lobby_id", ""):
+            return None
+        player = self._build_player_state(user_id)
+        stats = self.save_manager.load_stats(user_id)
         run = GameRun(
             user_id=user_id,
             node_type="start",
@@ -125,8 +134,8 @@ class GameEngine:
     def end_turn(self, run: GameRun) -> str:
         return self.battle_engine.end_turn(run)
 
-    def choose_option(self, run: GameRun, option_idx: int) -> str:
-        return self.map_engine.choose_option(run, option_idx)
+    def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str:
+        return self.map_engine.choose_option(run, option_idx, target)
 
     def choose_map_node(self, run: GameRun, option_idx: int) -> str:
         return self.map_engine.choose_map_node(run, option_idx)
