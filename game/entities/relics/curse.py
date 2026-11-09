@@ -1,4 +1,5 @@
 import re
+from ...data.locale_data import get_locale_text
 from .base import RelicImpl
 from .registry import register_relic
 
@@ -9,8 +10,10 @@ class RustShackleRelic(RelicImpl):
 
     def on_battle_start(self, run, engine):
         p = run.player
-        p.hp = max(1, p.hp - self.hp_loss)
-        engine._log_event(run, f"🔒 [铁锈之锁] 触发：失去 {self.hp_loss} 点生命值。")
+        loss = min(self.hp_loss, p.hp - 1) if p.hp > 1 else 0
+        if loss > 0:
+            engine._damage_target(run, "p0", loss, source="self", damage_type="true")
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.curse.rust_shackle.trigger", hp_loss=self.hp_loss))
 
 class BlindSpotRelic(RelicImpl):
     def __init__(self, relic_id: str):
@@ -18,7 +21,7 @@ class BlindSpotRelic(RelicImpl):
         self.draw_penalty = 2
 
     def on_battle_start(self, run, engine):
-        engine._log_event(run, f"👁️ [盲目之障] 触发：首回合少抽 {self.draw_penalty} 张牌。")
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.curse.blind_spot.trigger", draw_penalty=self.draw_penalty))
 
     def modify_initial_draw(self, run, draw_count: int, engine) -> int:
         return max(0, draw_count - self.draw_penalty)
@@ -45,13 +48,13 @@ class ShadowCurseRelic(RelicImpl):
     def on_card_played(self, event, run, engine):
         if event.card.type == "spell" and not event.card.id.startswith("demon_contract"):
             engine._damage_target(run, "p0", 1, source="shadow_curse", damage_type="force")
-            engine._log_event(run, "🕸️ [影之诅咒] 触发：受到 1 点力场伤害。")
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.curse.shadow_curse.trigger"))
 
 class GlacierChillRelic(RelicImpl):
     def on_turn_start(self, event, run, engine):
         if event.is_player:
             run.player.actions = max(0, run.player.actions - 1)
-            engine._log_event(run, "❄️ [严寒侵袭] 触发：玩家本回合动作点 A 减少 1。")
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.curse.glacier_chill.trigger"))
 
 
 for name, obj in list(globals().items()):

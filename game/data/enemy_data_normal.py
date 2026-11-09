@@ -547,3 +547,28 @@ ENEMY_NORMAL_CONFIG = {
         ]
     }
 }
+
+ENEMY_INTENT_SCALING = {
+    "attack": {"base": 3, "stage_divisor": 2, "random_min": 0, "random_max": 2},
+    "defend": {"base": 3, "stage_multiplier": 1, "random_min": 0, "random_max": 2}
+}
+
+ENEMY_ENCOUNTER_CONFIG = {
+    "normal": {
+        "hp_per_stage": 2,
+        "count_range": [1, 3],
+        "pools": [
+            {"max_stage": 12, "names": ["地精突袭者", "石像鬼守卫", "堕落学徒", "狂暴野兽", "邪教徒咔咔", "深潜者", "食尸鬼"]},
+            {"max_stage": 25, "names": ["幽灵法师", "冰霜史莱姆", "骷髅弓箭手", "剧毒蜘蛛", "邪教徒咔咔", "夜魇", "夏塔克鸟"]},
+            {"names": ["黑曜石巨人", "暗影刺客", "吉斯洋基海盗", "虚空行者", "空鬼"]}
+        ]
+    },
+    "elite": {
+        "hp_per_stage": 3,
+        "pools": [
+            {"max_stage": 12, "names": ["地精百夫长", "石像鬼祭司", "狂暴兽王", "夺心魔", "冷蛛", "米·戈"]},
+            {"max_stage": 25, "names": ["黑曜石巨灵", "幽灵大魔法师", "暗影影魔", "夺心魔", "修格斯", "星之精"]},
+            {"names": ["末日守卫", "亡灵巫师", "夺心魔奥术师", "吉斯洋基至高指挥官", "虚空潜伏者", "克苏鲁之星之眷族"]}
+        ]
+    }
+}

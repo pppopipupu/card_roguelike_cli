@@ -1,6 +1,7 @@
 from typing import Tuple, List
 from .base import EnemyTemplate, register_enemy
 from ...models.state import EnemyIntentState, BuffState
+from ...data.locale_data import get_locale_text
 
 @register_enemy("训练假人")
 class DummyTemplate(EnemyTemplate):
@@ -17,7 +18,7 @@ class TestDummyTemplate(EnemyTemplate):
             intents_list.append(EnemyIntentState(
                 type="attack",
                 val=10,
-                desc="横扫击打 (造成 10 点钝击伤害)",
+                desc=get_locale_text("i18n_enemy_misc.test_dummy.sweep"),
                 cost_a=1,
                 cost_ba=0
             ))
@@ -25,7 +26,7 @@ class TestDummyTemplate(EnemyTemplate):
             intents_list.append(EnemyIntentState(
                 type="defend",
                 val=10,
-                desc="自我修复 (获得 10 点护盾)",
+                desc=get_locale_text("i18n_enemy_misc.test_dummy.repair"),
                 cost_a=1,
                 cost_ba=0
             ))
@@ -41,7 +42,7 @@ class NoobSlayer99Template(EnemyTemplate):
             intents_list.append(EnemyIntentState(
                 type="attack",
                 val=8,
-                desc="施法火球 (造成 8 点火焰伤害)",
+                desc=get_locale_text("i18n_enemy_misc.noob_slayer.fireball"),
                 cost_a=1,
                 cost_ba=0
             ))
@@ -49,7 +50,7 @@ class NoobSlayer99Template(EnemyTemplate):
             intents_list.append(EnemyIntentState(
                 type="defend",
                 val=8,
-                desc="凝聚冰甲 (获得 8 点护盾)",
+                desc=get_locale_text("i18n_enemy_misc.noob_slayer.ice_armor"),
                 cost_a=1,
                 cost_ba=0
             ))
@@ -65,7 +66,7 @@ class SniperEliteTemplate(EnemyTemplate):
             intents_list.append(EnemyIntentState(
                 type="aim",
                 val=0,
-                desc="精准瞄准 (锁定目标，下回合伤害增加)",
+                desc=get_locale_text("i18n_enemy_misc.sniper_elite.aim"),
                 cost_a=1,
                 cost_ba=0
             ))
@@ -73,7 +74,7 @@ class SniperEliteTemplate(EnemyTemplate):
             intents_list.append(EnemyIntentState(
                 type="attack",
                 val=18,
-                desc="穿甲射击 (造成 18 点穿刺伤害)",
+                desc=get_locale_text("i18n_enemy_misc.sniper_elite.shot"),
                 cost_a=1,
                 cost_ba=0
             ))
@@ -93,8 +94,8 @@ class SniperEliteTemplate(EnemyTemplate):
         from .trash_talk_actions import try_trash_talk
         try_trash_talk(run, enemy, logs)
         if intent.type == "aim":
-            enemy.buffs.append(BuffState(id="strength", name="力量", stacks=3, desc="造成伤害增加 3"))
-            logs.append(f"敌人【{enemy.name}】进入了瞄准状态，获得了 3 层力量。")
+            enemy.buffs.append(BuffState(id="strength", name=get_locale_text("i18n_enemy_misc.common.strength_name"), stacks=3, desc=get_locale_text("i18n_enemy_misc.sniper_elite.strength_desc")))
+            logs.append(get_locale_text("i18n_enemy_misc.sniper_elite.aim_log", name=enemy.name))
         else:
             for b in list(enemy.buffs):
                 if b.id == "strength":
@@ -112,17 +113,17 @@ class PppopipupuTemplate(EnemyTemplate):
                 run.node_data["pending_transitions"] = {}
             run.node_data["pending_transitions"][enemy.name] = 2
             from ...models.state import BuffState, EnemyIntentState
-            enemy.buffs.append(BuffState(id="phase_transition_immune", name="转换阶段", stacks=1, desc="处于转换阶段状态，免疫所有伤害"))
+            enemy.buffs.append(BuffState(id="phase_transition_immune", name=get_locale_text("i18n_enemy_misc.common.phase_transition_name"), stacks=1, desc=get_locale_text("i18n_enemy_misc.common.phase_transition_desc")))
             enemy.intents.clear()
             enemy.intents.append(EnemyIntentState(
                 type="phase_transition",
                 val=0,
-                desc="热更新 (转换阶段：正在热更新插件中，暂时拒绝一切伤害请求的TCP握手)",
+                desc=get_locale_text("i18n_enemy_misc.pppopipupu.phase_intent"),
                 cost_a=1,
                 cost_ba=0
             ))
             engine.enemy_controller.sync_enemy_intents(enemy)
-            engine._log_event(run, "⚠️ pppopipupu 受到了致命伤害，但他似乎正在通过某种方式重写代码... 进入了【转换阶段】状态！")
+            engine._log_event(run, get_locale_text("i18n_enemy_misc.pppopipupu.phase_log"))
 
     def apply_phase_transition(self, run, enemy, target_phase: int, engine, logs: list):
         if target_phase == 2:
@@ -136,9 +137,9 @@ class PppopipupuTemplate(EnemyTemplate):
             enemy.max_bonus_actions = 0
             enemy.buffs.clear()
             from ...models.state import BuffState
-            enemy.buffs.append(BuffState(id="phase_transition_immune", name="转换阶段", stacks=1, desc="处于转换阶段状态，免疫所有伤害"))
+            enemy.buffs.append(BuffState(id="phase_transition_immune", name=get_locale_text("i18n_enemy_misc.common.phase_transition_name"), stacks=1, desc=get_locale_text("i18n_enemy_misc.common.phase_transition_desc")))
             run.node_data["pppopipupu_phase"] = 2
-            logs.append("🌟 pppopipupu 在致命伤下苏醒了！无尽的力场虚空能重新充满了他的身躯！他进入了神级觉醒形态！")
+            logs.append(get_locale_text("i18n_enemy_misc.pppopipupu.awaken_log"))
 
     def roll_intents(self, run, engine, enemy) -> List[EnemyIntentState]:
         phase = run.node_data.get("pppopipupu_phase", 1)
@@ -147,7 +148,7 @@ class PppopipupuTemplate(EnemyTemplate):
             intents_list.append(EnemyIntentState(
                 type="force_strike",
                 val=100,
-                desc="猛击 (对玩家造成 100 点力场伤害)",
+                desc=get_locale_text("i18n_enemy_misc.pppopipupu.force_strike_intent"),
                 cost_a=1,
                 cost_ba=0
             ))
@@ -155,7 +156,7 @@ class PppopipupuTemplate(EnemyTemplate):
             intents_list.append(EnemyIntentState(
                 type="fish",
                 val=0,
-                desc="钓鱼 (无所事事地在靶场旁钓鱼)",
+                desc=get_locale_text("i18n_enemy_misc.pppopipupu.fish_intent"),
                 cost_a=1,
                 cost_ba=0
             ))
@@ -176,9 +177,9 @@ class PppopipupuTemplate(EnemyTemplate):
         try_trash_talk(run, enemy, logs)
         if intent.type == "force_strike":
             engine._damage_target(run, "p0", 100, source=f"enemy:{enemy.name}", damage_type="force")
-            logs.append(f"敌人【{enemy.name}】发出了撕裂空间的猛击，对玩家造成了 100 点真实力场伤害！")
+            logs.append(get_locale_text("i18n_enemy_misc.pppopipupu.force_strike_log", name=enemy.name))
         else:
-            logs.append(f"敌人【{enemy.name}】在一旁悠闲地钓鱼。")
+            logs.append(get_locale_text("i18n_enemy_misc.pppopipupu.fish_log", name=enemy.name))
 
 register_enemy("【觉醒】pppopipupu")(PppopipupuTemplate)
 
@@ -193,7 +194,7 @@ class GateGuardianTemplate(EnemyTemplate):
             intents_list.append(EnemyIntentState(
                 type="attack",
                 val=12,
-                desc="强力挥砍 (造成 12 点挥砍伤害)",
+                desc=get_locale_text("i18n_enemy_misc.gate_guardian.slash"),
                 cost_a=1,
                 cost_ba=0
             ))
@@ -201,7 +202,7 @@ class GateGuardianTemplate(EnemyTemplate):
             intents_list.append(EnemyIntentState(
                 type="defend",
                 val=15,
-                desc="铁盾格挡 (获得 15 点护盾)",
+                desc=get_locale_text("i18n_enemy_misc.gate_guardian.block"),
                 cost_a=1,
                 cost_ba=0
             ))
@@ -209,7 +210,7 @@ class GateGuardianTemplate(EnemyTemplate):
             intents_list.append(EnemyIntentState(
                 type="attack",
                 val=20,
-                desc="重力盾击 (造成 20 点钝击伤害)",
+                desc=get_locale_text("i18n_enemy_misc.gate_guardian.bash"),
                 cost_a=1,
                 cost_ba=0
             ))

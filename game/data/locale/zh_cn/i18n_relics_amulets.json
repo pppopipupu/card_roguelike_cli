@@ -1,0 +1,218 @@
+{
+  "common": {
+    "leather_armor": {
+      "trigger": "🛡️ [坚固皮革] 触发：获得 {shield_gain} 点初始护盾。"
+    },
+    "ancient_sigil": {
+      "heal": "✨ [先古印记] 触发：为玩家恢复 3 点生命值。",
+      "shield": "✨ [先古印记] 触发：为玩家获得 5 点护盾。"
+    }
+  },
+  "rare": {
+    "ready_pack": {
+      "trigger": "🎒 [准备背包] 触发：本场战斗初始附赠动作（BA）+{ba_bonus}。"
+    },
+    "ancient_compass": {
+      "trigger": "🧭 [古老罗盘] 触发：所有敌人首回合动作点（A）减少 1。"
+    },
+    "djinn_shard": {
+      "trigger": "💎 [巨灵碎晶] 触发！本回合打出第一张法术，对【{name}】造成 5 点力场伤害！"
+    },
+    "leng_spider_venom": {
+      "buff_name": "轻度易伤",
+      "buff_desc": "受到的所有类型伤害增加 50%",
+      "trigger": "🕷️ [冷蛛毒腺] 触发！使【{name}】获得 1 层【轻度易伤】。"
+    },
+    "migo_lightning_gun": {
+      "trigger": "🔫 [米·戈电击枪] 触发！释放高频电磁波！"
+    },
+    "shoggoth_slime": {
+      "trigger": "🦠 [修格斯粘液] 触发！受伤失去生命，获得 4 点护盾。"
+    },
+    "star_vampire_proboscis": {
+      "trigger": "🩸 [星之吸管] 触发！打出消耗牌，回复 2 点生命值。"
+    }
+  },
+  "epic": {
+    "ancient_page": {
+      "hp_loss": "📖 [先古残页] 触发：失去 {hp_loss} 点生命值。",
+      "add_sparks": "📖 [先古残页] 触发：将 {spark_added} 张【奥术星火】加入手牌。"
+    },
+    "heavy_armor": {
+      "trigger": "🛡️ [重装甲片] 触发：获得 {shield_gain} 点初始护盾。"
+    },
+    "greedy_contract": {
+      "trigger": "🪙 [贪婪契约] 触发：失去 {hp_loss} 点生命值。"
+    },
+    "ancient_eye": {
+      "trigger": "👁️ [先古之眼] 触发：初始抽牌数量 +{draw_bonus}。"
+    },
+    "dragon_blood": {
+      "trigger": "🩸 [红龙之血] 触发：回复了 {heal_amount} 点生命值。"
+    },
+    "unstable_crystal": {
+      "trigger": "⚡ [不稳定水晶] 受到 {recoil_damage} 点法术反噬伤害。"
+    },
+    "vampiric_touch": {
+      "trigger": "❤️ [吸血之触] 回复了 {heal_amount} 点生命值。"
+    },
+    "portal_fragment": {
+      "trigger": "🌀 [门扉碎片] 触发：随机将一张中立牌【{name}】加入手牌。"
+    },
+    "abyss_gaze": {
+      "trigger": "👁️ [深渊凝视] 触发：额外受到 2 点真实伤害。"
+    },
+    "glacier_armor": {
+      "trigger": "🛡️ [冰川装甲] 触发：获得 12 点初始护盾。"
+    },
+    "abyss_whisper": {
+      "buff_name": "眩晕",
+      "buff_desc": "无法行动",
+      "trigger": "👁️ [深渊低语] 触发：使【{name}】在首回合陷入眩晕！"
+    },
+    "abyss_contract": {
+      "trigger": "📖 [深渊契约书] 触发：受到真实伤害，抽取 1 张卡牌。"
+    },
+    "glacier_core": {
+      "feedback": "【{name}】受到 {dmg} 点冰霜伤害",
+      "trigger": "🏔️ [极寒之核] 触发：{feedback}。"
+    },
+    "doomsday_core": {
+      "trigger": "💎 [末日核心] 触发！本回合打出 >=3 张牌，额外抽 1 张牌！"
+    },
+    "necromancer_skull": {
+      "trigger": "💀 [巫师颅骨] 触发！有单位死亡，玩家回复 2 点生命值！"
+    },
+    "arcanist_hand": {
+      "trigger": "✋ [奥术师之手] 触发！使用 0 费卡牌，对【{name}】造成 3 点力场伤害！"
+    },
+    "commander_medal": {
+      "trigger": "🏅 [至高勋章] 触发！所有在场随从本回合获得的行动点数 +1！"
+    },
+    "stalker_eye": {
+      "damage_trigger": "👁️ [潜伏者眼球] 触发！消耗卡牌【{name}】伤害提升 4 点！",
+      "shield_trigger": "👁️ [潜伏者眼球] 触发！使用消耗卡牌【{name}】获得护盾，护盾提升 4 点！"
+    },
+    "gladiator_belt": {
+      "trigger": "🎗️ [角斗士皮带] 触发！有随从在场，你获得 2 点护盾！"
+    },
+    "shield_battery": {
+      "trigger": "🔋 [能量护盾电池] 触发！你额外获得 2 点护盾！"
+    },
+    "crimson_heart": {
+      "low_hp_trigger": "❤️ [绯红之心] 触发！生命值低于 30%，造成的伤害翻倍！",
+      "heal_trigger": "❤️ [绯红之心] 触发！打出卡牌回复了 {heal} 点生命值！"
+    },
+    "espresso": {
+      "trigger": "☕ [特制浓缩咖啡] 触发！本回合额外获得 1A！"
+    },
+    "anthem": {
+      "trigger": "🎵 [赞歌] 触发！获得 2 点初始护盾。",
+      "exhausted_trigger": "🎵 [赞歌] 触发！获得 2 点初始护盾（次数已耗尽）。"
+    },
+    "time_sand_blessing": {
+      "trigger": "⏳ [时间沙之赐福] 触发！回合开始时，你额外获得了 2 个附赠动作（BA）！"
+    },
+    "starspawn_core": {
+      "trigger": "🌌 [眷族之核] 触发！本回合结束保留了 BA，对【{name}】造成 10 点力场伤害！"
+    }
+  },
+  "curse": {
+    "rust_shackle": {
+      "trigger": "🔒 [铁锈之锁] 触发：失去 {hp_loss} 点生命值。"
+    },
+    "blind_spot": {
+      "trigger": "👁️ [盲目之障] 触发：首回合少抽 {draw_penalty} 张牌。"
+    },
+    "shadow_curse": {
+      "trigger": "🕸️ [影之诅咒] 触发：受到 1 点力场伤害。"
+    },
+    "glacier_chill": {
+      "trigger": "❄️ [严寒侵袭] 触发：玩家本回合动作点 A 减少 1。"
+    }
+  },
+  "mythic": {
+    "infinite_hourglass": {
+      "battle_start": "⏳ [无限沙漏] 触发：时空凝固，你获得了 1 层时间停止状态。",
+      "turn_start": "⏳ [无限沙漏] 触发：获得额外的 1BA。"
+    }
+  },
+  "amulets": {
+    "lucky_coin": {
+      "upgraded_death": "获得 15 金币并抽 1 张牌。",
+      "death": "获得 10 金币。"
+    },
+    "mage_ward": {
+      "death": "玩家获得 {shield} 点护盾。"
+    },
+    "thorns_necklace": {
+      "reflect": "【荆棘项链】反弹了 {dmg} 点伤害给【{src_name}】。",
+      "requiem": "\n🔔 [谢幕曲] 我方【{name}】吟唱结束进入墓地：{effect}",
+      "death_all": "对全体敌人造成 4 点真实伤害。",
+      "death_single": "对【{tname}】造成 4 点真实伤害。",
+      "no_enemies": "没有存活的敌人。"
+    },
+    "arcane_crystal": {
+      "death": "玩家回复 {heal} 点生命值。"
+    },
+    "ring_of_elements": {
+      "death_all": "对全体敌人造成 8 点火焰伤害。",
+      "death_single": "对【{tname}】造成 4 点火焰伤害。",
+      "no_enemies": "没有存活的敌人。"
+    },
+    "void_beacon": {
+      "buff_name": "力场易伤",
+      "buff_desc": "受到的力场伤害增加 100%",
+      "trigger": "🌌 【虚空信标】使所有敌人获得 1 层力场易伤，并对【{name}】造成了 {damage} 点力场伤害！"
+    },
+    "abyss_altar": {
+      "next_name": "苏醒的深渊祭坛",
+      "next_name_upgraded": "【觉醒】苏醒的深渊祭坛",
+      "next_desc": "谢幕曲：在此格子部署【汇集的深渊祭坛】。",
+      "deployed": "部署了【{name}】。"
+    },
+    "abyss_altar_awaken": {
+      "next_name": "汇集的深渊祭坛",
+      "next_name_upgraded": "【觉醒】汇集的深渊祭坛",
+      "next_desc": "谢幕曲：在此格子部署【爆发的深渊祭坛】。",
+      "deployed": "部署了【{name}】。"
+    },
+    "abyss_altar_converge": {
+      "next_name": "爆发的深渊祭坛",
+      "next_name_upgraded": "【觉醒】爆发的深渊祭坛",
+      "next_desc": "谢幕曲：在此格子部署【终结的深渊祭坛】。",
+      "deployed": "部署了【{name}】。"
+    },
+    "abyss_altar_burst": {
+      "next_name": "终结的深渊祭坛",
+      "next_name_upgraded": "【觉醒】终结的深渊祭坛",
+      "next_desc": "谢幕曲对场上所有敌人造成 500 点真实伤害，玩家受到 10 点真实伤害。",
+      "deployed": "部署了【{name}】。"
+    },
+    "abyss_altar_end": {
+      "feedback": "【{name}】受到 {dmg} 点真实伤害",
+      "result": "深渊仪式终结！{feedback}，玩家受到 {dmg_player} 点真实伤害。"
+    },
+    "tactical_barrack": {
+      "shield_and_card": "获得 {shield} 点护盾，且将【{card_name}】加入手牌。",
+      "shield_only": "获得 {shield} 点护盾。"
+    },
+    "iron_phalanx_seal": {
+      "trigger": "🛡️ 【铁壁法阵】效果触发：使新进场随从【{name}】最大生命值与当前生命值提升了 {max_hp_bonus} 点，且为玩家提供了 {shield_bonus} 点护盾。"
+    },
+    "grand_coronation": {
+      "buff_name": "守护",
+      "buff_desc": "敌方单体攻击只能指向该随从",
+      "trigger": "👑 【加冕典礼】使新进场的指挥官【{name}】获得了【守护】，且本回合攻击力提升了 {val} 点。",
+      "death": "使玩家最大生命值永久提升了 {hp_gain} 点，且将生命值回复满。"
+    },
+    "blade_regiment_banner": {
+      "trigger": "⚔️ 【锋刃军旗】使本次造成的物理伤害额外增加了 {val} 点。",
+      "death": "对所有敌人造成了 {dmg} 点真实伤害，且为玩家回复了 {heal} 点生命。"
+    },
+    "energy_core": {
+      "death_upgraded": "你获得 2A 1BA。",
+      "death": "你获得 1A 1BA。"
+    }
+  }
+}

@@ -2,6 +2,12 @@ from typing import List, Optional
 import re
 from .base import BuffImpl
 from .registry import register_buff
+from ...data.buff_data import BUFF_CONFIG
+from ...data.locale_data import get_locale_text
+
+def _stat(instance, buff_id, name, default):
+    cfg = BUFF_CONFIG.get(buff_id, {})
+    return getattr(instance, name, cfg.get(name, default))
 
 class TacticalFocusBuff(BuffImpl):
     def on_player_turn_end(self, run, buff_state, engine):
@@ -25,14 +31,14 @@ class StunBuff(BuffImpl):
                 entity.buffs.remove(buff_state)
             entity.actions = 0
             entity.bonus_actions = 0
-            event.engine._log_event(event.run, f"⚠️ 【{entity.name}】处于眩晕状态，本回合无法行动。")
+            event.engine._log_event(event.run, get_locale_text("i18n_buffs.stun_enemy_log", entity=entity.name))
         elif event.is_player and entity == event.run.player:
             buff_state.stacks -= 1
             if buff_state.stacks <= 0:
                 entity.buffs.remove(buff_state)
             entity.actions = 0
             entity.bonus_actions = 0
-            event.engine._log_event(event.run, f"⚠️ 你处于眩晕状态，本回合无法行动。")
+            event.engine._log_event(event.run, get_locale_text("i18n_buffs.stun_player_log"))
 
     def on_enemy_sync_intents(self, event, buff_state, entity):
         from ...models.state import EnemyIntentState
@@ -42,7 +48,7 @@ class StunBuff(BuffImpl):
             EnemyIntentState(
                 type="stun",
                 val=0,
-                desc="眩晕 (本回合无法行动)",
+                desc=get_locale_text("i18n_buffs.stun_intent_desc"),
                 cost_a=0,
                 cost_ba=0
             )
@@ -59,14 +65,14 @@ class BeatOfDeathBuff(BuffImpl):
         p = event.run.player
         engine = event.engine
         dmg = self.damage_value
-        engine._log_event(event.run, "💔 [死亡律动]")
+        engine._log_event(event.run, get_locale_text("i18n_buffs.beat_of_death_log"))
         engine._damage_target(event.run, "p0", dmg, source="beat_of_death", damage_type="force")
 
 @register_buff("minor_vulnerable")
 class GenericMinorVulnerableBuff(BuffImpl):
     auto_register = False
     def on_damage_calculate_defend(self, event, buff_state, entity):
-        event.modified_damage = int(event.modified_damage * 1.5)
+        event.modified_damage = int(event.modified_damage * _stat(self, "minor_vulnerable", "damage_multiplier", 1.5))
 
     def on_turn_end(self, event, buff_state, entity):
         if event.is_player == (entity == event.run.player):
@@ -78,7 +84,7 @@ class GenericMinorVulnerableBuff(BuffImpl):
 class GenericVulnerableBuff(BuffImpl):
     auto_register = False
     def on_damage_calculate_defend(self, event, buff_state, entity):
-        event.modified_damage = int(event.modified_damage * 2)
+        event.modified_damage = int(event.modified_damage * _stat(self, "vulnerable", "damage_multiplier", 2))
 
     def on_turn_end(self, event, buff_state, entity):
         if event.is_player == (entity == event.run.player):
@@ -100,7 +106,7 @@ class WeakBuff(BuffImpl):
             except ValueError:
                 pass
         if is_owner:
-            event.modified_damage = int(event.modified_damage * 0.5)
+            event.modified_damage = int(event.modified_damage * _stat(self, "weak", "damage_multiplier", 0.5))
 
     def on_turn_end(self, event, buff_state, entity):
         if event.is_player == (entity == event.run.player):
@@ -117,7 +123,7 @@ class MinorVulnerableBuff(BuffImpl):
     def on_damage_calculate_defend(self, event, buff_state, entity):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
         if dtype_str == self.damage_type:
-            event.modified_damage = int(event.modified_damage * 1.5)
+            event.modified_damage = int(event.modified_damage * _stat(self, f"minor_vulnerable_{self.damage_type}", "damage_multiplier", 1.5))
 
     def on_turn_end(self, event, buff_state, entity):
         if event.is_player == (entity == event.run.player):
@@ -134,7 +140,7 @@ class VulnerableBuff(BuffImpl):
     def on_damage_calculate_defend(self, event, buff_state, entity):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
         if dtype_str == self.damage_type:
-            event.modified_damage = int(event.modified_damage * 2)
+            event.modified_damage = int(event.modified_damage * _stat(self, f"vulnerable_{self.damage_type}", "damage_multiplier", 2))
 
     def on_turn_end(self, event, buff_state, entity):
         if event.is_player == (entity == event.run.player):
@@ -146,7 +152,7 @@ class ShockBuff(BuffImpl):
     def on_damage_calculate_defend(self, event, buff_state, entity):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
         if dtype_str in ("lightning", "thunder"):
-            event.modified_damage += buff_state.stacks * 1
+            event.modified_damage += buff_state.stacks * _stat(self, "shock", "damage_per_stack", 1)
 
     def on_turn_start(self, event, buff_state, entity):
         if event.is_player == (entity == event.run.player):
@@ -167,8 +173,8 @@ class BurningBuff(BuffImpl):
                 target = f"e{idx+1}"
             except ValueError:
                 return
-        damage = buff_state.stacks
-        engine._log_event(run, f"🔥 【{entity.name}】受到燃烧造成的 {damage} 点火焰伤害！")
+        damage = buff_state.stacks * _stat(self, "burning", "damage_per_stack", 1)
+        engine._log_event(run, get_locale_text("i18n_buffs.burning_log", entity=entity.name, damage=damage))
         engine._damage_target(run, target, damage, source="burning", damage_type="fire")
         if buff_state.stacks2 is not None:
             buff_state.stacks2 -= 1
@@ -179,10 +185,10 @@ class BurningBuff(BuffImpl):
 class VoidWeaknessBuff(BuffImpl):
     def on_damage_calculate(self, event, buff_state, entity):
         if entity == event.run.player and event.damage_type == "spell" and event.source == "p0":
-            event.modified_damage = max(0, event.modified_damage - buff_state.stacks * 3)
+            event.modified_damage = max(0, event.modified_damage - buff_state.stacks * _stat(self, "void_weakness", "damage_per_stack", 3))
 
     def modify_spell_damage(self, run, card, damage: int, engine) -> int:
-        return max(0, damage - self.stacks * 3)
+        return max(0, damage - self.stacks * _stat(self, "void_weakness", "damage_per_stack", 3))
 
     def on_turn_end(self, event, buff_state, entity):
         if entity == event.run.player and event.is_player:
@@ -210,10 +216,10 @@ class ManaLeakBuff(BuffImpl):
 
     def on_damage_calculate(self, event, buff_state, entity):
         if entity == event.run.player and event.damage_type == "spell" and event.source == "p0":
-            event.modified_damage = max(0, event.modified_damage - buff_state.stacks * 2)
+            event.modified_damage = max(0, event.modified_damage - buff_state.stacks * _stat(self, "mana_leak", "damage_per_stack", 2))
 
     def modify_spell_damage(self, run, card, damage: int, engine) -> int:
-        return max(0, damage - self.stacks * 2)
+        return max(0, damage - self.stacks * _stat(self, "mana_leak", "damage_per_stack", 2))
 
     def on_turn_end(self, event, buff_state, entity):
         if entity == event.run.player and event.is_player:
@@ -234,8 +240,8 @@ class BleedBuff(BuffImpl):
                 target = f"e{idx+1}"
             except ValueError:
                 return
-        damage = 4
-        engine._log_event(run, f"🩸 【{entity.name}】受到流血造成的 {damage} 点真实伤害！")
+        damage = _stat(self, "bleed", "damage_amount", 4)
+        engine._log_event(run, get_locale_text("i18n_buffs.bleed_log", entity=entity.name, damage=damage))
         engine._damage_target(run, target, damage, source="bleed", damage_type="true")
         buff_state.stacks -= 1
         if buff_state.stacks <= 0:
@@ -263,8 +269,8 @@ class PoisonBuff(BuffImpl):
                     break
             if not target:
                 return
-        damage = buff_state.stacks
-        engine._log_event(run, f"🤢 【{entity.name}】受到中毒造成的 {damage} 点毒素伤害！")
+        damage = buff_state.stacks * _stat(self, "poison", "damage_per_stack", 1)
+        engine._log_event(run, get_locale_text("i18n_buffs.poison_log", entity=entity.name, damage=damage))
         engine._damage_target(run, target, damage, source="poison", damage_type="poison")
         buff_state.stacks -= 1
         if buff_state.stacks <= 0:
@@ -293,7 +299,7 @@ class DoomBuff(BuffImpl):
             if not target:
                 return
         if entity.hp < buff_state.stacks:
-            engine._log_event(run, f"💀 灾厄降临！【{entity.name}】的生命值小于灾厄阈值 {buff_state.stacks}，直接走向灭亡！")
+            engine._log_event(run, get_locale_text("i18n_buffs.doom_log", entity=entity.name, stacks=buff_state.stacks))
             engine._damage_target(run, target, entity.hp, source="doom", damage_type="true")
 
 

@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from game.data.locale_data import get_locale_text
+
 from .auth import AuthError, AuthService, Principal
 from .config import Settings
 from .service import RogueService
@@ -20,6 +22,10 @@ class ActionRequest(BaseModel):
     channel: Optional[str] = None
     name: Optional[str] = Field(default=None, max_length=64)
     force: bool = False
+    group: bool = False
+    is_group: Optional[bool] = None
+    group_id: Optional[str] = None
+    message_type: Optional[str] = None
     prefixes: Optional[list[str]] = Field(default=None, max_length=8)
 
 
@@ -42,7 +48,7 @@ def _check_origin(request: Request, settings: Settings) -> None:
         return
     provided = request.headers.get("x-rogue-origin-key", "")
     if not provided or not hmac.compare_digest(provided, settings.origin_key):
-        raise AuthError("请求来源校验失败。", 403, "origin")
+        raise AuthError(get_locale_text("i18n_server_core.app.origin_failed"), 403, "origin")
 
 
 async def _authenticate(request: Request, settings: Settings, auth: AuthService) -> Principal:
@@ -54,7 +60,7 @@ async def _authenticate(request: Request, settings: Settings, auth: AuthService)
     im_user = request.headers.get("x-rogue-im-user", "")
     if im_token or im_user:
         return auth.verify_im(im_token, im_user)
-    raise AuthError("缺少认证信息。")
+    raise AuthError(get_locale_text("i18n_server_core.app.missing_auth"))
 
 
 def create_app(settings: Optional[Settings] = None) -> FastAPI:
@@ -98,18 +104,31 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
         try:
             principal = await _authenticate(request, settings, auth)
         except AuthError as exc:
-            return _error(exc.status_code, f"❌ {exc.message}", exc.code)
+            return _error(
+                exc.status_code,
+                get_locale_text("i18n_server_core.app.error_prefix", message=exc.message),
+                exc.code,
+            )
         except Exception:
             logger.exception("authentication failed")
-            return _error(500, "❌ 服务器内部错误。", "internal")
+            return _error(500, get_locale_text("i18n_server_core.app.internal_error"), "internal")
 
         channel = (payload.channel or principal.kind).lower()
         if channel not in ("web", "im"):
-            return _error(400, "❌ 无效的通道。", "bad_channel")
+            return _error(400, get_locale_text("i18n_server_core.app.invalid_channel"), "bad_channel")
         if channel != principal.kind:
-            return _error(403, "❌ 认证方式与请求通道不一致。", "channel_mismatch")
+            return _error(
+                403, get_locale_text("i18n_server_core.app.channel_mismatch"), "channel_mismatch"
+            )
 
         is_admin = auth.verify_admin(request.headers.get("x-rogue-admin-token", ""))
+        message_type = (payload.message_type or "").lower()
+        group_chat = bool(
+            payload.group
+            or payload.is_group
+            or payload.group_id
+            or message_type in ("group", "group_message", "groupmessage", "guild", "guild_message")
+        )
         try:
             result = await service.handle(
                 principal=principal,
@@ -118,14 +137,19 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 display_name=payload.name or "",
                 force=payload.force,
                 is_admin=is_admin,
+                group=group_chat,
                 prefixes=tuple(payload.prefixes) if payload.prefixes else None,
             )
             return JSONResponse(status_code=200, content=result)
         except AuthError as exc:
-            return _error(exc.status_code, f"❌ {exc.message}", exc.code)
+            return _error(
+                exc.status_code,
+                get_locale_text("i18n_server_core.app.error_prefix", message=exc.message),
+                exc.code,
+            )
         except Exception:
             logger.exception("action failed")
-            return _error(500, "❌ 服务器内部错误。", "internal")
+            return _error(500, get_locale_text("i18n_server_core.app.internal_error"), "internal")
 
     return app
 

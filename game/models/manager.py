@@ -1,11 +1,16 @@
 import os
 import json
+import logging
 import tempfile
 from dataclasses import asdict
 from typing import Optional, Tuple, Dict, List
-from .state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, BuffState, UserStats, current_user_id, register_stat_recorder, get_user_id
+from .state import GameRun, UserStats
 from .corpse_registry import CorpseRegistry
-from ..data.map_config import MapConfig
+from .save_codec import SaveCodecMixin
+from .settlement import SettlementMixin
+from ..data.locale_data import get_locale_text
+
+logger = logging.getLogger(__name__)
 
 def _atomic_write_json(path: str, data, indent: int = 2) -> None:
     directory = os.path.dirname(path)
@@ -23,7 +28,7 @@ def _atomic_write_json(path: str, data, indent: int = 2) -> None:
             pass
         raise
 
-class SaveManager:
+class SaveManager(SaveCodecMixin, SettlementMixin):
     _default_data_dir = None
 
     def __init__(self, data_dir: str = None):
@@ -53,6 +58,16 @@ class SaveManager:
 
     def has_personal_save(self, user_id: str) -> bool:
         return os.path.exists(self.get_save_path(user_id))
+
+    def resolve_lock_key(self, user_id: str) -> str:
+        stats = self.load_stats(user_id)
+        coop_id = getattr(stats, "active_coop_id", "")
+        if coop_id:
+            return f"coop:{coop_id}"
+        lobby_id = getattr(stats, "active_lobby_id", "")
+        if lobby_id:
+            return f"lobby:{lobby_id}"
+        return f"user:{user_id}"
 
     def get_stats_path(self, user_id: str) -> str:
         safe_id = "".join([c for c in user_id if c.isalnum() or c in ("-", "_")])
@@ -106,7 +121,8 @@ class SaveManager:
                 active_lobby_id=d.get("active_lobby_id", ""),
                 active_coop_id=d.get("active_coop_id", "")
             )
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.read_stats_failed", user_id=user_id, error=exc))
             return UserStats()
 
     def save_stats(self, user_id: str, stats: UserStats) -> bool:
@@ -115,7 +131,8 @@ class SaveManager:
             d = asdict(stats)
             _atomic_write_json(path, d)
             return True
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.save_stats_failed", user_id=user_id, error=exc))
             return False
 
     def record_damage(self, user_id: str, amount: int):
@@ -149,7 +166,8 @@ class SaveManager:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.read_duel_registry_failed", error=exc))
             return {}
 
     def save_duel_registry(self, reg: dict) -> bool:
@@ -157,7 +175,8 @@ class SaveManager:
         try:
             _atomic_write_json(path, reg)
             return True
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.save_duel_registry_failed", error=exc))
             return False
 
     def get_duel_game_id(self, user_id: str) -> Optional[str]:
@@ -187,7 +206,8 @@ class SaveManager:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.read_duel_decks_failed", user_id=user_id, error=exc))
             return {}
 
     def save_duel_decks(self, user_id: str, decks: dict) -> bool:
@@ -195,7 +215,8 @@ class SaveManager:
         try:
             _atomic_write_json(path, decks)
             return True
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.save_duel_decks_failed", user_id=user_id, error=exc))
             return False
 
     def load_save(self, user_id: str) -> GameRun:
@@ -212,7 +233,8 @@ class SaveManager:
             with open(path, "r", encoding="utf-8") as f:
                 d = json.load(f)
             return self.from_dict(d)
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.read_save_failed", user_id=user_id, error=exc))
             return None
 
     def save_save(self, user_id: str, run: GameRun) -> bool:
@@ -223,7 +245,8 @@ class SaveManager:
             d = self.to_dict(run)
             _atomic_write_json(path, d)
             return True
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.save_save_failed", user_id=user_id, error=exc))
             return False
 
     def delete_save(self, user_id: str) -> bool:
@@ -235,7 +258,8 @@ class SaveManager:
             try:
                 os.remove(path)
                 return True
-            except:
+            except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+                logger.warning(get_locale_text("i18n_models.manager.delete_save_failed", user_id=user_id, error=exc))
                 return False
         return False
 
@@ -250,26 +274,26 @@ class SaveManager:
             if run and user_id in run.players:
                 run.player = run.players[user_id]
                 run.user_id = user_id
-                from ..core.coop_engine import CoopEngine
-                CoopEngine(self).apply_view(run, user_id)
+                from .coop_view import apply_view, scope_view
+                apply_view(run, user_id)
+                scope_view(run, user_id)
             return run
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.read_coop_save_failed", user_id=user_id, coop_id=coop_id, error=exc))
             return None
 
     def save_coop_save(self, user_id: str, run: GameRun) -> bool:
         run.players[user_id] = run.player
         run.user_id = user_id
-        try:
-            from ..core.coop_engine import CoopEngine
-            CoopEngine(self).persist_view(run, user_id)
-        except Exception:
-            pass
+        from .coop_view import persist_view
+        persist_view(run, user_id)
         path = self.get_coop_save_path(run.coop_id)
         try:
             d = self.to_dict(run)
             _atomic_write_json(path, d)
             return True
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.save_coop_save_failed", user_id=user_id, coop_id=run.coop_id, error=exc))
             return False
 
     def delete_coop_save(self, coop_id: str) -> bool:
@@ -278,7 +302,8 @@ class SaveManager:
             try:
                 os.remove(path)
                 return True
-            except:
+            except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+                logger.warning(get_locale_text("i18n_models.manager.delete_coop_save_failed", coop_id=coop_id, error=exc))
                 return False
         return False
 
@@ -290,14 +315,16 @@ class SaveManager:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             return data if isinstance(data, dict) else {}
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.read_lobbies_failed", error=exc))
             return {}
 
     def save_lobbies(self, lobbies: dict) -> bool:
         try:
             _atomic_write_json(self.get_lobbies_path(), lobbies)
             return True
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.save_lobbies_failed", error=exc))
             return False
 
     def get_lobby(self, lobby_id: str) -> dict:
@@ -340,7 +367,8 @@ class SaveManager:
                     "in_town": data.get("in_town", False),
                     "mtime": os.path.getmtime(path)
                 })
-            except:
+            except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+                logger.warning(get_locale_text("i18n_models.manager.read_profile_failed", user_id=uid, error=exc))
                 continue
         return profiles
 
@@ -361,7 +389,8 @@ class SaveManager:
                     run.player, run.player2 = run.player2, run.player
                     run.user_id = user_id
             return run
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.read_duel_save_failed", user_id=user_id, error=exc))
             return None
 
     def save_duel_save(self, user_id: str, run: GameRun) -> bool:
@@ -380,7 +409,8 @@ class SaveManager:
                 run.user_id = user_id
             _atomic_write_json(path, d)
             return True
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.save_duel_save_failed", user_id=user_id, error=exc))
             if p2_id == user_id:
                 run.player, run.player2 = run.player2, run.player
                 run.user_id = user_id
@@ -396,268 +426,10 @@ class SaveManager:
             try:
                 os.remove(path)
                 return True
-            except:
+            except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+                logger.warning(get_locale_text("i18n_models.manager.delete_duel_save_failed", user_id=user_id, error=exc))
                 return False
         return False
-
-    def to_dict(self, run: GameRun) -> dict:
-        if not run:
-            return {}
-        logs = None
-        if run.node_data is not None:
-            logs = run.node_data.pop("battle_logs", None)
-        try:
-            res = asdict(run)
-        finally:
-            if logs is not None and run.node_data is not None:
-                run.node_data["battle_logs"] = logs
-        return res
-
-    def _parse_player_state(self, p_data: dict) -> PlayerState:
-        if not p_data:
-            return None
-        p_minions = {}
-        for k, v in p_data.get("minions", {}).items():
-            m_buffs = []
-            for b in v.get("buffs", []):
-                if b.get("id") == "summon_sickness":
-                    continue
-                m_buffs.append(BuffState(
-                    id=b["id"],
-                    name=b["name"],
-                    stacks=b.get("stacks", 1),
-                    stacks2=b.get("stacks2", None),
-                    desc=b.get("desc", ""),
-                    source_uid=b.get("source_uid", "")
-                ))
-            p_minions[k] = MinionState(
-                id=v["id"],
-                name=v["name"],
-                hp=v["hp"],
-                max_hp=v["max_hp"],
-                atk=v["atk"],
-                actions=v.get("actions", 1),
-                bonus_actions=v.get("bonus_actions", 1),
-                attack_actions=v.get("attack_actions", 1),
-                buffs=m_buffs
-            )
-        p_amulets = {k: AmuletState(**v) for k, v in p_data.get("amulets", {}).items()}
-        p_buffs = []
-        for b in p_data.get("buffs", []):
-            if b.get("id") == "summon_sickness":
-                continue
-            p_buffs.append(BuffState(
-                id=b["id"],
-                name=b["name"],
-                stacks=b.get("stacks", 1),
-                stacks2=b.get("stacks2", None),
-                desc=b.get("desc", ""),
-                source_uid=b.get("source_uid", "")
-            ))
-        minion_gy = list(p_data.get("minion_graveyard", []))
-        enemy_gy = list(p_data.get("enemy_graveyard", []))
-        if not minion_gy and not enemy_gy and "graveyard" in p_data:
-            for item in p_data["graveyard"]:
-                if item.startswith("minion:"):
-                    minion_gy.append(item[len("minion:"):])
-                elif item.startswith("enemy:"):
-                    enemy_gy.append(item[len("enemy:"):])
-                else:
-                    enemy_gy.append(item)
-        return PlayerState(
-            hp=p_data["hp"],
-            max_hp=p_data["max_hp"],
-            shield=p_data["shield"],
-            gold=p_data["gold"],
-            stage=p_data["stage"],
-            name=p_data.get("name", "玩家"),
-            deck=p_data.get("deck", []),
-            draw_pile=p_data.get("draw_pile", []),
-            discard_pile=p_data.get("discard_pile", []),
-            exhaust_pile=p_data.get("exhaust_pile", []),
-            graveyard=p_data.get("graveyard", []),
-            minion_graveyard=minion_gy,
-            enemy_graveyard=enemy_gy,
-            hand=p_data.get("hand", []),
-            actions=p_data.get("actions", 1),
-            bonus_actions=p_data.get("bonus_actions", 1),
-            minions=p_minions,
-            amulets=p_amulets,
-            abilities=p_data.get("abilities", []),
-            fold_guide=p_data.get("fold_guide", False),
-            buffs=p_buffs,
-            relics=p_data.get("relics", []),
-            subclass=p_data.get("subclass", ""),
-            selected_class=p_data.get("selected_class", "法师"),
-            potions=p_data.get("potions", []),
-            daily_blessing_id=p_data.get("daily_blessing_id", ""),
-            downed=p_data.get("downed", False)
-        )
-
-    def from_dict(self, d: dict) -> GameRun:
-        if not d:
-            return None
-        player = self._parse_player_state(d["player"])
-        player2 = self._parse_player_state(d.get("player2"))
-        players = {}
-        for uid, pdata in (d.get("players") or {}).items():
-            parsed = self._parse_player_state(pdata)
-            if parsed is not None:
-                players[uid] = parsed
-        enemies = []
-        if "enemies" in d:
-            from .state import EnemyIntentState
-            for ed in d["enemies"]:
-                e_buffs = []
-                for b in ed.get("buffs", []):
-                    if b.get("id") == "summon_sickness":
-                        continue
-                    e_buffs.append(BuffState(
-                        id=b["id"],
-                        name=b["name"],
-                        stacks=b.get("stacks", 1),
-                        stacks2=b.get("stacks2", None),
-                        desc=b.get("desc", ""),
-                        source_uid=b.get("source_uid", "")
-                    ))
-                intent_list = []
-                if "intents" in ed:
-                    for it in ed["intents"]:
-                        intent_list.append(EnemyIntentState(
-                            type=it.get("type", ""),
-                            val=it.get("val", 0),
-                            desc=it.get("desc", ""),
-                            cost_a=it.get("cost_a", 1),
-                            cost_ba=it.get("cost_ba", 0),
-                            cancelled=it.get("cancelled", False),
-                            cancelled_desc=it.get("cancelled_desc", "")
-                        ))
-                enemies.append(EnemyState(
-                    name=ed["name"],
-                    hp=ed["hp"],
-                    max_hp=ed["max_hp"],
-                    shield=ed["shield"],
-                    actions=ed.get("actions", 1),
-                    bonus_actions=ed.get("bonus_actions", 1),
-                    buffs=e_buffs,
-                    is_summon=ed.get("is_summon", False),
-                    max_actions=ed.get("max_actions", 1),
-                    max_bonus_actions=ed.get("max_bonus_actions", 0),
-                    intents=intent_list,
-                    intent_type=ed.get("intent_type", ""),
-                    intent_val=ed.get("intent_val", 0),
-                    intent_desc=ed.get("intent_desc", ""),
-                    intent_a_type=ed.get("intent_a_type", ""),
-                    intent_a_val=ed.get("intent_a_val", 0),
-                    intent_a_desc=ed.get("intent_a_desc", ""),
-                    intent_a2_type=ed.get("intent_a2_type", ""),
-                    intent_a2_val=ed.get("intent_a2_val", 0),
-                    intent_a2_desc=ed.get("intent_a2_desc", ""),
-                    intent_ba_type=ed.get("intent_ba_type", ""),
-                    intent_ba_val=ed.get("intent_ba_val", 0),
-                    intent_ba_desc=ed.get("intent_ba_desc", ""),
-                    intent_ba2_type=ed.get("intent_ba2_type", ""),
-                    intent_ba2_val=ed.get("intent_ba2_val", 0),
-                    intent_ba2_desc=ed.get("intent_ba2_desc", "")
-                ))
-        return GameRun(
-            user_id=d["user_id"],
-            node_type=d["node_type"],
-            player=player,
-            enemies=enemies,
-            node_data=d.get("node_data", {}),
-            map_data=d.get("map_data", {}),
-            player2=player2,
-            coop_id=d.get("coop_id", ""),
-            leader_id=d.get("leader_id", ""),
-            party_order=d.get("party_order", []),
-            players=players
-        )
-
-    def settle_game_and_delete(self, user_id: str, run: GameRun, is_victory: bool = False, create_corpse: bool = True) -> str:
-        if run is not None and getattr(run, "coop_id", ""):
-            return self.settle_coop_game_and_delete(user_id, run, is_victory, create_corpse)
-        return self._settle_single_game(user_id, run, is_victory, create_corpse, delete_personal=True)
-
-    def _settle_single_game(self, user_id: str, run: GameRun, is_victory: bool = False, create_corpse: bool = True, delete_personal: bool = True) -> str:
-        if not run or not run.player:
-            if delete_personal:
-                self.delete_save(user_id)
-            return "本局结算：未找到有效的角色进度，未获得 GP。"
-        stage = run.player.stage
-        gold = run.player.gold
-        corpse_note = ""
-        if create_corpse and not is_victory:
-            cause = ""
-            if run.node_data:
-                cause = str(run.node_data.get("death_cause", "")).strip()
-            if not cause:
-                cause = f"在第 {stage} 层倒下"
-            corpse = self.corpses.create_from_run(run, cause)
-            if corpse:
-                corpse_note = f"\n💀 你的尸体留在了第 {stage} 层，其他玩家可以前往搜刮。"
-        if stage < 5:
-            if delete_personal:
-                self.delete_save(user_id)
-            return f"本局结算：由于在第 {stage} 层结束，未获得 GP。{corpse_note}"
-        gp_gained = gold * 10
-        victory_bonus = ""
-        unlock_msg = ""
-        stats = self.load_stats(user_id)
-        if is_victory:
-            if stage == MapConfig.FINAL_BOSS_STAGE:
-                gp_gained += 3000
-                victory_bonus = "（含超最终通关奖励 3000 GP）"
-                unlock_msg = "\n\n🎉 特别提示：你成功击败了先古的超最终BOSS【虚空之门·尤格-索托斯】！你已完成了最伟大的先古救赎！"
-
-            else:
-                gp_gained += 1000
-                victory_bonus = "（含通关奖励 1000 GP）"
-                if run.node_data.get("boss_name") == "Icerainboww":
-                    stats.killed_icerainboww = True
-                    unlock_msg = "\n\n🎉 特别提示：你成功击败了最终BOSS【Icerainboww】！在先古祭坛和先古赐福石碑中已永久解锁传奇随从卡【Icerainboww】！"
-        stats.town_flags.pop("market_shelf", None)
-        stats.gp += gp_gained
-        self.save_stats(user_id, stats)
-        if delete_personal:
-            self.delete_save(user_id)
-        return f"本局结算：剩余金币 {gold}，折算获得 {gp_gained} GP{victory_bonus}！当前总 GP：{stats.gp}。{unlock_msg}{corpse_note}"
-
-    def settle_coop_game_and_delete(self, user_id: str, run: GameRun, is_victory: bool = False, create_corpse: bool = True, force: bool = False) -> str:
-        alive_uids = [uid for uid in run.party_order if uid in run.players and run.players[uid].hp > 0]
-        if not force and not is_victory and alive_uids:
-            downed = run.players.get(user_id)
-            if downed is not None:
-                downed.downed = True
-            self.save_coop_save(user_id, run)
-            return "💀 你已倒地，无法继续行动。请等待队友赢得战斗，或在下一层以 1 HP 复活。"
-        original_player = run.player
-        original_user = run.user_id
-        lines = []
-        for uid in run.party_order:
-            player = run.players.get(uid)
-            if player is None:
-                continue
-            run.player = player
-            run.user_id = uid
-            result = self._settle_single_game(uid, run, is_victory, create_corpse, delete_personal=False)
-            lines.append(f"【{player.name}】{result}")
-            stats = self.load_stats(uid)
-            stats.active_coop_id = ""
-            stats.active_lobby_id = ""
-            self.save_stats(uid, stats)
-        run.player = original_player
-        run.user_id = original_user
-        self.delete_coop_save(run.coop_id)
-        lobbies = self.load_lobbies()
-        changed = False
-        for lobby_id, lobby in list(lobbies.items()):
-            if lobby.get("coop_id") == run.coop_id:
-                del lobbies[lobby_id]
-                changed = True
-        if changed:
-            self.save_lobbies(lobbies)
-        return "\n".join(lines)
 
     def get_admin_config_path(self) -> str:
         return os.path.join(self.data_dir, "admin_config.json")
@@ -669,7 +441,8 @@ class SaveManager:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.read_admin_config_failed", error=exc))
             return {"final_boss": "random"}
 
     def save_admin_config(self, cfg: dict) -> bool:
@@ -677,17 +450,6 @@ class SaveManager:
         try:
             _atomic_write_json(path, cfg)
             return True
-        except:
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.save_admin_config_failed", error=exc))
             return False
-
-def stat_recorder_callback(enemy_name: str, amount: int, is_defeat: bool):
-    user_id = get_user_id()
-    if not user_id:
-        return
-    mgr = SaveManager()
-    if amount > 0:
-        mgr.record_damage(user_id, amount)
-    if is_defeat:
-        mgr.record_kill(user_id)
-
-register_stat_recorder(stat_recorder_callback)

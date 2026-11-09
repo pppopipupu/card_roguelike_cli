@@ -1,4 +1,6 @@
 from typing import Tuple, List
+from ...data.enemy_data_normal import ENEMY_INTENT_SCALING
+from ...data.locale_data import get_locale_text
 
 class EnemyTemplate:
     def __init__(self, name: str):
@@ -30,15 +32,17 @@ class EnemyTemplate:
 
     def _roll_single_intent(self, run, enemy, stage) -> Tuple[str, int, str]:
         import random
+        attack_scaling = ENEMY_INTENT_SCALING["attack"]
+        defend_scaling = ENEMY_INTENT_SCALING["defend"]
         intents = [
-            ("attack", 3 + (stage // 2) + random.randint(0, 2)),
-            ("defend", 3 + stage + random.randint(0, 2))
+            ("attack", attack_scaling["base"] + stage // attack_scaling["stage_divisor"] + random.randint(attack_scaling["random_min"], attack_scaling["random_max"])),
+            ("defend", defend_scaling["base"] + stage * defend_scaling["stage_multiplier"] + random.randint(defend_scaling["random_min"], defend_scaling["random_max"]))
         ]
         itype, val = random.choice(intents)
         if itype == "attack":
-            desc = f"攻击 (造成 {val} 伤害)"
+            desc = get_locale_text("i18n_entity_wiring.enemy_base.intent_attack", val=val)
         else:
-            desc = f"防御 (获得 {val} 护盾)"
+            desc = get_locale_text("i18n_entity_wiring.enemy_base.intent_defend", val=val)
         return itype, val, desc
 
     def _perform_attack(self, run, engine, enemy, dmg: int, logs: List[str], damage_type: str = "bludgeoning"):
@@ -59,7 +63,7 @@ class EnemyTemplate:
             after_logs = run.node_data.get("battle_logs", [])
             if len(after_logs) > before_len:
                 dmg_msg = after_logs.pop()
-                logs.append(f"敌人【{enemy.name}】受【守护】吸引，攻击了我方随从【{m_name}】。{dmg_msg}")
+                logs.append(get_locale_text("i18n_entity_wiring.enemy_base.ward_attack", name=enemy.name, m_name=m_name, dmg_msg=dmg_msg))
         else:
             if p.minions and random.random() < 0.5:
                 target_key = random.choice(list(p.minions.keys()))
@@ -70,14 +74,14 @@ class EnemyTemplate:
                 after_logs = run.node_data.get("battle_logs", [])
                 if len(after_logs) > before_len:
                     dmg_msg = after_logs.pop()
-                    logs.append(f"敌人【{enemy.name}】攻击了我方随从【{m_name}】。{dmg_msg}")
+                    logs.append(get_locale_text("i18n_entity_wiring.enemy_base.minion_attack", name=enemy.name, m_name=m_name, dmg_msg=dmg_msg))
             else:
                 before_len = len(run.node_data.get("battle_logs", []))
                 engine._damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type=damage_type)
                 after_logs = run.node_data.get("battle_logs", [])
                 if len(after_logs) > before_len:
                     dmg_msg = after_logs.pop()
-                    logs.append(f"敌人【{enemy.name}】对玩家发动攻击。{dmg_msg}")
+                    logs.append(get_locale_text("i18n_entity_wiring.enemy_base.player_attack", name=enemy.name, dmg_msg=dmg_msg))
 
     def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
         if logs is None:
@@ -95,8 +99,9 @@ class EnemyTemplate:
         if intent.type == "attack":
             self._perform_attack(run, engine, enemy, intent.val, logs)
         elif intent.type == "defend":
-            enemy.shield += intent.val
-            logs.append(f"敌人【{enemy.name}】进行防守，获得 {intent.val} 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            logs.append(get_locale_text("i18n_entity_wiring.enemy_base.defend_log", name=enemy.name, val=intent.val))
 
     def apply_phase_transition(self, run, enemy, target_phase: int, engine, logs: list):
         pass

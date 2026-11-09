@@ -1,5 +1,7 @@
 from typing import Optional
 
+from ..data.locale_data import get_locale_text
+
 class Effect:
     def apply(self, run, source: str, target: str, engine) -> str:
         return ""
@@ -11,7 +13,7 @@ class DamageEffect(Effect):
     def apply(self, run, source: str, target: str, engine) -> str:
         name = engine._get_target_name(run, target)
         engine._damage_target(run, target, self.amount)
-        return f"对【{name}】造成了 {self.amount} 点伤害。"
+        return get_locale_text("i18n_buffs.effect_damage", name=name, amount=self.amount)
 
 class HealEffect(Effect):
     def __init__(self, amount: int):
@@ -20,7 +22,7 @@ class HealEffect(Effect):
     def apply(self, run, source: str, target: str, engine) -> str:
         name = engine._get_target_name(run, target)
         engine._heal_target(run, target, self.amount)
-        return f"为【{name}】恢复了 {self.amount} 点生命值。"
+        return get_locale_text("i18n_buffs.effect_heal", name=name, amount=self.amount)
 
 class ShieldEffect(Effect):
     def __init__(self, amount: int):
@@ -28,18 +30,8 @@ class ShieldEffect(Effect):
 
     def apply(self, run, source: str, target: str, engine) -> str:
         name = engine._get_target_name(run, target)
-        if target == "p0":
-            run.player.shield += self.amount
-        elif target.startswith("e"):
-            try:
-                idx = int(target[1:]) - 1
-                if idx < 0:
-                    idx = 0
-            except ValueError:
-                idx = 0
-            if 0 <= idx < len(run.enemies):
-                run.enemies[idx].shield += self.amount
-        return f"使【{name}】获得了 {self.amount} 点护盾。"
+        engine._gain_shield(run, target, self.amount)
+        return get_locale_text("i18n_buffs.effect_shield", name=name, amount=self.amount)
 
 class DrawCardEffect(Effect):
     def __init__(self, count: int):
@@ -47,7 +39,7 @@ class DrawCardEffect(Effect):
 
     def apply(self, run, source: str, target: str, engine) -> str:
         engine._draw_cards(run.player, self.count, run)
-        return f"抽了 {self.count} 张牌。"
+        return get_locale_text("i18n_buffs.effect_draw", count=self.count)
 
 class ModifyActionEffect(Effect):
     def __init__(self, count: int, action_type: str = "A"):
@@ -58,7 +50,7 @@ class ModifyActionEffect(Effect):
         p = run.player
         if self.action_type == "A":
             p.actions += self.count
-            return f"获得了 {self.count}A。"
+            return get_locale_text("i18n_buffs.effect_gain_a", count=self.count)
         else:
             p.bonus_actions += self.count
-            return f"获得了 {self.count}BA。"
+            return get_locale_text("i18n_buffs.effect_gain_ba", count=self.count)

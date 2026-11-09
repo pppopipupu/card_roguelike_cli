@@ -2,20 +2,30 @@ BUFF_CONFIG = {
     "pendulum_resonance": {
         "name": "钟摆共振",
         "desc": "回合结束时若动作点全光则受打出牌数*2点真伤惩罚，保留至少1A 1BA则获得额外抽取2张牌的奖赏",
+        "min_damage": 4,
+        "damage_per_card": 2,
+        "draw_bonus": 2,
         "is_debuff": True
     },
     "bleed": {
         "name": "流血",
         "desc": "每回合开始时，受到 4 点真实伤害，层数减少 1",
+        "damage_amount": 4,
         "is_debuff": True
     },
     "hell_raider": {
         "name": "地狱狂徒",
-        "desc": "在此状态下，每当你抽到 1A 且不消耗 BA 的卡牌时，立即免费并自动将其打出"
+        "desc": "在此状态下，每当你抽到 1A 且不消耗 BA 的卡牌时，立即免费并自动将其打出",
+        "cost_a_limit": 1,
+        "upgraded_cost_a_limit": 2,
+        "chain_depth": 5,
+        "upgraded_draw_count": 1
     },
     "prismatic_barrier": {
         "name": "虹光屏障",
-        "desc": "每次受到攻击时层数减少 1，并对攻击来源反射 12 点混合属性伤害"
+        "desc": "每次受到攻击时层数减少 1，并对攻击来源反射 12 点混合属性伤害",
+        "reflect_damage": 12,
+        "upgraded_reflect_damage": 20
     },
     "antimagic_immune": {
         "name": "反魔法屏障",
@@ -36,28 +46,41 @@ BUFF_CONFIG = {
     },
     "arcane_charge": {
         "name": "奥术充能",
-        "desc": "法术伤害 +3"
+        "desc": "法术伤害 +3",
+        "dmg_per_stack": 3
     },
     "echo_form": {
         "name": "回响形态",
-        "desc": "每回合打出的卡牌额外打出，每张牌最多回响 5 次，多余层数顺延至后续卡牌"
+        "desc": "每回合打出的卡牌额外打出，每张牌最多回响 5 次，多余层数顺延至后续卡牌",
+        "max_echoes": 5,
+        "echo_stack_cost": 5
     },
     "iron_will": {
         "name": "钢铁意志",
-        "desc": "最大生命上限增加 10 并回复 10 生命"
+        "desc": "最大生命上限增加 10 并回复 10 生命",
+        "max_hp_per_stack": 10,
+        "upgraded_max_hp_per_stack": 15,
+        "heal_multiplier": 2
     },
     "beat_of_death": {
         "name": "死亡律动",
         "desc": "每当玩家打出一张牌，玩家受到 1 点力场伤害",
+        "damage_per_stack": 1,
         "is_debuff": True
     },
     "split_to_ten": {
         "name": "一分为十",
-        "desc": "接下来打出的 X 张卡牌会额外再打出 10 次（可与重放、回响乘算）"
+        "desc": "接下来打出的 X 张卡牌会额外再打出 10 次（可与重放、回响乘算）",
+        "replay_amount": 10
     },
     "strength": {
         "name": "力量",
-        "desc": "造成的伤害增加"
+        "desc": "造成的伤害增加",
+        "heavy_blade_multiplier": 3,
+        "heavy_blade_upgraded_multiplier": 5,
+        "astral_strike_multiplier": 4,
+        "astral_strike_upgraded_multiplier": 5,
+        "default_multiplier": 1
     },
     "fury": {
         "name": "愤怒",
@@ -65,123 +88,155 @@ BUFF_CONFIG = {
     },
     "minor_vulnerable_acid": {
         "name": "轻度强酸易伤",
-        "desc": "受到的强酸伤害增加 50%"
+        "desc": "受到的强酸伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_acid": {
         "name": "强酸易伤",
-        "desc": "受到的强酸伤害翻倍"
+        "desc": "受到的强酸伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_bludgeoning": {
         "name": "轻度钝击易伤",
-        "desc": "受到的钝击伤害增加 50%"
+        "desc": "受到的钝击伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_bludgeoning": {
         "name": "钝击易伤",
-        "desc": "受到的钝击伤害翻倍"
+        "desc": "受到的钝击伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_cold": {
         "name": "轻度寒冷易伤",
-        "desc": "受到的寒冷伤害增加 50%"
+        "desc": "受到的寒冷伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_cold": {
         "name": "寒冷易伤",
-        "desc": "受到的寒冷伤害翻倍"
+        "desc": "受到的寒冷伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_fire": {
         "name": "轻度火焰易伤",
-        "desc": "受到的火焰伤害增加 50%"
+        "desc": "受到的火焰伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_fire": {
         "name": "火焰易伤",
-        "desc": "受到的火焰伤害翻倍"
+        "desc": "受到的火焰伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_force": {
         "name": "轻度力场易伤",
-        "desc": "受到的力场伤害增加 50%"
+        "desc": "受到的力场伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_force": {
         "name": "力场易伤",
-        "desc": "受到的力场伤害翻倍"
+        "desc": "受到的力场伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_lightning": {
         "name": "轻度闪电易伤",
-        "desc": "受到的闪电伤害增加 50%"
+        "desc": "受到的闪电伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_lightning": {
         "name": "闪电易伤",
-        "desc": "受到的闪电伤害翻倍"
+        "desc": "受到的闪电伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_necrotic": {
         "name": "轻度黯蚀易伤",
-        "desc": "受到的黯蚀伤害增加 50%"
+        "desc": "受到的黯蚀伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_necrotic": {
         "name": "黯蚀易伤",
-        "desc": "受到的黯蚀伤害翻倍"
+        "desc": "受到的黯蚀伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_piercing": {
         "name": "轻度穿刺易伤",
-        "desc": "受到的穿刺伤害增加 50%"
+        "desc": "受到的穿刺伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_piercing": {
         "name": "穿刺易伤",
-        "desc": "受到的穿刺伤害翻倍"
+        "desc": "受到的穿刺伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_poison": {
         "name": "轻度毒素易伤",
-        "desc": "受到的毒素伤害增加 50%"
+        "desc": "受到的毒素伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_poison": {
         "name": "毒素易伤",
-        "desc": "受到的毒素伤害翻倍"
+        "desc": "受到的毒素伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_psychic": {
         "name": "轻度心灵易伤",
-        "desc": "受到的心灵伤害增加 50%"
+        "desc": "受到的心灵伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_psychic": {
         "name": "心灵易伤",
-        "desc": "受到的心灵伤害翻倍"
+        "desc": "受到的心灵伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_radiant": {
         "name": "轻度光耀易伤",
-        "desc": "受到的光耀伤害增加 50%"
+        "desc": "受到的光耀伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_radiant": {
         "name": "光耀易伤",
-        "desc": "受到的光耀伤害翻倍"
+        "desc": "受到的光耀伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_slashing": {
         "name": "轻度挥砍易伤",
-        "desc": "受到的挥砍伤害增加 50%"
+        "desc": "受到的挥砍伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_slashing": {
         "name": "挥砍易伤",
-        "desc": "受到的挥砍伤害翻倍"
+        "desc": "受到的挥砍伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_thunder": {
         "name": "轻度雷鸣易伤",
-        "desc": "受到的雷鸣伤害增加 50%"
+        "desc": "受到的雷鸣伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_thunder": {
         "name": "雷鸣易伤",
-        "desc": "受到的雷鸣伤害翻倍"
+        "desc": "受到的雷鸣伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "minor_vulnerable_true": {
         "name": "轻度真实易伤",
-        "desc": "受到的真实伤害增加 50%"
+        "desc": "受到的真实伤害增加 50%",
+        "damage_multiplier": 1.5
     },
     "vulnerable_true": {
         "name": "真实易伤",
-        "desc": "受到的真实伤害翻倍"
+        "desc": "受到的真实伤害翻倍",
+        "damage_multiplier": 2.0
     },
     "magic_network": {
         "name": "魔网天成",
-        "desc": "本回合内每使用一张法术牌，对所有敌人造成 3 点伤害，获得 3 点护盾"
+        "desc": "本回合内每使用一张法术牌，对所有敌人造成 3 点伤害，获得 3 点护盾",
+        "damage_amount": 3,
+        "shield_amount": 3
     },
     "wish_power": {
         "name": "祈愿奥术",
-        "desc": "本场战斗法术伤害 +4"
+        "desc": "本场战斗法术伤害 +4",
+        "damage_bonus": 4,
+        "upgraded_damage_bonus": 6
     },
     "stun": {
         "name": "眩晕",
@@ -191,141 +246,194 @@ BUFF_CONFIG = {
     "shock": {
         "name": "电击",
         "desc": "受到的闪电和雷鸣伤害每层增加 1 点",
+        "damage_per_stack": 1,
         "is_debuff": True
     },
     "lightning_shield": {
         "name": "闪电护体",
-        "desc": "受到伤害时反弹 2 点闪电伤害并施加 1 层电击"
+        "desc": "受到伤害时反弹 2 点闪电伤害并施加 1 层电击",
+        "reflect_damage": 2,
+        "shock_stacks": 1
     },
     "resist_acid": {
         "name": "强酸抗性",
-        "desc": "受到的强酸伤害减少 50%"
+        "desc": "受到的强酸伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_acid": {
         "name": "强酸免疫",
-        "desc": "受到的强酸伤害减少 100%"
+        "desc": "受到的强酸伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_bludgeoning": {
         "name": "钝击抗性",
-        "desc": "受到的钝击伤害减少 50%"
+        "desc": "受到的钝击伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_bludgeoning": {
         "name": "钝击免疫",
-        "desc": "受is_debuff到的钝击伤害减少 100%"
+        "desc": "受is_debuff到的钝击伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_cold": {
         "name": "寒冷抗性",
-        "desc": "受到的寒冷伤害减少 50%"
+        "desc": "受到的寒冷伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_cold": {
         "name": "寒冷免疫",
-        "desc": "受到的寒冷伤害减少 100%"
+        "desc": "受到的寒冷伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_fire": {
         "name": "火焰抗性",
-        "desc": "受到的火焰伤害减少 50%"
+        "desc": "受到的火焰伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_fire": {
         "name": "火焰免疫",
-        "desc": "受到的火焰伤害减少 100%"
+        "desc": "受到的火焰伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_force": {
         "name": "力场抗性",
-        "desc": "受到的力场伤害减少 50%"
+        "desc": "受到的力场伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_force": {
         "name": "力场免疫",
-        "desc": "受到的力场伤害减少 100%"
+        "desc": "受到的力场伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_lightning": {
         "name": "闪电抗性",
-        "desc": "受到的闪电伤害减少 50%"
+        "desc": "受到的闪电伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_lightning": {
         "name": "闪电免疫",
-        "desc": "受到的闪电伤害减少 100%"
+        "desc": "受到的闪电伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_necrotic": {
         "name": "黯蚀抗性",
-        "desc": "受到的黯蚀伤害减少 50%"
+        "desc": "受到的黯蚀伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_necrotic": {
         "name": "黯蚀免疫",
-        "desc": "受到的黯蚀伤害减少 100%"
+        "desc": "受到的黯蚀伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_piercing": {
         "name": "穿刺抗性",
-        "desc": "受到的穿刺伤害减少 50%"
+        "desc": "受到的穿刺伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_piercing": {
         "name": "穿刺免疫",
-        "desc": "受到的穿刺伤害减少 100%"
+        "desc": "受到的穿刺伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_poison": {
         "name": "毒素抗性",
-        "desc": "受到的毒素伤害减少 50%"
+        "desc": "受到的毒素伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_poison": {
         "name": "毒素免疫",
-        "desc": "受到的毒素伤害减少 100%"
+        "desc": "受到的毒素伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_psychic": {
         "name": "心灵抗性",
-        "desc": "受到的心灵伤害减少 50%"
+        "desc": "受到的心灵伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_psychic": {
         "name": "心灵免疫",
-        "desc": "受到的心灵伤害减少 100%"
+        "desc": "受到的心灵伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_radiant": {
         "name": "光耀抗性",
-        "desc": "受到的光耀伤害减少 50%"
+        "desc": "受到的光耀伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_radiant": {
         "name": "光耀免疫",
-        "desc": "受到的光耀伤害减少 100%"
+        "desc": "受到的光耀伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_slashing": {
         "name": "挥砍抗性",
-        "desc": "受到的挥砍伤害减少 50%"
+        "desc": "受到的挥砍伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_slashing": {
         "name": "挥砍免疫",
-        "desc": "受到的挥砍伤害减少 100%"
+        "desc": "受到的挥砍伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "resist_thunder": {
         "name": "雷鸣抗性",
-        "desc": "受到的雷鸣伤害减少 50%"
+        "desc": "受到的雷鸣伤害减少 50%",
+        "damage_multiplier": 0.5
     },
     "immune_thunder": {
         "name": "雷鸣免疫",
-        "desc": "受到的雷鸣伤害减少 100%"
+        "desc": "受到的雷鸣伤害减少 100%",
+        "damage_multiplier": 0.0
     },
     "burning": {
         "name": "燃烧",
         "desc": "每回合开始时受到火焰伤害",
+        "damage_per_stack": 1,
         "is_debuff": True
     },
     "key_scholar_passive": {
         "name": "门扉共鸣",
-        "desc": "打出或部署护符卡牌时，玩家回复 3 点生命值并获得 4 点护盾"
+        "desc": "打出或部署护符卡牌时，玩家回复 3 点生命值并获得 4 点护盾",
+        "heal_amount": 3,
+        "shield_amount": 4
     },
     "void_weakness": {
         "name": "虚空虚弱",
         "desc": "造成的法术伤害减少 3 点，回合结束时层数减少 1",
+        "damage_per_stack": 3,
         "is_debuff": True
     },
     "ancient_protection": {
         "name": "先古庇护",
-        "desc": "每回合开始时若拥有护盾，则清除自身所有负面效果；拥有护盾时，受到伤害的 20% 反弹为力场伤害"
+        "desc": "每回合开始时若拥有护盾，则清除自身所有负面效果；拥有护盾时，受到伤害的 20% 反弹为力场伤害",
+        "recoil_ratio": 0.2,
+        "min_recoil": 1
     },
     "end_gate_passive": {
         "name": "终焉之门",
-        "desc": "每回合开始时获得 15 点护盾，且清除自身所有负面效果；拥有护盾时，受到伤害会反弹 1 点真实伤害"
+        "desc": "每回合开始时获得 15 点护盾，且清除自身所有负面效果；拥有护盾时，受到伤害会反弹 1 点真实伤害",
+        "shield_amount": 15,
+        "reflect_damage": 1
     },
     "doomsday_gate_passive": {
         "name": "终焉庇护",
-        "desc": "每回合开始获得 20 护盾，且攻击力永久 +2；拥有护盾时，受到伤害会反弹 1 点真实伤害与 2 点力场伤害"
+        "desc": "每回合开始获得 20 护盾，且攻击力永久 +2；拥有护盾时，受到伤害会反弹 1 点真实伤害与 2 点力场伤害",
+        "shield_amount": 20,
+        "strength_stacks": 2,
+        "reflect_damage": 1,
+        "force_reflect_damage": 2
+    },
+    "time_lord_passive": {
+        "name": "时空主宰",
+        "desc": "每回合开始获得 20 护盾，且清除自身所有负面效果；受到伤害时 50% 几率召唤时空残影；分担 50% 伤害",
+        "shield_gain": 20,
+        "max_echoes": 1,
+        "max_enemies": 3,
+        "summon_chance": 0.5,
+        "echo_hp": 15,
+        "echo_actions": 1,
+        "echo_max_actions": 1,
+        "damage_share_divisor": 2
     },
     "phase_transition_immune": {
         "name": "转换阶段",
@@ -334,7 +442,9 @@ BUFF_CONFIG = {
 
     "ancient_wisdom_buff": {
         "name": "古老智慧",
-        "desc": "打出中立卡牌时，获得 2 点护盾（每层）"
+        "desc": "打出中立卡牌时，获得 2 点护盾（每层）",
+        "shield_per_stack": 2,
+        "upgraded_shield_per_stack": 3
     },
     "buffer": {
         "name": "缓冲",
@@ -346,7 +456,9 @@ BUFF_CONFIG = {
     },
     "glacier_fortress_buff": {
         "name": "冰川壁垒",
-        "desc": "回合结束时额外获得护盾"
+        "desc": "回合结束时额外获得护盾",
+        "shield_per_stack": 4,
+        "upgraded_shield_per_stack": 6
     },
     "void_exhaustion": {
         "name": "虚空耗竭",
@@ -356,46 +468,56 @@ BUFF_CONFIG = {
     "mana_leak": {
         "name": "魔力泄漏",
         "desc": "你打出的法术卡牌需要额外消耗 1BA，且造成的法术伤害减少 2 点",
+        "damage_per_stack": 2,
         "is_debuff": True
     },
     "minor_vulnerable": {
         "name": "轻度易伤",
         "desc": "受到的所有类型伤害增加 50%",
+        "damage_multiplier": 1.5,
         "is_debuff": True
     },
     "vulnerable": {
         "name": "易伤",
         "desc": "受到的所有类型伤害翻倍",
+        "damage_multiplier": 2.0,
         "is_debuff": True
     },
     "weak": {
         "name": "虚弱",
         "desc": "造成的伤害减少 50%",
+        "damage_multiplier": 0.5,
         "is_debuff": True
     },
     "flame_barrier_buff": {
         "name": "火焰屏障",
-        "desc": "受到伤害时对攻击源反弹真实伤害"
+        "desc": "受到伤害时对攻击源反弹真实伤害",
+        "reflect_damage": 1
     },
     "metallicize": {
         "name": "金属化",
-        "desc": "回合结束时额外获得护盾"
+        "desc": "回合结束时额外获得护盾",
+        "shield_per_stack": 1
     },
     "demon_form": {
         "name": "恶魔形态",
-        "desc": "回合开始时获得力量"
+        "desc": "回合开始时获得力量",
+        "strength_stacks": 1
     },
     "double_tap_buff": {
         "name": "双发",
-        "desc": "下一次物理伤害卡将触发额外打出"
+        "desc": "下一次物理伤害卡将触发额外打出",
+        "replay_amount": 1
     },
     "barricade": {
         "name": "壁垒",
-        "desc": "护盾回合开始时不衰减一半"
+        "desc": "护盾回合开始时不衰减一半",
+        "shield_retention": 0.5
     },
     "ritual": {
         "name": "仪式",
-        "desc": "每回合开始时，获得等同于此状态层数的力量"
+        "desc": "每回合开始时，获得等同于此状态层数的力量",
+        "strength_stacks": 1
     },
     "grappled": {
         "name": "受擒",
@@ -404,7 +526,8 @@ BUFF_CONFIG = {
     },
     "astral_speed": {
         "name": "星界加速",
-        "desc": "下回合开始时，获得 1 个额外动作点"
+        "desc": "下回合开始时，获得 1 个额外动作点",
+        "action_gain": 1
     },
     "ward": {
         "name": "守护",
@@ -412,20 +535,26 @@ BUFF_CONFIG = {
     },
     "fire_grow": {
         "name": "烈焰成长",
-        "desc": "你造成的火焰伤害增加，每层增加 1 点"
+        "desc": "你造成的火焰伤害增加，每层增加 1 点",
+        "damage_per_stack": 1
     },
     "forge_backfire": {
         "name": "炉温反噬",
         "desc": "你在锻造熔炉中汲取温热力量带来的后遗症，你造成的法术伤害减少，每层减少 1 点",
+        "damage_per_stack": 1,
         "is_debuff": True
     },
     "time_warp_spell_boost": {
         "name": "时空强化",
-        "desc": "本回合内你造成的法术伤害增加 2 点"
+        "desc": "本回合内你造成的法术伤害增加 2 点",
+        "damage_per_stack": 2
     },
     "commander_aurora_emperor": {
         "name": "极光圣域",
-        "desc": "极光圣域力场展开，我方随从发起普通攻击时，玩家获得 2 点护盾（升级版则额外抽 1 张牌）"
+        "desc": "极光圣域力场展开，我方随从发起普通攻击时，玩家获得 2 点护盾（升级版则额外抽 1 张牌）",
+        "shield_amount": 2,
+        "upgraded_shield_amount": 3,
+        "upgraded_draw_count": 1
     },
     "discard_next_turn": {
         "name": "下回合弃牌",
@@ -449,6 +578,7 @@ BUFF_CONFIG = {
     "poison": {
         "name": "中毒",
         "desc": "每回合开始时，受到层数点毒素伤害，层数减少 1",
+        "damage_per_stack": 1,
         "is_debuff": True
     },
     "doom": {
@@ -458,14 +588,20 @@ BUFF_CONFIG = {
     },
     "all_resonance": {
         "name": "万物共振",
-        "desc": "你和全体友方单位造成的最终伤害呈指数级叠加翻倍，每层使最终伤害乘以 10 倍，可与其他伤害加成乘算"
+        "desc": "你和全体友方单位造成的最终伤害呈指数级叠加翻倍，每层使最终伤害乘以 10 倍，可与其他伤害加成乘算",
+        "damage_multiplier": 10
     },
     "coop_aegis": {
         "name": "援护",
-        "desc": "本回合受到的单体攻击伤害降低 25%，回合开始时移除"
+        "desc": "本回合受到的单体攻击伤害降低 25%，回合开始时移除",
+        "damage_multiplier": 0.75
     },
     "coop_soul_resonance": {
         "name": "灵魂共鸣",
-        "desc": "打出的攻击或法术牌基础伤害提升，每次触发减少 1 层并为链接发起者恢复生命"
+        "desc": "打出的攻击或法术牌基础伤害提升，每次触发减少 1 层并为链接发起者恢复生命",
+        "damage_bonus": 4,
+        "heal_amount": 2,
+        "high_heal_amount": 3,
+        "high_bonus_threshold": 6
     }
 }

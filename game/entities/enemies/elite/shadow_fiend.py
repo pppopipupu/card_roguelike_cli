@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("暗影影魔")
 class ShadowFiendTemplate(EnemyTemplate):
@@ -38,7 +39,8 @@ class ShadowFiendTemplate(EnemyTemplate):
             after_logs = run.node_data.get("battle_logs", [])
             if len(after_logs) > before_len:
                 dmg_msg = after_logs.pop()
-                logs.append(f"【{enemy.name}】施展影袭，直接对玩家造成生命伤害。{dmg_msg}")
+                logs.append(get_locale_text("i18n_enemy_elite_c.shadow_fiend_shadow_strike_log", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "defend":
-            enemy.shield += intent.val
-            logs.append(f"【{enemy.name}】进入虚化，获得 {intent.val} 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            logs.append(get_locale_text("i18n_enemy_elite_c.shadow_fiend_defend_log", name=enemy.name, val=intent.val))

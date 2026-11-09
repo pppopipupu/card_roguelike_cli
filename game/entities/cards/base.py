@@ -10,6 +10,205 @@ from . import coop
 
 import copy
 
+from ...data.card_target_data import SELF_TARGET_SPELLS
+from ...data.locale_data import get_locale_text
+
+NUMERIC_CARD_FIELDS = (
+    "base_dmg",
+    "heal_amount",
+    "shield_amount",
+    "draw_count",
+    "discard_count",
+    "count",
+    "hit_count",
+    "gain_a",
+    "gain_ba",
+    "buff_stacks",
+    "buff_turns",
+    "hp_gain",
+    "hp_loss",
+    "self_hp_cost",
+    "self_damage",
+    "reflect_damage",
+    "strength_gain",
+    "multiplier",
+    "action_gain",
+    "bonus_action_gain",
+    "curse_count",
+    "hand_limit",
+    "rally_threshold",
+    "battlecry_damage",
+    "ally_atk_bonus",
+    "ally_hp_bonus",
+    "minion_hp",
+    "minion_atk",
+    "token_hp",
+    "token_atk",
+    "countdown",
+    "threshold",
+    "fail_damage",
+    "reduction",
+    "replay_amount",
+    "extra_turns",
+    "hits",
+    "dice_count",
+    "die_size",
+    "dice_threshold",
+    "extra_true_damage",
+    "burn_damage",
+    "burn_turns",
+    "stun_turns",
+    "stun_multiplier",
+    "crit_multiplier",
+    "heal_ratio",
+    "shield_ratio",
+    "hp_threshold",
+    "spell_damage_bonus",
+    "damage_amount",
+    "restore_amount",
+    "bonus_damage",
+    "gp_reward",
+    "forbidden_stages",
+    "max_count",
+    "coef",
+    "factor",
+    "draw_divisor",
+    "attack_actions",
+    "effect_params",
+)
+
+GEM_DAMAGE_ADD = {
+    "gem_dmg_add_2": 2,
+}
+
+GEM_DAMAGE_MUL = {
+    "gem_dmg_mul_2": 2,
+    "gem_dmg_mul_3": 3,
+}
+
+GEM_SHIELD_ADD = {
+    "gem_shield_add_3": 3,
+    "gem_shield_add_8": 8,
+}
+
+GEM_HEAL_ADD = {
+    "gem_heal_add_2": 2,
+}
+
+GEM_BA_SUB = {
+    "gem_cost_ba_sub_1": 1,
+}
+
+def _gem_effect_suffixes():
+    return {
+        "gem_retain": get_locale_text("i18n_card_runtime.cards.gem_effect.gem_retain"),
+        "gem_vuln_1": get_locale_text("i18n_card_runtime.cards.gem_effect.gem_vuln_1"),
+        "gem_weak_2": get_locale_text("i18n_card_runtime.cards.gem_effect.gem_weak_2"),
+        "gem_copy_1": get_locale_text("i18n_card_runtime.cards.gem_effect.gem_copy_1"),
+        "gem_return_3": get_locale_text("i18n_card_runtime.cards.gem_effect.gem_return_3"),
+        "gem_return_5": get_locale_text("i18n_card_runtime.cards.gem_effect.gem_return_5"),
+        "gem_gain_a_1": get_locale_text("i18n_card_runtime.cards.gem_effect.gem_gain_a_1"),
+        "gem_gain_a_1_ba_1": get_locale_text("i18n_card_runtime.cards.gem_effect.gem_gain_a_1_ba_1"),
+    }
+
+def get_gem_numeric_modifiers(gems):
+    dmg_add = 0
+    dmg_mul = 1
+    shield_add = 0
+    heal_add = 0
+    ba_sub = 0
+    gain_a = 0
+    gain_ba = 0
+    for gem in gems or ():
+        dmg_add += GEM_DAMAGE_ADD.get(gem, 0)
+        dmg_mul *= GEM_DAMAGE_MUL.get(gem, 1)
+        shield_add += GEM_SHIELD_ADD.get(gem, 0)
+        heal_add += GEM_HEAL_ADD.get(gem, 0)
+        ba_sub += GEM_BA_SUB.get(gem, 0)
+        if gem == "gem_gain_a_1":
+            gain_a += 1
+        elif gem == "gem_gain_a_1_ba_1":
+            gain_a += 1
+            gain_ba += 1
+    return {
+        "dmg_add": dmg_add,
+        "dmg_mul": dmg_mul,
+        "shield_add": shield_add,
+        "heal_add": heal_add,
+        "ba_sub": ba_sub,
+        "gain_a": gain_a,
+        "gain_ba": gain_ba,
+    }
+
+def replace_structured_number(text, old_value, new_value, before_markers=(), after_markers=(), trim_after_space=False):
+    if not text or old_value == new_value:
+        return text
+    old_token = str(old_value)
+    search_from = 0
+    while True:
+        index = text.find(old_token, search_from)
+        if index < 0:
+            return text
+        end = index + len(old_token)
+        left_ok = index == 0 or not text[index - 1].isdigit()
+        right_ok = end >= len(text) or not text[end].isdigit()
+        if left_ok and right_ok:
+            prefix = text[max(0, index - 12):index]
+            suffix = text[end:end + 6]
+            before_ok = not before_markers or any(marker in prefix for marker in before_markers)
+            after_ok = not after_markers or any(marker in suffix for marker in after_markers)
+            if before_ok and after_ok:
+                replace_end = end
+                if trim_after_space:
+                    while replace_end < len(text) and text[replace_end].isspace():
+                        replace_end += 1
+                return text[:index] + str(new_value) + text[replace_end:]
+        search_from = end
+
+def append_card_suffix(desc, suffix):
+    if not suffix:
+        return desc
+    if desc and not desc.endswith((".", "!", "。", "！")):
+        sentence_period = get_locale_text("i18n_card_runtime.cards.sentence_period")
+        desc = f"{desc}{sentence_period}"
+    return f"{desc}{suffix}"
+
+def replace_marker_number(desc, marker, value):
+    marker_index = desc.find(marker)
+    if marker_index < 0:
+        return None
+    cursor = marker_index + len(marker)
+    while cursor < len(desc) and desc[cursor].isspace():
+        cursor += 1
+    start = cursor
+    while cursor < len(desc) and desc[cursor].isdigit():
+        cursor += 1
+    if start == cursor:
+        return None
+    return f"{desc[:start]}{value}{desc[cursor:]}"
+
+def add_fragile_marker(desc, fragile_val):
+    if fragile_val <= 0:
+        return desc
+    fragile_label = get_locale_text("i18n_card_runtime.cards.fragile_label")
+    if f"{fragile_label} {fragile_val}" in desc:
+        return desc
+    updated = replace_marker_number(desc, fragile_label, fragile_val)
+    if updated is not None:
+        return updated
+    return append_card_suffix(desc, get_locale_text("i18n_card_runtime.cards.fragile_marker", value=fragile_val))
+
+def add_replay_marker(desc, replay):
+    if replay <= 0:
+        return desc
+    replay_label = get_locale_text("i18n_card_runtime.cards.replay_label")
+    if f"{replay_label} {replay}" in desc:
+        return desc
+    updated = replace_marker_number(desc, replay_label, replay)
+    if updated is not None:
+        return updated
+    return append_card_suffix(desc, get_locale_text("i18n_card_runtime.cards.replay_marker", value=replay))
+
 def _get_card_config():
     from ...data.neutral_card_data import NEUTRAL_CARD_CONFIG
     from ...data.wizard_card_data import WIZARD_CARD_CONFIG
@@ -70,6 +269,11 @@ class CardRegistryDict(dict):
                 filtered = {k: v for k, v in inst_kwargs.items() if k in sig.parameters}
             
             inst = cls(**filtered)
+            for prop in NUMERIC_CARD_FIELDS:
+                if prop in cfg:
+                    setattr(inst, prop, cfg[prop])
+            base_id = key.split("+")[0]
+            inst.target_type = cfg.get("target_type") or ("self" if cfg.get("id", base_id) in SELF_TARGET_SPELLS else "enemy")
             inst.rarity = rarity
             inst.exhaust = exhaust
             inst.fleeting = fleeting
@@ -87,8 +291,7 @@ class CardRegistryDict(dict):
             if fragile_val > 0:
                 from ...entities.tags import FragileTag
                 inst.add_tag(FragileTag("fragile", fragile_val))
-                if " (易碎 " not in inst.name:
-                    inst.name = f"{inst.name} (易碎 {fragile_val})"
+                inst.desc = add_fragile_marker(inst.desc, fragile_val)
             self[key] = inst
             return inst
         return None
@@ -162,6 +365,7 @@ class CardRegistryDict(dict):
         import copy
         card = copy.copy(base_card)
         card.id = base_key
+        card.tags = [copy.copy(t) for t in base_card.tags]
 
         if card_state.upgraded:
             card.upgraded = True
@@ -177,122 +381,72 @@ class CardRegistryDict(dict):
                 card.innate = up_cfg["innate"]
             if "exhaust" in up_cfg:
                 card.exhaust = up_cfg["exhaust"]
-            for prop in ("base_dmg", "heal_amount", "shield_amount", "minion_hp", "minion_atk", "countdown", "amulet_desc"):
+            for prop in (*NUMERIC_CARD_FIELDS, "amulet_desc"):
                 if prop in up_cfg:
                     setattr(card, prop, up_cfg[prop])
-            if " (易碎 " in card.name:
-                parts = card.name.split(" (易碎 ")
-                name_part = parts[0]
-                fragile_part = " (易碎 " + parts[1]
-                card.name = name_part + "+" + fragile_part
-            else:
-                if not card.name.endswith("+"):
-                    card.name += "+"
+            if not card.name.endswith("+"):
+                card.name += "+"
 
         card.gems = list(card_state.gems)
         if card.gems:
-            dmg_add = 0
-            dmg_mul = 1
-            shield_add = 0
-            heal_add = 0
-            ba_sub = 0
-            for g in card.gems:
-                if g == "gem_dmg_add_2":
-                    dmg_add += 2
-                elif g == "gem_dmg_mul_2":
-                    dmg_mul *= 2
-                elif g == "gem_dmg_mul_3":
-                    dmg_mul *= 3
-                elif g == "gem_shield_add_3":
-                    shield_add += 3
-                elif g == "gem_shield_add_8":
-                    shield_add += 8
-                elif g == "gem_heal_add_2":
-                    heal_add += 2
-                elif g == "gem_cost_ba_sub_1":
-                    ba_sub += 1
-
-            import re
+            modifiers = get_gem_numeric_modifiers(card.gems)
+            dmg_add = modifiers["dmg_add"]
+            dmg_mul = modifiers["dmg_mul"]
+            shield_add = modifiers["shield_add"]
+            heal_add = modifiers["heal_add"]
+            ba_sub = modifiers["ba_sub"]
 
             if dmg_add > 0 or dmg_mul > 1:
-                state_data = {"has_dmg_text": False}
-                def repl_dmg(match):
-                    state_data["has_dmg_text"] = True
-                    val = int(match.group(1))
-                    return f"造成 {(val + dmg_add) * dmg_mul} 点"
-                card.desc = re.sub(r"造成\s*(\d+)\s*点", repl_dmg, card.desc)
-                if not state_data["has_dmg_text"] and dmg_add > 0:
+                base_dmg = int(getattr(card, "base_dmg", 0) or 0)
+                if base_dmg > 0:
+                    final_dmg = (base_dmg + dmg_add) * dmg_mul
+                    updated_desc = replace_structured_number(card.desc, base_dmg, final_dmg, ("造成",), ("点",))
+                    if updated_desc != card.desc:
+                        card.desc = updated_desc
+                    elif dmg_add > 0 and "{base_dmg}" not in card.desc:
+                        card.desc = append_card_suffix(card.desc, get_locale_text("i18n_card_runtime.cards.gem_damage_upgrade", damage=final_dmg))
+                elif dmg_add > 0 and "{base_dmg}" not in card.desc:
                     final_fallback_dmg = dmg_add * dmg_mul
-                    card.desc = card.desc + f"造成 {final_fallback_dmg} 点效果伤害。"
+                    card.desc = append_card_suffix(card.desc, get_locale_text("i18n_card_runtime.cards.gem_damage_fallback", damage=final_fallback_dmg))
 
             if shield_add > 0:
-                state_data_shield = {"has_shield_text": False}
-                def repl_shield(match):
-                    state_data_shield["has_shield_text"] = True
-                    prefix = match.group(1)
-                    val = int(match.group(2))
-                    return f"{prefix} {val + shield_add} 点护盾"
-                card.desc = re.sub(r"(获得|提供|产生)\s*(\d+)\s*点护盾", repl_shield, card.desc)
-                if not state_data_shield["has_shield_text"]:
-                    card.desc = card.desc + f"获得 {shield_add} 点护盾。"
+                base_shield = int(getattr(card, "shield_amount", 0) or 0)
+                if base_shield > 0:
+                    final_shield = base_shield + shield_add
+                    updated_desc = replace_structured_number(card.desc, base_shield, final_shield, ("获得", "提供", "产生"), ("点护盾",))
+                    if updated_desc != card.desc:
+                        card.desc = updated_desc
+                    elif "{shield_amount}" not in card.desc:
+                        card.desc = append_card_suffix(card.desc, get_locale_text("i18n_card_runtime.cards.gem_shield_upgrade", shield=final_shield))
+                elif "{shield_amount}" not in card.desc:
+                    card.desc = append_card_suffix(card.desc, get_locale_text("i18n_card_runtime.cards.gem_shield_gain", shield=shield_add))
 
             if heal_add > 0:
-                state_data_heal = {"has_heal_text": False}
-                def repl_heal(match):
-                    state_data_heal["has_heal_text"] = True
-                    prefix = match.group(1)
-                    val = int(match.group(2))
-                    return f"{prefix} {val + heal_add} 点生命"
-                card.desc = re.sub(r"(回复|治疗)\s*(\d+)\s*点生命", repl_heal, card.desc)
-                if not state_data_heal["has_heal_text"]:
-                    card.desc = card.desc + f"回复 {heal_add} 点生命。"
+                base_heal = int(getattr(card, "heal_amount", 0) or 0)
+                if base_heal > 0:
+                    final_heal = base_heal + heal_add
+                    updated_desc = replace_structured_number(card.desc, base_heal, final_heal, ("回复", "治疗", "恢复"), ("点生命",))
+                    if updated_desc != card.desc:
+                        card.desc = updated_desc
+                    elif "{heal_amount}" not in card.desc:
+                        card.desc = append_card_suffix(card.desc, get_locale_text("i18n_card_runtime.cards.gem_heal_upgrade", heal=final_heal))
+                elif "{heal_amount}" not in card.desc:
+                    card.desc = append_card_suffix(card.desc, get_locale_text("i18n_card_runtime.cards.gem_heal_gain", heal=heal_add))
 
             if ba_sub > 0:
                 card.cost_ba = max(0, card.cost_ba - ba_sub)
-                card.desc = card.desc + f"BA消耗减少 {ba_sub}。"
+                card.desc = append_card_suffix(card.desc, get_locale_text("i18n_card_runtime.cards.gem_ba_reduction", amount=ba_sub))
 
+            gem_effect_suffixes = _gem_effect_suffixes()
             for g in card.gems:
+                effect_suffix = gem_effect_suffixes.get(g)
+                if not effect_suffix:
+                    continue
                 if g == "gem_retain":
                     card.retain = True
-                    if "保留。" not in card.desc:
-                        if card.desc and not card.desc.endswith((".", "!", "。", "！")):
-                            card.desc += "。"
-                        card.desc += "保留。"
-                elif g == "gem_vuln_1":
-                    if "施加 1 层易伤" not in card.desc:
-                        if card.desc and not card.desc.endswith((".", "!", "。", "！")):
-                            card.desc += "。"
-                        card.desc += "打出时对首个敌人施加 1 层易伤。"
-                elif g == "gem_weak_2":
-                    if "施加 2 层虚弱" not in card.desc:
-                        if card.desc and not card.desc.endswith((".", "!", "。", "！")):
-                            card.desc += "。"
-                        card.desc += "打出时对首个敌人施加 2 层虚弱。"
-                elif g == "gem_copy_1":
-                    if "复制 1。" not in card.desc:
-                        if card.desc and not card.desc.endswith((".", "!", "。", "！")):
-                            card.desc += "。"
-                        card.desc += "复制 1。"
-                elif g == "gem_return_3":
-                    if "返回 3。" not in card.desc:
-                        if card.desc and not card.desc.endswith((".", "!", "。", "！")):
-                            card.desc += "。"
-                        card.desc += "返回 3。"
-                elif g == "gem_return_5":
-                    if "返回 5。" not in card.desc:
-                        if card.desc and not card.desc.endswith((".", "!", "。", "！")):
-                            card.desc += "。"
-                        card.desc += "返回 5。"
-                elif g == "gem_gain_a_1":
-                    if "获得 1A" not in card.desc:
-                        if card.desc and not card.desc.endswith((".", "!", "。", "！")):
-                            card.desc += "。"
-                        card.desc += "打出时获得 1A。"
-                elif g == "gem_gain_a_1_ba_1":
-                    if "获得 1A 1BA" not in card.desc:
-                        if card.desc and not card.desc.endswith((".", "!", "。", "！")):
-                            card.desc += "。"
-                        card.desc += "打出时获得 1A 1BA。"
+                effect_marker = effect_suffix.rstrip("。")
+                if effect_marker not in card.desc:
+                    card.desc = append_card_suffix(card.desc, effect_suffix)
 
             from ...data.gem_data import GEM_CONFIG
             gem_descs = []
@@ -300,27 +454,18 @@ class CardRegistryDict(dict):
                 if g in GEM_CONFIG:
                     gem_descs.append(f"<{GEM_CONFIG[g]['name']}>")
             if gem_descs:
-                card.desc = card.desc + " （镶嵌：" + "，".join(gem_descs) + "）"
+                gem_inlay_separator = get_locale_text("i18n_card_runtime.cards.gem_inlay_separator")
+                card.desc = card.desc + get_locale_text("i18n_card_runtime.cards.gem_inlay", gems=gem_inlay_separator.join(gem_descs))
 
         if card_state.replay > 0:
             from ...entities.tags import ReplayTag
             card.add_tag(ReplayTag("replay", card_state.replay))
-            import re
-            clean_desc = re.sub(r"重放 \d+。", "", card.desc)
-            if clean_desc.endswith("。") or clean_desc.endswith("！"):
-                card.desc = clean_desc + f"重放 {card_state.replay}。"
-            else:
-                card.desc = clean_desc + f"。重放 {card_state.replay}。"
+            card.desc = add_replay_marker(card.desc, card_state.replay)
 
         if card_state.fragile > 0:
             from ...entities.tags import FragileTag
             card.add_tag(FragileTag("fragile", card_state.fragile))
-            import re
-            card.desc = re.sub(r"易碎 \d+。", f"易碎 {card_state.fragile}。", card.desc)
-            if " (易碎 " in card.name:
-                card.name = re.sub(r" \(易碎 \d+\)", f" (易碎 {card_state.fragile})", card.name)
-            else:
-                card.name = f"{card.name} (易碎 {card_state.fragile})"
+            card.desc = add_fragile_marker(card.desc, card_state.fragile)
 
         card.return_left = card_state.return_left
         card.no_copy = card_state.no_copy
@@ -335,7 +480,7 @@ class CardRegistryDict(dict):
                 card.heal_amount = max(0, card.heal_amount - penalty)
             if getattr(card, "shield_amount", 0) > 0:
                 card.shield_amount = max(0, card.shield_amount - penalty)
-            card.desc = card.desc + f" （魔力受损：效果降低 {penalty}）"
+            card.desc = card.desc + get_locale_text("i18n_card_runtime.cards.power_penalty", penalty=penalty)
 
         return card
 
@@ -400,6 +545,10 @@ for cid, cfg in _get_card_config().items():
     else:
         filtered = {k: v for k, v in inst_kwargs.items() if k in sig.parameters}
     inst = cls(**filtered)
+    for prop in NUMERIC_CARD_FIELDS:
+        if prop in cfg:
+            setattr(inst, prop, cfg[prop])
+    inst.target_type = cfg.get("target_type") or ("self" if cfg.get("id", cid) in SELF_TARGET_SPELLS else "enemy")
     inst.rarity = rarity
     inst.exhaust = exhaust
     inst.fleeting = fleeting
@@ -417,6 +566,5 @@ for cid, cfg in _get_card_config().items():
     if fragile_val > 0:
         from ...entities.tags import FragileTag
         inst.add_tag(FragileTag("fragile", fragile_val))
-        if " (易碎 " not in inst.name:
-            inst.name = f"{inst.name} (易碎 {fragile_val})"
+        inst.desc = add_fragile_marker(inst.desc, fragile_val)
     ALL_CARDS[cid] = inst

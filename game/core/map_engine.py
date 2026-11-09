@@ -3,6 +3,24 @@ from typing import Optional, List, Dict
 from ..models.state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, Card
 from ..data.map_config import MapConfig
 from ..data.corpse_config import CorpseConfig
+from ..data.balance_config import (
+    MAP_ANCIENT_OPTION_SLOTS,
+    MAP_ANCIENT_RELIC_CHOICES,
+    MAP_BRANCH_MAX,
+    MAP_BRANCH_MIN,
+    MAP_GHOST_DEFAULT_MAX_HP,
+    MAP_LUCKY_COIN_GOLD,
+    MAP_TAX_CONTRACT_GOLD,
+    MAP_TREASURE_ALWAYS_EXTRA_STAGE,
+    MAP_TREASURE_EXTRA_LAYER_COUNT,
+    MAP_TREASURE_EXTRA_LAYER_STAGE,
+    MAP_TREASURE_EXTRA_LAYER_TOTAL,
+    MAP_TREASURE_LAYER_COUNT,
+    MAP_TREASURE_TOTAL_CHOICES,
+    MAP_WIDTH_CHOICES,
+    MAP_WIDTH_WEIGHTS,
+)
+from ..data.locale_data import get_locale_text
 from .explore_engine import ExploreEngine
 
 class MapEngine:
@@ -14,7 +32,8 @@ class MapEngine:
     def enter_next_stage(self, run: GameRun):
         if getattr(run, "coop_id", ""):
             from .coop_engine import CoopEngine
-            CoopEngine(self.save_manager, self.battle_engine).enter_next_stage(run)
+            root = getattr(self.battle_engine, "game_engine", None) or self.battle_engine
+            CoopEngine(self.save_manager, root).enter_next_stage(run)
             return
         self._enter_next_stage_solo(run)
 
@@ -38,9 +57,9 @@ class MapEngine:
         run.node_data.clear()
 
         if "lucky_coin" in p.relics:
-            p.gold += 5
+            p.gold += MAP_LUCKY_COIN_GOLD
         if "tax_contract" in p.relics:
-            p.gold = max(0, p.gold - 6)
+            p.gold = max(0, p.gold - MAP_TAX_CONTRACT_GOLD)
 
         if p.stage == 1:
             run.node_type = "start_ancient"
@@ -143,9 +162,9 @@ class MapEngine:
                     if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
                         cards_pool.append({"type": "contract", "relic": "glacier_chill", "card": "minion_icerainboww"})
             
-            num_relics = random.choice([1, 2])
+            num_relics = random.choice(MAP_ANCIENT_RELIC_CHOICES)
             selected_relics = random.sample(relics_pool, min(len(relics_pool), num_relics))
-            selected_cards = random.sample(cards_pool, min(len(cards_pool), 3 - len(selected_relics)))
+            selected_cards = random.sample(cards_pool, min(len(cards_pool), MAP_ANCIENT_OPTION_SLOTS - len(selected_relics)))
             from ..models.state import check_and_replace_fireball
             for item in selected_cards:
                 if "card" in item:
@@ -189,32 +208,32 @@ class MapEngine:
         options_data = []
         if getattr(run, "coop_id", ""):
             desc_map = {
-                "battle": "遭遇战 (遇到双倍数量的普通敌人)",
-                "elite": "精英战 (遭遇双倍数量的强力敌人，获胜金币更多)",
-                "event": "神秘事件 (可能获得宝物或遭遇危险)",
-                "shop": "奇妙商店 (各自独立货架，购买强力卡牌、遗物或移除卡牌)",
-                "rest": "篝火营地 (恢复生命值、冥想领悟或救治队友)",
-                "treasure": "古老宝箱 (献祭卡牌以获取稀有遗物及宝藏)",
-                "boss": "首领战 (击败双倍数量的守关首领)"
+                "battle": get_locale_text("i18n_map_cafe.node_desc_coop_battle"),
+                "elite": get_locale_text("i18n_map_cafe.node_desc_coop_elite"),
+                "event": get_locale_text("i18n_map_cafe.node_desc_coop_event"),
+                "shop": get_locale_text("i18n_map_cafe.node_desc_coop_shop"),
+                "rest": get_locale_text("i18n_map_cafe.node_desc_coop_rest"),
+                "treasure": get_locale_text("i18n_map_cafe.node_desc_coop_treasure"),
+                "boss": get_locale_text("i18n_map_cafe.node_desc_coop_boss")
             }
         else:
             desc_map = {
-                "battle": "遭遇战 (遇到 1~3 个普通的敌人)",
-                "elite": "精英战 (遭遇强力敌人，获胜金币更多)",
-                "event": "神秘事件 (可能获得宝物或遭遇危险)",
-                "shop": "奇妙商店 (购买强力卡牌、遗物或移除卡牌)",
-                "rest": "篝火营地 (恢复生命值或冥想领悟卡牌)",
-                "treasure": "古老宝箱 (献祭卡牌以获取稀有遗物及宝藏)",
-                "boss": "首领战 (击败守关的首领)"
+                "battle": get_locale_text("i18n_map_cafe.node_desc_battle"),
+                "elite": get_locale_text("i18n_map_cafe.node_desc_elite"),
+                "event": get_locale_text("i18n_map_cafe.node_desc_event"),
+                "shop": get_locale_text("i18n_map_cafe.node_desc_shop"),
+                "rest": get_locale_text("i18n_map_cafe.node_desc_rest"),
+                "treasure": get_locale_text("i18n_map_cafe.node_desc_treasure"),
+                "boss": get_locale_text("i18n_map_cafe.node_desc_boss")
             }
         emoji_map = {
-            "battle": "遭遇战",
-            "elite": "精英战",
-            "event": "神秘事件",
-            "shop": "奇妙商店",
-            "rest": "篝火营地",
-            "treasure": "古老宝箱",
-            "boss": "首领战"
+            "battle": get_locale_text("i18n_map_cafe.node_name_battle"),
+            "elite": get_locale_text("i18n_map_cafe.node_name_elite"),
+            "event": get_locale_text("i18n_map_cafe.node_name_event"),
+            "shop": get_locale_text("i18n_map_cafe.node_name_shop"),
+            "rest": get_locale_text("i18n_map_cafe.node_name_rest"),
+            "treasure": get_locale_text("i18n_map_cafe.node_name_treasure"),
+            "boss": get_locale_text("i18n_map_cafe.node_name_boss")
         }
         for o in opts:
             options_data.append({
@@ -251,9 +270,10 @@ class MapEngine:
                 "node_id": f"corpse_{corpse.get('id')}",
                 "node_type": "corpse",
                 "corpse_id": corpse.get("id"),
-                "desc": (
-                    f"尸体：{corpse.get('player_name', '玩家')}"
-                    f"（{corpse.get('cause', '死因不明')}）"
+                "desc": get_locale_text(
+                    "i18n_map_cafe.corpse_option_desc",
+                    player_name=corpse.get("player_name", get_locale_text("i18n_map_cafe.default_player_name")),
+                    cause=corpse.get("cause", get_locale_text("i18n_map_cafe.default_cause")),
                 ),
             })
         changed = options != data.get("options")
@@ -273,13 +293,15 @@ class MapEngine:
             nodes[str(s)] = []
         
         if "total_treasures" not in run.map_data:
-            run.map_data["total_treasures"] = random.choice([4, 5])
+            run.map_data["total_treasures"] = random.choice(MAP_TREASURE_TOTAL_CHOICES)
         
         tot = run.map_data["total_treasures"]
         treasure_layers = []
         if start_s in MapConfig.TREASURE_LAYERS_CONFIG:
             t_start, t_end = MapConfig.TREASURE_LAYERS_CONFIG[start_s]
-            num_t = 2 if (start_s == 2 and tot == 5) or start_s == 14 else 1
+            num_t = MAP_TREASURE_LAYER_COUNT
+            if (start_s == MAP_TREASURE_EXTRA_LAYER_STAGE and tot == MAP_TREASURE_EXTRA_LAYER_TOTAL) or start_s == MAP_TREASURE_ALWAYS_EXTRA_STAGE:
+                num_t = MAP_TREASURE_EXTRA_LAYER_COUNT
             treasure_layers = random.sample(range(t_start, t_end), num_t)
 
         types_pool = ["battle", "event", "shop", "elite", "rest"]
@@ -292,7 +314,7 @@ class MapEngine:
                     "next": []
                 })
             else:
-                width = random.choices([2, 3, 4], weights=[0.1, 0.5, 0.4])[0]
+                width = random.choices(MAP_WIDTH_CHOICES, weights=MAP_WIDTH_WEIGHTS)[0]
                 treasure_idx = random.randint(0, width - 1) if s in treasure_layers else -1
                 for i in range(width):
                     if i == treasure_idx:
@@ -321,7 +343,7 @@ class MapEngine:
                         idx = i + offset
                         if 0 <= idx < len(next_layer):
                             allowed.append(next_layer[idx]["id"])
-                    cn["next"] = random.sample(allowed, min(len(allowed), random.randint(1, 2)))
+                    cn["next"] = random.sample(allowed, min(len(allowed), random.randint(MAP_BRANCH_MIN, MAP_BRANCH_MAX)))
                 
                 for nn in next_layer:
                     nn_id = nn["id"]
@@ -341,10 +363,11 @@ class MapEngine:
     def choose_map_node(self, run: GameRun, option_idx: int) -> str:
         options = run.node_data.get("options", [])
         if option_idx < 1 or option_idx > len(options):
-            return "❌ 无效的分支序号。"
+            return get_locale_text("i18n_map_cafe.err_invalid_branch_idx")
         if getattr(run, "coop_id", ""):
             from .coop_engine import CoopEngine
-            coop = CoopEngine(self.save_manager, self.battle_engine)
+            root = getattr(self.battle_engine, "game_engine", None) or self.battle_engine
+            coop = CoopEngine(self.save_manager, root)
             vote_result = coop.vote_map_node(run, run.user_id, option_idx)
             if vote_result is not None:
                 return vote_result
@@ -359,9 +382,9 @@ class MapEngine:
             if not corpse or corpse.get("claimed_by"):
                 self.sync_corpse_options(run)
                 self.save_manager.save_save(run.user_id, run)
-                return "❌ 这具尸体已经被其他玩家搜刮，尸体节点消失了。"
-            dead_name = str(corpse.get("player_name", "玩家"))
-            cause = str(corpse.get("cause", "死因不明"))
+                return get_locale_text("i18n_map_cafe.err_corpse_claimed")
+            dead_name = str(corpse.get("player_name", get_locale_text("i18n_map_cafe.default_player_name")))
+            cause = str(corpse.get("cause", get_locale_text("i18n_map_cafe.default_cause")))
             run.node_type = "battle"
             run.node_data = {
                 "corpse_battle": True,
@@ -369,16 +392,15 @@ class MapEngine:
                 "corpse_stage": int(corpse.get("stage", run.player.stage)),
                 "corpse_dead_name": dead_name,
                 "corpse_cause": cause,
-                "ghost_name": f"冤魂·{dead_name}",
-                "ghost_max_hp": max(CorpseConfig.GHOST_MIN_HP, int(corpse.get("max_hp", 60) or 60)),
+                "ghost_name": get_locale_text("i18n_map_cafe.ghost_name", dead_name=dead_name),
+                "ghost_max_hp": max(CorpseConfig.GHOST_MIN_HP, int(corpse.get("max_hp", MAP_GHOST_DEFAULT_MAX_HP) or MAP_GHOST_DEFAULT_MAX_HP)),
                 "ghost_deck": list(corpse.get("deck", [])),
             }
             self.battle_engine._init_battle_node(run, "ghost")
             self.save_manager.save_save(run.user_id, run)
             return self.battle_engine._append_logs_to_res(
                 run,
-                f"你踏入【尸体：{dead_name}】的阴影。死因：{cause}。\n"
-                f"冤魂从遗体中站起，手中浮现着死者生前的卡组。进入冤魂战！"
+                get_locale_text("i18n_map_cafe.corpse_battle_log", dead_name=dead_name, cause=cause)
             )
 
         if node_type in ("battle", "elite", "boss"):
@@ -391,33 +413,33 @@ class MapEngine:
         if node_type == "battle" or node_type == "boss":
             diff = "boss" if node_type == "boss" else "normal"
             self.battle_engine._init_battle_node(run, diff)
-            name = run.enemies[0].name if run.enemies else "未知"
+            name = run.enemies[0].name if run.enemies else get_locale_text("i18n_map_cafe.unknown_enemy")
             num_enemies = len(run.enemies)
             self.save_manager.save_save(run.user_id, run)
-            return self.battle_engine._append_logs_to_res(run, f"你选择前往【{chosen['desc']}】。前方出现了 {num_enemies} 个敌人，领头的是【{name}】！进入战斗。")
+            return self.battle_engine._append_logs_to_res(run, get_locale_text("i18n_map_cafe.choose_battle_log", desc=chosen['desc'], num_enemies=num_enemies, name=name))
         elif node_type == "elite":
             self.battle_engine._init_battle_node(run, "elite")
-            name = run.enemies[0].name if run.enemies else "未知"
+            name = run.enemies[0].name if run.enemies else get_locale_text("i18n_map_cafe.unknown_enemy")
             num_enemies = len(run.enemies)
             self.save_manager.save_save(run.user_id, run)
-            return self.battle_engine._append_logs_to_res(run, f"你选择前往【{chosen['desc']}】。前方出现了 {num_enemies} 个强力精英，领头的是【{name}】！进入战斗。")
+            return self.battle_engine._append_logs_to_res(run, get_locale_text("i18n_map_cafe.choose_elite_log", desc=chosen['desc'], num_enemies=num_enemies, name=name))
         elif node_type == "event":
             self.explore_engine._init_event_node(run)
             self.save_manager.save_save(run.user_id, run)
-            return f"你选择前往【{chosen['desc']}】。你遇到了一个神秘事件..."
+            return get_locale_text("i18n_map_cafe.choose_event_log", desc=chosen['desc'])
         elif node_type == "shop":
             self.explore_engine._init_shop_node(run)
             self.save_manager.save_save(run.user_id, run)
-            return f"你选择前往【{chosen['desc']}】。你来到了奇妙商店，店主热情地向你招手。"
+            return get_locale_text("i18n_map_cafe.choose_shop_log", desc=chosen['desc'])
         elif node_type == "rest":
             self.explore_engine._init_rest_node(run)
             self.save_manager.save_save(run.user_id, run)
-            return f"你选择前往【{chosen['desc']}】。篝火在噼啪作响，你可以在此整顿休息。"
+            return get_locale_text("i18n_map_cafe.choose_rest_log", desc=chosen['desc'])
         elif node_type == "treasure":
             self.explore_engine._init_treasure_node(run)
             self.save_manager.save_save(run.user_id, run)
-            return f"你选择前往【{chosen['desc']}】。你来到了古老宝箱前。"
-        return "❌ 未知节点类型。"
+            return get_locale_text("i18n_map_cafe.choose_treasure_log", desc=chosen['desc'])
+        return get_locale_text("i18n_map_cafe.err_unknown_node_type")
 
     def _init_event_node(self, run: GameRun):
         self.explore_engine._init_event_node(run)
@@ -430,7 +452,7 @@ class MapEngine:
 
     def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str:
         if run.node_type == "battle":
-            return "❌ 战斗中无法使用选择命令。"
+            return get_locale_text("i18n_map_cafe.err_cannot_choose_in_battle")
         if run.node_type == "map_select":
             return self.choose_map_node(run, option_idx)
         return self.explore_engine.choose_option(run, option_idx, target)
@@ -492,7 +514,7 @@ class MapEngine:
         random.shuffle(available_relics)
         options = []
         from ..models.state import check_and_replace_fireball
-        for i in range(3):
+        for i in range(MAP_ANCIENT_OPTION_SLOTS):
             options.append({
                 "type": "blessing",
                 "card": check_and_replace_fireball(run, legends_pool[i % len(legends_pool)]),

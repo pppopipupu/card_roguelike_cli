@@ -1,53 +1,64 @@
 import re
+from ...data.relic_data import RELIC_CONFIG
+from ...data.locale_data import get_locale_text
 from .base import RelicImpl
 from .registry import register_relic
 
 class AncientPageRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.hp_loss = 4
-        self.spark_count = 2
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.hp_loss = cfg.get("hp_loss", 4)
+        self.spark_count = cfg.get("spark_count", 2)
+        self.max_hand = cfg.get("max_hand", 12)
+        self.void_mask_max_hand = cfg.get("void_mask_max_hand", 9)
 
     def on_battle_start(self, run, engine):
         p = run.player
-        p.hp = max(1, p.hp - self.hp_loss)
-        engine._log_event(run, f"📖 [先古残页] 触发：失去 {self.hp_loss} 点生命值。")
-        max_hand = 9 if "mask_of_void" in p.relics else 12
+        loss = min(self.hp_loss, p.hp - 1) if p.hp > 1 else 0
+        if loss > 0:
+            engine._damage_target(run, "p0", loss, source="self", damage_type="true")
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.ancient_page.hp_loss", hp_loss=self.hp_loss))
+        max_hand = self.void_mask_max_hand if "mask_of_void" in p.relics else self.max_hand
         spark_added = 0
+        from ...core.deck_service import DeckService
         for _ in range(self.spark_count):
             if len(p.hand) < max_hand:
-                p.hand.append("arcane_spark")
+                DeckService.add_card_to_hand(p, "arcane_spark")
                 spark_added += 1
         if spark_added > 0:
-            engine._log_event(run, f"📖 [先古残页] 触发：将 {spark_added} 张【奥术星火】加入手牌。")
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.ancient_page.add_sparks", spark_added=spark_added))
 
 class HeavyArmorRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.shield_gain = 8
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.shield_gain = cfg.get("shield_gain", 8)
 
     def on_battle_start(self, run, engine):
-        p = run.player
-        p.shield += self.shield_gain
-        engine._log_event(run, f"🛡️ [重装甲片] 触发：获得 {self.shield_gain} 点初始护盾。")
+        engine._gain_shield(run, "p0", self.shield_gain)
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.heavy_armor.trigger", shield_gain=self.shield_gain))
 
 class GreedyContractRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.hp_loss = 3
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.hp_loss = cfg.get("hp_loss", 3)
 
     def on_battle_start(self, run, engine):
-        p = run.player
-        p.hp = max(1, p.hp - self.hp_loss)
-        engine._log_event(run, f"🪙 [贪婪契约] 触发：失去 {self.hp_loss} 点生命值。")
+        loss = min(self.hp_loss, run.player.hp - 1) if run.player.hp > 1 else 0
+        if loss > 0:
+            engine._damage_target(run, "p0", loss, source="self", damage_type="true")
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.greedy_contract.trigger", hp_loss=self.hp_loss))
 
 class AncientEyeRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.draw_bonus = 2
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.draw_bonus = cfg.get("draw_bonus", 2)
 
     def on_battle_start(self, run, engine):
-        engine._log_event(run, f"👁️ [先古之眼] 触发：初始抽牌数量 +{self.draw_bonus}。")
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.ancient_eye.trigger", draw_bonus=self.draw_bonus))
 
     def modify_initial_draw(self, run, draw_count: int, engine) -> int:
         return draw_count + self.draw_bonus
@@ -55,22 +66,24 @@ class AncientEyeRelic(RelicImpl):
 class DragonBloodRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.heal_amount = 5
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.heal_amount = cfg.get("heal_amount", 5)
 
     def on_battle_win(self, run, engine):
-        p = run.player
-        p.hp = min(p.max_hp, p.hp + self.heal_amount)
-        engine._log_event(run, f"🩸 [红龙之血] 触发：回复了 {self.heal_amount} 点生命值。")
+        engine._heal_target(run, "p0", self.heal_amount)
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.dragon_blood.trigger", heal_amount=self.heal_amount))
 
 class UnstableCrystalRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.spell_dmg_bonus = 1
-        self.turn_ba_bonus = 1
-        self.recoil_damage = 1
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.spell_dmg_bonus = cfg.get("spell_dmg_bonus", 1)
+        self.turn_ba_bonus = cfg.get("turn_ba_bonus", 1)
+        self.recoil_damage = cfg.get("recoil_damage", 1)
 
     def on_damage_calculate(self, event, run, engine):
-        if event.damage_type == "spell" and event.source == "p0":
+        is_spell = getattr(event.card, "type", "") == "spell" if event.card is not None else event.damage_type == "spell"
+        if is_spell and event.source == "p0":
             event.modified_damage += self.spell_dmg_bonus
 
     def on_turn_start(self, event, run, engine):
@@ -80,12 +93,13 @@ class UnstableCrystalRelic(RelicImpl):
     def on_card_played(self, event, run, engine):
         if event.card.type == "spell":
             engine._damage_target(run, "p0", self.recoil_damage)
-            engine._log_event(run, f"⚡ [不稳定水晶] 受到 {self.recoil_damage} 点法术反噬伤害。")
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.unstable_crystal.trigger", recoil_damage=self.recoil_damage))
 
 class VampiricTouchRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.heal_amount = 1
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.heal_amount = cfg.get("heal_amount", 1)
 
     def on_card_played(self, event, run, engine):
         if event.card.type == "spell" and event.card.id in (
@@ -95,126 +109,195 @@ class VampiricTouchRelic(RelicImpl):
             old_hp = run.player.hp
             engine._heal_target(run, "p0", self.heal_amount)
             if run.player.hp > old_hp:
-                engine._log_event(run, f"❤️ [吸血之触] 回复了 {self.heal_amount} 点生命值。")
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.vampiric_touch.trigger", heal_amount=self.heal_amount))
 
 class MarkOfFuryRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.spell_bonus = 2
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.spell_bonus = cfg.get("spell_bonus", 2)
 
     def on_damage_calculate(self, event, run, engine):
-        if event.damage_type == "spell" and event.source == "p0":
+        is_spell = getattr(event.card, "type", "") == "spell" if event.card is not None else event.damage_type == "spell"
+        if is_spell and event.source == "p0":
             event.modified_damage += self.spell_bonus
 
 class EnergyCoreRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.action_bonus = 1
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.action_bonus = cfg.get("action_bonus", 1)
 
     def on_turn_start(self, event, run, engine):
         if event.is_player:
             run.player.actions += self.action_bonus
 
 class PortalFragmentRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.max_hand = cfg.get("max_hand", 12)
+        self.void_mask_max_hand = cfg.get("void_mask_max_hand", 9)
+
     def on_battle_start(self, run, engine):
         import random
         p = run.player
-        max_hand = 9 if "mask_of_void" in p.relics else 12
+        max_hand = self.void_mask_max_hand if "mask_of_void" in p.relics else self.max_hand
         if len(p.hand) < max_hand:
             chosen = random.choice(["key_resonance", "gate_guard", "master_key", "void_beacon", "ancient_wisdom"])
             p.hand.append(chosen)
             from ...data.card_data import CARD_CONFIG
             name = CARD_CONFIG.get(chosen, {}).get("name", chosen)
-            engine._log_event(run, f"🌀 [门扉碎片] 触发：随机将一张中立牌【{name}】加入手牌。")
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.portal_fragment.trigger", name=name))
 
 class AncientKeyringRelic(RelicImpl):
     pass
 
 class AbyssGazeRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.spell_bonus = cfg.get("spell_bonus", 4)
+        self.recoil_damage = cfg.get("recoil_damage", 2)
+
     def on_damage_calculate(self, event, run, engine):
         if event.damage_type == "spell" and event.source == "p0":
-            event.modified_damage += 4
+            event.modified_damage += self.spell_bonus
 
     def on_damage_take(self, event, run, engine):
         if event.target == "p0" and event.amount > 0 and event.source != "abyss_gaze":
-            engine._damage_target(run, "p0", 2, source="abyss_gaze", damage_type="true")
-            engine._log_event(run, "👁️ [深渊凝视] 触发：额外受到 2 点真实伤害。")
+            engine._damage_target(run, "p0", self.recoil_damage, source="abyss_gaze", damage_type="true")
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.abyss_gaze.trigger"))
 
 class GlacierArmorRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.shield_gain = cfg.get("shield_gain", 12)
+
     def on_battle_start(self, run, engine):
-        run.player.shield += 12
-        engine._log_event(run, "🛡️ [冰川装甲] 触发：获得 12 点初始护盾。")
+        engine._gain_shield(run, "p0", self.shield_gain)
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.glacier_armor.trigger"))
 
 class AbyssWhisperRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.stun_stacks = cfg.get("stun_stacks", 1)
+
     def on_battle_start(self, run, engine):
         if run.enemies:
             import random
             enemy = random.choice(run.enemies)
-            engine._add_buff_to(enemy, "stun", "眩晕", "无法行动", 1)
-            engine._log_event(run, f"👁️ [深渊低语] 触发：使【{enemy.name}】在首回合陷入眩晕！")
+            engine._add_buff_to(enemy, "stun", get_locale_text("i18n_relics_amulets.epic.abyss_whisper.buff_name"), get_locale_text("i18n_relics_amulets.epic.abyss_whisper.buff_desc"), self.stun_stacks)
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.abyss_whisper.trigger", name=enemy.name))
 
 class FrostBladeRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.cold_damage_bonus = cfg.get("cold_damage_bonus", 4)
+
     def on_damage_calculate(self, event, run, engine):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
         if dtype_str == "cold" and event.source == "p0":
-            event.modified_damage += 4
+            event.modified_damage += self.cold_damage_bonus
 
 class AbyssContractRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.draw_count = cfg.get("draw_count", 1)
+
     def on_damage_take(self, event, run, engine):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
         if event.target == "p0" and dtype_str == "true" and event.amount > 0:
-            engine._draw_cards(run.player, 1, run)
-            engine._log_event(run, "📖 [深渊契约书] 触发：受到真实伤害，抽取 1 张卡牌。")
+            engine._draw_cards(run.player, self.draw_count, run)
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.abyss_contract.trigger"))
 
 class GlacierCoreRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.damage_ratio = cfg.get("damage_ratio", 0.5)
+
     def on_shield_decay(self, event, run, engine):
         if event.target == "p0" and event.amount > 0:
             lost = event.amount
-            dmg = lost // 2
+            dmg = int(lost * self.damage_ratio)
             if dmg > 0:
                 feedback_parts = []
                 for idx in range(len(run.enemies) - 1, -1, -1):
                     enemy = run.enemies[idx]
                     engine._damage_target(run, f"e{idx+1}", dmg, damage_type="cold", source="glacier_core")
-                    feedback_parts.append(f"【{enemy.name}】受到 {dmg} 点冰霜伤害")
+                    feedback_parts.append(get_locale_text("i18n_relics_amulets.epic.glacier_core.feedback", name=enemy.name, dmg=dmg))
                 if feedback_parts:
-                    engine._log_event(run, "🏔️ [极寒之核] 触发：" + "，".join(feedback_parts) + "。")
+                    engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.glacier_core.trigger", feedback="，".join(feedback_parts)))
 
 class DoomsdayCoreRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.play_threshold = cfg.get("play_threshold", 3)
+        self.draw_count = cfg.get("draw_count", 1)
+
     def on_turn_end(self, event, run, engine):
         if event.is_player:
             played_count = run.node_data.get("cards_played_this_turn", 0)
-            if played_count >= 3:
-                engine._draw_cards(run.player, 1, run)
-                engine._log_event(run, "💎 [末日核心] 触发！本回合打出 >=3 张牌，额外抽 1 张牌！")
+            if played_count >= self.play_threshold:
+                engine._draw_cards(run.player, self.draw_count, run)
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.doomsday_core.trigger"))
 
 class NecromancerSkullRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.heal_amount = cfg.get("heal_amount", 2)
+
     def on_minion_death(self, event, run, engine):
-        engine._heal_target(run, "p0", 2)
-        engine._log_event(run, "💀 [巫师颅骨] 触发！有单位死亡，玩家回复 2 点生命值！")
+        engine._heal_target(run, "p0", self.heal_amount)
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.necromancer_skull.trigger"))
 
 class ArcanistHandRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.damage = cfg.get("damage", 3)
+        self.cost_threshold = cfg.get("cost_threshold", 0)
+
     def on_card_played(self, event, run, engine):
-        if event.card.cost_a == 0 and event.card.cost_ba == 0:
+        if event.card.cost_a == self.cost_threshold and event.card.cost_ba == self.cost_threshold:
             alive = [e for e in run.enemies if e.hp > 0]
             if alive:
                 target_enemy = alive[0]
                 idx = run.enemies.index(target_enemy) + 1
-                engine._log_event(run, f"✋ [奥术师之手] 触发！使用 0 费卡牌，对【{target_enemy.name}】造成 3 点力场伤害！")
-                engine.combat_resolver.damage_target(run, f"e{idx}", 3, source="relic:arcanist_hand", damage_type="force")
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.arcanist_hand.trigger", name=target_enemy.name))
+                engine.combat_resolver.damage_target(run, f"e{idx}", self.damage, source="relic:arcanist_hand", damage_type="force")
 
 class CommanderMedalRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.action_bonus = cfg.get("action_bonus", 1)
+        self.bonus_action_bonus = cfg.get("bonus_action_bonus", 1)
+
     def on_battle_start(self, run, engine):
         for m in run.player.minions.values():
-            m.actions += 1
-            m.bonus_actions += 1
-        engine._log_event(run, "🏅 [至高勋章] 触发！所有在场随从本回合获得的行动点数 +1！")
+            m.actions += self.action_bonus
+            m.bonus_actions += self.bonus_action_bonus
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.commander_medal.trigger"))
 
 class StalkerEyeRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.damage_bonus = cfg.get("damage_bonus", 4)
+        self.shield_bonus = cfg.get("shield_bonus", 4)
+
     def on_damage_calculate(self, event, run, engine):
         if event.source == "p0" and event.card and getattr(event.card, "exhaust", False):
-            event.modified_damage += 4
-            engine._log_event(run, f"👁️ [潜伏者眼球] 触发！消耗卡牌【{event.card.name}】伤害提升 4 点！")
+            event.modified_damage += self.damage_bonus
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.stalker_eye.damage_trigger", name=event.card.name))
 
     def on_shield_gain(self, event, run, engine):
         if event.target == "p0":
@@ -222,90 +305,138 @@ class StalkerEyeRelic(RelicImpl):
             playing_cid = run.node_data.get("current_playing_card_id", "")
             card = ALL_CARDS.get(playing_cid)
             if card and getattr(card, "exhaust", False):
-                event.modified_amount += 4
-                engine._log_event(run, f"👁️ [潜伏者眼球] 触发！使用消耗卡牌【{card.name}】获得护盾，护盾提升 4 点！")
+                event.modified_amount += self.shield_bonus
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.stalker_eye.shield_trigger", name=card.name))
 class GladiatorBeltRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.shield_gain = cfg.get("shield_gain", 2)
+
     def on_turn_start(self, event, run, engine):
         if event.is_player and run.player.minions:
-            p = run.player
-            p.shield += 2
-            engine._log_event(run, "🎗️ [角斗士皮带] 触发！有随从在场，你获得 2 点护盾！")
+            engine._gain_shield(run, "p0", self.shield_gain)
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.gladiator_belt.trigger"))
 
 class ShieldBatteryRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.proc_chance = cfg.get("proc_chance", 0.5)
+        self.shield_gain = cfg.get("shield_gain", 2)
+
     def on_shield_gain(self, event, run, engine):
         if event.target == "p0":
             import random
-            if random.random() < 0.5:
-                event.modified_amount += 2
-                engine._log_event(run, "🔋 [能量护盾电池] 触发！你额外获得 2 点护盾！")
+            if random.random() < self.proc_chance:
+                event.modified_amount += self.shield_gain
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.shield_battery.trigger"))
 
 class CrimsonHeartRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.hp_threshold = cfg.get("hp_threshold", 0.3)
+        self.damage_multiplier = cfg.get("damage_multiplier", 2)
+        self.heal_amount = cfg.get("heal_amount", 2)
+
     def on_damage_calculate(self, event, run, engine):
         p = run.player
-        if event.source == "p0" and p.hp / p.max_hp < 0.3:
-            event.modified_damage = int(event.modified_damage * 2)
-            engine._log_event(run, "❤️ [绯红之心] 触发！生命值低于 30%，造成的伤害翻倍！")
+        if event.source == "p0" and p.hp / p.max_hp < self.hp_threshold:
+            event.modified_damage = int(event.modified_damage * self.damage_multiplier)
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.crimson_heart.low_hp_trigger"))
 
     def on_card_played(self, event, run, engine):
         p = run.player
-        if p.hp / p.max_hp < 0.3:
+        if p.hp / p.max_hp < self.hp_threshold:
             old_hp = p.hp
-            p.hp = min(p.max_hp, p.hp + 2)
+            engine._heal_target(run, "p0", self.heal_amount)
             if p.hp > old_hp:
-                engine._log_event(run, f"❤️ [绯红之心] 触发！打出卡牌回复了 {p.hp - old_hp} 点生命值！")
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.crimson_heart.heal_trigger", heal=p.hp - old_hp))
 
 @register_relic("espresso_relic")
 class EspressoRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.action_bonus = cfg.get("action_bonus", 1)
+
     def on_turn_start(self, event, run, engine):
         if event.is_player:
-            run.player.actions += 1
-            engine._log_event(run, "☕ [特制浓缩咖啡] 触发！本回合额外获得 1A！")
+            run.player.actions += self.action_bonus
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.espresso.trigger"))
 
 @register_relic("anthem_relic_3")
 class AnthemRelic3(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.shield_gain = cfg.get("shield_gain", 2)
+
     def on_battle_start(self, run, engine):
         p = run.player
-        p.shield += 2
-        engine._log_event(run, "🎵 [赞歌] 触发！获得 2 点初始护盾。")
+        engine._gain_shield(run, "p0", self.shield_gain)
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.anthem.trigger"))
         if "anthem_relic_3" in p.relics:
             p.relics.remove("anthem_relic_3")
             p.relics.append("anthem_relic_2")
 
 @register_relic("anthem_relic_2")
 class AnthemRelic2(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.shield_gain = cfg.get("shield_gain", 2)
+
     def on_battle_start(self, run, engine):
         p = run.player
-        p.shield += 2
-        engine._log_event(run, "🎵 [赞歌] 触发！获得 2 点初始护盾。")
+        engine._gain_shield(run, "p0", self.shield_gain)
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.anthem.trigger"))
         if "anthem_relic_2" in p.relics:
             p.relics.remove("anthem_relic_2")
             p.relics.append("anthem_relic_1")
 
 @register_relic("anthem_relic_1")
 class AnthemRelic1(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.shield_gain = cfg.get("shield_gain", 2)
+
     def on_battle_start(self, run, engine):
         p = run.player
-        p.shield += 2
-        engine._log_event(run, "🎵 [赞歌] 触发！获得 2 点初始护盾（次数已耗尽）。")
+        engine._gain_shield(run, "p0", self.shield_gain)
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.anthem.exhausted_trigger"))
         if "anthem_relic_1" in p.relics:
             p.relics.remove("anthem_relic_1")
 
 class TimeSandBlessingRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.bonus_actions = cfg.get("bonus_actions", 2)
+
     def on_turn_start(self, event, run, engine):
         if event.is_player:
-            run.player.bonus_actions += 2
-            engine._log_event(run, "⏳ [时间沙之赐福] 触发！回合开始时，你额外获得了 2 个附赠动作（BA）！")
+            run.player.bonus_actions += self.bonus_actions
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.time_sand_blessing.trigger"))
 
 class StarspawnCoreRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.damage = cfg.get("damage", 10)
+        self.ba_threshold = cfg.get("ba_threshold", 1)
+
     def on_turn_end(self, event, run, engine):
-        if event.is_player and run.player.bonus_actions >= 1:
+        if event.is_player and run.player.bonus_actions >= self.ba_threshold:
             alive = [e for e in run.enemies if e.hp > 0]
             if alive:
                 import random
                 target_enemy = random.choice(alive)
                 idx = run.enemies.index(target_enemy) + 1
-                engine._log_event(run, f"🌌 [眷族之核] 触发！本回合结束保留了 BA，对【{target_enemy.name}】造成 10 点力场伤害！")
-                engine.combat_resolver.damage_target(run, f"e{idx}", 10, source="relic:starspawn_core", damage_type="force")
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.starspawn_core.trigger", name=target_enemy.name))
+                engine.combat_resolver.damage_target(run, f"e{idx}", self.damage, source="relic:starspawn_core", damage_type="force")
 
 
 for name, obj in list(globals().items()):

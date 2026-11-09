@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("传送门守卫者")
 class PortalGuardianTemplate(EnemyTemplate):
@@ -34,9 +35,10 @@ class PortalGuardianTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="true")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            logs.append(f"【{enemy.name}】撕裂虚空，对玩家造成真实伤害。{dmg_msg}")
+            logs.append(get_locale_text("i18n_enemy_elite_c.portal_guardian_dimensional_tear_log", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "void_shield":
-            enemy.shield += intent.val
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
             to_remove = next((b for b in enemy.buffs if b.id == "stun"), None)
             if not to_remove:
                 neg_buffs = [b for b in enemy.buffs if b.id in ("minor_vulnerable_slashing", "minor_vulnerable_piercing", "minor_vulnerable_bludgeoning", "minor_vulnerable_fire", "minor_vulnerable_cold", "minor_vulnerable_lightning", "minor_vulnerable_thunder", "minor_vulnerable_necrotic", "minor_vulnerable_acid", "minor_vulnerable_poison", "minor_vulnerable_psychic", "minor_vulnerable_radiant", "minor_vulnerable_force")]
@@ -45,13 +47,13 @@ class PortalGuardianTemplate(EnemyTemplate):
             if to_remove:
                 enemy.buffs.remove(to_remove)
                 engine._sync_enemy_intents(enemy)
-                logs.append(f"【{enemy.name}】展开虚空屏障，获得 {intent.val} 点护盾，并清除了【{to_remove.name}】负面状态！")
+                logs.append(get_locale_text("i18n_enemy_elite_c.portal_guardian_void_shield_clear_log", name=enemy.name, val=intent.val, buff_name=to_remove.name))
             else:
-                logs.append(f"【{enemy.name}】展开虚空屏障，获得 {intent.val} 点护盾。")
+                logs.append(get_locale_text("i18n_enemy_elite_c.portal_guardian_void_shield_log", name=enemy.name, val=intent.val))
         elif intent.type == "portal_instability":
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(run.player, "discard_next_turn", "下回合弃牌", "在下一回合开始时，你将随机丢弃等同于此状态层数的手牌", 1)
-            logs.append(f"【{enemy.name}】引发传送门不稳定。{dmg_msg}，且使玩家在下一回合开始时将被迫随机丢弃 1 张手牌。")
+            engine._add_buff_to(run.player, "discard_next_turn", get_locale_text("i18n_enemy_elite_c.discard_next_turn_name"), get_locale_text("i18n_enemy_elite_c.discard_next_turn_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_c.portal_guardian_portal_instability_log", name=enemy.name, dmg_msg=dmg_msg))

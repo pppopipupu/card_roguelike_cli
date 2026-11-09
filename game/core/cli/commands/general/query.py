@@ -1,6 +1,7 @@
 from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
+from .....data.locale_data import get_locale_text
 
 class QueryCommand(CommandHandler, names=["查询", "query", "info", "i"]):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
@@ -9,45 +10,45 @@ class QueryCommand(CommandHandler, names=["查询", "query", "info", "i"]):
             query_str = " ".join(parts[1:]).strip().lower()
             if query_str in ("抽牌堆", "draw", "draw_pile"):
                 if not run:
-                    yield "❌ 你当前没有正在进行的游戏。"
+                    yield get_locale_text("i18n_cli_general_b.err_no_active_game")
                 elif run.node_type != "battle":
-                    yield "❌ 只有在战斗中才能查询战斗牌堆。"
+                    yield get_locale_text("i18n_cli_general_b.err_battle_piles_only")
                 else:
                     yield GameRenderer.render_draw_pile(run)
             elif query_str in ("弃牌堆", "discard", "discard_pile"):
                 if not run:
-                    yield "❌ 你当前没有正在进行的游戏。"
+                    yield get_locale_text("i18n_cli_general_b.err_no_active_game")
                 elif run.node_type != "battle":
-                    yield "❌ 只有在战斗中才能查询战斗牌堆。"
+                    yield get_locale_text("i18n_cli_general_b.err_battle_piles_only")
                 else:
                     yield GameRenderer.render_discard_pile(run)
             elif query_str in ("消耗堆", "exhaust", "exhaust_pile"):
                 if not run:
-                    yield "❌ 你当前没有正在进行的游戏。"
+                    yield get_locale_text("i18n_cli_general_b.err_no_active_game")
                 elif run.node_type != "battle":
-                    yield "❌ 只有在战斗中才能查询战斗牌堆。"
+                    yield get_locale_text("i18n_cli_general_b.err_battle_piles_only")
                 else:
                     yield GameRenderer.render_exhaust_pile(run)
             elif query_str in ("随从墓地", "mg", "minion_graveyard", "minion_grave"):
                 if not run:
-                    yield "❌ 你当前没有正在进行的游戏。"
+                    yield get_locale_text("i18n_cli_general_b.err_no_active_game")
                 elif run.node_type != "battle":
-                    yield "❌ 只有在战斗中才能查询战斗墓地。"
+                    yield get_locale_text("i18n_cli_general_b.err_battle_graveyard_only")
                 else:
                     yield GameRenderer.render_minion_graveyard(run)
             elif query_str in ("敌人墓地", "eg", "enemy_graveyard", "enemy_grave"):
                 if not run:
-                    yield "❌ 你当前没有正在进行的游戏。"
+                    yield get_locale_text("i18n_cli_general_b.err_no_active_game")
                 elif run.node_type != "battle":
-                    yield "❌ 只有在战斗中才能查询战斗墓地。"
+                    yield get_locale_text("i18n_cli_general_b.err_battle_graveyard_only")
                 else:
                     yield GameRenderer.render_enemy_graveyard(run)
             else:
                 yield GameRenderer.render_query_info(" ".join(parts[1:]).strip(), user_id)
         else:
             if not run:
-                yield "❌ 你当前没有正在进行的游戏。输入 /rogue start 开始新游戏。\n💡 提示：你可以通过 /rogue i <名称>（如：/rogue i 力量）或 /rogue i buff 来查看相关效果描述。"
+                yield get_locale_text("i18n_cli_general_b.query_no_game_hint")
             elif run.node_type != "battle":
-                yield "❌ 只有在战斗中才能查询详细战斗信息。请输入想要查询的随从、遗物、Buff名称。\n💡 提示：你可以通过 /rogue i <名称>（如：/rogue i 力量）或 /rogue i buff 来查看相关效果描述。"
+                yield get_locale_text("i18n_cli_general_b.query_not_battle_hint")
             else:
                 yield GameRenderer.render_detailed_battle(run)

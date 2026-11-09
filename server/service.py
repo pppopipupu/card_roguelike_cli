@@ -4,7 +4,9 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from game.core.headless_server import HeadlessGameServer
+from game.data.locale_data import get_locale_text
 from game.models.manager import SaveManager
+from game.models.state import public_player_id, set_user_id
 from game.renderer import GameRenderer
 
 from .accounts import AccountStore
@@ -31,7 +33,7 @@ def _strip_prefix(message: str, prefixes: tuple[str, ...]) -> str:
 
 def _account_json(account: dict) -> dict:
     return {
-        "uuid": account["uuid"],
+        "id": public_player_id(account["uuid"]),
         "im_user_id": account["im_user_id"],
         "web_user_id": account["web_user_id"],
         "display_name": account["display_name"],
@@ -48,7 +50,9 @@ class RogueService:
         self.shell = ShellService(settings.data_dir / "shell")
         self._locks: dict[str, asyncio.Lock] = {}
 
-    def _lock_for(self, key: str) -> asyncio.Lock:
+    def _lock_for(self, user_id: str) -> asyncio.Lock:
+        resolve_key = getattr(self.save_manager, "resolve_lock_key", None)
+        key = resolve_key(user_id) if callable(resolve_key) else f"user:{user_id}"
         lock = self._locks.get(key)
         if lock is None:
             lock = asyncio.Lock()
@@ -70,6 +74,7 @@ class RogueService:
         status: int = 0,
         clear: bool = False,
     ) -> dict:
+        set_user_id(account["uuid"])
         run = self.save_manager.load_save(account["uuid"])
         stats = self.save_manager.load_stats(account["uuid"])
         state = build_snapshot(run, stats, text) if channel == "web" else None
@@ -95,33 +100,46 @@ class RogueService:
         return self.accounts.get_or_create_im(principal.user_id, display_name)
 
     def _account_help(self, account: dict, channel: str) -> str:
+        yes = get_locale_text("i18n_server_core.common.yes")
+        no = get_locale_text("i18n_server_core.common.no")
         lines = [
-            f"🆔 你的玩家 UUID：{account['uuid']}",
-            f"🔗 已关联即时通讯账号：{'是' if account['im_user_id'] else '否'}",
-            f"🌐 已关联网页账号：{'是' if account['web_user_id'] else '否'}",
+            get_locale_text(
+                "i18n_server_core.service.account_player_id",
+                player_id=public_player_id(account["uuid"]),
+            ),
+            get_locale_text(
+                "i18n_server_core.service.account_im_linked",
+                value=yes if account["im_user_id"] else no,
+            ),
+            get_locale_text(
+                "i18n_server_core.service.account_web_linked",
+                value=yes if account["web_user_id"] else no,
+            ),
         ]
         if channel == "web" and not account["im_user_id"]:
-            lines.append("💡 如需继承即时通讯进度，请输入：绑定 <UUID>")
+            lines.append(get_locale_text("i18n_server_core.service.account_bind_hint"))
         if channel == "web" and account["im_user_id"]:
-            lines.append("💡 当前网页账号已与即时通讯进度共享同一份存档。")
+            lines.append(get_locale_text("i18n_server_core.service.account_shared_save"))
         return "\n".join(lines)
 
     def _migration_text(self, account: dict) -> str:
         return "\n".join(
             [
-                "🔐 你的迁移码（UUID）：",
+                get_locale_text("i18n_server_core.service.migration_title"),
                 account["uuid"],
                 "",
-                "在网页版使用 GitHub 登录后，输入：",
-                f"绑定 {account['uuid']}",
-                "迁移码只用于关联存档，请勿公开。",
+                get_locale_text("i18n_server_core.service.migration_instruction"),
+                get_locale_text(
+                    "i18n_server_core.service.migration_bind_command", uuid=account["uuid"]
+                ),
+                get_locale_text("i18n_server_core.service.migration_warning"),
             ]
         )
 
     def _admin_accounts(self) -> str:
         rows = self.accounts.list_all()
         if not rows:
-            return "当前没有已注册玩家。"
+            return get_locale_text("i18n_server_core.service.admin_no_players")
         lines = ["UUID | IM | WEB | NAME | LAST_SEEN"]
         for row in rows:
             lines.append(
@@ -158,7 +176,8 @@ class RogueService:
                 stage = int(getattr(run.player, "stage", 0))
             rows.append(
                 {
-                    "name": account["display_name"] or "匿名玩家",
+                    "name": account["display_name"]
+                    or get_locale_text("i18n_server_core.service.anonymous_player"),
                     "gp": int(getattr(stats, "gp", 0)),
                     "stage": stage,
                     "online": self._is_online(account["last_seen"]),
@@ -174,43 +193,60 @@ class RogueService:
             online_rows.sort(key=lambda row: row["last_seen"], reverse=True)
             lines = [
                 "━━━━━━━━━━━━━━━━━━━━",
-                f"🟢 当前在线玩家（最近 5 分钟，共 {len(online_rows)} 人）",
+                get_locale_text(
+                    "i18n_server_core.service.online_title", count=len(online_rows)
+                ),
                 "",
             ]
             if not online_rows:
-                lines.append("当前没有在线玩家。")
+                lines.append(get_locale_text("i18n_server_core.service.online_empty"))
             else:
                 for index, row in enumerate(online_rows[:20], 1):
                     lines.append(
-                        f"{index}. {row['name']} — 第 {row['stage']} 层 — {row['gp']} GP"
+                        get_locale_text(
+                            "i18n_server_core.service.online_row",
+                            index=index,
+                            name=row["name"],
+                            stage=row["stage"],
+                            gp=row["gp"],
+                        )
                     )
             lines.append("━━━━━━━━━━━━━━━━━━━━")
             return "\n".join(lines)
         rows.sort(key=lambda row: (-row["gp"], row["name"]))
         lines = [
             "━━━━━━━━━━━━━━━━━━━━",
-            "🏆 GP 排行榜（前 20）",
+            get_locale_text("i18n_server_core.service.leaderboard_title"),
             "",
         ]
         if not rows:
-            lines.append("当前还没有玩家记录。")
+            lines.append(get_locale_text("i18n_server_core.service.leaderboard_empty"))
         else:
             for index, row in enumerate(rows[:20], 1):
                 marker = "🟢 " if row["online"] else ""
                 lines.append(
-                    f"{index}. {marker}{row['name']} — {row['gp']} GP — 第 {row['stage']} 层"
+                    get_locale_text(
+                        "i18n_server_core.service.leaderboard_row",
+                        index=index,
+                        marker=marker,
+                        name=row["name"],
+                        gp=row["gp"],
+                        stage=row["stage"],
+                    )
                 )
         lines.append("")
-        lines.append(f"🟢 当前在线：{len(online_rows)} 人")
+        lines.append(
+            get_locale_text("i18n_server_core.service.online_count", count=len(online_rows))
+        )
         lines.append("━━━━━━━━━━━━━━━━━━━━")
         return "\n".join(lines)
 
     async def _handle_bind(self, account: dict, command: str, channel: str) -> tuple[dict, str]:
         if channel != "web":
-            return account, "❌ 绑定操作请在网页端进行。"
+            return account, get_locale_text("i18n_server_core.service.bind_web_only")
         parts = command.split()
         if len(parts) < 2:
-            return account, "❌ 用法：绑定 <UUID> [force]"
+            return account, get_locale_text("i18n_server_core.service.bind_usage")
         target_uuid = parts[1].strip()
         force = len(parts) >= 3 and parts[2].lower() in ("force", "强制", "覆盖")
         async with self._lock_for(account["uuid"]):
@@ -229,6 +265,7 @@ class RogueService:
         display_name: str = "",
         force: bool = False,
         is_admin: bool = False,
+        group: bool = False,
         prefixes: Optional[tuple[str, ...]] = None,
     ) -> dict:
         active_prefixes = prefixes or self.settings.im_prefixes
@@ -236,7 +273,7 @@ class RogueService:
             return {
                 "ok": False,
                 "handled": True,
-                "text": "❌ 指令过长。",
+                "text": get_locale_text("i18n_server_core.service.command_too_long"),
                 "error": "command_too_long",
                 "state": None,
                 "account": None,
@@ -245,7 +282,7 @@ class RogueService:
             return {
                 "ok": False,
                 "handled": True,
-                "text": "❌ 认证方式与请求通道不一致。",
+                "text": get_locale_text("i18n_server_core.service.channel_mismatch"),
                 "error": "channel_mismatch",
                 "state": None,
                 "account": None,
@@ -253,6 +290,7 @@ class RogueService:
 
         name = (display_name or principal.display_name or "").strip()[:64]
         account = self._resolve_account(principal, name)
+        set_user_id(account["uuid"])
         normalized = _strip_prefix(command, active_prefixes)
         parts = normalized.split(maxsplit=1)
         first = parts[0].lower().lstrip("/") if parts else ""
@@ -261,7 +299,9 @@ class RogueService:
             sub = parts[1].strip().lower() if len(parts) > 1 else ""
             if sub and sub not in ("online", "在线", "当前在线"):
                 return self._text_response(
-                    account, channel, "❌ 用法：leaderboard 或 leaderboard online"
+                    account,
+                    channel,
+                    get_locale_text("i18n_server_core.service.leaderboard_usage"),
                 )
             return self._text_response(
                 account, channel, self._leaderboard_text(sub in ("online", "在线", "当前在线"))
@@ -272,7 +312,7 @@ class RogueService:
 
         if channel == "web" and first in ("mode", "模式"):
             return self._text_response(
-                account, channel, "模式切换指令已移除，肉鸽模式固定开启。\n"
+                account, channel, get_locale_text("i18n_server_core.service.mode_removed")
             )
 
         shell_handled = self.shell.handles(normalized)
@@ -320,7 +360,7 @@ class RogueService:
                 return {
                     "ok": False,
                     "handled": True,
-                    "text": "❌ 迁移码只能在即时通讯端通过 secrets 获取。",
+                    "text": get_locale_text("i18n_server_core.service.migration_im_only"),
                     "error": "im_only",
                     "state": None,
                     "account": _account_json(account),
@@ -348,7 +388,7 @@ class RogueService:
                 return {
                     "ok": False,
                     "handled": True,
-                    "text": "❌ 需要管理员令牌。",
+                    "text": get_locale_text("i18n_server_core.service.admin_required"),
                     "error": "admin_required",
                     "state": None,
                     "account": _account_json(account),
@@ -378,7 +418,8 @@ class RogueService:
             if channel == "web":
                 text = await self.server.handle_rogue_message(
                     user_id=account["uuid"],
-                    sender_name=name or "玩家",
+                    sender_name=name
+                    or get_locale_text("i18n_server_core.service.default_sender_name"),
                     message=command,
                     shortcut_prefix=list(active_prefixes),
                     enable_shortcut=True,
@@ -388,7 +429,8 @@ class RogueService:
             else:
                 text = await self.server.handle_rogue_message(
                     user_id=account["uuid"],
-                    sender_name=name or "玩家",
+                    sender_name=name
+                    or get_locale_text("i18n_server_core.service.default_sender_name"),
                     message=command,
                     shortcut_prefix=list(active_prefixes),
                     enable_shortcut=True,
@@ -403,12 +445,29 @@ class RogueService:
             run = self.save_manager.load_save(account["uuid"])
             stats = self.save_manager.load_stats(account["uuid"])
             state = build_snapshot(run, stats, text) if channel == "web" else None
+            coop_log = []
+            if run is not None and getattr(run, "coop_id", "") and not (channel == "im" and group):
+                own_prefix = f"[{run.player.name}] " if run.player and run.player.name else ""
+                actions = [
+                    entry
+                    for entry in run.node_data.get("coop_action_history", [])
+                    if not own_prefix or not entry.startswith(own_prefix)
+                ][-20:]
+                battles = [
+                    entry
+                    for entry in run.node_data.get("coop_battle_log_history", [])
+                    if not own_prefix or not entry.startswith(own_prefix)
+                ][-20:]
+                coop_log = actions + battles
+            if state is not None:
+                state["coop_log"] = coop_log
 
         return {
             "ok": True,
             "handled": handled,
             "text": text,
             "state": state,
+            "coop_log": coop_log,
             "account": _account_json(account),
             "shell": self.shell.prompt_info(
                 account["uuid"], account["display_name"] or name or "rogue"

@@ -8,6 +8,7 @@ WARRIOR_CARD_CONFIG = {
         "desc": "从消耗堆选择一张卡牌加入手牌。消耗。",
         "rarity": "rare",
         "exhaust": True,
+        "max_count": 1,
         "feedback": "使用了【发掘】。"
     },
     "strike_of_all": {
@@ -16,6 +17,7 @@ WARRIOR_CARD_CONFIG = {
         "type": "spell",
         "cost_a": 2,
         "cost_ba": 0,
+        "coef": 8,
         "desc": "造成 1.5^X * 8 点物理伤害，将弃牌堆、抽牌堆、消耗堆中所有名称含“打击”的卡牌抽入手牌。X为牌组中名称含“打击”的卡牌数量。",
         "rarity": "legendary",
         "feedback": "对【{target}】使用了【万物一打】。"
@@ -40,6 +42,7 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 1,
         "desc": "获得 5 点护盾。",
         "rarity": "common",
+        "shield_amount": 5,
         "feedback": "使用了【防御】，获得了 5 点护盾。"
     },
     "warrior_bash": {
@@ -52,6 +55,7 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "common",
         "base_dmg": 8,
         "damage_type": "bludgeoning",
+        "buff_stacks": 2,
         "feedback": "对【{target}】使用【痛击】。"
     },
     "iron_wave": {
@@ -64,6 +68,7 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "common",
         "base_dmg": 5,
         "damage_type": "slashing",
+        "shield_amount": 5,
         "feedback": "对【{target}】使用【铁斩波】。"
     },
     "warrior_anger": {
@@ -99,6 +104,7 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "common",
         "base_dmg": 9,
         "damage_type": "slashing",
+        "draw_count": 1,
         "feedback": "对【{target}】使用【剑柄打击】并抽了一张牌。"
     },
     "shrug_it_off": {
@@ -109,6 +115,8 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 0,
         "desc": "获得 8 点护盾，抽 1 张牌。",
         "rarity": "common",
+        "shield_amount": 8,
+        "draw_count": 1,
         "feedback": "使用了【耸肩无视】，获得了 8 点护盾并抽了一张牌。"
     },
     "heavy_blade": {
@@ -131,6 +139,7 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 0,
         "desc": "对所有敌人施加 2 层轻度易伤和 2 层虚弱。消耗。",
         "rarity": "rare",
+        "buff_stacks": 2,
         "exhaust": True,
         "feedback": "释放了【震荡波】！"
     },
@@ -142,6 +151,8 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 0,
         "desc": "获得 12 点护盾。本回合每次受到攻击，对攻击源反弹 4 点真实伤害。",
         "rarity": "rare",
+        "shield_amount": 12,
+        "reflect_damage": 4,
         "feedback": "使用了【火焰屏障】。"
     },
     "uppercut": {
@@ -154,6 +165,7 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "rare",
         "base_dmg": 13,
         "damage_type": "bludgeoning",
+        "buff_stacks": 2,
         "feedback": "对【{target}】使出【上钩拳】！"
     },
     "spot_weakness": {
@@ -164,6 +176,7 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 0,
         "desc": "若目标敌人的意图包含攻击，你获得 3 层力量。",
         "rarity": "rare",
+        "strength_gain": 3,
         "feedback": "对【{target}】使用【观察弱点】。"
     },
     "ghostly_armor": {
@@ -175,6 +188,7 @@ WARRIOR_CARD_CONFIG = {
         "desc": "获得 10 点护盾。虚无。",
         "rarity": "rare",
         "ethereal": True,
+        "shield_amount": 10,
         "feedback": "使用了【幽魂铠甲】，获得 10 点护盾。"
     },
     "power_through": {
@@ -185,6 +199,9 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 0,
         "desc": "手牌中添加两张诅咒牌“伤口”，获得 15 点护盾。",
         "rarity": "rare",
+        "shield_amount": 15,
+        "curse_count": 2,
+        "hand_limit": 12,
         "feedback": "使用了【硬撑】，获得了 15 点护盾，并在手牌中添加了两张【伤口】。"
     },
     "double_tap": {
@@ -195,6 +212,7 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 1,
         "desc": "本回合你打出的下一张物理伤害牌额外打出 1 次。",
         "rarity": "rare",
+        "buff_stacks": 1,
         "feedback": "使用了【双发】，下一次物理伤害牌将触发额外打出。"
     },
     "feed": {
@@ -208,6 +226,8 @@ WARRIOR_CARD_CONFIG = {
         "base_dmg": 10,
         "damage_type": "slashing",
         "exhaust": True,
+        "hp_gain": 3,
+        "heal_amount": 3,
         "feedback": "对【{target}】使用了【狂宴】！"
     },
     "inflame": {
@@ -218,6 +238,7 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 0,
         "desc": "你获得 2 层力量。",
         "rarity": "epic",
+        "strength_gain": 2,
         "feedback": "使用了【燃烧】，获得了 2 层力量。"
     },
     "barricade": {
@@ -229,6 +250,7 @@ WARRIOR_CARD_CONFIG = {
         "desc": "获得 1 层缓冲。本场战斗中，你在回合开始时护盾不会流失一半。消耗。",
         "rarity": "epic",
         "exhaust": True,
+        "buff_stacks": 1,
         "feedback": "激活了【壁垒】形态！获得了 1 层缓冲，且护盾在每回合开始时不再流失一半。"
     },
     "metallicize": {
@@ -239,6 +261,7 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 0,
         "desc": "本场战斗中，你在每回合结束时获得 4 点护盾。",
         "rarity": "epic",
+        "buff_stacks": 4,
         "feedback": "激活了【金属化】形态！每回合结束时将获得 4 点护盾。"
     },
     "bludgeon": {
@@ -261,6 +284,7 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 1,
         "desc": "本场战斗中，你在回合开始时获得 3 层力量。",
         "rarity": "legendary",
+        "strength_gain": 3,
         "feedback": "激活了【恶魔形态】！每回合开始时将获得力量。"
     },
     "impervious": {
@@ -272,6 +296,7 @@ WARRIOR_CARD_CONFIG = {
         "desc": "获得 30 点护盾。消耗。",
         "rarity": "legendary",
         "exhaust": True,
+        "shield_amount": 30,
         "feedback": "使用了【岿然不动】，获得了 30 点护盾。"
     },
     "entrench": {
@@ -282,6 +307,7 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 1,
         "desc": "你当前的护盾翻倍。",
         "rarity": "rare",
+        "multiplier": 2,
         "feedback": "使用了【巩固】。"
     },
     "officer_recruit_vanguard": {
@@ -294,6 +320,10 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "common",
         "minion_hp": 4,
         "minion_atk": 2,
+        "rally_threshold": 4,
+        "battlecry_damage": 3,
+        "draw_count": 1,
+        "shield_amount": 3,
         "feedback_success": "在格子 [{grid}] 召唤了【新兵前锋】。",
         "feedback_fail": "战场已满，召唤失败。"
     },
@@ -307,6 +337,9 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "common",
         "minion_hp": 5,
         "minion_atk": 1,
+        "bonus_action_gain": 1,
+        "gain_ba": 1,
+        "draw_count": 1,
         "feedback_success": "在格子 [{grid}] 召唤了【执旗辅佐官】。",
         "feedback_fail": "战场已满，召唤失败。"
     },
@@ -320,6 +353,8 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "common",
         "minion_hp": 7,
         "minion_atk": 3,
+        "token_hp": 3,
+        "token_atk": 1,
         "feedback_success": "在格子 [{grid}] 召唤了【巡逻队队长】。",
         "feedback_fail": "战场已满，召唤失败。"
     },
@@ -333,6 +368,7 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "common",
         "minion_hp": 8,
         "minion_atk": 3,
+        "rally_threshold": 6,
         "feedback_success": "在格子 [{grid}] 召唤了【近卫铁骑】。",
         "feedback_fail": "战场已满，召唤失败。"
     },
@@ -346,6 +382,7 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "rare",
         "minion_hp": 9,
         "minion_atk": 4,
+        "ally_hp_bonus": 4,
         "feedback_success": "在格子 [{grid}] 召唤了【要塞卫队长】。",
         "feedback_fail": "战场已满，召唤失败。"
     },
@@ -359,6 +396,10 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "rare",
         "minion_hp": 5,
         "minion_atk": 3,
+        "rally_threshold": 8,
+        "battlecry_damage": 3,
+        "damage_amount": 6,
+        "stun_turns": 1,
         "feedback_success": "在格子 [{grid}] 召唤了【突击轻步兵】。",
         "feedback_fail": "战场已满，召唤失败。"
     },
@@ -372,6 +413,7 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "rare",
         "minion_hp": 8,
         "minion_atk": 3,
+        "rally_threshold": 6,
         "feedback_success": "在格子 [{grid}] 召唤了【英勇传令官】。",
         "feedback_fail": "战场已满，召唤失败。"
     },
@@ -398,6 +440,8 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "epic",
         "minion_hp": 9,
         "minion_atk": 5,
+        "rally_threshold": 12,
+        "attack_actions": 2,
         "feedback_success": "在格子 [{grid}] 召唤了【双刃轻卫】。",
         "feedback_fail": "战场已满，召唤失败。"
     },
@@ -411,6 +455,11 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "epic",
         "minion_hp": 14,
         "minion_atk": 6,
+        "action_gain": 2,
+        "gain_a": 2,
+        "attack_actions": 1,
+        "buff_stacks": 1,
+        "shield_amount": 2,
         "feedback_success": "在格子 [{grid}] 召唤了【极光圣帝·阿奎斯】。",
         "feedback_fail": "战场已满，召唤失败。"
     },
@@ -424,6 +473,8 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "common",
         "countdown": 3,
         "amulet_desc": "回合开始若协作达到 5 以上召唤【步兵轻卒】",
+        "heal_amount": 3,
+        "shield_amount": 4,
         "feedback_success": "将【战术兵营】部署到了格子 [{grid}]。",
         "feedback_fail": "战场已满，部署失败。"
     },
@@ -437,6 +488,8 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "rare",
         "countdown": 3,
         "amulet_desc": "我方士兵进场时你获得 3 护盾且该随从最大生命 +2 并获得 1 层缓冲",
+        "heal_amount": 3,
+        "shield_amount": 4,
         "feedback_success": "将【铁阵方盟】部署到了格子 [{grid}]。",
         "feedback_fail": "战场已满，部署失败。"
     },
@@ -450,6 +503,8 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "rare",
         "countdown": 2,
         "amulet_desc": "打出指挥官时我方其他在场随从本回合攻击 +2 且抽 1 卡",
+        "heal_amount": 3,
+        "shield_amount": 4,
         "feedback_success": "将【辉光加冕仪式】部署到了格子 [{grid}]。",
         "feedback_fail": "战场已满，部署失败。"
     },
@@ -463,6 +518,8 @@ WARRIOR_CARD_CONFIG = {
         "rarity": "epic",
         "countdown": 4,
         "amulet_desc": "我方随从或你造成物理伤害时伤害 +3",
+        "heal_amount": 3,
+        "shield_amount": 4,
         "feedback_success": "将【白刃军团战旗】部署到了格子 [{grid}]。",
         "feedback_fail": "战场已满，部署失败。"
     },
@@ -475,6 +532,8 @@ WARRIOR_CARD_CONFIG = {
         "desc": "你获得【地狱狂徒】状态。抽到 1A 且不消耗 BA 卡牌时免费自动打出。消耗。",
         "rarity": "epic",
         "exhaust": True,
+        "threshold": 1,
+        "buff_stacks": 1,
         "feedback": "你咏唱了【地狱狂徒】，进入了嗜血的战斗狂热状态！"
     },
     "warrior_shield_bash": {
@@ -485,6 +544,9 @@ WARRIOR_CARD_CONFIG = {
         "cost_ba": 0,
         "desc": "获得 16 点护盾，造成当前护盾值一半的钝击伤害。如果此卡牌被消耗，则你获得 2A 2BA。",
         "rarity": "rare",
+        "shield_amount": 16,
+        "action_gain": 2,
+        "bonus_action_gain": 2,
         "feedback": "你紧握重盾对【{target}】发起了【盾牌猛击】！"
     },
     "warrior_blood_fury": {
@@ -496,6 +558,10 @@ WARRIOR_CARD_CONFIG = {
         "desc": "失去 5 点生命值，获得 2 层【力量】。抽 2 张卡牌。保留。",
         "rarity": "common",
         "retain": True,
+        "hp_loss": 5,
+        "self_hp_cost": 5,
+        "strength_gain": 2,
+        "draw_count": 2,
         "feedback": "你点燃了自身的生命潜能，陷入【鲜血狂暴】状态！"
     },
     "warrior_source_of_cinder": {
@@ -507,6 +573,9 @@ WARRIOR_CARD_CONFIG = {
         "desc": "获得薪火之源buff，回合开始时额外获得 1A 1BA。消耗。",
         "exhaust": True,
         "rarity": "epic",
+        "buff_stacks": 1,
+        "action_gain": 1,
+        "bonus_action_gain": 1,
         "feedback": "使用了【薪火之源】，获得了薪火之源状态！"
     },
     "warrior_hematopoiesis": {
@@ -518,6 +587,8 @@ WARRIOR_CARD_CONFIG = {
         "desc": "将现有的所有护盾变为在这场战斗生效的临时生命值，抽取护盾数除10（向上取整）数量的卡牌。消耗。",
         "rarity": "mythic",
         "exhaust": True,
+        "factor": 1.0,
+        "draw_divisor": 10,
         "feedback": "使用了【造血】！"
     }
 }

@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("火元素守卫")
 class FireGuardTemplate(EnemyTemplate):
@@ -34,12 +35,13 @@ class FireGuardTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="fire")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(run.player, "minor_vulnerable_fire", "轻度火焰易伤", "受到的火焰伤害增加 50%", 1)
-            logs.append(f"【{enemy.name}】释放爆轰。{dmg_msg}")
+            engine._add_buff_to(run.player, "minor_vulnerable_fire", get_locale_text("i18n_enemy_elite_b.common.fire_vulnerable_name"), get_locale_text("i18n_enemy_elite_b.common.fire_vulnerable_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_b.fire_guard.fire_blast", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "fire_armor":
-            enemy.shield += intent.val
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
             engine._damage_target(run, "p0", 2, source=f"enemy:{enemy.name}", damage_type="fire")
-            logs.append(f"【{enemy.name}】披上火焰护甲，获得 {intent.val} 点护盾，且火焰反噬对玩家造成 2 点伤害。")
+            logs.append(get_locale_text("i18n_enemy_elite_b.fire_guard.fire_armor", name=enemy.name, val=intent.val))
         elif intent.type == "heat_grow":
-            engine._add_buff_to(enemy, "strength", "力量", "造成的伤害增加", 1)
-            logs.append(f"【{enemy.name}】热力凝聚，获得了 1 层力量。")
+            engine._add_buff_to(enemy, "strength", get_locale_text("i18n_enemy_elite_b.common.strength_name"), get_locale_text("i18n_enemy_elite_b.common.strength_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_b.fire_guard.heat_grow", name=enemy.name))

@@ -1,5 +1,6 @@
 import random
 from ..data.checkin_data import DAILY_BLESSINGS
+from ..data.locale_data import get_locale_text
 from ..models.state import CardState
 from ..models.events import BattleStartEvent, DamageCalculateEvent, CardPlayedEvent
 from ..entities.cards.market import is_card_available, is_coop_only
@@ -137,4 +138,11 @@ class DailyBlessingHandler:
                 self.engine._draw_cards(event.run.player, draw_count, event.run)
             if action_count > 0:
                 event.run.player.actions += action_count
-            self.engine._log_event(event.run, f"🌙 [每日祝福·消耗领域] 本场战斗首次消耗触发，抽 {draw_count} 张牌并获得 {action_count}A。")
+            self.engine._log_event(
+                event.run,
+                get_locale_text(
+                    "i18n_social.daily_blessing.first_exhaust_log",
+                    draw_count=draw_count,
+                    action_count=action_count,
+                ),
+            )

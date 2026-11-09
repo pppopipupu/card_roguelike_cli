@@ -629,23 +629,6 @@ class TestRogueSystem(unittest.TestCase):
             
         asyncio.run(go())
 
-    def test_from_cid_deprecation_warning_and_card_upgrade_id_invariance(self):
-        import warnings
-        from game.models.state import CardState
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            state = CardState.from_cid("fireball+:gems:ruby,emerald:replay:2:fragile:3:no_copy:1")
-            self.assertEqual(len(w), 1)
-            self.assertTrue(issubclass(w[-1].category, DeprecationWarning))
-            self.assertIn("from_cid is deprecated", str(w[-1].message))
-            
-            self.assertEqual(state.id, "fireball")
-            self.assertTrue(state.upgraded)
-            self.assertEqual(state.gems, ["ruby", "emerald"])
-            self.assertEqual(state.replay, 2)
-            self.assertEqual(state.fragile, 3)
-            self.assertTrue(state.no_copy)
-
     def test_multi_card_lock_system(self):
         plugin = MyPlugin(DummyContext())
         user_id = "test_user_multi_lock"

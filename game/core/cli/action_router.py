@@ -3,6 +3,7 @@ from ...models.state import set_user_id
 from ...entities import ALL_CARDS
 from ..cli.base import ActionHandler
 from .base.aliases import normalize_node_alias
+from ...data.locale_data import get_locale_text
 
 class ActionRouter:
     def __init__(self, save_manager, engine):
@@ -28,18 +29,18 @@ class ActionRouter:
                     parts = ["选择"] + parts
                     sub = "选择"
                 if sub not in ("选择", "c"):
-                    return "❌ 你必须先丢弃一张卡牌。请输入：选择 <手牌序号>（如：选择 1）", False, False
+                    return get_locale_text("i18n_cli_core.err_force_discard_required"), False, False
                 if len(parts) < 2:
-                    return "❌ 请提供手牌序号，例如：选择 1", False, False
+                    return get_locale_text("i18n_cli_core.err_need_hand_index"), False, False
                 try:
                     idx = int(parts[1])
                 except ValueError:
-                    return "❌ 序号必须是数字。", False, False
+                    return get_locale_text("i18n_cli_core.err_index_numeric"), False, False
                 p = run.player
                 if idx < 1 or idx > len(p.hand):
-                    return f"❌ 无效的手牌序号。你当前手牌有 {len(p.hand)} 张。", False, False
+                    return get_locale_text("i18n_cli_core.err_invalid_hand_index", count=len(p.hand)), False, False
                 cid = p.hand.pop(idx - 1)
-                card_name = ALL_CARDS[cid].name if cid in ALL_CARDS else "未知卡牌"
+                card_name = ALL_CARDS[cid].name if cid in ALL_CARDS else get_locale_text("i18n_cli_core.unknown_card")
                 req_count = top_state.get("required_count", 1)
                 discarded = top_state.setdefault("discarded", [])
                 discarded.append(cid)
@@ -51,7 +52,7 @@ class ActionRouter:
                     top_state["required_count"] = req_count - len(discarded)
                     top_state["discarded"] = []
                 self.save_manager.save_save(user_id, run)
-                res = f"🧹 你丢弃了手牌中的【{card_name}】。"
+                res = get_locale_text("i18n_cli_core.discard_result", card_name=card_name)
                 if agile_msg:
                     res += f"\n{agile_msg}"
                 if self.engine.is_battle_won(run):
@@ -62,10 +63,10 @@ class ActionRouter:
                         if not boss_name and run.enemies:
                             boss_name = run.enemies[0].name
                         if not boss_name:
-                            boss_name = "最终BOSS"
-                        return self.engine.battle_engine._append_logs_to_res(run, f"{res}\n🎉 恭喜你击败了{boss_name}，通关成功！\n{settle_msg}"), True, True
+                            boss_name = get_locale_text("i18n_cli_core.final_boss_default")
+                        return self.engine.battle_engine._append_logs_to_res(run, get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg)), True, True
                     else:
-                        return self.engine.battle_engine._append_logs_to_res(run, f"{res}\n🎉 战斗胜利！你击败了敌方所有单位。"), True, True
+                        return self.engine.battle_engine._append_logs_to_res(run, get_locale_text("i18n_cli_core.battle_won", res=res)), True, True
                 return self.engine.battle_engine._append_logs_to_res(run, res), False, True
             elif stype == "awaiting_target":
                 if parts and parts[0] in self._action_handlers:
@@ -76,7 +77,7 @@ class ActionRouter:
                     if input_str in ("取消", "cancel", "abandon", "放弃", "exit", "quit"):
                         state_stack.pop()
                         self.save_manager.save_save(user_id, run)
-                        return "❌ 取消使用操作。", False, False
+                        return get_locale_text("i18n_cli_core.err_cancel_use"), False, False
                     def is_valid_target_format(text: str) -> bool:
                         text = text.strip().lower()
                         if not text:
@@ -99,8 +100,8 @@ class ActionRouter:
                             if run.player.hp <= 0:
                                 settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
                                 if getattr(run, "coop_id", ""):
-                                    return f"{res}\n💀 你已倒地。\n{settle_msg}", True, success
-                                return f"{res}\n💀 你被击败了！当前进度已清空。\n{settle_msg}", True, success
+                                    return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
+                                return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, success
                             if self.engine.is_battle_won(run):
                                 self.engine._handle_battle_win(run)
                                 if run.node_type == "victory":
@@ -109,10 +110,10 @@ class ActionRouter:
                                     if not boss_name and run.enemies:
                                         boss_name = run.enemies[0].name
                                     if not boss_name:
-                                        boss_name = "最终BOSS"
-                                    return f"{res}\n🎉 恭喜你击败了{boss_name}，通关成功！\n{settle_msg}", True, success
+                                        boss_name = get_locale_text("i18n_cli_core.final_boss_default")
+                                    return get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg), True, success
                                 else:
-                                    return f"{res}\n🎉 战斗胜利！你击败了敌方所有单位。", True, success
+                                    return get_locale_text("i18n_cli_core.battle_won", res=res), True, success
                             return res, False, success
                         elif action_info == "minion_skill":
                             my_grid = top_state.get("my_grid")
@@ -123,8 +124,8 @@ class ActionRouter:
                             if run.player.hp <= 0:
                                 settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
                                 if getattr(run, "coop_id", ""):
-                                    return f"{res}\n💀 你已倒地。\n{settle_msg}", True, success
-                                return f"{res}\n💀 你被击败了！当前进度已清空。\n{settle_msg}", True, success
+                                    return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
+                                return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, success
                             if self.engine.is_battle_won(run):
                                 self.engine._handle_battle_win(run)
                                 if run.node_type == "victory":
@@ -133,56 +134,56 @@ class ActionRouter:
                                     if not boss_name and run.enemies:
                                         boss_name = run.enemies[0].name
                                     if not boss_name:
-                                        boss_name = "最终BOSS"
-                                    return f"{res}\n🎉 恭喜你击败了{boss_name}，通关成功！\n{settle_msg}", True, success
+                                        boss_name = get_locale_text("i18n_cli_core.final_boss_default")
+                                    return get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg), True, success
                                 else:
-                                    return f"{res}\n🎉 战斗胜利！你击败了敌方所有单位。", True, success
+                                    return get_locale_text("i18n_cli_core.battle_won", res=res), True, success
                             return res, False, success
                     else:
                         state_stack.pop()
                         self.save_manager.save_save(user_id, run)
-                        return "❌ 取消使用操作。", False, False
+                        return get_locale_text("i18n_cli_core.err_cancel_use"), False, False
             elif stype == "discover_selection":
                 input_str = " ".join(parts).strip()
                 if input_str in ("取消", "cancel", "abandon", "放弃", "exit", "quit"):
                     state_stack.pop()
                     self.engine.battle_engine.rollback_suspended_card(run)
                     self.save_manager.save_save(user_id, run)
-                    return self.engine.battle_engine._append_logs_to_res(run, "❌ 取消发掘操作。"), False, False
+                    return self.engine.battle_engine._append_logs_to_res(run, get_locale_text("i18n_cli_core.err_cancel_discover")), False, False
                 sub = parts[0]
                 if sub.isdigit():
                     parts = ["选择"] + parts
                     sub = "选择"
                 if sub not in ("选择", "c"):
-                    return "❌ 你必须从消耗堆中选择卡牌。请输入：选择 <卡牌序号>（如：选择 1），或输入 取消/exit/quit 放弃发掘。", False, False
+                    return get_locale_text("i18n_cli_core.err_force_discover_required"), False, False
                 if len(parts) < 2:
-                    return "❌ 请提供卡牌序号，例如：选择 1", False, False
+                    return get_locale_text("i18n_cli_core.err_need_card_index"), False, False
                 try:
                     idx = int(parts[1])
                 except ValueError:
-                    return "❌ 序号必须是数字。", False, False
+                    return get_locale_text("i18n_cli_core.err_index_numeric"), False, False
                 p = run.player
                 valid_exhaust = [c for c in p.exhaust_pile if c.id != "discover"]
                 if idx < 1 or idx > len(valid_exhaust):
-                    return f"❌ 无效的消耗堆序号。当前可发掘卡牌有 {len(valid_exhaust)} 张。", False, False
+                    return get_locale_text("i18n_cli_core.err_invalid_exhaust_index", count=len(valid_exhaust)), False, False
                 target_card = valid_exhaust[idx - 1]
                 real_idx = p.exhaust_pile.index(target_card)
                 cid = p.exhaust_pile.pop(real_idx)
                 p.hand.append(cid)
-                card_name = ALL_CARDS[cid].name if cid in ALL_CARDS else "未知卡牌"
+                card_name = ALL_CARDS[cid].name if cid in ALL_CARDS else get_locale_text("i18n_cli_core.unknown_card")
                 top_state.setdefault("selected", []).append(cid)
                 req_count = top_state.get("count", 1)
                 valid_exhaust_after = [c for c in p.exhaust_pile if c.id != "discover"]
                 if len(top_state["selected"]) < req_count and valid_exhaust_after:
                     self.save_manager.save_save(user_id, run)
                     exhaust_list = "\n".join(f"{i+1}. {ALL_CARDS[c].name}" for i, c in enumerate(valid_exhaust_after))
-                    return f"✨ 你发掘了【{card_name}】并加入手牌。请继续选择第 {len(top_state['selected']) + 1} 张发掘卡牌：\n{exhaust_list}", False, True
+                    return get_locale_text("i18n_cli_core.discover_continue", card_name=card_name, next_index=len(top_state['selected']) + 1, exhaust_list=exhaust_list), False, True
                 else:
                     state_stack.pop()
                     self.engine.battle_engine.resolve_suspended_card(run)
                     self.save_manager.save_save(user_id, run)
                     selected_cards_str = "，".join(ALL_CARDS[c].name for c in top_state["selected"])
-                    res = f"✨ 你完成了发掘，获得了【{selected_cards_str}】并加入手牌。"
+                    res = get_locale_text("i18n_cli_core.discover_complete", selected_cards_str=selected_cards_str)
                     return self.engine.battle_engine._append_logs_to_res(run, res), False, True
             elif stype == "overload_star_select":
                 input_str = " ".join(parts).strip()
@@ -190,22 +191,22 @@ class ActionRouter:
                     state_stack.pop()
                     self.engine.battle_engine.rollback_suspended_card(run)
                     self.save_manager.save_save(user_id, run)
-                    return self.engine.battle_engine._append_logs_to_res(run, "❌ 取消霸瞳天星的使用操作。"), False, False
+                    return self.engine.battle_engine._append_logs_to_res(run, get_locale_text("i18n_cli_core.err_cancel_overload")), False, False
                 sub = parts[0]
                 if sub.isdigit():
                     parts = ["选择"] + parts
                     sub = "选择"
                 if sub not in ("选择", "c"):
-                    return "❌ 你必须选择一张手牌保留。请输入：选择 <手牌序号>（如：选择 1），或输入 取消/exit/quit 放弃使用。", False, False
+                    return get_locale_text("i18n_cli_core.err_overload_required"), False, False
                 if len(parts) < 2:
-                    return "❌ 请提供手牌序号，例如：选择 1", False, False
+                    return get_locale_text("i18n_cli_core.err_need_hand_index"), False, False
                 try:
                     idx = int(parts[1])
                 except ValueError:
-                    return "❌ 序号必须是数字。", False, False
+                    return get_locale_text("i18n_cli_core.err_index_numeric"), False, False
                 p = run.player
                 if idx < 1 or idx > len(p.hand):
-                    return f"❌ 无效的手牌序号。你当前手牌有 {len(p.hand)} 张。", False, False
+                    return get_locale_text("i18n_cli_core.err_invalid_hand_index", count=len(p.hand)), False, False
                 state_stack.pop()
                 upgraded = top_state.get("upgraded", False)
                 res = self.engine.execute_emperor_eye_resolve(run, idx - 1, upgraded)
@@ -213,8 +214,8 @@ class ActionRouter:
                 if run.player.hp <= 0:
                     settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
                     if getattr(run, "coop_id", ""):
-                        return f"{res}\n💀 你已倒地。\n{settle_msg}", True, success
-                    return f"{res}\n💀 你被击败了！当前进度已清空。\n{settle_msg}", True, success
+                        return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
+                    return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, success
                 if self.engine.is_battle_won(run):
                     self.engine._handle_battle_win(run)
                     if run.node_type == "victory":
@@ -223,14 +224,14 @@ class ActionRouter:
                         if not boss_name and run.enemies:
                             boss_name = run.enemies[0].name
                         if not boss_name:
-                            boss_name = "最终BOSS"
-                        return f"{res}\n🎉 恭喜你击败了{boss_name}，通关成功！\n{settle_msg}", True, success
+                            boss_name = get_locale_text("i18n_cli_core.final_boss_default")
+                        return get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg), True, success
                     else:
-                        return f"{res}\n🎉 战斗胜利！你击败了敌方所有单位。", True, success
+                        return get_locale_text("i18n_cli_core.battle_won", res=res), True, success
                 return res, False, success
         parts = normalize_node_alias(run, parts)
         sub = parts[0]
         handler = self._action_handlers.get(sub)
         if handler:
             return handler.execute(router, user_id, run, parts)
-        return f"🔮 未知操作：{parts}", False, False
+        return get_locale_text("i18n_cli_core.unknown_action", parts=parts), False, False

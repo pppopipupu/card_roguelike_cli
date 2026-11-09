@@ -4,6 +4,7 @@ from ...models.state import EnemyIntentState, ensure_card_state
 from ...entities.cards.base import ALL_CARDS
 from ...data.card_data import CARD_CONFIG
 from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
+from ...data.locale_data import get_locale_text
 from .base import EnemyTemplate
 
 
@@ -19,7 +20,7 @@ class GhostEnemyTemplate(EnemyTemplate):
                 EnemyIntentState(
                     type=f"ghost_card:{index}",
                     val=0,
-                    desc=f"打出【{card_name}】",
+                    desc=get_locale_text("i18n_enemy_misc.ghost.intent_play_card", card_name=card_name),
                     cost_a=1,
                     cost_ba=0,
                 )
@@ -29,7 +30,7 @@ class GhostEnemyTemplate(EnemyTemplate):
             EnemyIntentState(
                 type="attack",
                 val=damage,
-                desc=f"怨念冲击 (造成 {damage} 伤害)",
+                desc=get_locale_text("i18n_enemy_misc.ghost.intent_attack", damage=damage),
                 cost_a=1,
                 cost_ba=0,
             )
@@ -84,13 +85,16 @@ class GhostEnemyTemplate(EnemyTemplate):
                 damage_type=damage_type,
                 card=card,
             )
-            logs.append(f"💀 【{enemy.name}】打出【{card_name}】，造成 {damage} 点伤害。")
+            logs.append(get_locale_text("i18n_enemy_misc.ghost.damage", name=enemy.name, card_name=card_name, damage=damage))
         if heal > 0:
-            enemy.hp = min(enemy.max_hp, enemy.hp + heal)
-            logs.append(f"💀 【{enemy.name}】打出【{card_name}】，恢复 {heal} 点生命。")
+            if enemy in run.enemies:
+                engine._heal_target(run, f"e{run.enemies.index(enemy)+1}", heal)
+            logs.append(get_locale_text("i18n_enemy_misc.ghost.heal", name=enemy.name, card_name=card_name, heal=heal))
         if shield > 0:
-            enemy.shield += shield
-            logs.append(f"💀 【{enemy.name}】打出【{card_name}】，获得 {shield} 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", shield)
+            logs.append(get_locale_text("i18n_enemy_misc.ghost.shield", name=enemy.name, card_name=card_name, shield=shield))
         if damage <= 0 and heal <= 0 and shield <= 0:
-            enemy.shield += 3
-            logs.append(f"💀 【{enemy.name}】打出【{card_name}】，凝聚了 3 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", 3)
+            logs.append(get_locale_text("i18n_enemy_misc.ghost.shield_fallback", name=enemy.name, card_name=card_name))

@@ -1,8 +1,11 @@
 import asyncio
 from typing import Optional, List, Dict
 from ..models.manager import SaveManager
+from ..models.state import set_user_id
 from ..engine import GameEngine
 from .cli_router import CLIRouter
+from .state_resolver import resolve_game_state
+from .cli.base import CommandHandler
 from .cli.base.aliases import (
     NODE_EXIT_ALIASES, NODE_CANCEL_ALIASES,
     STATE_STACK_CANCEL_ALIASES, has_pending_node_cancel,
@@ -10,6 +13,7 @@ from .cli.base.aliases import (
 from ..renderer.menu import render_reader_page
 from ..renderer import GameRenderer
 from ..cards import resolve_card_id, ALL_CARDS
+from ..data.locale_data import get_locale_text
 
 class HeadlessGameServer:
     def __init__(self, data_dir: Optional[str] = None):
@@ -19,38 +23,33 @@ class HeadlessGameServer:
         self.user_locks = {}
 
     def _get_user_lock(self, user_id: str) -> asyncio.Lock:
-        if user_id not in self.user_locks:
-            self.user_locks[user_id] = asyncio.Lock()
-        return self.user_locks[user_id]
+        resolve_key = getattr(self.save_manager, "resolve_lock_key", None)
+        key = resolve_key(user_id) if callable(resolve_key) else f"user:{user_id}"
+        lock = self.user_locks.get(key)
+        if lock is None:
+            lock = asyncio.Lock()
+            self.user_locks[key] = lock
+        return lock
 
     def _sync_player_name(self, user_id: str, sender_name: str):
         stats = self.save_manager.load_stats(user_id)
+        default_name = get_locale_text("i18n_cli_core.default_player_name")
         if stats:
-            if sender_name != "玩家" and getattr(stats, "player_name", "玩家") != sender_name:
+            if sender_name != default_name and getattr(stats, "player_name", default_name) != sender_name:
                 stats.player_name = sender_name
                 self.save_manager.save_stats(user_id, stats)
         run = self.save_manager.load_save(user_id)
         if run and run.player:
-            current_name = getattr(stats, "player_name", "玩家") if stats else sender_name
+            current_name = getattr(stats, "player_name", default_name) if stats else sender_name
             if run.player.name != current_name:
                 run.player.name = current_name
                 self.save_manager.save_save(user_id, run)
 
     def _get_current_state(self, user_id: str, run, stats) -> str:
-        if run is not None:
-            if getattr(run, "node_type", "") == "battle":
-                return "battle"
-            if getattr(run, "node_type", "") == "cafe":
-                return "cafe"
-            return "explore"
-        if stats is not None:
-            if getattr(stats, "in_town", False):
-                if stats.town_flags.get("current_dialog"):
-                    return "dialog"
-                return "town"
-        return "menu"
+        return resolve_game_state(run, stats)
 
     async def handle_rogue_message(self, user_id: str, sender_name: str, message: str, shortcut_prefix: list[str] = None, enable_shortcut: bool = True, force_execute: bool = False) -> Optional[str]:
+        set_user_id(user_id)
         if shortcut_prefix is None:
             shortcut_prefix = [".rogue"]
 
@@ -72,18 +71,18 @@ class HeadlessGameServer:
                     if cmd in ("退出", "quit", "exit"):
                         stats.reader_active = False
                         self.save_manager.save_stats(user_id, stats)
-                        return "🚪 已退出阅读器。"
+                        return get_locale_text("i18n_cli_core.reader_exited")
                     elif cmd in ("下一页", "n", "next"):
                         total_items = len(stats.reader_items)
                         total_pages = (total_items + 9) // 10
                         if stats.reader_page >= total_pages:
-                            return "⚠️ 已经是最后一页了。"
+                            return get_locale_text("i18n_cli_core.reader_last_page")
                         stats.reader_page += 1
                         self.save_manager.save_stats(user_id, stats)
                         return render_reader_page(stats)
                     elif cmd in ("上一页", "b", "back", "prev"):
                         if stats.reader_page <= 1:
-                            return "⚠️ 已经是第一页了。"
+                            return get_locale_text("i18n_cli_core.reader_first_page")
                         stats.reader_page -= 1
                         self.save_manager.save_stats(user_id, stats)
                         return render_reader_page(stats)
@@ -153,85 +152,20 @@ class HeadlessGameServer:
         if run and run.node_data.get("state_stack") and first_word in STATE_STACK_CANCEL_ALIASES:
             is_game_cmd = True
         curr_state = self._get_current_state(user_id, run, stats)
-
+        _, exists = CommandHandler.resolve(first_word, curr_state)
+        if exists:
+            is_game_cmd = True
         if curr_state == "dialog":
-            dialog_valid_cmds = {
-                "查询", "query", "info", "i",
-                "背包", "bag", "inventory", "inv",
-                "任务", "quest", "quests",
-                "帮助", "help",
-                "状态", "status",
-                "统计", "stat", "stats",
-                "地图", "map",
-                "队列", "queue", "q",
-                "锁定", "lock", "锁定管理", "解锁", "unlock",
-                "mode", "模式",
-                "friend", "好友", "fr",
-                "team", "队伍", "组队", "tm", "lobby",
-                "签到", "checkin", "check_in", "qd", "每日签到",
-                "qi", "queue_interrupt", "中断队列"
-            }
-            if first_word.isdigit() or first_word in ("离开", "退出", "返回", "exit", "quit") or first_word in dialog_valid_cmds:
+            if first_word.isdigit() or first_word in ("离开", "退出", "返回", "exit", "quit"):
                 is_game_cmd = True
-        elif curr_state == "town":
-            town_nav_cmds = {
-                "w", "a", "s", "d", "up", "down", "left", "right", 
-                "退出", "quit", "exit", "回城", "home", 
-                "拿取", "捡起", "take", "pick", "使用", "use", 
-                "交互", "talk", "interact", "inter", "talk_to"
-            }
-            if first_word in town_nav_cmds:
-                is_game_cmd = True
-            elif first_word in self.cli_router._command_handlers:
-                handler = self.cli_router._command_handlers[first_word]
-                if curr_state in getattr(handler, "allowed_states", []):
-                    is_game_cmd = True
         elif curr_state == "cafe":
-            cafe_data = run.node_data.get("cafe_data", {})
-            active_npc = cafe_data.get("active_npc")
-            if active_npc is not None:
-                dialog_valid_cmds = {
-                    "查询", "query", "info", "i",
-                    "背包", "bag", "inventory", "inv",
-                    "任务", "quest", "quests",
-                    "帮助", "help",
-                    "状态", "status",
-                    "统计", "stat", "stats",
-                    "地图", "map",
-                    "队列", "queue", "q",
-                    "锁定", "lock", "锁定管理", "解锁", "unlock",
-                    "mode", "模式",
-                    "friend", "好友", "fr",
-                    "team", "队伍", "组队", "tm", "lobby",
-                    "签到", "checkin", "check_in", "qd", "每日签到",
-                    "qi", "queue_interrupt", "中断队列"
-                }
-                if first_word.isdigit() or first_word in ("离开", "退出", "返回", "exit", "quit", "leave") or first_word in dialog_valid_cmds or first_word in ("选择", "c"):
+            cafe_data = run.node_data.get("cafe_data", {}) if run else {}
+            if cafe_data.get("active_npc") is not None:
+                if first_word.isdigit() or first_word in ("选择", "c") or exists:
                     is_game_cmd = True
-            else:
-                cafe_lobby_cmds = {
-                    "交互", "talk", "interact", "inter", "talk_to",
-                    "离开", "leave", "exit", "quit",
-                    "看", "查", "look", "look_around",
-                    "帮助", "help",
-                    "查询", "query", "info", "i",
-                    "背包", "bag", "inventory", "inv",
-                    "任务", "quest", "quests",
-                    "状态", "status",
-                    "统计", "stat", "stats",
-                    "地图", "map",
-                    "队列", "queue", "q",
-                    "friend", "好友", "fr",
-                    "team", "队伍", "组队", "tm", "lobby",
-                    "签到", "checkin", "check_in", "qd", "每日签到"
-                }
-                if first_word in cafe_lobby_cmds:
-                    is_game_cmd = True
+            elif exists:
+                is_game_cmd = True
         else:
-            if first_word in self.cli_router._command_handlers:
-                handler = self.cli_router._command_handlers[first_word]
-                if curr_state in getattr(handler, "allowed_states", []):
-                    is_game_cmd = True
             if not is_game_cmd and run is not None:
                 if first_word.isdigit():
                     is_game_cmd = True
@@ -252,61 +186,54 @@ class HeadlessGameServer:
         return None
 
     async def handle_admin_message(self, user_id: str, message: str) -> str:
+        set_user_id(user_id)
         parts = message.strip().split()
         if len(parts) > 0 and parts[0].lower() in ("rogueadmin", "/rogueadmin"):
             parts = parts[1:]
 
         if not parts:
-            return (
-                "💬 /rogueadmin 管理指令帮助：\n"
-                "• 查看当前最终BOSS：/rogueadmin boss\n"
-                "• 设置随机轮换：/rogueadmin boss set random\n"
-                "• 固定最终BOSS：/rogueadmin boss set 腐化之心 或 Icerainboww\n"
-                "• 开启/关闭 Icerainboww：/rogueadmin icerainboww <on/off>\n"
-                "• 立即跳到某一层：/rogueadmin jump <层数> 或 /rogueadmin jump <玩家ID> <层数>\n"
-                "• 向玩家牌组添加卡牌：/rogueadmin add_card <卡牌名称/ID> [玩家ID]"
-            )
+            return get_locale_text("i18n_cli_core.admin_help")
 
         cmd = parts[0].lower()
         if cmd == "boss":
             if len(parts) == 1:
                 cfg = self.save_manager.load_admin_config()
                 boss = cfg.get("final_boss", "random")
-                boss_zh = "随机轮换" if boss == "random" else boss
-                return f"⚙️ 当前最终BOSS配置为：【{boss_zh}】"
+                boss_zh = get_locale_text("i18n_cli_core.random_rotation") if boss == "random" else boss
+                return get_locale_text("i18n_cli_core.admin_boss_current", boss=boss_zh)
             elif len(parts) >= 3 and parts[1].lower() == "set":
                 target_boss = parts[2]
                 if target_boss.lower() in ("random", "随机", "轮换"):
                     self.save_manager.save_admin_config({"final_boss": "random"})
-                    return "⚙️ 最终BOSS已成功设置为：【随机轮换】"
+                    return get_locale_text("i18n_cli_core.admin_boss_set_random")
                 elif target_boss in ("腐化之心", "Icerainboww"):
                     self.save_manager.save_admin_config({"final_boss": target_boss})
-                    return f"⚙️ 最终BOSS已成功固定为：【{target_boss}】"
+                    return get_locale_text("i18n_cli_core.admin_boss_set_fixed", boss=target_boss)
                 else:
-                    return "❌ 错误：无效的BOSS名称。可选值：random, 腐化之心, Icerainboww"
+                    return get_locale_text("i18n_cli_core.err_admin_invalid_boss")
             else:
-                return "❌ 错误：无效指令。请使用 /rogueadmin boss set <random/腐化之心/Icerainboww>"
+                return get_locale_text("i18n_cli_core.err_admin_boss_usage")
         elif cmd == "icerainboww":
             if len(parts) == 1:
                 cfg = self.save_manager.load_admin_config()
                 status = cfg.get("icerainboww_enabled", True)
-                status_zh = "开启" if status else "关闭"
-                return f"⚙️ 当前 icerainboww 相关内容配置状态为：【{status_zh}】"
+                status_zh = get_locale_text("i18n_cli_core.status_enabled") if status else get_locale_text("i18n_cli_core.status_disabled")
+                return get_locale_text("i18n_cli_core.admin_icerainboww_current", status=status_zh)
             elif len(parts) >= 2:
                 target_status = parts[1].lower()
                 cfg = self.save_manager.load_admin_config()
                 if target_status in ("on", "开启", "enable", "true"):
                     cfg["icerainboww_enabled"] = True
                     self.save_manager.save_admin_config(cfg)
-                    return "⚙️ icerainboww 相关内容已成功【开启】！"
+                    return get_locale_text("i18n_cli_core.admin_icerainboww_enabled")
                 elif target_status in ("off", "关闭", "disable", "false"):
                     cfg["icerainboww_enabled"] = False
                     self.save_manager.save_admin_config(cfg)
-                    return "⚙️ icerainboww 相关内容已成功【关闭】！所有 icerainboww 卡牌与 BOSS 已被禁用。"
+                    return get_locale_text("i18n_cli_core.admin_icerainboww_disabled")
                 else:
-                    return "❌ 错误：无效的参数。可选值：on, off, 开启, 关闭"
+                    return get_locale_text("i18n_cli_core.err_admin_icerainboww_param")
             else:
-                return "❌ 错误：无效指令。请使用 /rogueadmin icerainboww <on/off>"
+                return get_locale_text("i18n_cli_core.err_admin_icerainboww_usage")
         elif cmd == "jump":
             if len(parts) == 2:
                 target_user_id = user_id
@@ -315,20 +242,20 @@ class HeadlessGameServer:
                 target_user_id = parts[1]
                 stage_str = parts[2]
             else:
-                return "❌ 错误：无效指令。请使用 /rogueadmin jump <层数> 或 /rogueadmin jump <玩家ID> <层数>"
+                return get_locale_text("i18n_cli_core.err_admin_jump_usage")
             try:
                 target_stage = int(stage_str)
             except ValueError:
-                return "❌ 错误：层数必须是整数"
+                return get_locale_text("i18n_cli_core.err_admin_jump_int")
             if not (1 <= target_stage <= 32):
-                return "❌ 错误：层数范围必须在 1 到 32 之间"
+                return get_locale_text("i18n_cli_core.err_admin_jump_range")
             lock = self._get_user_lock(target_user_id)
             async with lock:
                 run = self.save_manager.load_save(target_user_id)
                 if not run:
-                    return "❌ 错误：未找到该玩家的活跃游戏存档。"
+                    return get_locale_text("i18n_cli_core.err_admin_no_save")
                 msg = self.engine.jump_to_stage(run, target_stage)
-                return f"⚙️ {msg}\n\n{GameRenderer.render_game(run)}"
+                return get_locale_text("i18n_cli_core.admin_action_result", msg=msg, rendered=GameRenderer.render_game(run))
         elif cmd == "add_card":
             if len(parts) == 2:
                 card_input = parts[1]
@@ -343,18 +270,18 @@ class HeadlessGameServer:
                         card_input = parts[2]
                         target_user_id = parts[1]
             else:
-                return "❌ 错误：无效指令。请使用 /rogueadmin add_card <卡牌名称/ID> [玩家ID]"
+                return get_locale_text("i18n_cli_core.err_admin_add_card_usage")
             
             upgraded = card_input.endswith("+")
             card_id = resolve_card_id(card_input)
             if not card_id:
-                return f"❌ 错误：未找到卡牌【{card_input}】"
+                return get_locale_text("i18n_cli_core.err_admin_card_not_found", card_input=card_input)
             
             lock = self._get_user_lock(target_user_id)
             async with lock:
                 run = self.save_manager.load_save(target_user_id)
                 if not run:
-                    return "❌ 错误：未找到该玩家的活跃游戏存档。"
+                    return get_locale_text("i18n_cli_core.err_admin_no_save")
                 
                 card_obj = ALL_CARDS.get(card_id)
                 card_name = card_obj.name if card_obj else card_id
@@ -371,10 +298,10 @@ class HeadlessGameServer:
                 self.save_manager.save_save(target_user_id, run)
                 
                 if in_battle:
-                    msg = f"已成功将卡牌【{card_name}】添加到玩家【{target_user_id}】的牌组，且由于处于战斗中，该牌已直接加入手牌！"
+                    msg = get_locale_text("i18n_cli_core.admin_card_added_battle", card_name=card_name, target_user_id=target_user_id)
                 else:
-                    msg = f"已成功将卡牌【{card_name}】添加到玩家【{target_user_id}】的牌组！"
+                    msg = get_locale_text("i18n_cli_core.admin_card_added", card_name=card_name, target_user_id=target_user_id)
                     
-                return f"⚙️ {msg}\n\n{GameRenderer.render_game(run)}"
+                return get_locale_text("i18n_cli_core.admin_action_result", msg=msg, rendered=GameRenderer.render_game(run))
         else:
-            return "❌ 错误：未知管理命令，请输入 /rogueadmin 查看帮助。"
+            return get_locale_text("i18n_cli_core.err_admin_unknown")

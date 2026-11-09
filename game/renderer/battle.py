@@ -1,11 +1,12 @@
-import re
 from ..models.state import GameRun
 from ..cards import ALL_CARDS, MINION_SKILLS
 from ..entities import get_relic_name, get_relic_desc
 from ..data.buff_data import BUFF_CONFIG
 from ..data.minion_data import MINION_CONFIG
+from ..data.locale_data import t
 from .menu import get_card_cost_str
-from .card_preview import render_card_description
+from .card_preview import render_card_description, replace_structured_number
+from .formatters import format_buff_detail, format_buff_list, format_relic_bar, get_effective_max_hp
 
 def void_corrupt_text(text: str) -> str:
     import random
@@ -16,57 +17,73 @@ def void_corrupt_text(text: str) -> str:
                 chars[i] = random.choice(['░', '▒', '▓', '■', '?', '▰', '▱'])
     return "".join(chars)
 
-def adjust_intent_desc_with_modifiers(desc: str, strength: int, weak: int) -> str:
+def _find_intent_damage_value(desc: str) -> int:
+    search_from = 0
+    while True:
+        marker = desc.find("造成", search_from)
+        if marker < 0:
+            return 0
+        index = marker + 2
+        while index < len(desc) and desc[index].isspace():
+            index += 1
+        start = index
+        while index < len(desc) and desc[index].isdigit():
+            index += 1
+        if start < index:
+            value = int(desc[start:index])
+            cursor = index
+            while cursor < len(desc) and desc[cursor].isspace():
+                cursor += 1
+            if cursor < len(desc) and desc[cursor] == "点":
+                cursor += 1
+                while cursor < len(desc) and desc[cursor].isspace():
+                    cursor += 1
+            if desc.startswith("伤害", cursor):
+                return value
+        search_from = marker + 2
+
+def adjust_intent_desc_with_modifiers(desc: str, strength: int, weak: int, base_value: int = 0) -> str:
     if strength == 0 and weak == 0:
         return desc
-    def repl(match):
-        prefix = match.group(1)
-        val = int(match.group(2))
-        suffix = match.group(3)
-        base = val + strength
-        final_val = int(base * 0.5) if weak > 0 else base
-        final_val = max(0, final_val)
-        return f"{prefix}{final_val}{suffix}"
-    pattern = r"(造成\s*)(\d+)(\s*(?:点)?伤害)"
-    return re.sub(pattern, repl, desc)
+    if base_value <= 0:
+        base_value = _find_intent_damage_value(desc)
+    if base_value <= 0:
+        return desc
+    adjusted = base_value + strength
+    final_val = int(adjusted * 0.5) if weak > 0 else adjusted
+    final_val = max(0, final_val)
+    if final_val == base_value:
+        return desc
+    updated = replace_structured_number(desc, base_value, final_val, ("造成",), ("伤害",))
+    if updated != desc:
+        return updated
+    return replace_structured_number(desc, base_value, final_val, ("造成",))
 
 def render_battle(run: GameRun) -> str:
     from .party import render_party_status
     p = run.player
-    will_buff = next((b for b in p.buffs if b.id == "iron_will"), None)
-    will_stacks = will_buff.stacks if will_buff else 0
-    cur_max = p.max_hp + will_stacks * 10
-    relics_str = ""
-    if p.relics:
-        relics_str = "\n🎒 遗物：" + " ".join([f"【{get_relic_name(r)}】" for r in p.relics])
+    cur_max = get_effective_max_hp(p)
+    relics_str = format_relic_bar(p.relics)
     potions_str = ""
     if hasattr(p, "potions") and p.potions:
         from ..data.potion_data import get_potion_name
-        potions_str = "\n🧪 药水：" + " ".join([f"[{idx}]【{get_potion_name(r)}】" for idx, r in enumerate(p.potions, 1)])
+        potions_str = t("renderer.battle.potions_label") + " ".join([t("i18n_card_runtime.battle.potion_item", idx=idx, name=get_potion_name(r)) for idx, r in enumerate(p.potions, 1)])
     turn_count = run.node_data.get("turn_count", 1)
     lines = [
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"⚔️ 【第 {p.stage} 关：战斗阶段 (第 {turn_count} 回合)】",
-        f"{run.player.name}：❤️ HP {p.hp}/{cur_max} | 🛡️ 护盾 {p.shield} | ⚡ 动作 {p.actions}A {p.bonus_actions}BA" + relics_str + potions_str
+        t("renderer.battle.separator"),
+        t("renderer.battle.title", stage=p.stage, turn=turn_count),
+        t("renderer.battle.status_line", name=run.player.name, hp=p.hp, max_hp=cur_max, shield=p.shield, actions=p.actions, bonus_actions=p.bonus_actions) + relics_str + potions_str
     ]
     if getattr(run, "coop_id", ""):
         lines.append(render_party_status(run))
         if p.downed or p.hp <= 0:
-            lines.append("💀 你已倒地，无法行动，正在观战。")
+            lines.append(t("renderer.battle.downed"))
     if p.buffs:
-        buff_strs = []
-        for b in p.buffs:
-            if getattr(b, "stacks2", None) is not None and b.stacks2 > 0:
-                buff_strs.append(f"{b.name}({b.stacks},{b.stacks2})")
-            elif b.stacks > 1:
-                buff_strs.append(f"{b.name} x{b.stacks}")
-            else:
-                buff_strs.append(f"{b.name}")
-        lines.append(f"{run.player.name} Buff：" + " | ".join(buff_strs))
+        lines.append(t("renderer.battle.buff_line", name=run.player.name) + format_buff_list(p.buffs))
     lines.append("")
-    lines.append("【我方战场】")
+    lines.append(t("renderer.battle.ally_field"))
     if not p.minions and not p.amulets:
-        lines.append("（空无一物）")
+        lines.append(t("renderer.battle.empty_field"))
     else:
         for i in range(1, 7):
             key = str(i)
@@ -74,27 +91,19 @@ def render_battle(run: GameRun) -> str:
                 m = p.minions[key]
                 skills_desc = ""
                 if m.id in MINION_SKILLS:
-                    skills_desc = " | 技能: " + " ".join([f"({idx}){s['name']}" for idx, s in enumerate(MINION_SKILLS[m.id], 1)])
+                    skills_desc = t("renderer.battle.skill_prefix") + " ".join([f"({idx}){s['name']}" for idx, s in enumerate(MINION_SKILLS[m.id], 1)])
                 buff_desc = ""
                 if getattr(m, "buffs", None):
-                    minion_buff_strs = []
-                    for b in m.buffs:
-                        if getattr(b, "stacks2", None) is not None and b.stacks2 > 0:
-                            minion_buff_strs.append(f"{b.name}({b.stacks},{b.stacks2})")
-                        elif b.stacks > 1:
-                            minion_buff_strs.append(f"{b.name} x{b.stacks}")
-                        else:
-                            minion_buff_strs.append(f"{b.name}")
-                    buff_desc = " | Buff: " + " ".join(minion_buff_strs)
+                    buff_desc = t("renderer.battle.buff_prefix") + format_buff_list(m.buffs, " ")
                 atk_val = m.atk + (1 if "whetstone" in p.relics else 0)
-                lines.append(f" 格子 [{i}] 随从：{m.name} (❤️ HP {m.hp}/{m.max_hp} | ⚔️ 攻击 {atk_val} | ⚡ 动作 {m.actions}A {m.bonus_actions}BA {m.attack_actions}AA{skills_desc}{buff_desc})")
+                lines.append(t("renderer.battle.minion_line", slot=i, name=m.name, hp=m.hp, max_hp=m.max_hp, atk=atk_val, actions=m.actions, bonus_actions=m.bonus_actions, attack_actions=m.attack_actions, skills=skills_desc, buffs=buff_desc))
             elif key in p.amulets:
                 a = p.amulets[key]
-                lines.append(f" 格子 [{i}] 护符：{a.name} (⏳ 吟唱 {a.countdown}) - {a.desc}")
+                lines.append(t("renderer.battle.amulet_line", slot=i, name=a.name, countdown=a.countdown, desc=a.desc))
     lines.append("")
-    lines.append("【敌方战场】")
+    lines.append(t("renderer.battle.enemy_field"))
     if not run.enemies:
-        lines.append("（空无一物）")
+        lines.append(t("renderer.battle.empty_field"))
     else:
         for idx, enemy in enumerate(run.enemies, 1):
             strength = 0
@@ -112,7 +121,7 @@ def render_battle(run: GameRun) -> str:
                 desc = it.cancelled_desc if it.cancelled else it.desc
                 if not desc:
                     continue
-                desc = adjust_intent_desc_with_modifiers(desc, strength, weak)
+                desc = adjust_intent_desc_with_modifiers(desc, strength, weak, getattr(it, "val", 0))
                 if it.cost_ba > 0:
                     ba_parts.append(desc)
                 else:
@@ -121,19 +130,11 @@ def render_battle(run: GameRun) -> str:
                 intent_parts.append(f"A: {' + '.join(a_parts)}")
             if ba_parts:
                 intent_parts.append(f"BA: {' + '.join(ba_parts)}")
-            intent_str = f"({', '.join(intent_parts)})" if intent_parts else "无意图"
-            shield_str = f" | 🛡️ 护盾 {enemy.shield}" if enemy.shield > 0 else ""
+            intent_str = f"({', '.join(intent_parts)})" if intent_parts else t("renderer.battle.no_intent")
+            shield_str = t("renderer.battle.shield_suffix", shield=enemy.shield) if enemy.shield > 0 else ""
             buff_desc = ""
             if getattr(enemy, "buffs", None):
-                enemy_buff_strs = []
-                for b in enemy.buffs:
-                    if getattr(b, "stacks2", None) is not None and b.stacks2 > 0:
-                        enemy_buff_strs.append(f"{b.name}({b.stacks},{b.stacks2})")
-                    elif b.stacks > 1:
-                        enemy_buff_strs.append(f"{b.name} x{b.stacks}")
-                    else:
-                        enemy_buff_strs.append(f"{b.name}")
-                buff_desc = " | Buff: " + " ".join(enemy_buff_strs)
+                buff_desc = t("renderer.battle.buff_prefix") + format_buff_list(enemy.buffs, " ")
             e_name = enemy.name
             if e_name == "【万物归一】虚空之门·尤格-索托斯" or enemy.max_hp == 2147483647:
                 hp_text = f"0x{enemy.hp:X}/0x{enemy.max_hp:X}"
@@ -146,14 +147,14 @@ def render_battle(run: GameRun) -> str:
             if getattr(run, "coop_id", ""):
                 target_uid = run.node_data.get("enemy_targets", {}).get(str(idx))
                 if target_uid == "ALL":
-                    target_label = " | 🎯 全体"
+                    target_label = t("renderer.battle.target_all")
                 elif target_uid in getattr(run, "party_order", []):
                     target_label = f" | 🎯 a{run.party_order.index(target_uid) + 1}"
-            lines.append(f" 格子 [{idx}] 敌人：{e_name} (❤️ HP {hp_text}{shield_str}{buff_desc} | ⚡ 动作 {enemy.actions}A {enemy.bonus_actions}BA | ⚔️ 意图：{intent_str}{target_label})")
+            lines.append(t("renderer.battle.enemy_line", slot=idx, name=e_name, hp=hp_text, shield=shield_str, buffs=buff_desc, actions=enemy.actions, bonus_actions=enemy.bonus_actions, intents=intent_str, target=target_label))
     lines.append("")
-    lines.append("【你的手牌】")
+    lines.append(t("renderer.battle.hand_title"))
     if not p.hand:
-        lines.append("（空空如也）")
+        lines.append(t("renderer.battle.empty_hand"))
     else:
         valid_idx = 1
         for cid in p.hand:
@@ -162,15 +163,15 @@ def render_battle(run: GameRun) -> str:
                 color_ch = "⚫" if card.color == "curse" else ("🔴" if card.color == "warrior" else ("🔵" if card.color == "wizard" else "⚪"))
                 cost_str = get_card_cost_str(card)
                 rarity_map = {
-                    "common": "普通",
-                    "rare": "稀有",
-                    "epic": "珍奇",
-                    "legendary": "传奇",
-                    "mythic": "神话",
-                    "artifact": "神器",
-                    "curse": "诅咒"
+                    "common": t("renderer.battle.rarity_common"),
+                    "rare": t("renderer.battle.rarity_rare"),
+                    "epic": t("renderer.battle.rarity_epic"),
+                    "legendary": t("renderer.battle.rarity_legendary"),
+                    "mythic": t("renderer.battle.rarity_mythic"),
+                    "artifact": t("renderer.battle.rarity_artifact"),
+                    "curse": t("renderer.battle.rarity_curse")
                 }
-                rname = rarity_map.get(getattr(card, "rarity", "common"), "普通")
+                rname = rarity_map.get(getattr(card, "rarity", "common"), t("renderer.battle.rarity_common"))
                 c_name = card.name
                 c_desc = render_card_description(card, run)
                 if run.node_data.get("is_void_corrupted"):
@@ -180,114 +181,106 @@ def render_battle(run: GameRun) -> str:
                 else:
                     cost_str = get_card_cost_str(card)
                 if getattr(card, "unplayable", False):
-                    lines.append(f" [{valid_idx}] {color_ch} {c_name} <{rname}> - {c_desc}")
+                    lines.append(t("renderer.battle.hand_card_unplayable", idx=valid_idx, color=color_ch, name=c_name, rarity=rname, desc=c_desc))
                 else:
-                    lines.append(f" [{valid_idx}] {color_ch} {c_name} <{rname}> (消耗: {cost_str}) - {c_desc}")
+                    lines.append(t("renderer.battle.hand_card", idx=valid_idx, color=color_ch, name=c_name, rarity=rname, cost=cost_str, desc=c_desc))
                 valid_idx += 1
     if run.node_data.get("pending_discard"):
-        lines.append("⚠️ 状态：请选择一张手牌丢弃！请输入：/rogue 选择 <手牌序号>")
-        lines.append("━━━━━━━━━━━━━━━━━━━━")
+        lines.append(t("renderer.battle.pending_discard"))
+        lines.append(t("renderer.battle.separator"))
     else:
-        lines.append("━━━━━━━━━━━━━━━━━━━━")
+        lines.append(t("renderer.battle.separator"))
     if p.fold_guide:
-        lines.append("💬 提示：操作指南已折叠。输入 /rogue 折叠 可展开。")
+        lines.append(t("renderer.battle.guide_folded"))
     else:
-        lines.append("💬 战斗指令指南：")
-        lines.append("• 使用卡牌：/rogue p <手牌序号|拼音首字母> [目标]")
-        lines.append("• 指向目标：敌方 e1-eN (对应敌方格子) | 我方 p0-p6 (p0为自己，p1-p6为随从)")
-        lines.append("• 队列打牌：/rogue q [p 1, p 2:e1, p 3]")
-        lines.append("• 随从指令：/rogue m <我方格子> a/s <目标格子/技能序号> [技能目标]")
-        lines.append("• 结束回合：/rogue e")
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
+        lines.append(t("renderer.battle.guide_title"))
+        lines.append(t("renderer.battle.guide_play"))
+        lines.append(t("renderer.battle.guide_target"))
+        lines.append(t("renderer.battle.guide_queue"))
+        lines.append(t("renderer.battle.guide_minion"))
+        lines.append(t("renderer.battle.guide_end"))
+    lines.append(t("renderer.battle.separator"))
     return "\n".join(lines)
 
 def render_detailed_battle(run: GameRun) -> str:
     p = run.player
-    will_buff = next((b for b in p.buffs if b.id == "iron_will"), None)
-    will_stacks = will_buff.stacks if will_buff else 0
-    cur_max = p.max_hp + will_stacks * 10
+    cur_max = get_effective_max_hp(p)
     turn_count = run.node_data.get("turn_count", 1)
-    detailed_potions = "无"
+    detailed_potions = t("renderer.battle.none")
     if hasattr(p, "potions") and p.potions:
         from ..data.potion_data import get_potion_name, get_potion_desc
-        detailed_potions = " ".join([f"[{idx}]【{get_potion_name(r)}】({get_potion_desc(r)})" for idx, r in enumerate(p.potions, 1)])
+        detailed_potions = " ".join([t("i18n_card_runtime.battle.detailed_potion_item", idx=idx, name=get_potion_name(r), desc=get_potion_desc(r)) for idx, r in enumerate(p.potions, 1)])
     lines = [
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"⚔️ 【实时战斗详细情报 (第 {turn_count} 回合)】",
+        t("renderer.battle.separator"),
+        t("renderer.battle.detailed_title", turn=turn_count),
         "",
-        f"👤 【{run.player.name}领主】",
-        f"  生命值：HP {p.hp}/{cur_max}",
-        f"  护盾值：{p.shield}",
-        f"  动作资源：{p.actions}A {p.bonus_actions}BA",
-        f"  药水槽：{detailed_potions}",
-        f"  牌堆状态：手牌 {len(p.hand)}张 | 抽牌堆 {len(p.draw_pile)}张 | 弃牌堆 {len(p.discard_pile)}张 | 消耗堆 {len(p.exhaust_pile)}张 | 随从墓地 {len(p.minion_graveyard)}个 | 敌人墓地 {len(p.enemy_graveyard)}个",
+        t("renderer.battle.lord_title", name=run.player.name),
+        t("renderer.battle.hp_line", hp=p.hp, max_hp=cur_max),
+        t("renderer.battle.shield_line", shield=p.shield),
+        t("renderer.battle.actions_line", actions=p.actions, bonus_actions=p.bonus_actions),
+        t("renderer.battle.potions_slot", potions=detailed_potions),
+        t("renderer.battle.piles_status", hand=len(p.hand), draw=len(p.draw_pile), discard=len(p.discard_pile), exhaust=len(p.exhaust_pile), minion_grave=len(p.minion_graveyard), enemy_grave=len(p.enemy_graveyard)),
     ]
     if p.relics:
-        lines.append("  拥有遗物：")
+        lines.append(t("renderer.battle.relics_title"))
         for r in p.relics:
             rname = get_relic_name(r)
             rdesc = get_relic_desc(r)
-            lines.append(f"    • 【{rname}】: {rdesc}")
+            lines.append(t("i18n_card_runtime.battle.detailed_relic_line", name=rname, desc=rdesc))
     else:
-        lines.append("  拥有遗物：无")
+        lines.append(t("renderer.battle.relics_none"))
     if p.buffs:
-        lines.append("  当前Buff状态：")
+        lines.append(t("renderer.battle.buffs_title"))
         for b in p.buffs:
-            bdesc = b.desc or BUFF_CONFIG.get(b.id, {}).get("desc", "无具体描述")
-            if getattr(b, "stacks2", None) is not None and b.stacks2 > 0:
-                lines.append(f"    • 【{b.name}】(层数: {b.stacks}, 持续: {b.stacks2}): {bdesc}")
-            else:
-                lines.append(f"    • 【{b.name}】(层数: {b.stacks}): {bdesc}")
+            bdesc = b.desc or BUFF_CONFIG.get(b.id, {}).get("desc", t("renderer.battle.no_desc"))
+            lines.append(format_buff_detail(b, bdesc))
     else:
-        lines.append("  当前Buff状态：无")
+        lines.append(t("renderer.battle.buffs_none"))
     lines.append("")
-    lines.append("🦁 【我方战场】")
+    lines.append(t("renderer.battle.detailed_ally_field"))
     if not p.minions and not p.amulets:
-        lines.append("  （空无一物）")
+        lines.append(t("renderer.battle.empty_field_indent"))
     else:
         for i in range(1, 7):
             key = str(i)
             if key in p.minions:
                 m = p.minions[key]
                 atk_val = m.atk + (1 if "whetstone" in p.relics else 0)
-                lines.append(f"  格子 [{i}] 随从：{m.name}")
-                lines.append(f"    生命值：HP {m.hp}/{m.max_hp}")
-                lines.append(f"    攻击力：⚔️ {atk_val}")
-                lines.append(f"    剩余动作：{m.actions}A {m.bonus_actions}BA {m.attack_actions}AA")
+                lines.append(t("renderer.battle.detailed_minion_line", slot=i, name=m.name))
+                lines.append(t("renderer.battle.detailed_minion_hp", hp=m.hp, max_hp=m.max_hp))
+                lines.append(t("renderer.battle.detailed_minion_atk", atk=atk_val))
+                lines.append(t("renderer.battle.detailed_minion_actions", actions=m.actions, bonus_actions=m.bonus_actions, attack_actions=m.attack_actions))
                 m_cfg = MINION_CONFIG.get(m.id, {})
                 skills = m_cfg.get("skills", [])
                 if skills:
-                    lines.append("    技能列表：")
+                    lines.append(t("renderer.battle.skills_title"))
                     for idx, s in enumerate(skills, 1):
                         cost_str = ""
                         if s.get("cost_a", 0) > 0:
                             cost_str += f"{s['cost_a']}A "
                         if s.get("cost_ba", 0) > 0:
                             cost_str += f"{s['cost_ba']}BA "
-                        cost_str = cost_str.strip() or "免费"
-                        lines.append(f"      ({idx}) 【{s.get('name')}】(消耗: {cost_str}) - {s.get('desc')}")
+                        cost_str = cost_str.strip() or t("renderer.battle.free_cost")
+                        lines.append(t("renderer.battle.skill_line", idx=idx, name=s.get('name'), cost=cost_str, desc=s.get('desc')))
                 else:
-                    lines.append("    技能列表：仅有普通攻击 (消耗 1A)")
+                    lines.append(t("renderer.battle.skills_only_basic"))
                 if getattr(m, "buffs", None):
-                    lines.append("    随从Buff：")
+                    lines.append(t("renderer.battle.minion_buffs_title"))
                     for b in m.buffs:
-                        bdesc = b.desc or BUFF_CONFIG.get(b.id, {}).get("desc", "无具体描述")
-                        if getattr(b, "stacks2", None) is not None and b.stacks2 > 0:
-                            lines.append(f"      • 【{b.name}】(层数: {b.stacks}, 持续: {b.stacks2}): {bdesc}")
-                        else:
-                            lines.append(f"      • 【{b.name}】(层数: {b.stacks}): {bdesc}")
+                        bdesc = b.desc or BUFF_CONFIG.get(b.id, {}).get("desc", t("renderer.battle.no_desc"))
+                        lines.append(format_buff_detail(b, bdesc, "      "))
             elif key in p.amulets:
                 a = p.amulets[key]
-                lines.append(f"  格子 [{i}] 护符：{a.name}")
-                lines.append(f"    吟唱时间：⏳ 剩余 {a.countdown} 回合")
-                lines.append(f"    效果：{a.desc}")
+                lines.append(t("renderer.battle.detailed_amulet_line", slot=i, name=a.name))
+                lines.append(t("renderer.battle.amulet_countdown", countdown=a.countdown))
+                lines.append(t("renderer.battle.amulet_effect", desc=a.desc))
     lines.append("")
-    lines.append("👿 【敌方战场】")
+    lines.append(t("renderer.battle.detailed_enemy_field"))
     if not run.enemies:
-        lines.append("  （空无一物）")
+        lines.append(t("renderer.battle.empty_field_indent"))
     else:
         for idx, enemy in enumerate(run.enemies, 1):
-            shield_str = f" | 🛡️ 护盾 {enemy.shield}" if enemy.shield > 0 else ""
+            shield_str = t("renderer.battle.shield_suffix", shield=enemy.shield) if enemy.shield > 0 else ""
             e_name = enemy.name
             strength = 0
             weak = 0
@@ -304,16 +297,16 @@ def render_detailed_battle(run: GameRun) -> str:
                 desc = it.cancelled_desc if it.cancelled else it.desc
                 if not desc:
                     continue
-                desc = adjust_intent_desc_with_modifiers(desc, strength, weak)
+                desc = adjust_intent_desc_with_modifiers(desc, strength, weak, getattr(it, "val", 0))
                 if it.cost_ba > 0:
                     ba_parts.append(desc)
                 else:
                     a_parts.append(desc)
             if a_parts:
-                intent_parts.append(f"动作(A)：{' + '.join(a_parts)}")
+                intent_parts.append(t("renderer.battle.detailed_intent_a", descs=' + '.join(a_parts)))
             if ba_parts:
-                intent_parts.append(f"附赠动作(BA)：{' + '.join(ba_parts)}")
-            intent_str = " | ".join(intent_parts) if intent_parts else "无意图"
+                intent_parts.append(t("renderer.battle.detailed_intent_ba", descs=' + '.join(ba_parts)))
+            intent_str = " | ".join(intent_parts) if intent_parts else t("renderer.battle.no_intent")
             if e_name == "【万物归一】虚空之门·尤格-索托斯" or enemy.max_hp == 2147483647:
                 hp_text = f"0x{enemy.hp:X}/0x{enemy.max_hp:X}"
             else:
@@ -321,29 +314,26 @@ def render_detailed_battle(run: GameRun) -> str:
             if run.node_data.get("is_void_corrupted"):
                 e_name = void_corrupt_text(e_name)
                 intent_str = void_corrupt_text(intent_str)
-            lines.append(f"  格子 [{idx}] 敌人：{e_name} (HP {hp_text}{shield_str} | 动作 {enemy.actions}A {enemy.bonus_actions}BA)")
-            lines.append(f"    行动意图：{intent_str}")
+            lines.append(t("renderer.battle.detailed_enemy_line", idx=idx, name=e_name, hp=hp_text, shield=shield_str, actions=enemy.actions, bonus_actions=enemy.bonus_actions))
+            lines.append(t("renderer.battle.detailed_intent_line", intents=intent_str))
             if getattr(enemy, "buffs", None):
-                lines.append("    敌人Buff：")
+                lines.append(t("renderer.battle.enemy_buffs_title"))
                 for b in enemy.buffs:
-                    bdesc = b.desc or BUFF_CONFIG.get(b.id, {}).get("desc", "无具体描述")
-                    if getattr(b, "stacks2", None) is not None and b.stacks2 > 0:
-                        lines.append(f"      • 【{b.name}】(层数: {b.stacks}, 持续: {b.stacks2}): {bdesc}")
-                    else:
-                        lines.append(f"      • 【{b.name}】(层数: {b.stacks}): {bdesc}")
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
+                    bdesc = b.desc or BUFF_CONFIG.get(b.id, {}).get("desc", t("renderer.battle.no_desc"))
+                    lines.append(format_buff_detail(b, bdesc, "      "))
+    lines.append(t("renderer.battle.separator"))
     return "\n".join(lines)
 
 def render_draw_pile(run: GameRun) -> str:
     p = run.player
     lines = [
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"🔮 【抽牌堆卡牌列表】 (共 {len(p.draw_pile)} 张)",
-        "当前抽牌堆内还包含以下卡牌（已去重并排序）：",
+        t("renderer.battle.separator"),
+        t("renderer.battle.draw_pile_title", count=len(p.draw_pile)),
+        t("renderer.battle.draw_pile_desc"),
         ""
     ]
     if not p.draw_pile:
-        lines.append("  （当前抽牌堆为空）")
+        lines.append(t("renderer.battle.draw_pile_empty"))
     else:
         counts = {}
         for cid in p.draw_pile:
@@ -351,20 +341,20 @@ def render_draw_pile(run: GameRun) -> str:
             counts[name] = counts.get(name, 0) + 1
         sorted_names = sorted(counts.keys())
         for idx, name in enumerate(sorted_names, 1):
-            lines.append(f"  {idx}. 【{name}】 x{counts[name]}")
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append(t("renderer.battle.pile_item", idx=idx, name=name, count=counts[name]))
+    lines.append(t("renderer.battle.separator"))
     return "\n".join(lines)
 
 def render_discard_pile(run: GameRun) -> str:
     p = run.player
     lines = [
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"🗑️ 【弃牌堆卡牌列表】 (共 {len(p.discard_pile)} 张)",
-        "当前弃牌堆内包含以下卡牌（已去重并排序）：",
+        t("renderer.battle.separator"),
+        t("renderer.battle.discard_pile_title", count=len(p.discard_pile)),
+        t("renderer.battle.discard_pile_desc"),
         ""
     ]
     if not p.discard_pile:
-        lines.append("  （当前弃牌堆为空）")
+        lines.append(t("renderer.battle.discard_pile_empty"))
     else:
         counts = {}
         for cid in p.discard_pile:
@@ -372,20 +362,20 @@ def render_discard_pile(run: GameRun) -> str:
             counts[name] = counts.get(name, 0) + 1
         sorted_names = sorted(counts.keys())
         for idx, name in enumerate(sorted_names, 1):
-            lines.append(f"  {idx}. 【{name}】 x{counts[name]}")
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append(t("renderer.battle.pile_item", idx=idx, name=name, count=counts[name]))
+    lines.append(t("renderer.battle.separator"))
     return "\n".join(lines)
 
 def render_exhaust_pile(run: GameRun) -> str:
     p = run.player
     lines = [
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"🔥 【消耗堆卡牌列表】 (共 {len(p.exhaust_pile)} 张)",
-        "当前已被消耗的卡牌（已去重并排序）：",
+        t("renderer.battle.separator"),
+        t("renderer.battle.exhaust_pile_title", count=len(p.exhaust_pile)),
+        t("renderer.battle.exhaust_pile_desc"),
         ""
     ]
     if not p.exhaust_pile:
-        lines.append("  （当前消耗堆为空）")
+        lines.append(t("renderer.battle.exhaust_pile_empty"))
     else:
         counts = {}
         for cid in p.exhaust_pile:
@@ -393,20 +383,20 @@ def render_exhaust_pile(run: GameRun) -> str:
             counts[name] = counts.get(name, 0) + 1
         sorted_names = sorted(counts.keys())
         for idx, name in enumerate(sorted_names, 1):
-            lines.append(f"  {idx}. 【{name}】 x{counts[name]}")
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append(t("renderer.battle.pile_item", idx=idx, name=name, count=counts[name]))
+    lines.append(t("renderer.battle.separator"))
     return "\n".join(lines)
 
 def render_minion_graveyard(run: GameRun) -> str:
     p = run.player
     lines = [
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"🦁 【我方随从墓地】 (共 {len(p.minion_graveyard)} 个已阵亡随从)",
-        "我方本场战斗中已阵亡的随从（已去重并排序）：",
+        t("renderer.battle.separator"),
+        t("renderer.battle.minion_graveyard_title", count=len(p.minion_graveyard)),
+        t("renderer.battle.minion_graveyard_desc"),
         ""
     ]
     if not p.minion_graveyard:
-        lines.append("  （我方当前暂无阵亡随从）")
+        lines.append(t("renderer.battle.minion_graveyard_empty"))
     else:
         counts = {}
         for mid in p.minion_graveyard:
@@ -414,26 +404,26 @@ def render_minion_graveyard(run: GameRun) -> str:
             counts[name] = counts.get(name, 0) + 1
         sorted_names = sorted(counts.keys())
         for idx, name in enumerate(sorted_names, 1):
-            lines.append(f"  {idx}. 【{name}】 x{counts[name]}")
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append(t("renderer.battle.pile_item", idx=idx, name=name, count=counts[name]))
+    lines.append(t("renderer.battle.separator"))
     return "\n".join(lines)
 
 def render_enemy_graveyard(run: GameRun) -> str:
     p = run.player
     lines = [
-        "━━━━━━━━━━━━━━━━━━━━",
-        f"💀 【敌方亡灵墓地】 (共 {len(p.enemy_graveyard)} 个已消灭敌人)",
-        "敌方本场战斗中已被消灭的单位（已去重并排序）：",
+        t("renderer.battle.separator"),
+        t("renderer.battle.enemy_graveyard_title", count=len(p.enemy_graveyard)),
+        t("renderer.battle.enemy_graveyard_desc"),
         ""
     ]
     if not p.enemy_graveyard:
-        lines.append("  （敌方当前暂无消灭单位）")
+        lines.append(t("renderer.battle.enemy_graveyard_empty"))
     else:
         counts = {}
         for ename in p.enemy_graveyard:
             counts[ename] = counts.get(ename, 0) + 1
         sorted_names = sorted(counts.keys())
         for idx, name in enumerate(sorted_names, 1):
-            lines.append(f"  {idx}. 【{name}】 x{counts[name]}")
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append(t("renderer.battle.pile_item", idx=idx, name=name, count=counts[name]))
+    lines.append(t("renderer.battle.separator"))
     return "\n".join(lines)

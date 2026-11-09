@@ -3,6 +3,8 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 
+from game.data.locale_data import get_locale_text
+
 
 @dataclass
 class Node:
@@ -101,11 +103,7 @@ def build_nodes(user: str) -> dict[str, Node]:
         now - 3600,
     )
     nodes[f"{home}/README.md"] = _file(
-        "# ROGUE CORE // DUNGEON NODE 07\n"
-        "\n"
-        "本机是卡牌肉鸽终端。玩家可以在当前目录写入文本笔记。\n"
-        "\n"
-        "试试：ls -la、cat dungeon/deck.json、uname -a、neofetch。\n",
+        get_locale_text("i18n_server_shell.file_home_readme"),
         now - 86400 * 3,
     )
     nodes[f"{home}/.bashrc"] = _file(
@@ -123,11 +121,7 @@ def build_nodes(user: str) -> dict[str, Node]:
         old,
     )
     nodes[f"{home}/dungeon/README.md"] = _file(
-        "# DUNGEON PROJECT\n"
-        "\n"
-        "这个仓库保存当前冒险者的卡组、遗物和路线记录。\n"
-        "不要直接编辑 cards/ascension.json。\n"
-        "它不属于当前周目。\n",
+        get_locale_text("i18n_server_shell.file_dungeon_readme"),
         now - 86400 * 9,
     )
     nodes[f"{home}/dungeon/deck.json"] = _file(
@@ -145,12 +139,14 @@ def build_nodes(user: str) -> dict[str, Node]:
         "}\n",
         now - 86400 * 2,
     )
+    ascension_name = get_locale_text("i18n_server_shell.card_ascension_name")
+    ascension_text = get_locale_text("i18n_server_shell.card_ascension_text")
     nodes[f"{home}/dungeon/cards/ascension.json"] = _file(
         "{\n"
-        '  "name": "汞心",\n'
+        f'  "name": "{ascension_name}",\n'
         '  "rarity": "mythic",\n'
         '  "cost": "3A",\n'
-        '  "text": "将所有护盾转化为等量真实伤害。若生命低于 1，改为保留 1 点生命。",\n'
+        f'  "text": "{ascension_text}",\n'
         '  "owner": "mercury-vault",\n'
         '  "sealed": true\n'
         "}\n",
@@ -167,30 +163,20 @@ def build_nodes(user: str) -> dict[str, Node]:
         now - 7200,
     )
     nodes[f"{home}/notes/README.md"] = _file(
-        "# NOTES\n"
-        "\n"
-        "这里可以放你的终端笔记。\n"
-        "示例：echo 第一行 > note.txt\n"
-        "追加：echo 第二行 >> note.txt\n",
+        get_locale_text("i18n_server_shell.file_notes_readme"),
         now - 86400 * 5,
     )
     nodes[f"{home}/.secrets/ascension.key"] = _file(
         "ROGUE-CORE-SEALED-KEY::MERCURY::7F3A-91C2-0D6B\n"
-        "不要把这段内容写进牌组。\n",
+        + get_locale_text("i18n_server_shell.file_ascension_key_note"),
         old,
     )
     nodes[f"{home}/.secrets/devnote.txt"] = _file(
-        "开发记录 07\n"
-        "如果有人在终端里找到这里，说明他没有被 UI 宠坏。\n"
-        "彩蛋文件不能被 rm 删除。\n"
-        "秘密目录也不能被 rm 删除。\n"
-        "这不是 bug，是 vault policy。\n",
+        get_locale_text("i18n_server_shell.file_devnote"),
         old,
     )
     nodes[f"{home}/.secrets/true_ending.txt"] = _file(
-        "真正的结局不是通关。\n"
-        "是你在主界面输入了 uname -a。\n"
-        "然后继续往下走。\n",
+        get_locale_text("i18n_server_shell.file_true_ending"),
         old,
     )
     nodes[f"{home}/dungeon/.vault"] = _file(

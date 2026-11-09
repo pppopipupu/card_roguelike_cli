@@ -1,0 +1,341 @@
+{
+  "warrior": {
+    "buffs": {
+      "minor_vulnerable": {
+        "name": "轻度易伤",
+        "desc": "受到的所有类型伤害增加 50%"
+      },
+      "weak": {
+        "name": "虚弱",
+        "desc": "造成的物理伤害减少 3 点"
+      },
+      "strength": {
+        "name": "力量",
+        "desc": "造成的伤害增加"
+      },
+      "strength_blood_fury": {
+        "desc": "造成伤害增加"
+      },
+      "flame_barrier": {
+        "name": "火焰屏障",
+        "desc": "受到伤害时对攻击源反弹真实伤害"
+      },
+      "double_tap": {
+        "name": "双发",
+        "desc": "下一次物理伤害卡将触发额外打出"
+      },
+      "buffer": {
+        "name": "缓冲",
+        "desc": "免疫接下来的伤害"
+      },
+      "barricade": {
+        "name": "壁垒",
+        "desc": "护盾回合开始时不衰减一半"
+      },
+      "metallicize": {
+        "name": "金属化",
+        "desc": "回合结束时获得护盾"
+      },
+      "demon_form": {
+        "name": "恶魔形态",
+        "desc": "回合开始时获得力量"
+      },
+      "ward": {
+        "name": "守护",
+        "desc": "敌方单体攻击只能指向该随从"
+      },
+      "stun": {
+        "name": "眩晕",
+        "desc": "下一回合无法行动"
+      },
+      "source_of_cinder": {
+        "name": "薪火之源",
+        "desc": "每回合开始额外获得 1A 1BA"
+      }
+    },
+    "minion": {
+      "summon": "在格子 [{grid}] 召唤了【{name}】。",
+      "full": "战场已满，召唤失败。"
+    },
+    "strike": {
+      "result": "对【{name}】使用【打击】，造成了 {dmg} 点挥砍伤害。"
+    },
+    "defend": {
+      "result": "使用了【防御】，获得了 {shield} 点护盾。"
+    },
+    "bash": {
+      "result": "对【{name}】使用【痛击】，造成了 {dmg} 点钝击伤害，并施加了 {stacks} 层【轻度易伤】。"
+    },
+    "iron_wave": {
+      "result": "对【{name}】使用【铁斩波】，造成了 {dmg} 点挥砍伤害，并获得了 {shield} 点护盾。"
+    },
+    "anger": {
+      "result": "对【{name}】使用【愤怒】，造成了 {dmg} 点挥砍伤害。将一张复制品加入弃牌堆。"
+    },
+    "body_slam": {
+      "result": "对【{name}】使用【全身撞击】，造成了等同于当前护盾值（{dmg}点）的钝击伤害。"
+    },
+    "pommel_strike": {
+      "result": "对【{name}】使用【剑柄打击】，造成了 {dmg} 点挥砍伤害并抽了 {cards_to_draw} 张牌。"
+    },
+    "shrug_it_off": {
+      "result": "使用了【耸肩无视】，获得了 {shield} 点护盾并抽了 {draw_count} 张牌。"
+    },
+    "heavy_blade": {
+      "result": "对【{name}】使用【重刃】，造成了 {dmg} 点挥砍伤害。"
+    },
+    "shockwave": {
+      "result": "释放了【震荡波】，对所有敌人施加了 {stacks} 层【轻度易伤】和【虚弱】。"
+    },
+    "flame_barrier": {
+      "result": "使用了【火焰屏障】，获得了 {shield} 点护盾并挂载了反弹 {barrier_dmg} 点伤害的火焰反震形态。"
+    },
+    "uppercut": {
+      "result": "对【{name}】打出【上钩拳】，造成了 {dmg} 点钝击伤害，并施加了 {stacks} 层【轻度易伤】与【虚弱】。"
+    },
+    "spot_weakness": {
+      "success": "观察【{name}】的弱点成功！玩家获得了 {strength_gain} 层【力量】。",
+      "fail": "观察【{name}】的弱点，但敌人的意图并不包含攻击，未获得力量。"
+    },
+    "ghostly_armor": {
+      "result": "使用了【幽魂铠甲】，获得了 {shield} 点护盾。"
+    },
+    "power_through": {
+      "result": "使用了【硬撑】，获得了 {shield} 点护盾，并在手牌里添加了 {added_wounds} 张【伤口】诅咒卡。"
+    },
+    "double_tap": {
+      "result": "使用了【双发】，本回合你打出的下一张物理伤害牌额外打出 {stacks} 次。"
+    },
+    "feed": {
+      "kill": "对【{name}】使用了【狂宴】造成 {dmg} 点挥砍伤害并将其吞噬！玩家最大生命值永久增加了 {hp_gain} 点并回复了等量生命。",
+      "miss": "对【{name}】使用了【狂宴】，造成了 {dmg} 点挥砍伤害，但未成功击杀。"
+    },
+    "inflame": {
+      "result": "使用了【燃烧】，玩家获得了 {strength_gain} 层【力量】。"
+    },
+    "barricade": {
+      "result": "使用了【壁垒】，获得了 {stacks} 层【缓冲】并挂载了【壁垒】形态（护盾回合开始时不流失一半）。"
+    },
+    "metallicize": {
+      "result": "使用了【金属化】，挂载了【金属化】形态（回合结束时获得 {stacks} 点护盾）。"
+    },
+    "bludgeon": {
+      "result": "对【{name}】使用了重击【重击】，造成了 {dmg} 点钝击伤害。"
+    },
+    "demon_form": {
+      "bonus": "，并额外获得了 {gain_a}A 动作点",
+      "result": "使用了【恶魔形态】{bonus}。挂载了【恶魔形态】（每回合开始时获得 {stacks} 层力量）。"
+    },
+    "impervious": {
+      "result": "使用了【岿然不动】，获得了 {shield} 点护盾。"
+    },
+    "entrench": {
+      "result": "使用了【巩固】，获得了 {gain} 点护盾（当前护盾由 {old_shield} 点变为 {new_shield} 点）。"
+    },
+    "recruit_vanguard": {
+      "rally_damage": "\n⚔️ [入场曲] 协作达到了 {rally}！对【{name}】造成了 {dmg} 点穿刺伤害，并抽了 1 张牌。",
+      "no_enemy": "\n⚔️ [入场曲] 协作达到了 {rally}！但场上没有活着的敌人，抽了 1 张牌。",
+      "shield": "\n🛡️ [入场曲] 协作仅为 {rally}，玩家获得了 {shield} 点护盾。"
+    },
+    "banner_bearer": {
+      "bonus_upgraded": "\n✨ [入场曲] 检测到我方指挥官随从在场，抽了 {draw_count} 张牌且获得了 {gain_a}A {gain_ba}BA！",
+      "bonus": "\n✨ [入场曲] 检测到我方指挥官随从在场，抽了 {draw_count} 张牌且获得了 {gain_ba}BA！"
+    },
+    "patrol_captain": {
+      "token_name_upgraded": "步兵轻卒+",
+      "token_name": "步兵轻卒",
+      "token_summon": "\n📢 [入场曲] 并在格子 [{grid}] 召唤了【{name}】。"
+    },
+    "royal_guard": {
+      "rally": "\n🛡️ [入场曲] 协作达到了 {rally}！近卫铁骑获得了【守护】！"
+    },
+    "garrison_leader": {
+      "rally": "\n🏰 [入场曲] 要塞卫队长自身获得【守护】，并使其他在场士兵最大生命值与血量值提升 {buff_hp} 点！"
+    },
+    "squad_skirmisher": {
+      "rally": "\n⚡ [入场曲] 协作达到了 {rally}！对【{name}】造成了 {dmg} 点挥砍伤害并使其眩晕了 {stun_turns} 回合！",
+      "no_enemy": "\n⚡ [入场曲] 协作达到了 {rally}！但场上没有活着的敌人。",
+      "hit": "\n⚔️ [入场曲] 对【{name}】造成了 {dmg} 点挥砍伤害。",
+      "no_enemy_short": "\n⚔️ [入场曲] 没有活着的敌人。"
+    },
+    "valiant_herald": {
+      "rally": "\n📣 [入场曲] 协作达到了 {rally}！从卡组中检索并抽取了士兵随从牌【{name}】，并使其本回合获得【保留】且动作费用 A 减少了 1！",
+      "draw": "\n📣 [入场曲] 从卡组中检索并抽取了士兵随从牌【{name}】。",
+      "fail": "\n📣 [入场曲] 检索失败，卡组中没有士兵随从牌。"
+    },
+    "blade_dancer": {
+      "rally_bonus": "，且玩家获得了 {gain_a}A",
+      "rally": "\n⚔️ [入场曲] 协作达到了 {rally}！双刃轻卫本回合可以攻击两次{bonus}！",
+      "clone_name_upgraded": "【克隆体】双刃轻卫+",
+      "clone_name": "【克隆体】双刃轻卫",
+      "clone": "\n👥 [入场曲] 指挥官在场！在格子 [{grid}] 召唤了该随从的克隆体！"
+    },
+    "aurora_emperor": {
+      "buff_name_upgraded": "极光圣域+",
+      "buff_name": "极光圣域",
+      "buff_desc_upgraded": "我方随从发起普攻时玩家获得 {passive_shield} 点护盾且抽 {draw_count} 卡",
+      "buff_desc": "我方随从发起普攻时玩家获得 {passive_shield} 点护盾",
+      "entry_upgraded": "\n🌟 [入场曲] 使在场所有士兵随从行动点 A 增加 {gain_a} 且能够立刻发起一次攻击！挂载了【极光圣域+】并为玩家提供了 {shield} 点护盾。",
+      "entry": "\n🌟 [入场曲] 使在场所有士兵随从行动点 A 增加 {gain_a} 且能够立刻发起一次攻击！挂载了【极光圣域】形态。"
+    },
+    "deploy": {
+      "success": "将【{name}】部署到了格子 [{grid}]。",
+      "fail": "战场格子已满，部署失败。"
+    },
+    "hell_raider": {
+      "buff_name_upgraded": "地狱狂徒+",
+      "buff_desc_upgraded": "抽到 2A及以下 且不消耗 BA 卡牌时免费自动打出，并额外抽 1 张卡",
+      "result_upgraded": "你咏唱了【地狱狂徒+】，浑身爆发出恐怖的炼狱火光！你将立刻对抽到的所有符合条件的卡牌进行狂暴连携打出，并额外抽牌！",
+      "buff_name": "地狱狂徒",
+      "buff_desc": "抽到 1A 且不消耗 BA 卡牌时自动释放且免费",
+      "result": "你咏唱了【地狱狂徒】，浑身散发出炽热的地狱火光！你将立刻对抽到的 1A 卡牌进行自动连携打出！"
+    },
+    "shield_bash": {
+      "result": "对【{name}】使用【盾牌猛击】，获得了 {shield} 点护盾，并造成了 {dmg} 点钝击伤害。"
+    },
+    "blood_fury": {
+      "result": "你点燃了自身的生命潜能，失去了 {loss} 点生命值，获得了 {strength} 层【力量】并抽了 {draw} 张牌！"
+    },
+    "source_of_cinder": {
+      "result": "你获得了【薪火之源】状态！"
+    },
+    "hematopoiesis": {
+      "drawn": "，抽取了 {draw_count} 张牌",
+      "result": "使用了【{name}】，将 {shield} 点护盾转化为了 {temp_hp} 点临时生命值{drawn_msg}。"
+    },
+    "discover": {
+      "no_cards": "❌ 你的消耗堆中没有任何可以发掘的卡牌，【{name}】未能发掘出任何东西。",
+      "unknown_card": "未知卡牌",
+      "success": "✨ 你使用【{name}】发掘了消耗堆中的【{names}】并加入了手牌。",
+      "invalid": "❌ 提供的消耗堆序号不合法或消耗堆中没有对应的卡牌。",
+      "prompt": "🔮 请选择一张卡牌发掘并加入手牌（使用 选择 <序号>）：\n{exhaust_list}"
+    },
+    "strike_of_all": {
+      "result": "对【{name}】造成了 {dmg} 点挥砍伤害（X={x}）。",
+      "moved": "将【{names}】从各个牌堆抽回了手牌。",
+      "none": "未在抽牌堆、弃牌堆或消耗堆中找到任何名称含“打击”的卡牌。"
+    }
+  },
+  "wizard": {
+    "buffs": {
+      "burning": {
+        "name": "燃烧",
+        "desc": "每回合开始时受到火焰伤害"
+      },
+      "fire_grow": {
+        "name": "烈焰成长",
+        "desc": "造成的火焰伤害增加"
+      },
+      "stun": {
+        "name": "眩晕",
+        "desc": "无法行动"
+      },
+      "arcane_charge": {
+        "name": "奥术充能",
+        "desc": "法术伤害 +3"
+      },
+      "echo_form": {
+        "name": "回响形态"
+      },
+      "buffer": {
+        "name": "缓冲"
+      },
+      "time_weak": {
+        "name": "虚弱",
+        "desc": "造成的伤害减少 50%"
+      },
+      "vulnerable": {
+        "name": "易伤",
+        "desc": "受到的伤害增加 50%"
+      },
+      "split_to_ten": {
+        "name": "一分为十"
+      }
+    },
+    "magic_missile": {
+      "result": "释放魔法飞弹，无视护盾对【{name}】造成了 {count} 次共 {total} 点伤害。"
+    },
+    "fireball": {
+      "bonus": " 🔥 [火球术+] 获得了 1 层【烈焰成长】（火焰伤害永久 +1）！",
+      "result": "释放火球术！对所有敌人造成了 {dmg} 点火焰伤害。"
+    },
+    "thunderwave": {
+      "bonus": " ⚡ [雷鸣波+] 眩晕了【{name}】{stun_turns} 回合！",
+      "result": "释放雷鸣波，对所有敌人造成了 {dmg} 点伤害，并扣除他们各 1 个动作。"
+    },
+    "shield": {
+      "heal_result": "获得了 {shield} 点护盾，并为自己恢复了 {heal} 点生命值。",
+      "result": "获得了 {shield} 点护盾。"
+    },
+    "arcane_spark": {
+      "bonus": " ⚡ [奥术星火+] 抽到了法术牌【{name}】，该卡牌本回合动作消耗降为 0！",
+      "result": "释放奥术星火，对【{name}】造成了 {dmg} 点伤害，并抽了 {draw_count} 张牌。"
+    },
+    "echo_form": {
+      "result": "使用了【{name}】，获得了【回响形态】buff（每回合打出的卡牌额外打出，每张牌最多回响 5 次，多余层数顺延至后续卡牌，可叠加）。"
+    },
+    "doomsday_judgment": {
+      "result": "释放末日审判！对所有敌人造成了 {dmg} 点伤害并眩晕他们一回合。"
+    },
+    "overcharge": {
+      "bonus": " ⚡ 并抽了 {draw_count} 张法术牌。",
+      "feedback": "使用了【过载充能】，获得了【奥术充能】buff（法术伤害 +3，可叠加）。",
+      "suffix": "（法术伤害 +3，可叠加）",
+      "stacks": "（获得了 {stacks} 层奥术充能）"
+    },
+    "magic_network": {
+      "buff_name_upgraded": "魔网天成+",
+      "buff_name": "魔网天成",
+      "buff_desc": "本回合内每使用一张法术牌，对所有敌人造成 {damage_amount} 点伤害，获得 {shield_amount} 点护盾。",
+      "buff_desc_echo": "支持回响触发。",
+      "feedback": "使用了【魔网天成】，本回合内你的法术将与魔网产生共鸣。"
+    },
+    "fleeting_spark": {
+      "discard": "使用了【{name}】，对【{target}】造成了 {dmg} 点伤害，并抽了 {draw_count} 张牌。请选择一张手牌丢弃。输入 选择 <手牌序号> 进行丢弃。",
+      "empty": "使用了【{name}】，对【{target}】造成了 {dmg} 点伤害，并抽了 {draw_count} 张牌，但手牌已空，无需丢弃。"
+    },
+    "chain_lightning": {
+      "bonus": " ⚡ [链式闪电+] 触发单体暴击，造成 1.5 倍伤害！",
+      "result": "释放链式闪电！对所有同名敌人造成了 {dmg} 点闪电伤害。"
+    },
+    "sunburst": {
+      "log": "☀️ [阳炎爆+ 效果] 净化了我方随从【{name}】的所有状态,且使其攻击力增加 {ally_atk_bonus} 点!",
+      "bonus": " ☀️ [阳炎爆+] 净化了我方随从并使其攻击力增加 {ally_atk_bonus} 点!",
+      "result": "释放【阳炎爆】，对所有除玩家外的生物造成了 {dmg} 点光耀伤害。"
+    },
+    "arcane_torrent": {
+      "result": "释放了奥术洪流，对所有敌人造成了 {count} 次 {dmg} 点真实伤害。"
+    },
+    "arcane_barrier": {
+      "bonus": " 🛡️ 并获得 {buff_stacks} 层【{buff_name}】！",
+      "result": "凝聚了奥法屏障，获得了 {shield} 点护盾。"
+    },
+    "prismatic_wall": {
+      "buff_name_upgraded": "虹光屏障+",
+      "buff_name": "虹光屏障",
+      "buff_desc": "受击时反射 {reflect_damage} 点混合属性伤害",
+      "result_upgraded": "你咏唱了【虹光法墙+】，获得了 {shield} 点护盾与 {barrier_layers} 层【虹光屏障+】！",
+      "result": "你咏唱了【虹光法墙】，获得了 {shield} 点护盾与 {barrier_layers} 层【虹光屏障】！"
+    },
+    "antimagic_field": {
+      "result_upgraded": "反魔法力场+席卷了战场！清除了场上所有生物的所有 Buff，并使所有护符消失（不触发谢幕曲且不进入墓地）。",
+      "result": "反魔法力场席卷了战场！清除了场上所有生物的所有 Buff，并使所有护符消失（不触发谢幕曲且不进入墓地）。"
+    },
+    "time_ravage": {
+      "result": "对【{name}】释放【时光蹂躏】，造成了 {dmg} 点时间侵蚀真实伤害，并施加了 {debuff_layers} 层【虚弱】与 {debuff_layers} 层【易伤】！",
+      "bonus": " 你获得了 {action_gain}A 时间补偿！"
+    },
+    "split_to_ten": {
+      "result": "使用了【{name}】，获得了 {stacks} 层【一分为十】Buff！"
+    },
+    "meteor_strike": {
+      "deploy_name_upgraded": "能量核心+",
+      "deploy_name": "能量核心",
+      "deploy_desc": "谢幕曲：你获得 {desc_val}。",
+      "amulet_deployed": "在格子 [{grid}] 部署了【{deploy_name}】护符。",
+      "amulet_fail": "战场格子已满，部署【能量核心】失败。",
+      "silent": "使用【陨石打击】攻击了寂静的战场。{amulet_msg}",
+      "result": "召唤陨石打击！对随机目标（{hits_summary}）共造成了 {hits_len} 次钝击伤害。{amulet_msg}"
+    }
+  }
+}

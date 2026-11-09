@@ -5,6 +5,13 @@ WIZARD_CARD_CONFIG = {
         "type": "spell",
         "cost_a": 4,
         "cost_ba": 0,
+        "base_dmg": 30,
+        "hits": 4,
+        "hit_count": 4,
+        "countdown": 1,
+        "action_gain": 1,
+        "bonus_action_gain": 1,
+        "gain_ba": 1,
         "desc": "对场上的随机敌人造成 30 点钝击伤害，此操作重复执行 4 次，在自己的战场上召唤一个【能量核心】护符。",
         "rarity": "legendary",
         "feedback": "召唤了陨石！"
@@ -31,6 +38,7 @@ WIZARD_CARD_CONFIG = {
         "rarity": "rare",
         "base_dmg": 3,
         "count": 3,
+        "hit_count": 3,
         "damage_type": "true",
         "feedback": "对【{target}】释放【魔法飞弹】。"
     },
@@ -44,6 +52,9 @@ WIZARD_CARD_CONFIG = {
         "rarity": "epic",
         "base_dmg": 18,
         "damage_type": "fire",
+        "burn_damage": 6,
+        "burn_turns": 2,
+        "buff_stacks": 1,
         "feedback": "释放【火球术】！"
     },
     "thunderwave": {
@@ -68,6 +79,8 @@ WIZARD_CARD_CONFIG = {
         "desc": "获得 8 点护盾。",
         "rarity": "common",
         "shield_amount": 8,
+        "heal_ratio": 0.5,
+        "hp_threshold": 0.5,
         "feedback": "获得了 {shield_amount} 点护盾。"
     },
     "misty_step": {
@@ -209,6 +222,7 @@ WIZARD_CARD_CONFIG = {
         "desc": "本场战斗中，你每回合打出的卡牌额外打出，每张牌最多回响 5 次，多余层数顺延至后续卡牌。虚无。",
         "rarity": "epic",
         "ethereal": True,
+        "buff_stacks": 1,
         "feedback": "使用了【{name}】，获得了【回响形态】buff（每回合打出的卡牌额外打出，每张牌最多回响 5 次，多余层数顺延至后续卡牌，可叠加）。"
     },
     "calculated_gamble": {
@@ -232,6 +246,7 @@ WIZARD_CARD_CONFIG = {
         "rarity": "common",
         "base_dmg": 2,
         "damage_type": "force",
+        "draw_count": 1,
         "feedback": "对【{target}】释放【奥术星火】并抽了 1 张牌。"
     },
     "overcharge": {
@@ -243,6 +258,7 @@ WIZARD_CARD_CONFIG = {
         "desc": "本场战斗法术伤害 +3（即获得 1 层奥术充能 buff）。消耗。",
         "rarity": "rare",
         "exhaust": True,
+        "buff_stacks": 1,
         "feedback": "使用了【过载充能】，获得了【奥术充能】buff（法术伤害 +3，可叠加）。"
     },
     "doomsday_judgment": {
@@ -254,6 +270,8 @@ WIZARD_CARD_CONFIG = {
         "desc": "对所有敌人造成 18 点黯蚀伤害并眩晕他们 1 回合。消耗。",
         "rarity": "legendary",
         "exhaust": True,
+        "base_dmg": 18,
+        "stun_turns": 1,
         "damage_type": "necrotic",
         "feedback": "释放【末日审判】！"
     },
@@ -266,6 +284,7 @@ WIZARD_CARD_CONFIG = {
         "desc": "将所有手牌与弃牌堆重新洗回抽牌堆，并重新抽牌直到抽至手牌上限。消耗。",
         "rarity": "legendary",
         "exhaust": True,
+        "hand_limit": 12,
         "feedback": "时光倒流！已将所有卡牌重新洗回抽牌堆，并重新抽取了 {draw_count} 张牌。"
     },
     "magic_network": {
@@ -276,6 +295,8 @@ WIZARD_CARD_CONFIG = {
         "cost_ba": 0,
         "desc": "本回合内，你每使用一张法术牌，便对所有敌人造成 3 点伤害，获得 3 点护盾。",
         "rarity": "legendary",
+        "damage_amount": 3,
+        "shield_amount": 3,
         "feedback": "使用了【魔网天成】，本回合内你的法术将与魔网产生共鸣。"
     },
     "meteor_swarm": {
@@ -288,6 +309,8 @@ WIZARD_CARD_CONFIG = {
         "rarity": "legendary",
         "exhaust": True,
         "base_dmg": 0,
+        "dice_count": 8,
+        "die_size": 12,
         "damage_type": "fire",
         "feedback": "释放【流星爆】！滚烫的陨石砸落。"
     },
@@ -300,6 +323,9 @@ WIZARD_CARD_CONFIG = {
         "desc": "获得 10 点护盾，本场战斗中法术伤害 +4，并抽 2 张牌。消耗。",
         "rarity": "legendary",
         "exhaust": True,
+        "shield_amount": 10,
+        "spell_damage_bonus": 4,
+        "draw_count": 2,
         "feedback": "完成了大法师的祈愿！获得了 10 点护盾，【祈愿奥术】法术伤害 +4，并抽了 2 张牌。"
     },
     "time_stop": {
@@ -311,6 +337,7 @@ WIZARD_CARD_CONFIG = {
         "desc": "在回合结束时，额外追加 3 个额外回合。额外回合中若造成伤害，则立即结束。消耗。",
         "rarity": "mythic",
         "exhaust": True,
+        "extra_turns": 3,
         "feedback": "施展了【时间停止】！你掌握了时空的掌控权，获得了 3 个额外回合。在额外回合中造成伤害将提前打破时间停止状态。"
     },
     "chain_lightning": {
@@ -345,6 +372,10 @@ WIZARD_CARD_CONFIG = {
         "cost_ba": 0,
         "desc": "对所有敌人造成多次 3 点真实伤害（穿透护盾）。若最终X不大于2，则造成X*2次伤害；若最终X大于2，则造成X*4次伤害。",
         "rarity": "rare",
+        "damage_amount": 3,
+        "threshold": 2,
+        "coef": 2,
+        "factor": 4,
         "damage_type": "true",
         "feedback": "释放了奥术洪流，对所有敌人造成了 {count} 次 {dmg} 点真实伤害。"
     },
@@ -356,6 +387,9 @@ WIZARD_CARD_CONFIG = {
         "cost_ba": -1,
         "desc": "获得X*6点护盾。若X>1，则获得1层缓冲。",
         "rarity": "common",
+        "coef": 6,
+        "threshold": 1,
+        "buff_stacks": 1,
         "feedback": "凝聚了奥法屏障，获得了 {shield} 点护盾。"
     },
     "wizard_prismatic_wall": {
@@ -366,6 +400,9 @@ WIZARD_CARD_CONFIG = {
         "cost_ba": 0,
         "desc": "获得 15 点护盾与 2 层【虹光屏障】。受击时反射 12 点混合属性伤害。",
         "rarity": "epic",
+        "shield_amount": 15,
+        "buff_stacks": 2,
+        "reflect_damage": 12,
         "feedback": "你在身前铸起一道璀璨夺目的【虹光法墙】！"
     },
     "wizard_antimagic_field": {
@@ -388,6 +425,8 @@ WIZARD_CARD_CONFIG = {
         "desc": "对目标造成 15 点真实伤害，并使其获得 2 层【虚弱】与 2 层【易伤】。消耗。",
         "rarity": "epic",
         "exhaust": True,
+        "base_dmg": 15,
+        "buff_stacks": 2,
         "feedback": "你咏唱了【时光蹂躏】，目标敌人的生命力在瞬息间迅速老去衰败！"
     },
     "wizard_split_to_ten": {
@@ -399,6 +438,7 @@ WIZARD_CARD_CONFIG = {
         "desc": "获得 1 层【一分为十】Buff。消耗。",
         "rarity": "mythic",
         "exhaust": True,
+        "buff_stacks": 1,
         "feedback": "施放了【一分为十】！"
     }
 }

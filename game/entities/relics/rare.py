@@ -1,16 +1,19 @@
 import re
+from ...data.relic_data import RELIC_CONFIG
+from ...data.locale_data import get_locale_text
 from .base import RelicImpl
 from .registry import register_relic
 
 class ReadyPackRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.draw_bonus = 1
-        self.ba_bonus = 1
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.draw_bonus = cfg.get("draw_bonus", 1)
+        self.ba_bonus = cfg.get("ba_bonus", 1)
 
     def on_battle_start(self, run, engine):
         run.player.bonus_actions += self.ba_bonus
-        engine._log_event(run, f"🎒 [准备背包] 触发：本场战斗初始附赠动作（BA）+{self.ba_bonus}。")
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.rare.ready_pack.trigger", ba_bonus=self.ba_bonus))
 
     def modify_initial_draw(self, run, draw_count: int, engine) -> int:
         return draw_count + self.draw_bonus
@@ -18,7 +21,8 @@ class ReadyPackRelic(RelicImpl):
 class WhetstoneRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.attack_bonus = 1
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.attack_bonus = cfg.get("attack_bonus", 1)
 
     def on_damage_calculate(self, event, run, engine):
         if event.source.startswith("p") and event.source != "p0" and event.damage_type == "attack":
@@ -27,25 +31,38 @@ class WhetstoneRelic(RelicImpl):
 class ArcaneRuneRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.spell_bonus = 1
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.spell_bonus = cfg.get("spell_bonus", 1)
 
     def on_damage_calculate(self, event, run, engine):
-        if event.damage_type == "spell" and event.source == "p0":
+        is_spell = getattr(event.card, "type", "") == "spell" if event.card is not None else event.damage_type == "spell"
+        if is_spell and event.source == "p0":
             event.modified_damage += self.spell_bonus
 
 class ChemicalXRelic(RelicImpl):
     pass
 
 class AncientCompassRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.action_reduction = cfg.get("action_reduction", 1)
+
     def on_battle_start(self, run, engine):
         for e in run.enemies:
-            e.actions = max(0, e.actions - 1)
-        engine._log_event(run, "🧭 [古老罗盘] 触发：所有敌人首回合动作点（A）减少 1。")
+            e.actions = max(0, e.actions - self.action_reduction)
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.rare.ancient_compass.trigger"))
 
 class VoidLensRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.damage_bonus = cfg.get("damage_bonus", 2)
+        self.shield_bonus = cfg.get("shield_bonus", 2)
+
     def on_damage_calculate(self, event, run, engine):
         if event.card and event.card.color == "neutral" and event.source == "p0":
-            event.modified_damage += 2
+            event.modified_damage += self.damage_bonus
 
     def on_shield_gain(self, event, run, engine):
         curr_cid = run.node_data.get("current_playing_card_id", "")
@@ -53,27 +70,47 @@ class VoidLensRelic(RelicImpl):
             from ..cards.base import ALL_CARDS
             card = ALL_CARDS.get(curr_cid)
             if card and card.color == "neutral":
-                event.modified_amount += 2
+                event.modified_amount += self.shield_bonus
 
 class CenturionMailRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.damage_reduction = cfg.get("damage_reduction", 2)
+
     def on_damage_calculate(self, event, run, engine):
         if event.target == "p0" and event.damage_type in ("slashing", "piercing", "bludgeoning"):
-            event.modified_damage = max(0, event.modified_damage - 2)
+            event.modified_damage = max(0, event.modified_damage - self.damage_reduction)
 
 class PriestCharmRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.shield_gain = cfg.get("shield_gain", 3)
+
     def on_heal(self, event, run, engine):
         if event.target == "p0":
-            engine._gain_shield(run, "p0", 3)
+            engine._gain_shield(run, "p0", self.shield_gain)
 
 class BeastmasterClawRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.atk_bonus = cfg.get("atk_bonus", 1)
+
     def on_battle_start(self, run, engine):
         for m in run.player.minions.values():
-            m.atk += 1
+            m.atk += self.atk_bonus
 
     def on_minion_summon(self, event, run, engine):
-        event.minion_state.atk += 1
+        event.minion_state.atk += self.atk_bonus
 
 class DjinnShardRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.damage = cfg.get("damage", 5)
+
     def on_turn_start(self, event, run, engine):
         if event.is_player:
             run.node_data["djinn_shard_fired"] = False
@@ -86,8 +123,8 @@ class DjinnShardRelic(RelicImpl):
                 import random
                 target_enemy = random.choice(alive)
                 idx = run.enemies.index(target_enemy) + 1
-                engine._log_event(run, f"💎 [巨灵碎晶] 触发！本回合打出第一张法术，对【{target_enemy.name}】造成 5 点力场伤害！")
-                engine.combat_resolver.damage_target(run, f"e{idx}", 5, source="relic:djinn_shard", damage_type="force")
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.rare.djinn_shard.trigger", name=target_enemy.name))
+                engine.combat_resolver.damage_target(run, f"e{idx}", self.damage, source="relic:djinn_shard", damage_type="force")
 
 class ArchmageRobeRelic(RelicImpl):
     pass
@@ -99,43 +136,64 @@ class MindflayerBrainRelic(RelicImpl):
     pass
 
 class LengSpiderVenomRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.proc_chance = cfg.get("proc_chance", 0.5)
+        self.vulnerable_stacks = cfg.get("vulnerable_stacks", 1)
+
     def on_damage_take(self, event, run, engine):
         if event.source == "p0" and event.target.startswith("e"):
             dtype = event.damage_type
             if dtype in ("slashing", "piercing", "bludgeoning"):
                 import random
-                if random.random() < 0.5:
+                if random.random() < self.proc_chance:
                     try:
                         idx = int(event.target[1:]) - 1
                         if 0 <= idx < len(run.enemies):
                             enemy = run.enemies[idx]
-                            engine._add_buff_to(enemy, "minor_vulnerable", "轻度易伤", "受到的所有类型伤害增加 50%", 1)
-                            engine._log_event(run, f"🕷️ [冷蛛毒腺] 触发！使【{enemy.name}】获得 1 层【轻度易伤】。")
+                            engine._add_buff_to(enemy, "minor_vulnerable", get_locale_text("i18n_relics_amulets.rare.leng_spider_venom.buff_name"), get_locale_text("i18n_relics_amulets.rare.leng_spider_venom.buff_desc"), self.vulnerable_stacks)
+                            engine._log_event(run, get_locale_text("i18n_relics_amulets.rare.leng_spider_venom.trigger", name=enemy.name))
                     except ValueError:
                         pass
 
 class MigoLightningGunRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.damage = cfg.get("damage", 5)
+
     def on_battle_start(self, run, engine):
-        engine._log_event(run, "🔫 [米·戈电击枪] 触发！释放高频电磁波！")
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.rare.migo_lightning_gun.trigger"))
         for idx in range(len(run.enemies) - 1, -1, -1):
             target_str = f"e{idx+1}"
-            engine.combat_resolver.damage_target(run, target_str, 5, source="relic:migo_lightning_gun", damage_type="lightning")
+            engine.combat_resolver.damage_target(run, target_str, self.damage, source="relic:migo_lightning_gun", damage_type="lightning")
 
 class ShoggothSlimeRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.shield_gain = cfg.get("shield_gain", 4)
+
     def on_damage_take(self, event, run, engine):
         if event.target == "p0" and event.amount > 0:
             is_true = (event.damage_type == "true" or event.damage_type == "TRUE")
             last_shield = run.node_data.get("last_shield_before_dmg", 0)
             if is_true or event.amount > last_shield:
-                engine._log_event(run, "🦠 [修格斯粘液] 触发！受伤失去生命，获得 4 点护盾。")
-                engine._gain_shield(run, "p0", 4)
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.rare.shoggoth_slime.trigger"))
+                engine._gain_shield(run, "p0", self.shield_gain)
 
 class StarVampireProboscisRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.heal_amount = cfg.get("heal_amount", 2)
+
     def on_card_played(self, event, run, engine):
         card = event.card
         if getattr(card, "exhaust", False) or getattr(card, "id", "") == "curse_dimensional_tear":
-            engine._log_event(run, "🩸 [星之吸管] 触发！打出消耗牌，回复 2 点生命值。")
-            engine._heal_target(run, "p0", 2)
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.rare.star_vampire_proboscis.trigger"))
+            engine._heal_target(run, "p0", self.heal_amount)
 
 
 

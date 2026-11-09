@@ -1,6 +1,7 @@
 from ...models.state import GameRun, EnemyState
 from ...models.events import TurnStartEvent, TurnEndEvent
 from ...entities import get_enemy_template
+from ...data.locale_data import get_locale_text
 
 class EnemyTurnController:
     def __init__(self, engine):
@@ -62,13 +63,13 @@ class EnemyTurnController:
                         temp_a -= it.cost_a
                     else:
                         it.cancelled = True
-                        it.cancelled_desc = "已取消 (动作点不足)"
+                        it.cancelled_desc = get_locale_text("i18n_battle_core.cancelled_desc")
                 if it.cost_ba > 0:
                     if temp_ba >= it.cost_ba:
                         temp_ba -= it.cost_ba
                     else:
                         it.cancelled = True
-                        it.cancelled_desc = "已取消 (动作点不足)"
+                        it.cancelled_desc = get_locale_text("i18n_battle_core.cancelled_desc")
         enemy.intent_a_type = ""
         enemy.intent_a_val = 0
         enemy.intent_a_desc = ""
@@ -125,14 +126,10 @@ class EnemyTurnController:
             self.sync_enemy_intents(enemy)
 
     def enemy_turn(self, run: GameRun) -> str:
-        if getattr(run, "coop_id", ""):
-            from ..coop_engine import CoopEngine
-            return CoopEngine(self.engine.save_manager, self.engine).enemy_turn(run, self)
         logs = []
         pending = run.node_data.get("pending_transitions", {})
         if pending:
-            active_enemies = list(run.enemies)
-            for enemy in active_enemies:
+            for enemy in list(run.enemies):
                 if enemy.name in pending:
                     target_phase = pending.pop(enemy.name)
                     template = get_enemy_template(enemy.name)
@@ -145,17 +142,27 @@ class EnemyTurnController:
                 lost = enemy.shield - (enemy.shield // 2)
                 enemy.shield = enemy.shield // 2
                 if lost > 0:
-                    decay_enemies.append(f"【{enemy.name}】失去 {lost} 点护盾")
+                    decay_enemies.append(get_locale_text("i18n_battle_core.shield_decay_entry", name=enemy.name, lost=lost))
                     from ...models.events import ShieldDecayEvent
                     self.engine.event_bus.dispatch(ShieldDecayEvent(run, f"e{idx+1}", lost))
             else:
                 enemy.shield = 0
         if decay_enemies:
-            logs.append("🛡️ 护盾流失：" + "，".join(decay_enemies))
-        evt_turn = TurnStartEvent(run, is_player=False)
-        self.engine.event_bus.dispatch(evt_turn)
-        active_enemies = list(run.enemies)
-        for idx, enemy in enumerate(active_enemies):
+            logs.append(get_locale_text("i18n_battle_core.enemy_shield_decay_line", entries="，".join(decay_enemies)))
+        self.engine.event_bus.dispatch(TurnStartEvent(run, is_player=False))
+        is_coop = bool(getattr(run, "coop_id", ""))
+        viewer = run.player
+        viewer_uid = run.user_id
+        coop = None
+
+        def coop_engine():
+            nonlocal coop
+            if coop is None:
+                from ..coop_engine import CoopEngine
+                coop = CoopEngine(self.engine.save_manager, self.engine)
+            return coop
+
+        for index, enemy in enumerate(list(run.enemies), 1):
             if enemy.hp <= 0:
                 continue
             if enemy.actions == 0 and enemy.bonus_actions == 0:
@@ -167,28 +174,56 @@ class EnemyTurnController:
                 if it.cancelled:
                     continue
                 if it.cost_a > 0 and enemy.actions < it.cost_a:
-                    logs.append(f"⚠️ 【{enemy.name}】因动作点（A）不足，取消了意图【{it.desc}】。")
+                    logs.append(get_locale_text("i18n_battle_core.cancel_intent_no_a_log", enemy=enemy.name, intent=it.desc))
                     it.cancelled = True
-                    it.cancelled_desc = "已取消 (动作点不足)"
+                    it.cancelled_desc = get_locale_text("i18n_battle_core.cancelled_desc")
                     continue
                 if it.cost_ba > 0 and enemy.bonus_actions < it.cost_ba:
-                    logs.append(f"⚠️ 【{enemy.name}】因附赠动作点（BA）不足，取消了意图【{it.desc}】。")
+                    logs.append(get_locale_text("i18n_battle_core.cancel_intent_no_ba_log", enemy=enemy.name, intent=it.desc))
                     it.cancelled = True
-                    it.cancelled_desc = "已取消 (动作点不足)"
+                    it.cancelled_desc = get_locale_text("i18n_battle_core.cancelled_desc")
                     continue
                 enemy.actions = max(0, enemy.actions - it.cost_a)
                 enemy.bonus_actions = max(0, enemy.bonus_actions - it.cost_ba)
                 if it.type == "phase_transition":
-                    logs.append(f"⏳ 【{enemy.name}】正在进行【{it.desc.split(' (')[0]}】！此回合免疫所有伤害。")
+                    logs.append(get_locale_text("i18n_battle_core.phase_transition_log", enemy=enemy.name, intent=it.desc.split(' (')[0]))
                     continue
-                run.node_data["current_acting_enemy_idx"] = run.enemies.index(enemy)
-                try:
-                    template.execute_intent(run, self.engine, enemy, it, logs)
-                finally:
-                    if "current_acting_enemy_idx" in run.node_data:
-                        del run.node_data["current_acting_enemy_idx"]
-        evt_turn_end = TurnEndEvent(run, is_player=False)
-        self.engine.event_bus.dispatch(evt_turn_end)
+                if is_coop:
+                    coop_eng = coop_engine()
+                    target = coop_eng._pick_enemy_target(run, index, it, viewer_uid)
+                    if target == "ALL":
+                        targets = [(uid, run.players[uid]) for uid in coop_eng._alive_uids(run)]
+                    else:
+                        targets = [(target, run.players.get(target))]
+                else:
+                    targets = [("p0", run.player)]
+                for uid, player in targets:
+                    if player is None or player.downed or player.hp <= 0:
+                        continue
+                    if is_coop:
+                        run.player = player
+                        run.user_id = uid
+                        run.node_data["coop_damage_target_uid"] = uid
+                        run.node_data["coop_damage_aoe"] = target == "ALL"
+                    run.node_data["current_acting_enemy_idx"] = run.enemies.index(enemy) if enemy in run.enemies else index - 1
+                    try:
+                        template.execute_intent(run, self.engine, enemy, it, logs)
+                    finally:
+                        run.node_data.pop("current_acting_enemy_idx", None)
+                        if is_coop:
+                            run.player = viewer
+                            run.user_id = viewer_uid
+                if is_coop and coop_engine().is_all_downed(run):
+                    logs.append(get_locale_text("i18n_battle_core.coop_all_downed_log"))
+                    break
+            if is_coop and coop_engine().is_all_downed(run):
+                break
+        self.engine.event_bus.dispatch(TurnEndEvent(run, is_player=False))
+        if is_coop:
+            run.node_data.pop("coop_damage_aoe", None)
+            run.node_data.pop("coop_damage_target_uid", None)
+            for player in run.players.values():
+                player.buffs[:] = [buff for buff in player.buffs if buff.id != "coop_aegis"]
         for enemy in run.enemies:
             enemy.actions = enemy.max_actions
             enemy.bonus_actions = enemy.max_bonus_actions

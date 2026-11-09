@@ -1,0 +1,19 @@
+{
+  "coop_done_waiting": "⏳ 你已完成本节点行动，正在等待队友。",
+  "err_cannot_skip_reward": "❌ 该卡牌奖励不能跳过。",
+  "err_invalid_reward_idx": "❌ 无效的奖励序号。",
+  "card_select_skipped": "你跳过了这次选卡。",
+  "card_reward_gained": "你将【{card_name}】加入了卡组。",
+  "card_reward_start": "🃏 你开启了个人卡牌三选一奖励，请选择一张加入卡组：",
+  "reward_skip_option": " [{idx}] 跳过本次选卡",
+  "shared_relic_registered": "🎒 你登记领取共享遗物【{relic_name}】(当前 {count} 人登记)。全队完成奖励后统一发放。",
+  "meditate_abandoned": "你放弃了这次冥想感悟。",
+  "meditate_card_gained": "你领悟了【{card_name}】并加入卡组。",
+  "rest_heal": "你感到精力充沛，恢复了 {heal} 点生命值。",
+  "meditate_desc": "你面对篝火静静冥想，脑海中浮现出了三道奥术灵光：",
+  "meditate_skip_option": " [{idx}] 放弃感悟",
+  "list_delimiter": "、",
+  "mend_target_prompt": "❌ 请指定要救治的队友，例如：选择 4 a2。当前可选：{names}",
+  "mend_cleanse_suffix": "，并净化了 1 层【{buff_name}】",
+  "mend_success": "🔥 你救治了【{ally_name}】，为其恢复 {heal} 点生命{removed}。"
+}

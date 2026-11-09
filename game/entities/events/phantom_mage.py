@@ -1,41 +1,48 @@
 import random
 from .base import EventOption
+from ...data.event_data import EVENT_CONFIG
 from ..cards import ALL_CARDS
+from ...core.deck_service import DeckService
+from ...data.locale_data import get_locale_text
 
-class ReadScrollOption(EventOption, action="read_scroll", text="解读残卷"):
+class ReadScrollOption(EventOption, action="read_scroll", text=get_locale_text("i18n_events_b.option_read_scroll")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        if random.random() < 0.5:
-            p.deck.append("spell_surge")
-            res = "🍀 你成功解读了残卷！你对奥术的领悟更深了，将卡牌【奥术涌动】加入了你的卡组。"
+        cfg = EVENT_CONFIG.get("phantom_mage", {})
+        if random.random() < cfg.get("read_success_chance", 0.5):
+            DeckService.add_card_to_deck(p, "spell_surge")
+            res = get_locale_text("i18n_events_b.msg_read_scroll_success")
         else:
-            p.deck.append("curse_dazed")
-            res = "⚡ 残卷上狂暴的奥术能量瞬间反噬了你！你感到一阵【晕眩】（1张【晕眩】卡牌已加入卡组）。"
+            DeckService.add_card_to_deck(p, "curse_dazed")
+            res = get_locale_text("i18n_events_b.msg_read_scroll_fail")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
         return res
 
-class ResonateScrollOption(EventOption, action="resonate_scroll", text="用魔网产生共鸣"):
+class ResonateScrollOption(EventOption, action="resonate_scroll", text=get_locale_text("i18n_events_b.option_resonate_scroll")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        if p.gold < 15:
-            return "❌ 你的金币不足 15 点。"
-        p.gold -= 15
+        cfg = EVENT_CONFIG.get("phantom_mage", {})
+        resonate_gold = cfg.get("resonate_gold", 15)
+        if p.gold < resonate_gold:
+            return get_locale_text("i18n_events_b.err_gold_not_enough_15")
+        p.gold -= resonate_gold
         spells = [cid for cid, c in ALL_CARDS.items() if c.type == "spell" and c.rarity not in ("legendary", "mythic", "artifact") and not cid.startswith("curse_") and not getattr(c, "coop_only", False)]
         got_card = random.choice(spells) if spells else "dagger_throw"
-        p.deck.append(got_card)
+        DeckService.add_card_to_deck(p, got_card)
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return f"🪙 你消耗了 15 金币。魔网与残卷共鸣，凭空凝聚出一张卡牌【{ALL_CARDS[got_card].name}】并加入了你的卡组。"
+        return get_locale_text("i18n_events_b.msg_resonate_scroll", card_name=ALL_CARDS[got_card].name)
 
-class DispelPhantomOption(EventOption, action="dispel_phantom", text="驱散残影"):
+class DispelPhantomOption(EventOption, action="dispel_phantom", text=get_locale_text("i18n_events_b.option_dispel_phantom")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
+        cfg = EVENT_CONFIG.get("phantom_mage", {})
         if "wither_seed" not in p.relics:
-            p.hp = min(p.max_hp, p.hp + 15)
-            res = "✨ 你用魔力驱散了法师的残影。残影破碎为纯净的奥术微光，治愈了你的伤势，生命值回复了 15 点。"
+            p.hp = min(p.max_hp, p.hp + cfg.get("dispel_heal", 15))
+            res = get_locale_text("i18n_events_b.msg_dispel_heal")
         else:
-            res = "✨ 你用魔力驱散了法师的残影。残影化为奥术微光散去（因为有枯萎之种，你无法获得治疗）。"
+            res = get_locale_text("i18n_events_b.msg_dispel_no_heal")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
         return res

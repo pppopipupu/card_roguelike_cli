@@ -27,7 +27,7 @@ ENEMY_BOSS_CONFIG = {
     "远古红龙": {
         "name": "远古红龙",
         "type": "boss",
-        "hp": "60",
+        "hp": "140",
         "actions": "1A 2BA",
         "intents": [
             {"id": "attack", "val": 12, "desc": "喷吐火焰 (造成 12 伤害)"},
@@ -160,4 +160,11 @@ ENEMY_BOSS_CONFIG = {
             {"id": "temporal_lock", "val": 5, "desc": "时间锁定 (造成 5 点心灵伤害，且迫使玩家随机丢弃 1 张手牌)"}
         ]
     }
+}
+
+BOSS_POOLS = {
+    "early": ["远古红龙", "雷霆领主"],
+    "gate": ["腐化之心", "Icerainboww"],
+    "aforgomon": ["亚弗戈蒙"],
+    "final": ["虚空之门·尤格-索托斯"]
 }

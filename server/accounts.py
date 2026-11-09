@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+from game.data.locale_data import get_locale_text
+
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -195,29 +197,29 @@ class AccountStore:
         with self._lock:
             target = self._get_by("id", target_uuid)
             if not target:
-                return "not_found", None, "该 UUID 不存在，请确认绑定码。"
+                return "not_found", None, get_locale_text("i18n_server_core.accounts.uuid_not_found")
             if target["web_user_id"] == web_user_id:
-                return "ok", target, "该 UUID 已经绑定到当前网页账号。"
+                return "ok", target, get_locale_text("i18n_server_core.accounts.already_bound_current")
             if target["web_user_id"] and target["web_user_id"] != web_user_id:
-                return "taken", None, "该 UUID 已经绑定了其他网页账号。"
+                return "taken", None, get_locale_text("i18n_server_core.accounts.already_bound_other")
             current = self._get_by("web_user_id", web_user_id)
             if not current:
                 current = self.get_or_create_web(web_user_id)
             if current["uuid"] == target_uuid:
-                return "ok", target, "该 UUID 已经绑定到当前网页账号。"
+                return "ok", target, get_locale_text("i18n_server_core.accounts.already_bound_current")
             if current["im_user_id"]:
                 return (
                     "conflict",
                     None,
-                    "当前网页账号已关联一个即时通讯玩家，无法直接切换绑定。",
+                    get_locale_text("i18n_server_core.accounts.im_conflict"),
                 )
             if not force and self.has_progress(current["uuid"]):
                 return (
                     "need_force",
                     None,
-                    "当前网页账号已有独立进度。若确认放弃该进度并绑定目标 UUID，请输入：绑定 "
-                    + target_uuid
-                    + " force",
+                    get_locale_text(
+                        "i18n_server_core.accounts.need_force", target_uuid=target_uuid
+                    ),
                 )
             if force:
                 self._delete_files(current["uuid"])
@@ -231,8 +233,10 @@ class AccountStore:
                 self._conn.commit()
             except sqlite3.IntegrityError:
                 self._conn.rollback()
-                return "taken", None, "该 UUID 已经绑定了其他网页账号。"
-            return "ok", self._get_by("id", target_uuid), "绑定成功。"
+                return "taken", None, get_locale_text("i18n_server_core.accounts.already_bound_other")
+            return "ok", self._get_by("id", target_uuid), get_locale_text(
+                "i18n_server_core.accounts.bind_success"
+            )
 
     def list_all(self) -> list[dict]:
         with self._lock:

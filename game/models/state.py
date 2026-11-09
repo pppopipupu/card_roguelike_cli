@@ -2,24 +2,23 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 from contextvars import ContextVar
 from enum import Enum
-import sys
+import hashlib
 
-if not hasattr(sys, "_rogue_current_user_id"):
-    sys._rogue_current_user_id = ContextVar("current_user_id", default="")
-if not hasattr(sys, "_rogue_fallback_user_id"):
-    sys._rogue_fallback_user_id = ""
+from ..data.locale_data import get_locale_text
 
-current_user_id = sys._rogue_current_user_id
+current_user_id = ContextVar("current_user_id", default="")
 
 def set_user_id(user_id: str):
     current_user_id.set(user_id)
-    sys._rogue_fallback_user_id = user_id
 
 def get_user_id() -> str:
-    val = current_user_id.get()
-    if not val:
-        return getattr(sys, "_rogue_fallback_user_id", "")
-    return val
+    return current_user_id.get()
+
+def public_player_id(user_id: str) -> str:
+    if not user_id:
+        return ""
+    digest = hashlib.sha256(user_id.encode("utf-8")).hexdigest().upper()
+    return "P" + digest[:12]
 
 class DamageType(Enum):
     ACID = "acid"
@@ -79,14 +78,6 @@ class UserStats:
     active_lobby_id: str = ""
     active_coop_id: str = ""
 
-
-
-if not hasattr(sys, "_rogue_stat_recorder"):
-    sys._rogue_stat_recorder = None
-
-def register_stat_recorder(recorder):
-    sys._rogue_stat_recorder = recorder
-
 @dataclass
 class CardState:
     id: str
@@ -113,7 +104,7 @@ class CardState:
                         self.fragile == temp_state.fragile and 
                         self.no_copy == temp_state.no_copy and
                         self.power_penalty == getattr(temp_state, "power_penalty", 0))
-            except:
+            except (ValueError, TypeError, KeyError):
                 return False
         if not isinstance(other, CardState):
             return False
@@ -131,7 +122,7 @@ class CardState:
             try:
                 temp_state = _parse_old_cid(other)
                 return self < temp_state
-            except:
+            except (ValueError, TypeError, KeyError):
                 return False
         if not isinstance(other, CardState):
             return NotImplemented
@@ -142,12 +133,6 @@ class CardState:
         if self.gems != other.gems:
             return tuple(self.gems) < tuple(other.gems)
         return (self.return_left, self.replay, self.fragile, self.no_copy) < (other.return_left, other.replay, other.fragile, other.no_copy)
-
-    @classmethod
-    def from_cid(cls, cid: str) -> 'CardState':
-        import warnings
-        warnings.warn("from_cid is deprecated", DeprecationWarning, stacklevel=2)
-        return _parse_old_cid(cid)
 
 def ensure_card_state(c) -> CardState:
     if isinstance(c, CardState):
@@ -301,7 +286,7 @@ class Card:
         return ""
 
     def special_action(self, run: 'GameRun', target: Optional[str] = None) -> str:
-        return f"激活了【{self.name}】的特殊行动！"
+        return get_locale_text("i18n_models.state.special_action", name=self.name)
 
     def add_tag(self, tag: CardTag):
         if not hasattr(self, "tags") or self.tags is None:
@@ -504,27 +489,6 @@ class EnemyState:
                         cost_a=0,
                         cost_ba=1
                     ))
-
-    def __setattr__(self, key, value):
-        if key == "hp":
-            try:
-                old_hp = self.__dict__.get("hp")
-            except AttributeError:
-                old_hp = None
-            if old_hp is not None and value < old_hp:
-                dmg = old_hp - value
-                if getattr(sys, "_rogue_stat_recorder", None):
-                    sys._rogue_stat_recorder(self.name, dmg, (value <= 0 and old_hp > 0))
-        elif key == "shield":
-            try:
-                old_shield = self.__dict__.get("shield")
-            except AttributeError:
-                old_shield = None
-            if old_shield is not None and value < old_shield:
-                dmg = old_shield - value
-                if getattr(sys, "_rogue_stat_recorder", None):
-                    sys._rogue_stat_recorder(self.name, dmg, False)
-        super().__setattr__(key, value)
 
 @dataclass
 class GameRun:

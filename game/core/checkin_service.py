@@ -1,5 +1,12 @@
 from datetime import datetime, timezone
-from ..data.checkin_data import COLLECTION_CARDS, COLLECTION_ORDER, DAILY_BLESSINGS
+from ..data.checkin_data import (
+    CHECKIN_STAMP_REQUIRED_FALLBACK,
+    CHECKIN_STAMPS_PER_CLAIM,
+    COLLECTION_CARDS,
+    COLLECTION_ORDER,
+    DAILY_BLESSINGS,
+)
+from ..data.locale_data import get_locale_text
 from .daily_blessing import roll_daily_blessing
 
 
@@ -28,23 +35,23 @@ class CheckinService:
         if claimed_now:
             return self._render_claim(stats)
         if stats.checkin_pending_stamp:
-            return "今日已签到，请选择一张集换卡盖章：\n" + self._render_collection(stats)
-        return "今日已签到。\n" + self._render_status(stats)
+            return get_locale_text("i18n_social.checkin.claim_pending") + self._render_collection(stats)
+        return get_locale_text("i18n_social.checkin.claim_done") + self._render_status(stats)
 
     def _stamp(self, user_id: str, stats, choice: str, claimed_now: bool) -> str:
         if not stats.checkin_pending_stamp:
-            return "今日已签到，且今日的集换章已经盖过了。\n" + self._render_status(stats)
+            return get_locale_text("i18n_social.checkin.stamp_already") + self._render_status(stats)
         card_id = self._resolve_choice(choice)
         if not card_id:
-            return "❌ 未找到该集换卡。请重新选择：\n" + self._render_collection(stats)
+            return get_locale_text("i18n_social.checkin.stamp_not_found") + self._render_collection(stats)
         config = COLLECTION_CARDS[card_id]
         stamps = getattr(stats, "collection_stamps", {}) or {}
-        current = int(stamps.get(card_id, 0)) + 1
+        current = int(stamps.get(card_id, 0)) + CHECKIN_STAMPS_PER_CLAIM
         stamps[card_id] = current
         stats.collection_stamps = stamps
         stats.checkin_pending_stamp = False
         unlocked_now = False
-        required = int(config.get("required", 1))
+        required = int(config.get("required", CHECKIN_STAMP_REQUIRED_FALLBACK))
         if current >= required:
             unlock_card = config.get("unlock_card", card_id)
             unlocked = list(getattr(stats, "unlocked_new_cards", []) or [])
@@ -57,17 +64,34 @@ class CheckinService:
                 stats.purchased_pool = purchased
                 unlocked_now = True
         self.save_manager.save_stats(user_id, stats)
-        prefix = "今日签到完成。\n" if claimed_now else ""
+        prefix = get_locale_text("i18n_social.checkin.stamp_prefix") if claimed_now else ""
         lines = [
-            prefix + f"🏷️ 你为【{config['name']}】盖上了 1 枚集换章。",
-            f"当前集换章：{current}/{required}",
+            prefix
+            + get_locale_text(
+                "i18n_social.checkin.stamped",
+                name=config["name"],
+                count=CHECKIN_STAMPS_PER_CLAIM,
+            ),
+            get_locale_text("i18n_social.checkin.current", current=current, required=required),
         ]
         if unlocked_now:
-            lines.append(f"🎉 集换章达到 {required} 枚，已解锁【{config['name']}】！下一局初始牌组将带入该卡。")
+            lines.append(
+                get_locale_text(
+                    "i18n_social.checkin.unlocked",
+                    required=required,
+                    name=config["name"],
+                )
+            )
         elif current < required:
-            lines.append(f"还需 {required - current} 枚集换章解锁【{config['name']}】。")
+            lines.append(
+                get_locale_text(
+                    "i18n_social.checkin.remaining",
+                    remaining=required - current,
+                    name=config["name"],
+                )
+            )
         else:
-            lines.append(f"【{config['name']}】已经解锁。")
+            lines.append(get_locale_text("i18n_social.checkin.already_unlocked", name=config["name"]))
         lines.append("")
         lines.append(self._render_status(stats))
         return "\n".join(lines)
@@ -91,12 +115,15 @@ class CheckinService:
         blessing_id = getattr(stats, "daily_blessing", "")
         blessing = DAILY_BLESSINGS.get(blessing_id, {})
         lines = [
-            "📅 今日签到成功！",
-            f"🌙 每日祝福：{blessing.get('name', '未知祝福')}",
-            f"   {blessing.get('desc', '')}",
-            "   该祝福只会在你下一局新游戏中生效，且只保留最新一次签到结果。",
+            get_locale_text("i18n_social.checkin.render_claim_title"),
+            get_locale_text(
+                "i18n_social.checkin.render_claim_blessing",
+                name=blessing.get("name", get_locale_text("i18n_social.checkin.unknown_blessing")),
+            ),
+            get_locale_text("i18n_social.checkin.desc_indent", desc=blessing.get("desc", "")),
+            get_locale_text("i18n_social.checkin.render_claim_note"),
             "",
-            "请选择一张集换卡盖上今日的集换章：",
+            get_locale_text("i18n_social.checkin.render_claim_choose"),
             self._render_collection(stats),
         ]
         return "\n".join(lines)
@@ -107,26 +134,54 @@ class CheckinService:
         for idx, card_id in enumerate(COLLECTION_ORDER, 1):
             config = COLLECTION_CARDS[card_id]
             current = int(stamps.get(card_id, 0))
-            required = int(config.get("required", 1))
-            status = "已解锁" if current >= required else f"{current}/{required}"
-            lines.append(f" {idx}. 【{config['name']}】 集换章：{status}")
-        lines.append("输入 签到 <序号|卡牌名> 盖章。")
+            required = int(config.get("required", CHECKIN_STAMP_REQUIRED_FALLBACK))
+            status = (
+                get_locale_text("i18n_social.checkin.collection_unlocked")
+                if current >= required
+                else get_locale_text(
+                    "i18n_social.checkin.collection_progress",
+                    current=current,
+                    required=required,
+                )
+            )
+            lines.append(
+                get_locale_text(
+                    "i18n_social.checkin.collection_entry",
+                    index=idx,
+                    name=config["name"],
+                    status=status,
+                )
+            )
+        lines.append(get_locale_text("i18n_social.checkin.collection_hint"))
         return "\n".join(lines)
 
     def _render_status(self, stats) -> str:
         blessing_id = getattr(stats, "daily_blessing", "")
         blessing = DAILY_BLESSINGS.get(blessing_id, {})
         lines = [
-            f"📅 上次签到：{getattr(stats, 'last_checkin_date', '') or '无'}",
-            f"🌙 待生效每日祝福：{blessing.get('name', '无')}",
+            get_locale_text(
+                "i18n_social.checkin.status_last",
+                date=getattr(stats, "last_checkin_date", "") or get_locale_text("i18n_social.common.none"),
+            ),
+            get_locale_text(
+                "i18n_social.checkin.status_blessing",
+                name=blessing.get("name", get_locale_text("i18n_social.common.none")),
+            ),
         ]
         if blessing:
-            lines.append(f"   {blessing.get('desc', '')}")
-        lines.append("🏷️ 集换章：")
+            lines.append(get_locale_text("i18n_social.checkin.desc_indent", desc=blessing.get("desc", "")))
+        lines.append(get_locale_text("i18n_social.checkin.status_title"))
         stamps = getattr(stats, "collection_stamps", {}) or {}
         for card_id in COLLECTION_ORDER:
             config = COLLECTION_CARDS[card_id]
             current = int(stamps.get(card_id, 0))
-            required = int(config.get("required", 1))
-            lines.append(f"   【{config['name']}】 {current}/{required}")
+            required = int(config.get("required", CHECKIN_STAMP_REQUIRED_FALLBACK))
+            lines.append(
+                get_locale_text(
+                    "i18n_social.checkin.status_entry",
+                    name=config["name"],
+                    current=current,
+                    required=required,
+                )
+            )
         return "\n".join(lines)

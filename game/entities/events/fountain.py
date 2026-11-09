@@ -2,21 +2,26 @@ import random
 from .base import EventOption
 from ...data.event_data import EVENT_CONFIG
 from ..cards import ALL_CARDS
+from ...core.deck_service import DeckService
+from ...data.locale_data import get_locale_text
 
-class DrinkFountainOption(EventOption, action="drink_fountain", text="饮用泉水"):
+class DrinkFountainOption(EventOption, action="drink_fountain", text=get_locale_text("i18n_events_b.option_drink_fountain")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.hp = min(p.max_hp, p.hp + 10)
+        cfg = EVENT_CONFIG.get("fountain", {})
+        p.hp = min(p.max_hp, p.hp + cfg.get("hp_gain", 10))
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return "你喝下了泉水，生命值回复了 10 点。已前往下一关。"
+        return get_locale_text("i18n_events_b.msg_drink_fountain")
 
-class CoinFountainOption(EventOption, action="coin_fountain", text="投入金币"):
+class CoinFountainOption(EventOption, action="coin_fountain", text=get_locale_text("i18n_events_b.option_coin_fountain")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        if p.gold < 10:
-            return "❌ 你的金币不足 10。"
-        p.gold -= 10
+        cfg = EVENT_CONFIG.get("fountain", {})
+        gold_cost = cfg.get("gold_cost", 10)
+        if p.gold < gold_cost:
+            return get_locale_text("i18n_events_b.err_gold_not_enough_10")
+        p.gold -= gold_cost
         unlocked_new = set()
         if hasattr(engine.save_manager, "load_stats"):
             stats = engine.save_manager.load_stats(run.user_id)
@@ -34,34 +39,36 @@ class CoinFountainOption(EventOption, action="coin_fountain", text="投入金币
             and c.rarity not in ("legendary", "mythic", "artifact")
             and (cid not in new_cards or cid in unlocked_new)
         ]
-        reward_cards = random.sample(wizards, 3) if len(wizards) >= 3 else wizards
+        sample_count = cfg.get("wizard_sample_count", 3)
+        reward_cards = random.sample(wizards, sample_count) if len(wizards) >= sample_count else wizards
         run.node_type = "card_select"
         run.node_data = {
-            "title": "许愿泉水：请选择你的回馈",
-            "desc": "你在泉水中投入了 10 金币，泉水散发出耀眼的奥术涟漪，升起三张卡牌：",
+            "title": get_locale_text("i18n_events_b.wishing_title"),
+            "desc": get_locale_text("i18n_events_b.wishing_desc"),
             "cards": reward_cards
         }
         engine.save_manager.save_save(run.user_id, run)
-        return "你在泉水中投入了 10 金币，开始选择泉水的回赠。"
+        return get_locale_text("i18n_events_b.msg_coin_fountain")
 
-class ObserveFountainOption(EventOption, action="observe_fountain", text="仔细观察泉底"):
+class ObserveFountainOption(EventOption, action="observe_fountain", text=get_locale_text("i18n_events_b.option_observe_fountain")):
     def _run_effect(self, run, engine) -> str:
         cfg = EVENT_CONFIG["fountain_observe"]
         run.node_data["event_id"] = "fountain_observe"
         run.node_data["description"] = cfg["description"]
         run.node_data["options"] = [{"text": o["text"], "action": o["action"]} for o in cfg["options"]]
         engine.save_manager.save_save(run.user_id, run)
-        return "你凑近池塘向下观察..."
+        return get_locale_text("i18n_events_b.msg_observe_fountain")
 
-class TakeNecklaceOption(EventOption, action="take_necklace", text="冒险捞取项链"):
+class TakeNecklaceOption(EventOption, action="take_necklace", text=get_locale_text("i18n_events_b.option_take_necklace")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        if random.random() < 0.5:
+        cfg = EVENT_CONFIG.get("fountain_observe", {})
+        if random.random() < cfg.get("success_chance", 0.5):
             p.relics.append("arcane_rune")
-            res = "🍀 运气不错！你安全地解除了符文陷阱，成功捞出了【奥术项链】，获得遗物【奥术符文】！"
+            res = get_locale_text("i18n_events_b.msg_necklace_success")
         else:
-            p.deck.append("curse_dazed")
-            res = "⚡ 糟糕！捞取项链时触发了爆裂电弧陷阱，你感到一阵晕眩（1张【晕眩】卡牌已加入卡组），且项链在电弧中化为了灰烬！"
+            DeckService.add_card_to_deck(p, "curse_dazed")
+            res = get_locale_text("i18n_events_b.msg_necklace_trap")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
         return res

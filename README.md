@@ -1,6 +1,13 @@
 # 魔法肉鸽卡牌游戏核心
 
-基于 DND 5.5E 背景的文字回合制肉鸽卡牌游戏。本仓库是无头游戏核心、单接口后端和本地控制台入口；AstrBot 插件与网页前端在独立仓库中运行。
+基于 DND 5.5E 背景的文字回合制肉鸽卡牌游戏。本仓库是无头游戏核心、单接口后端和本地控制台入口;AstrBot 插件与网页前端在独立仓库中运行。
+
+## 当前状态
+
+- 核心与联机测试:157 项通过,2 项跳过。
+- 后端测试:15 项通过。
+- 联机日志按玩家隔离;`coop_log` 提供其他玩家的操作与战斗投影,群聊不返回。
+- 架构重构已完成战斗、联机、路由、渲染、本地化与数值配置化;`game/` 与 `server/` 全部 Python 文件不超过 650 行。
 
 ## 目录
 
@@ -74,7 +81,11 @@ Content-Type: application/json
   "channel": "web",
   "name": "可选显示名",
   "force": false,
-  "prefixes": [".rogue"]
+  "prefixes": [".rogue"],
+  "group": false,
+  "is_group": false,
+  "group_id": "",
+  "message_type": ""
 }
 ```
 
@@ -94,7 +105,8 @@ Content-Type: application/json
   "handled": true,
   "text": "渲染文本",
   "state": { "v": 1, "screen": "battle" },
-  "account": { "uuid": "...", "linked": false },
+  "coop_log": ["[队友] 使用 火球术"],
+  "account": { "id": "P0123456789AB", "linked": false },
   "shell": {
     "user": "tester",
     "host": "rogue-core",
@@ -106,7 +118,9 @@ Content-Type: application/json
 }
 ```
 
-`state` 只对网页通道返回。`handled=false` 表示即时通讯消息不是游戏指令，前端不应回复。`shell` 是终端提示符状态，`clear=true` 表示前端应清空屏幕。
+`state` 只对网页通道返回。`handled=false` 表示即时通讯消息不是游戏指令,前端不应回复。`shell` 是终端提示符状态,`clear=true` 表示前端应清空屏幕。
+
+联机牌局中 `coop_log` 返回队伍其他玩家的操作与战斗记录投影;即时通讯群聊(`group`、`is_group`、`group_id` 或群聊 `message_type`)不返回该字段,私聊与网页正常返回。`account.id` 是公开展示与好友/组队使用的玩家 ID,UUID 只用于账号绑定。
 
 ### 终端命令
 
@@ -127,7 +141,7 @@ Content-Type: application/json
 
 | 命令 | 说明 |
 | :--- | :--- |
-| `我的ID` / `uuid` | 返回当前账号 UUID |
+| `我的ID` / `friend id` | 返回当前账号的公开玩家 ID |
 | `secrets` / `迁移码` | 即时通讯端私聊获取迁移码 UUID |
 | `绑定 <uuid>` | 网页账号关联即时通讯进度 |
 | `绑定 <uuid> force` | 放弃当前网页独立进度后关联 |

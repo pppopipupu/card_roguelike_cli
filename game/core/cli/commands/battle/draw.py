@@ -1,13 +1,14 @@
 from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
+from .....data.locale_data import get_locale_text
 
 class DrawCommand(CommandHandler, names=["抽牌堆", "draw", "draw_pile"], allowed_states=["battle"]):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:
-            yield "❌ 你当前没有正在进行的游戏。输入 /rogue start 开始新游戏。"
+            yield get_locale_text("i18n_cli_commands.err_no_active_game_start_hint")
         elif run.node_type != "battle":
-            yield "❌ 只有在战斗中才能查询战斗牌堆。"
+            yield get_locale_text("i18n_cli_commands.err_battle_piles_only")
         else:
             yield GameRenderer.render_draw_pile(run)

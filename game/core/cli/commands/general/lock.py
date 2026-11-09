@@ -2,6 +2,7 @@ from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
 from .....entities import ALL_CARDS
+from .....data.locale_data import get_locale_text
 
 class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解锁", "unlock"]):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
@@ -12,51 +13,51 @@ class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解�
         cmd = parts[0].lower()
 
         rarity_map = {
-            "common": "普通",
-            "rare": "稀有",
-            "epic": "珍奇",
-            "legendary": "传奇",
-            "mythic": "神话",
-            "artifact": "神器",
-            "curse": "诅咒"
+            "common": get_locale_text("i18n_cli_general_a.lock.rarity_common"),
+            "rare": get_locale_text("i18n_cli_general_a.lock.rarity_rare"),
+            "epic": get_locale_text("i18n_cli_general_a.lock.rarity_epic"),
+            "legendary": get_locale_text("i18n_cli_general_a.lock.rarity_legendary"),
+            "mythic": get_locale_text("i18n_cli_general_a.lock.rarity_mythic"),
+            "artifact": get_locale_text("i18n_cli_general_a.lock.rarity_artifact"),
+            "curse": get_locale_text("i18n_cli_general_a.lock.rarity_curse")
         }
 
         if len(parts) == 1:
             if cmd in ("解锁", "unlock"):
-                yield "❌ 指令错误：请指定要解锁的卡牌名称，例如：/rogue unlock 痛击"
+                yield get_locale_text("i18n_cli_general_a.lock.unlock_need_name")
                 return
 
             gp = getattr(stats, "gp", 0)
             lines = [
-                "━━━━━━━━━━━━━━━━━━━━",
-                "🔒 魔法肉鸽卡牌 ── 锁定卡牌管理系统",
-                "━━━━━━━━━━━━━━━━━━━━",
-                f"💰 我的 GP 资产：{gp} GP",
-                f"📌 当前锁定卡牌 ({len(locked_list)} / 8)：",
+                get_locale_text("i18n_cli_general_a.lock.separator"),
+                get_locale_text("i18n_cli_general_a.lock.title"),
+                get_locale_text("i18n_cli_general_a.lock.separator"),
+                get_locale_text("i18n_cli_general_a.lock.gp", gp=gp),
+                get_locale_text("i18n_cli_general_a.lock.locked_count", count=len(locked_list)),
             ]
             if locked_list:
                 for idx, cid in enumerate(locked_list):
                     c_obj = ALL_CARDS.get(cid)
                     cname = c_obj.name if c_obj else cid
-                    crarity_ch = rarity_map.get(getattr(c_obj, "rarity", "common"), "普通")
-                    lines.append(f"  {idx+1}. 【{cname}】 ({crarity_ch})")
+                    crarity_ch = rarity_map.get(getattr(c_obj, "rarity", "common"), get_locale_text("i18n_cli_general_a.lock.rarity_common"))
+                    lines.append(get_locale_text("i18n_cli_general_a.lock.locked_entry", idx=idx+1, name=cname, rarity=crarity_ch))
             else:
-                lines.append("  • 暂无任何锁定的卡牌。")
+                lines.append(get_locale_text("i18n_cli_general_a.lock.locked_empty"))
 
             lines.extend([
                 "",
-                "【锁定规则说明】",
-                "1. 允许多局/多次游戏持续生效，无需每局重复付费锁定！",
-                "2. 最多可同时锁定 8 张卡牌。开局卡组不足部分将随机补充。",
-                "3. 仅限锁定普通、稀有、珍奇卡牌（不可锁定传奇及以上稀有度）。",
-                "4. 锁定卡牌在管理界面中进行添加（每次新锁卡需支付 300 GP 费用）。",
-                "5. 解锁（移除已锁卡牌）完全免费，退还的名额可供重新选锁其他卡牌。",
+                get_locale_text("i18n_cli_general_a.lock.rules_title"),
+                get_locale_text("i18n_cli_general_a.lock.rule_1"),
+                get_locale_text("i18n_cli_general_a.lock.rule_2"),
+                get_locale_text("i18n_cli_general_a.lock.rule_3"),
+                get_locale_text("i18n_cli_general_a.lock.rule_4"),
+                get_locale_text("i18n_cli_general_a.lock.rule_5"),
                 "",
-                "【锁定管理快捷指令】",
-                "👉 /rogue lock <卡牌中文名> ── 锁定一张必带卡（消耗 300 GP）",
-                "👉 /rogue unlock <卡牌中文名> ── 解锁并移除该必带卡（免费）",
-                "👉 /rogue lock clear ── 清空所有锁定的必带卡（免费）",
-                "━━━━━━━━━━━━━━━━━━━━"
+                get_locale_text("i18n_cli_general_a.lock.commands_title"),
+                get_locale_text("i18n_cli_general_a.lock.cmd_lock"),
+                get_locale_text("i18n_cli_general_a.lock.cmd_unlock"),
+                get_locale_text("i18n_cli_general_a.lock.cmd_clear"),
+                get_locale_text("i18n_cli_general_a.lock.separator")
             ])
             yield "\n".join(lines)
             return
@@ -65,7 +66,7 @@ class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解�
         if arg1.lower() in ("clear", "清空", "重置", "reset") and cmd in ("锁定", "lock", "锁定管理"):
             stats.locked_cards.clear()
             router.save_manager.save_stats(user_id, stats)
-            yield "🔑 已成功清空所有开局锁定必带的卡牌！"
+            yield get_locale_text("i18n_cli_general_a.lock.clear_success")
             return
 
         is_unlock = (cmd in ("解锁", "unlock")) or (arg1.lower() in ("unlock", "解锁", "remove", "移除"))
@@ -92,9 +93,9 @@ class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解�
                 router.save_manager.save_stats(user_id, stats)
                 c_obj = ALL_CARDS.get(target_cid)
                 cname = c_obj.name if c_obj else target_cid
-                yield f"🔓 解锁成功：已将卡牌【{cname}】从你的开局必带锁定列表中移除。"
+                yield get_locale_text("i18n_cli_general_a.lock.unlock_success", name=cname)
             else:
-                yield f"❌ 移除失败：你的锁定列表中没有卡牌【{card_name}】。"
+                yield get_locale_text("i18n_cli_general_a.lock.unlock_missing", name=card_name)
             return
 
         card_name = arg1
@@ -105,7 +106,7 @@ class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解�
                 break
 
         if not target_cid:
-            yield f"❌ 未找到名为【{card_name}】的卡牌信息。"
+            yield get_locale_text("i18n_cli_general_a.lock.card_not_found", name=card_name)
             return
 
         if target_cid.endswith("+"):
@@ -114,22 +115,22 @@ class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解�
         c_obj = ALL_CARDS[target_cid]
         r = getattr(c_obj, "rarity", "common")
         if r in ("legendary", "mythic", "artifact", "curse"):
-            yield f"❌ 锁定失败：无法锁定【{rarity_map.get(r, r)}】稀有度的卡牌。"
+            yield get_locale_text("i18n_cli_general_a.lock.lock_rarity_denied", rarity=rarity_map.get(r, r))
             return
 
         if target_cid in stats.locked_cards:
-            yield f"❌ 锁定失败：卡牌【{c_obj.name}】已经在你的锁定列表中了。"
+            yield get_locale_text("i18n_cli_general_a.lock.lock_already", name=c_obj.name)
             return
 
         if len(stats.locked_cards) >= 8:
-            yield "❌ 锁定失败：最多只能同时锁定 8 张卡牌。"
+            yield get_locale_text("i18n_cli_general_a.lock.lock_limit")
             return
 
         if stats.gp < 300:
-            yield f"❌ 锁定失败：锁定卡牌需要 300 GP，当前仅有 {stats.gp} GP。"
+            yield get_locale_text("i18n_cli_general_a.lock.lock_no_gp", gp=stats.gp)
             return
 
         stats.gp -= 300
         stats.locked_cards.append(target_cid)
         router.save_manager.save_stats(user_id, stats)
-        yield f"🔑 锁定成功：已扣除 300 GP，卡牌【{c_obj.name}】已加入你的开局必带锁定列表中！"
+        yield get_locale_text("i18n_cli_general_a.lock.lock_success", name=c_obj.name)

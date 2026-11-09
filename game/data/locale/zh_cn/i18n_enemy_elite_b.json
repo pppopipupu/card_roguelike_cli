@@ -1,0 +1,36 @@
+{
+  "common": {
+    "strength_name": "力量",
+    "strength_desc": "造成的伤害增加",
+    "fire_vulnerable_name": "轻度火焰易伤",
+    "fire_vulnerable_desc": "受到的火焰伤害增加 50%",
+    "slashing_vulnerable_name": "轻度挥砍易伤",
+    "slashing_vulnerable_desc": "受到的挥砍伤害增加 50%",
+    "discard_next_turn_name": "下回合弃牌",
+    "discard_next_turn_desc": "在下一回合开始时，你将随机丢弃等同于此状态层数的手牌"
+  },
+  "fire_guard": {
+    "fire_blast": "【{name}】释放爆轰。{dmg_msg}",
+    "fire_armor": "【{name}】披上火焰护甲，获得 {val} 点护盾，且火焰反噬对玩家造成 2 点伤害。",
+    "heat_grow": "【{name}】热力凝聚，获得了 1 层力量。"
+  },
+  "gargoyle_priest": {
+    "shadow_shield": "【{name}】施展暗影护盾，获得 {val} 点护盾。",
+    "drain": "【{name}】汲取生命，为【{target}】恢复了 4 点生命值。"
+  },
+  "ghost_archmage": {
+    "siphon": "【{name}】施展虹吸，使玩家在下一回合开始时将被迫随机丢弃 1 张手牌。"
+  },
+  "githyanki_supreme_commander": {
+    "silver_greatsword": "【{name}】高高跃起挥舞银光大剑重斩！{dmg_msg} 且你受到了【轻度挥砍易伤】！",
+    "commanding_presence": "【{name}】发出威严的指挥咆哮：“星界归一，斩灭诸敌！” 敌方全体获得了 2 层力量！",
+    "psionic_barrier": "【{name}】爆发灵能屏障，自身获得 {val} 点护盾与 1 层力量！",
+    "summon_hound": "【{name}】撕裂星界通道，召唤了一只【星界幼犬】加入战斗！",
+    "hound_name": "星界幼犬",
+    "hound_intent_desc": "星光撕咬 (造成 3 力场伤害)"
+  },
+  "goblin_centurion": {
+    "defend": "【{name}】举起盾牌，获得 {val} 点护盾。",
+    "command": "【{name}】发出咆哮，获得 1 个额外动作点。"
+  }
+}

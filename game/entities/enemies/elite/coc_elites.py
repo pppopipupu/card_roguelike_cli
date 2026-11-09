@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("冷蛛")
 class LengSpiderTemplate(EnemyTemplate):
@@ -38,14 +39,15 @@ class LengSpiderTemplate(EnemyTemplate):
                         strength += b.stacks
             final_dmg = val + strength
             self._perform_attack(run, engine, enemy, final_dmg, logs)
-            engine._add_buff_to(run.player, "minor_vulnerable", "轻度易伤", "受到的所有类型伤害增加 50%", 1)
+            engine._add_buff_to(run.player, "minor_vulnerable", get_locale_text("i18n_enemy_elite_a.common.minor_vulnerable_name"), get_locale_text("i18n_enemy_elite_a.common.minor_vulnerable_desc"), 1)
             if logs:
-                logs[-1] += "，并对你施加了 1 层【轻度易伤】"
+                logs[-1] += get_locale_text("i18n_enemy_elite_a.leng_spider.venom_bite_suffix")
         elif intent.type == "web_trap":
-            enemy.shield += intent.val
-            engine._add_buff_to(run.player, "discard_next_turn", "下回合弃牌", "在下一回合开始时，你将随机丢弃等同于此状态层数的手牌", 1)
-            discard_msg = "，并使玩家在下一回合开始时将被迫随机丢弃 1 张手牌"
-            logs.append(f"【{enemy.name}】编织蛛网，获得 {intent.val} 点护盾{discard_msg}。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            engine._add_buff_to(run.player, "discard_next_turn", get_locale_text("i18n_enemy_elite_a.common.discard_next_turn_name"), get_locale_text("i18n_enemy_elite_a.common.discard_next_turn_desc"), 1)
+            discard_msg = get_locale_text("i18n_enemy_elite_a.leng_spider.discard_suffix")
+            logs.append(get_locale_text("i18n_enemy_elite_a.leng_spider.web_trap", name=enemy.name, val=intent.val, discard_msg=discard_msg))
         elif intent.type == "spider_jump":
             val = intent.val
             strength = 0
@@ -96,7 +98,7 @@ class MigoTemplate(EnemyTemplate):
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             run.node_data["draw_penalty_next_turn"] = run.node_data.get("draw_penalty_next_turn", 0) + 1
-            logs.append(f"【{enemy.name}】使用电击探针。{dmg_msg}，使玩家下回合少抽 1 张牌。")
+            logs.append(get_locale_text("i18n_enemy_elite_a.migo.electric_probe", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "brain_case":
             val = intent.val
             strength = 0
@@ -109,9 +111,10 @@ class MigoTemplate(EnemyTemplate):
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            logs.append(f"【{enemy.name}】尝试提取你的大脑。{dmg_msg}")
+            logs.append(get_locale_text("i18n_enemy_elite_a.migo.brain_case", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "bio_shield":
-            enemy.shield += intent.val
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
             negatives = {"stun", "weak", "vulnerable"}
             to_remove = None
             for b in enemy.buffs:
@@ -122,9 +125,9 @@ class MigoTemplate(EnemyTemplate):
                 enemy.buffs.remove(to_remove)
                 if to_remove.id == "stun":
                     engine._sync_enemy_intents(enemy)
-                logs.append(f"【{enemy.name}】凝聚生物护盾，获得 {intent.val} 点护盾并净化了【{to_remove.name}】！")
+                logs.append(get_locale_text("i18n_enemy_elite_a.migo.bio_shield_purge", name=enemy.name, val=intent.val, buff=to_remove.name))
             else:
-                logs.append(f"【{enemy.name}】凝聚生物护盾，获得 {intent.val} 点护盾。")
+                logs.append(get_locale_text("i18n_enemy_elite_a.migo.bio_shield", name=enemy.name, val=intent.val))
 
 @register_enemy("修格斯")
 class ShoggothTemplate(EnemyTemplate):
@@ -165,11 +168,12 @@ class ShoggothTemplate(EnemyTemplate):
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="acid")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(run.player, "drain_ba", "虚空纠缠", "在下一回合开始时，你将失去等同于此状态层数的附赠动作点 (BA)", 1)
-            logs.append(f"【{enemy.name}】泼溅强酸。{dmg_msg}，使玩家在下一回合失去 1 个附赠动作点（BA）。")
+            engine._add_buff_to(run.player, "drain_ba", get_locale_text("i18n_enemy_elite_a.common.void_entangle_name"), get_locale_text("i18n_enemy_elite_a.common.void_entangle_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_a.shoggoth.acid_splash", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "slime_cocoon":
-            enemy.shield += intent.val
-            logs.append(f"【{enemy.name}】分泌粘液茧，获得 {intent.val} 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            logs.append(get_locale_text("i18n_enemy_elite_a.shoggoth.slime_cocoon", name=enemy.name, val=intent.val))
         elif intent.type == "ooze_strike":
             val = intent.val
             strength = 0
@@ -220,12 +224,14 @@ class StarVampireTemplate(EnemyTemplate):
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             heal = 8
-            enemy.hp = min(enemy.max_hp, enemy.hp + heal)
-            logs.append(f"【{enemy.name}】吸取你的鲜血。{dmg_msg}，并回复自身 {heal} 点生命。")
+            if enemy in run.enemies:
+                engine._heal_target(run, f"e{run.enemies.index(enemy)+1}", heal)
+            logs.append(get_locale_text("i18n_enemy_elite_a.star_vampire.blood_drain", name=enemy.name, dmg_msg=dmg_msg, heal=heal))
         elif intent.type == "invisible_stalker":
-            enemy.shield += intent.val
-            engine._add_buff_to(enemy, "strength", "力量", "造成的伤害增加", 4)
-            logs.append(f"【{enemy.name}】隐形潜行，获得 {intent.val} 点护盾与 4 层【力量】！")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            engine._add_buff_to(enemy, "strength", get_locale_text("i18n_enemy_elite_a.common.strength_name"), get_locale_text("i18n_enemy_elite_a.common.strength_desc"), 4)
+            logs.append(get_locale_text("i18n_enemy_elite_a.star_vampire.invisible_stalker", name=enemy.name, val=intent.val))
         elif intent.type == "talon_rend":
             val = intent.val
             strength = 0
@@ -275,7 +281,7 @@ class StarspawnOfCthulhuTemplate(EnemyTemplate):
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="force")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            logs.append(f"【{enemy.name}】引导宇宙冲击。{dmg_msg}")
+            logs.append(get_locale_text("i18n_enemy_elite_a.starspawn_of_cthulhu.cosmic_blast", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "cthulhu_gaze":
             val = intent.val
             strength = 0
@@ -289,9 +295,11 @@ class StarspawnOfCthulhuTemplate(EnemyTemplate):
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             run.node_data["drain_a"] = True
-            logs.append(f"【{enemy.name}】投射克苏鲁之视。{dmg_msg}，使你下回合减少 1A。")
+            logs.append(get_locale_text("i18n_enemy_elite_a.starspawn_of_cthulhu.cthulhu_gaze", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "star_regeneration":
-            enemy.shield += intent.val
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
             heal = 10
-            enemy.hp = min(enemy.max_hp, enemy.hp + heal)
-            logs.append(f"【{enemy.name}】进行星光再生，获得 {intent.val} 点护盾并回复 {heal} 生命。")
+            if enemy in run.enemies:
+                engine._heal_target(run, f"e{run.enemies.index(enemy)+1}", heal)
+            logs.append(get_locale_text("i18n_enemy_elite_a.starspawn_of_cthulhu.star_regeneration", name=enemy.name, val=intent.val, heal=heal))

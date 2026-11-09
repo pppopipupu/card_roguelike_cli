@@ -1,13 +1,16 @@
 from typing import Optional, List
 from ...models.state import Card
 from ...data.card_data import CARD_CONFIG
+from ...data.locale_data import get_locale_text
 from .registry import register_card
+
+THUNDERWAVE_ACTION_LOSS = 1
 
 @register_card("magic_missile")
 class MagicMissileCard(Card):
     def execute(self, run, target, engine) -> str:
-        dmg = 4 if self.upgraded else 3
-        count = 4 if self.upgraded else 3
+        dmg = getattr(self, "base_dmg", 4 if self.upgraded else 3)
+        count = getattr(self, "hit_count", getattr(self, "count", 4 if self.upgraded else 3))
         total = 0
         name = engine._get_target_name(run, target)
         if target.startswith("e"):
@@ -23,66 +26,46 @@ class MagicMissileCard(Card):
                 for _ in range(count):
                     if original_enemy in run.enemies:
                         curr_idx = run.enemies.index(original_enemy)
-                        engine._damage_target(run, f"e{curr_idx+1}", dmg, damage_type="true", card=self)
+                        engine._damage_target(run, f"e{curr_idx+1}", dmg, damage_type="true", card=self, damage_ready=True)
                         total += dmg
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
             return feedback_tmpl.format(target=name, count=count, total=total)
-        return f"释放魔法飞弹，无视护盾对【{name}】造成了 {count} 次共 {total} 点伤害。"
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.magic_missile.result", name=name, count=count, total=total)
 
 @register_card("fireball")
 class FireballCard(Card):
     def execute(self, run, target, engine) -> str:
         dmg = getattr(self, "base_dmg", 24 if self.upgraded else 18)
-        if self.damage_type == "fire":
-            has_ring = any(av.id.startswith("ring_of_elements") for av in run.player.amulets.values())
-            if has_ring:
-                ring_val = 0
-                for av in run.player.amulets.values():
-                    if av.id.startswith("ring_of_elements"):
-                        ring_val = max(ring_val, 3 if av.id.endswith("+") else 2)
-                dmg += ring_val
-        if "arcane_rune" in run.player.relics:
-            dmg += 1
-        if "mark_of_fury" in run.player.relics:
-            dmg += 2
-        if "unstable_crystal" in run.player.relics:
-            dmg += 1
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         for idx in range(len(run.enemies) - 1, -1, -1):
-            engine._damage_target(run, f"e{idx+1}", dmg, damage_type="fire", card=self)
+            engine._damage_target(run, f"e{idx+1}", dmg, damage_type="fire", card=self, damage_ready=True)
             
-        burn_dmg = 8 if self.upgraded else 6
-        burn_turns = 3 if self.upgraded else 2
+        burn_dmg = getattr(self, "burn_damage", 8 if self.upgraded else 6)
+        burn_turns = getattr(self, "burn_turns", 3 if self.upgraded else 2)
         for enemy in list(run.enemies):
-            engine._add_buff_to(enemy, "burning", "燃烧", "每回合开始时受到火焰伤害", burn_dmg, burn_turns)
+            engine._add_buff_to(enemy, "burning", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.burning.name"), get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.burning.desc"), burn_dmg, burn_turns)
 
         bonus_msg = ""
         if self.id == "fireball+":
-            engine._add_buff_to(run.player, "fire_grow", "烈焰成长", "造成的火焰伤害增加", 1)
-            bonus_msg = " 🔥 [火球术+] 获得了 1 层【烈焰成长】（火焰伤害永久 +1）！"
+            engine._add_buff_to(run.player, "fire_grow", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.fire_grow.name"), get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.fire_grow.desc"), getattr(self, "buff_stacks", 1))
+            bonus_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.fireball.bonus")
             
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
             return feedback_tmpl.format(dmg=dmg) + bonus_msg
-        return f"释放火球术！对所有敌人造成了 {dmg} 点火焰伤害。" + bonus_msg
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.fireball.result", dmg=dmg) + bonus_msg
 
 @register_card("thunderwave")
 class ThunderwaveCard(Card):
     def execute(self, run, target, engine) -> str:
         dmg = getattr(self, "base_dmg", 9 if self.upgraded else 6)
-        if "arcane_rune" in run.player.relics:
-            dmg += 1
-        if "mark_of_fury" in run.player.relics:
-            dmg += 2
-        if "unstable_crystal" in run.player.relics:
-            dmg += 1
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         for idx in range(len(run.enemies) - 1, -1, -1):
-            run.enemies[idx].actions = max(0, run.enemies[idx].actions - 1)
-            engine._damage_target(run, f"e{idx+1}", dmg, damage_type="thunder", card=self)
+            run.enemies[idx].actions = max(0, run.enemies[idx].actions - THUNDERWAVE_ACTION_LOSS)
+            engine._damage_target(run, f"e{idx+1}", dmg, damage_type="thunder", card=self, damage_ready=True)
             
         bonus_msg = ""
         if self.upgraded:
@@ -91,8 +74,9 @@ class ThunderwaveCard(Card):
                 try:
                     f_idx = int(first_enemy.replace("e", "")) - 1
                     if 0 <= f_idx < len(run.enemies):
-                        engine._add_buff_to(run.enemies[f_idx], "stun", "眩晕", "无法行动", 1)
-                        bonus_msg = f" ⚡ [雷鸣波+] 眩晕了【{run.enemies[f_idx].name}】1 回合！"
+                        stun_turns = getattr(self, "buff_turns", getattr(self, "stun_turns", 1))
+                        engine._add_buff_to(run.enemies[f_idx], "stun", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.stun.name"), get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.stun.desc"), stun_turns)
+                        bonus_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.thunderwave.bonus", name=run.enemies[f_idx].name, stun_turns=stun_turns)
                 except ValueError:
                     pass
                     
@@ -100,44 +84,41 @@ class ThunderwaveCard(Card):
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
             return feedback_tmpl.format(dmg=dmg) + bonus_msg
-        return f"释放雷鸣波，对所有敌人造成了 {dmg} 点伤害，并扣除他们各 1 个动作。" + bonus_msg
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.thunderwave.result", dmg=dmg) + bonus_msg
 
 @register_card("shield")
 class ShieldSpellCard(Card):
     def execute(self, run, target, engine) -> str:
         p = run.player
         shield_val = getattr(self, "shield_amount", 12 if self.upgraded else 8)
-        if self.upgraded and p.hp < p.max_hp / 2:
-            heal_val = shield_val // 2
+        heal_ratio = getattr(self, "heal_ratio", 0.5)
+        hp_threshold = getattr(self, "hp_threshold", 0.5)
+        if self.upgraded and p.hp < p.max_hp * hp_threshold:
+            heal_val = int(shield_val * heal_ratio)
             shield_val = shield_val - heal_val
             engine._heal_target(run, "p0", heal_val)
             engine._gain_shield(run, "p0", shield_val)
-            return f"获得了 {shield_val} 点护盾，并为自己恢复了 {heal_val} 点生命值。"
+            return get_locale_text("i18n_cards_warrior_wizard.wizard.shield.heal_result", shield=shield_val, heal=heal_val)
         else:
             engine._gain_shield(run, "p0", shield_val)
             cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
             feedback_tmpl = cfg.get("feedback")
             if feedback_tmpl:
                 return feedback_tmpl.format(shield_amount=shield_val)
-            return f"获得了 {shield_val} 点护盾。"
+            return get_locale_text("i18n_cards_warrior_wizard.wizard.shield.result", shield=shield_val)
 
 @register_card("arcane_spark")
 class ArcaneSparkCard(Card):
     def execute(self, run, target, engine) -> str:
         dmg = getattr(self, "base_dmg", 4 if self.upgraded else 2)
-        if "arcane_rune" in run.player.relics:
-            dmg += 1
-        if "mark_of_fury" in run.player.relics:
-            dmg += 2
-        if "unstable_crystal" in run.player.relics:
-            dmg += 1
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         name = engine._get_target_name(run, target)
-        engine._damage_target(run, target, dmg, damage_type=self.damage_type, card=self)
+        engine._damage_target(run, target, dmg, damage_type=self.damage_type, card=self, damage_ready=True)
         
         p = run.player
         before_hand_len = len(p.hand)
-        engine._draw_cards(p, 1, run)
+        draw_count = getattr(self, "draw_count", 1)
+        engine._draw_cards(p, draw_count, run)
         
         bonus_msg = ""
         if self.upgraded and len(p.hand) > before_hand_len:
@@ -146,47 +127,42 @@ class ArcaneSparkCard(Card):
             drawn_card = ALL_CARDS.get(drawn_cid)
             if drawn_card and drawn_card.type == "spell":
                 run.node_data.setdefault("free_spells_this_turn", []).append(drawn_cid)
-                bonus_msg = f" ⚡ [奥术星火+] 抽到了法术牌【{drawn_card.name}】，该卡牌本回合动作消耗降为 0！"
+                bonus_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.arcane_spark.bonus", name=drawn_card.name)
                 
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
             return feedback_tmpl.format(target=name, dmg=dmg) + bonus_msg
-        return f"释放奥术星火，对【{name}】造成了 {dmg} 点伤害，并抽了 1 张牌。" + bonus_msg
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.arcane_spark.result", name=name, dmg=dmg, draw_count=draw_count) + bonus_msg
 
 @register_card("echo_form")
 class EchoFormCard(Card):
     def execute(self, run, target, engine) -> str:
         from ...data.buff_data import BUFF_CONFIG
         buff_info = BUFF_CONFIG.get("echo_form", {})
-        buff_name = buff_info.get("name", "回响形态")
+        buff_name = buff_info.get("name", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.echo_form.name"))
         buff_desc = buff_info.get("desc", "")
         engine._add_buff_to(run.player, "echo_form", buff_name, buff_desc)
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
             return feedback_tmpl.format(name=self.name)
-        return f"使用了【{self.name}】，获得了【回响形态】buff（每回合打出的卡牌额外打出，每张牌最多回响 5 次，多余层数顺延至后续卡牌，可叠加）。"
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.echo_form.result", name=self.name)
 
 @register_card("doomsday_judgment")
 class DoomsdayJudgmentCard(Card):
     def execute(self, run, target, engine) -> str:
         dmg = getattr(self, "base_dmg", 24 if self.upgraded else 18)
-        if "arcane_rune" in run.player.relics:
-            dmg += 1
-        if "mark_of_fury" in run.player.relics:
-            dmg += 2
-        if "unstable_crystal" in run.player.relics:
-            dmg += 1
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         for idx in range(len(run.enemies) - 1, -1, -1):
-            engine._add_buff_to(run.enemies[idx], "stun", "眩晕", "无法行动", 1)
-            engine._damage_target(run, f"e{idx+1}", dmg, damage_type="necrotic", card=self)
+            stun_turns = getattr(self, "buff_turns", getattr(self, "stun_turns", 1))
+            engine._add_buff_to(run.enemies[idx], "stun", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.stun.name"), get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.stun.desc"), stun_turns)
+            engine._damage_target(run, f"e{idx+1}", dmg, damage_type="necrotic", card=self, damage_ready=True)
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
             return feedback_tmpl.format(dmg=dmg)
-        return f"释放末日审判！对所有敌人造成了 {dmg} 点伤害并眩晕他们一回合。"
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.doomsday_judgment.result", dmg=dmg)
 
 @register_card("overcharge")
 class OverchargeCard(Card):
@@ -194,59 +170,51 @@ class OverchargeCard(Card):
         super().__init__(id, name, color, type, cost_a, cost_ba, exhaust=exhaust, desc=desc)
 
     def execute(self, run, target, engine) -> str:
-        stacks = 2 if self.upgraded else 1
-        engine._add_buff_to(run.player, "arcane_charge", "奥术充能", "法术伤害 +3", stacks)
+        stacks = getattr(self, "buff_stacks", 2 if self.upgraded else 1)
+        engine._add_buff_to(run.player, "arcane_charge", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.arcane_charge.name"), get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.arcane_charge.desc"), stacks)
         bonus_msg = ""
         if self.upgraded:
-            engine._draw_cards(run.player, 1, run)
-            bonus_msg = " ⚡ 并抽了 1 张法术牌。"
+            draw_count = getattr(self, "draw_count", 1)
+            engine._draw_cards(run.player, draw_count, run)
+            bonus_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.overcharge.bonus", draw_count=draw_count)
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
-        return cfg.get("feedback", "使用了【过载充能】，获得了【奥术充能】buff（法术伤害 +3，可叠加）。").replace("（法术伤害 +3，可叠加）", "") + f"（获得了 {stacks} 层奥术充能）" + bonus_msg
+        base_feedback = cfg.get("feedback", get_locale_text("i18n_cards_warrior_wizard.wizard.overcharge.feedback"))
+        return base_feedback.replace(get_locale_text("i18n_cards_warrior_wizard.wizard.overcharge.suffix"), "") + get_locale_text("i18n_cards_warrior_wizard.wizard.overcharge.stacks", stacks=stacks) + bonus_msg
 
 @register_card("magic_network")
 class MagicNetworkCard(Card):
     def execute(self, run, target, engine) -> str:
         buff_id = "magic_network+" if self.upgraded else "magic_network"
-        buff_name = "魔网天成+" if self.upgraded else "魔网天成"
-        buff_desc = "本回合内每使用一张法术牌，对所有敌人造成 5 点伤害，获得 5 点护盾。支持回响触发。" if self.upgraded else "本回合内每使用一张法术牌，对所有敌人造成 3 点伤害，获得 3 点护盾。"
+        buff_name = get_locale_text("i18n_cards_warrior_wizard.wizard.magic_network.buff_name_upgraded") if self.upgraded else get_locale_text("i18n_cards_warrior_wizard.wizard.magic_network.buff_name")
+        damage_amount = getattr(self, "damage_amount", 5 if self.upgraded else 3)
+        shield_amount = getattr(self, "shield_amount", 5 if self.upgraded else 3)
+        buff_desc = get_locale_text("i18n_cards_warrior_wizard.wizard.magic_network.buff_desc", damage_amount=damage_amount, shield_amount=shield_amount) + (get_locale_text("i18n_cards_warrior_wizard.wizard.magic_network.buff_desc_echo") if self.upgraded else "")
         engine._add_buff_to(run.player, buff_id, buff_name, buff_desc)
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
-        return cfg.get("feedback", "使用了【魔网天成】，本回合内你的法术将与魔网产生共鸣。")
+        return cfg.get("feedback", get_locale_text("i18n_cards_warrior_wizard.wizard.magic_network.feedback"))
 
 @register_card("fleeting_spark")
 class FleetingSparkCard(Card):
     def execute(self, run, target, engine) -> str:
         dmg = getattr(self, "base_dmg", 9 if self.upgraded else 6)
-        if "arcane_rune" in run.player.relics:
-            dmg += 1
-        if "mark_of_fury" in run.player.relics:
-            dmg += 2
-        if "unstable_crystal" in run.player.relics:
-            dmg += 1
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         name = engine._get_target_name(run, target)
-        engine._damage_target(run, target, dmg, damage_type=self.damage_type, card=self)
+        engine._damage_target(run, target, dmg, damage_type=self.damage_type, card=self, damage_ready=True)
         
-        draw_count = 3 if self.upgraded else 2
+        draw_count = getattr(self, "draw_count", 3 if self.upgraded else 2)
         engine._draw_cards(run.player, draw_count, run)
         p = run.player
         if p.hand:
             run.node_data["pending_discard"] = True
             run.node_data["pending_discard_source"] = self.id
-            return f"使用了【{self.name}】，对【{name}】造成了 {dmg} 点伤害，并抽了 {draw_count} 张牌。请选择一张手牌丢弃。输入 选择 <手牌序号> 进行丢弃。"
+            return get_locale_text("i18n_cards_warrior_wizard.wizard.fleeting_spark.discard", name=self.name, target=name, dmg=dmg, draw_count=draw_count)
         else:
-            return f"使用了【{self.name}】，对【{name}】造成了 {dmg} 点伤害，并抽了 {draw_count} 张牌，但手牌已空，无需丢弃。"
+            return get_locale_text("i18n_cards_warrior_wizard.wizard.fleeting_spark.empty", name=self.name, target=name, dmg=dmg, draw_count=draw_count)
 
 @register_card("chain_lightning")
 class ChainLightningCard(Card):
     def execute(self, run, target, engine) -> str:
         dmg = getattr(self, "base_dmg", 18 if self.upgraded else 12)
-        if "arcane_rune" in run.player.relics:
-            dmg += 1
-        if "mark_of_fury" in run.player.relics:
-            dmg += 2
-        if "unstable_crystal" in run.player.relics:
-            dmg += 1
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         name = engine._get_target_name(run, target)
         def get_base_name(n: str) -> str:
@@ -269,185 +237,207 @@ class ChainLightningCard(Card):
         if self.upgraded and base_target_name:
             same_name_count = sum(1 for e in run.enemies if get_base_name(e.name) == base_target_name)
             if same_name_count == 1:
-                dmg = int(dmg * 1.5)
-                bonus_msg = " ⚡ [链式闪电+] 触发单体暴击，造成 1.5 倍伤害！"
+                crit_multiplier = getattr(self, "crit_multiplier", 1.5)
+                dmg = int(dmg * crit_multiplier)
+                bonus_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.chain_lightning.bonus")
                 
         affected_count = 0
         if base_target_name:
             for idx in range(len(run.enemies) - 1, -1, -1):
                 enemy = run.enemies[idx]
                 if get_base_name(enemy.name) == base_target_name:
-                    engine._damage_target(run, f"e{idx+1}", dmg, damage_type="lightning", card=self)
+                    engine._damage_target(run, f"e{idx+1}", dmg, damage_type="lightning", card=self, damage_ready=True)
                     affected_count += 1
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
             return feedback_tmpl.format(dmg=dmg) + bonus_msg
-        return f"释放链式闪电！对所有同名敌人造成了 {dmg} 点闪电伤害。" + bonus_msg
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.chain_lightning.result", dmg=dmg) + bonus_msg
 
 @register_card("sunburst")
 class SunburstCard(Card):
     def execute(self, run, target, engine) -> str:
         dmg = getattr(self, "base_dmg", 22 if self.upgraded else 16)
-        if "arcane_rune" in run.player.relics:
-            dmg += 1
-        if "mark_of_fury" in run.player.relics:
-            dmg += 2
-        if "unstable_crystal" in run.player.relics:
-            dmg += 1
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         for idx in range(len(run.enemies) - 1, -1, -1):
-            engine._damage_target(run, f"e{idx+1}", dmg, damage_type="radiant", card=self)
+            engine._damage_target(run, f"e{idx+1}", dmg, damage_type="radiant", card=self, damage_ready=True)
             
-        for grid in list(run.player.minions.keys()):
-            if grid not in run.player.minions:
+        players = list(run.players.values()) if getattr(run, "coop_id", "") else [run.player]
+        previous_player = run.player
+        previous_user = run.user_id
+        for player in players:
+            if player.hp <= 0 or player.downed:
                 continue
-            engine._damage_target(run, f"p{grid}", dmg, damage_type="radiant", card=self)
-            
+            run.player = player
+            uid = run.uid_for(player)
+            if uid:
+                run.user_id = uid
+            for grid in list(player.minions.keys()):
+                if grid not in player.minions:
+                    continue
+                engine._damage_target(run, f"p{grid}", dmg, damage_type="radiant", card=self, damage_ready=True)
+        run.player = previous_player
+        run.user_id = previous_user
+
         bonus_msg = ""
         if self.upgraded:
-            for grid, m_state in list(run.player.minions.items()):
-                m_state.buffs.clear()
-                m_state.atk += 3
-                engine._log_event(run, f"☀️ [阳炎爆+ 效果] 净化了我方随从【{m_state.name}】的所有状态，且使其攻击力增加 3 点！")
-            bonus_msg = " ☀️ [阳炎爆+] 净化了我方随从并使其攻击力增加 3 点！"
+            ally_atk_bonus = getattr(self, "ally_atk_bonus", 3)
+            for player in players:
+                if player.hp <= 0 or player.downed:
+                    continue
+                for grid, m_state in list(player.minions.items()):
+                    m_state.buffs.clear()
+                    m_state.atk += ally_atk_bonus
+                    engine._log_event(run, get_locale_text("i18n_cards_warrior_wizard.wizard.sunburst.log", name=m_state.name, ally_atk_bonus=ally_atk_bonus))
+            bonus_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.sunburst.bonus", ally_atk_bonus=ally_atk_bonus)
             
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
             return feedback_tmpl.format(dmg=dmg) + bonus_msg
-        return f"释放【阳炎爆】，对所有除玩家外的生物造成了 {dmg} 点光耀伤害。" + bonus_msg
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.sunburst.result", dmg=dmg) + bonus_msg
 
 @register_card("arcane_torrent")
 class ArcaneTorrentCard(Card):
     def execute(self, run, target, engine) -> str:
         X = run.node_data.get("last_x_cost_a", 0)
-        single_dmg = 4 if self.upgraded else 3
-        if X <= 2:
-            count = X * 2
+        single_dmg = getattr(self, "damage_amount", 4 if self.upgraded else 3)
+        threshold = getattr(self, "threshold", 2)
+        coef = getattr(self, "coef", 2)
+        factor = getattr(self, "factor", 4)
+        if X <= threshold:
+            count = X * coef
         else:
-            count = X * 4
+            count = X * factor
         single_dmg = engine.get_modified_spell_damage(run, self, single_dmg)
         for enemy in list(run.enemies):
             for _ in range(count):
                 if enemy in run.enemies:
                     curr_idx = run.enemies.index(enemy)
-                    engine._damage_target(run, f"e{curr_idx+1}", single_dmg, damage_type="true", card=self)
+                    engine._damage_target(run, f"e{curr_idx+1}", single_dmg, damage_type="true", card=self, damage_ready=True)
         from ...data.card_data import CARD_CONFIG
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
             return feedback_tmpl.format(count=count, dmg=single_dmg)
-        return f"释放了奥术洪流，对所有敌人造成了 {count} 次 {single_dmg} 点真实伤害。"
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.arcane_torrent.result", count=count, dmg=single_dmg)
 
 @register_card("arcane_barrier")
 class ArcaneBarrierCard(Card):
     def execute(self, run, target, engine) -> str:
         X = run.node_data.get("last_x_cost_ba", 0)
-        coef = 9 if self.upgraded else 6
+        coef = getattr(self, "coef", 9 if self.upgraded else 6)
         shield_val = X * coef
         engine._gain_shield(run, "p0", shield_val)
         bonus_msg = ""
-        if X > 1:
+        if X > getattr(self, "threshold", 1):
             from ...data.buff_data import BUFF_CONFIG
             buff_info = BUFF_CONFIG.get("buffer", {})
-            buff_name = buff_info.get("name", "缓冲")
+            buff_name = buff_info.get("name", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.buffer.name"))
             buff_desc = buff_info.get("desc", "")
-            engine._add_buff_to(run.player, "buffer", buff_name, buff_desc, 1)
-            bonus_msg = f" 🛡️ 并获得 1 层【{buff_name}】！"
+            buff_stacks = getattr(self, "buff_stacks", 1)
+            engine._add_buff_to(run.player, "buffer", buff_name, buff_desc, buff_stacks)
+            bonus_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.arcane_barrier.bonus", buff_stacks=buff_stacks, buff_name=buff_name)
         from ...data.card_data import CARD_CONFIG
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
             return feedback_tmpl.format(shield=shield_val) + bonus_msg
-        return f"凝聚了奥法屏障，获得了 {shield_val} 点护盾。" + bonus_msg
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.arcane_barrier.result", shield=shield_val) + bonus_msg
 
 @register_card("wizard_prismatic_wall")
 class WizardPrismaticWallCard(Card):
     def execute(self, run, target, engine) -> str:
-        shield_val = 25 if self.upgraded else 15
-        barrier_layers = 3 if self.upgraded else 2
+        shield_val = getattr(self, "shield_amount", 25 if self.upgraded else 15)
+        barrier_layers = getattr(self, "buff_stacks", 3 if self.upgraded else 2)
+        reflect_damage = getattr(self, "reflect_damage", 20 if self.upgraded else 12)
         engine._gain_shield(run, "p0", shield_val)
         if self.upgraded:
-            engine._add_buff_to(run.player, "prismatic_barrier_upgraded", "虹光屏障+", "受击时反射 20 点混合属性伤害", barrier_layers)
-            return f"你咏唱了【虹光法墙+】，获得了 {shield_val} 点护盾与 {barrier_layers} 层【虹光屏障+】！"
+            engine._add_buff_to(run.player, "prismatic_barrier_upgraded", get_locale_text("i18n_cards_warrior_wizard.wizard.prismatic_wall.buff_name_upgraded"), get_locale_text("i18n_cards_warrior_wizard.wizard.prismatic_wall.buff_desc", reflect_damage=reflect_damage), barrier_layers)
+            return get_locale_text("i18n_cards_warrior_wizard.wizard.prismatic_wall.result_upgraded", shield=shield_val, barrier_layers=barrier_layers)
         else:
-            engine._add_buff_to(run.player, "prismatic_barrier", "虹光屏障", "受击时反射 12 点混合属性伤害", barrier_layers)
-            return f"你咏唱了【虹光法墙】，获得了 {shield_val} 点护盾与 {barrier_layers} 层【虹光屏障】！"
+            engine._add_buff_to(run.player, "prismatic_barrier", get_locale_text("i18n_cards_warrior_wizard.wizard.prismatic_wall.buff_name"), get_locale_text("i18n_cards_warrior_wizard.wizard.prismatic_wall.buff_desc", reflect_damage=reflect_damage), barrier_layers)
+            return get_locale_text("i18n_cards_warrior_wizard.wizard.prismatic_wall.result", shield=shield_val, barrier_layers=barrier_layers)
 
 @register_card("wizard_antimagic_field")
 class WizardAntimagicFieldCard(Card):
     def execute(self, run, target, engine) -> str:
-        run.player.buffs.clear()
+        players = list(run.players.values()) if getattr(run, "coop_id", "") else [run.player]
+        for player in players:
+            player.buffs.clear()
+            player.amulets.clear()
+            for m in player.minions.values():
+                m.buffs.clear()
         for enemy in run.enemies:
             enemy.buffs.clear()
-        if run.player.minions:
-            for m in run.player.minions.values():
-                m.buffs.clear()
-        run.player.amulets.clear()
         if self.upgraded:
-            return "反魔法力场+席卷了战场！清除了场上所有生物的所有 Buff，并使所有护符消失（不触发谢幕曲且不进入墓地）。"
+            return get_locale_text("i18n_cards_warrior_wizard.wizard.antimagic_field.result_upgraded")
         else:
-            return "反魔法力场席卷了战场！清除了场上所有生物的所有 Buff，并使所有护符消失（不触发谢幕曲且不进入墓地）。"
+            return get_locale_text("i18n_cards_warrior_wizard.wizard.antimagic_field.result")
 
 @register_card("wizard_time_ravage")
 class WizardTimeRavageCard(Card):
     def execute(self, run, target, engine) -> str:
         name = engine._get_target_name(run, target)
-        dmg = 25 if self.upgraded else 15
-        debuff_layers = 3 if self.upgraded else 2
+        dmg = getattr(self, "base_dmg", 25 if self.upgraded else 15)
+        debuff_layers = getattr(self, "buff_stacks", 3 if self.upgraded else 2)
         engine._damage_target(run, target, dmg, damage_type="true", card=self)
         if target.startswith("e"):
             try:
                 idx = int(target[1:]) - 1
                 if 0 <= idx < len(run.enemies):
                     enemy = run.enemies[idx]
-                    engine._add_buff_to(enemy, "weak", "虚弱", "造成的伤害减少 50%", debuff_layers)
-                    engine._add_buff_to(enemy, "vulnerable", "易伤", "受到的伤害增加 50%", debuff_layers)
+                    engine._add_buff_to(enemy, "weak", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.time_weak.name"), get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.time_weak.desc"), debuff_layers)
+                    engine._add_buff_to(enemy, "vulnerable", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.vulnerable.name"), get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.vulnerable.desc"), debuff_layers)
             except ValueError:
                 pass
-        msg = f"对【{name}】释放【时光蹂躏】，造成了 {dmg} 点时间侵蚀真实伤害，并施加了 {debuff_layers} 层【虚弱】与 {debuff_layers} 层【易伤】！"
+        msg = get_locale_text("i18n_cards_warrior_wizard.wizard.time_ravage.result", name=name, dmg=dmg, debuff_layers=debuff_layers)
         if self.upgraded:
-            run.player.action_a += 1
-            msg += " 你获得了 1A 时间补偿！"
+            action_gain = getattr(self, "gain_a", getattr(self, "action_gain", 1))
+            run.player.actions += action_gain
+            msg += get_locale_text("i18n_cards_warrior_wizard.wizard.time_ravage.bonus", action_gain=action_gain)
         return msg
 
 @register_card("wizard_split_to_ten")
 class WizardSplitToTenCard(Card):
     def execute(self, run, target, engine) -> str:
-        stacks = 2 if self.upgraded else 1
+        stacks = getattr(self, "buff_stacks", 2 if self.upgraded else 1)
         from ...data.buff_data import BUFF_CONFIG
         buff_info = BUFF_CONFIG.get("split_to_ten", {})
-        engine._add_buff_to(run.player, "split_to_ten", buff_info.get("name", "一分为十"), buff_info.get("desc", ""), stacks)
-        return f"使用了【{self.name}】，获得了 {stacks} 层【一分为十】Buff！"
+        engine._add_buff_to(run.player, "split_to_ten", buff_info.get("name", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.split_to_ten.name")), buff_info.get("desc", ""), stacks)
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.split_to_ten.result", name=self.name, stacks=stacks)
 
 @register_card("meteor_strike")
 class MeteorStrikeCard(Card):
     def execute(self, run, target, engine) -> str:
         import random
         from ...models.state import AmuletState
-        base_dmg = 40 if self.upgraded else 30
+        base_dmg = getattr(self, "base_dmg", 40 if self.upgraded else 30)
         dmg = engine.get_modified_spell_damage(run, self, base_dmg)
         hits = []
-        for _ in range(4):
+        hits_count = getattr(self, "hit_count", getattr(self, "hits", 4))
+        for _ in range(hits_count):
             if not run.enemies:
                 break
             enemy = random.choice(run.enemies)
             curr_idx = run.enemies.index(enemy)
-            engine._damage_target(run, f"e{curr_idx+1}", dmg, damage_type="bludgeoning", card=self)
+            engine._damage_target(run, f"e{curr_idx+1}", dmg, damage_type="bludgeoning", card=self, damage_ready=True)
             hits.append(enemy.name)
         grid = engine._get_free_grid(run.player)
         amulet_msg = ""
         if grid:
             deploy_id = "energy_core+" if self.upgraded else "energy_core"
-            deploy_name = "能量核心+" if self.upgraded else "能量核心"
-            desc_val = "2A 1BA" if self.upgraded else "1A 1BA"
-            deploy_desc = f"谢幕曲：你获得 {desc_val}。"
-            run.player.amulets[grid] = AmuletState(deploy_id, deploy_name, 1, deploy_desc)
-            amulet_msg = f"在格子 [{grid}] 部署了【{deploy_name}】护符。"
+            deploy_name = get_locale_text("i18n_cards_warrior_wizard.wizard.meteor_strike.deploy_name_upgraded") if self.upgraded else get_locale_text("i18n_cards_warrior_wizard.wizard.meteor_strike.deploy_name")
+            countdown = getattr(self, "countdown", 1)
+            action_gain = getattr(self, "gain_a", getattr(self, "action_gain", 2 if self.upgraded else 1))
+            bonus_action_gain = getattr(self, "gain_ba", getattr(self, "bonus_action_gain", 1))
+            desc_val = f"{action_gain}A {bonus_action_gain}BA"
+            deploy_desc = get_locale_text("i18n_cards_warrior_wizard.wizard.meteor_strike.deploy_desc", desc_val=desc_val)
+            run.player.amulets[grid] = AmuletState(deploy_id, deploy_name, countdown, deploy_desc)
+            amulet_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.meteor_strike.amulet_deployed", grid=grid, deploy_name=deploy_name)
         else:
-            amulet_msg = "战场格子已满，部署【能量核心】失败。"
+            amulet_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.meteor_strike.amulet_fail")
         if not hits:
-            return f"使用【陨石打击】攻击了寂静的战场。{amulet_msg}"
+            return get_locale_text("i18n_cards_warrior_wizard.wizard.meteor_strike.silent", amulet_msg=amulet_msg)
         hits_summary = ", ".join(hits)
-        return f"召唤陨石打击！对随机目标（{hits_summary}）共造成了 {len(hits)} 次钝击伤害。{amulet_msg}"
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.meteor_strike.result", hits_summary=hits_summary, hits_len=len(hits), amulet_msg=amulet_msg)

@@ -12,6 +12,8 @@ class GameEngine:
         self.save_manager = save_manager
         self.battle_engine = BattleEngine(save_manager)
         self.map_engine = MapEngine(save_manager, self.battle_engine)
+        self.battle_engine.game_engine = self
+        self.map_engine.game_engine = self
         self.battle_engine.map_engine = self.map_engine
         from .core.battle.potion_resolver import PotionResolver
         self.potion_resolver = PotionResolver(self)

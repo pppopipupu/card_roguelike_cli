@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("雷影魔仆")
 class LightningOrbTemplate(EnemyTemplate):
@@ -34,8 +35,8 @@ class LightningOrbTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="lightning")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(run.player, "shock", "电击", "受到的闪电和雷鸣伤害每层增加 1 点", 1)
-            logs.append(f"【{enemy.name}】射出闪电。{dmg_msg} 且你受到了【电击】！")
+            engine._add_buff_to(run.player, "shock", get_locale_text("i18n_enemy_misc.common.shock_name"), get_locale_text("i18n_enemy_misc.common.shock_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_misc.lightning_orb.lightning_strike", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "charge":
-            engine._add_buff_to(enemy, "strength", "力量", "造成的伤害增加", 1)
-            logs.append(f"【{enemy.name}】开始蓄能，获得 1 层力量。")
+            engine._add_buff_to(enemy, "strength", get_locale_text("i18n_enemy_misc.common.strength_name"), get_locale_text("i18n_enemy_misc.common.strength_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_misc.lightning_orb.charge", name=enemy.name))

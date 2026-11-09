@@ -1,0 +1,63 @@
+{
+  "common": {
+    "yes": "是",
+    "no": "否"
+  },
+  "app": {
+    "origin_failed": "请求来源校验失败。",
+    "missing_auth": "缺少认证信息。",
+    "internal_error": "❌ 服务器内部错误。",
+    "invalid_channel": "❌ 无效的通道。",
+    "channel_mismatch": "❌ 认证方式与请求通道不一致。",
+    "error_prefix": "❌ {message}"
+  },
+  "auth": {
+    "invalid_token": "无效的访问令牌。",
+    "missing_hs256_secret": "服务器未配置 HS256 校验密钥。",
+    "unsupported_algorithm": "不支持的令牌签名算法。",
+    "jwks_fetch_failed": "无法获取 Supabase 签名公钥。",
+    "token_expired": "访问令牌无效或已过期。",
+    "missing_token": "缺少访问令牌。",
+    "missing_subject": "访问令牌缺少用户标识。",
+    "im_disabled": "服务器未启用即时通讯认证。",
+    "im_token_invalid": "即时通讯令牌无效。",
+    "im_user_invalid": "缺少或非法的即时通讯用户标识。"
+  },
+  "accounts": {
+    "uuid_not_found": "该 UUID 不存在，请确认绑定码。",
+    "already_bound_current": "该 UUID 已经绑定到当前网页账号。",
+    "already_bound_other": "该 UUID 已经绑定了其他网页账号。",
+    "im_conflict": "当前网页账号已关联一个即时通讯玩家，无法直接切换绑定。",
+    "need_force": "当前网页账号已有独立进度。若确认放弃该进度并绑定目标 UUID，请输入：绑定 {target_uuid} force",
+    "bind_success": "绑定成功。"
+  },
+  "service": {
+    "account_player_id": "🆔 你的玩家 ID:{player_id}",
+    "account_im_linked": "🔗 已关联即时通讯账号:{value}",
+    "account_web_linked": "🌐 已关联网页账号:{value}",
+    "account_bind_hint": "💡 如需继承即时通讯进度,请输入:绑定 <迁移码>",
+    "account_shared_save": "💡 当前网页账号已与即时通讯进度共享同一份存档。",
+    "migration_title": "🔐 你的迁移码（UUID）：",
+    "migration_instruction": "在网页版使用 GitHub 登录后，输入：",
+    "migration_bind_command": "绑定 {uuid}",
+    "migration_warning": "迁移码只用于关联存档，请勿公开。",
+    "admin_no_players": "当前没有已注册玩家。",
+    "anonymous_player": "匿名玩家",
+    "online_title": "🟢 当前在线玩家（最近 5 分钟，共 {count} 人）",
+    "online_empty": "当前没有在线玩家。",
+    "online_row": "{index}. {name} — 第 {stage} 层 — {gp} GP",
+    "leaderboard_title": "🏆 GP 排行榜（前 20）",
+    "leaderboard_empty": "当前还没有玩家记录。",
+    "leaderboard_row": "{index}. {marker}{name} — {gp} GP — 第 {stage} 层",
+    "online_count": "🟢 当前在线：{count} 人",
+    "bind_web_only": "❌ 绑定操作请在网页端进行。",
+    "bind_usage": "❌ 用法：绑定 <UUID> [force]",
+    "command_too_long": "❌ 指令过长。",
+    "channel_mismatch": "❌ 认证方式与请求通道不一致。",
+    "leaderboard_usage": "❌ 用法：leaderboard 或 leaderboard online",
+    "mode_removed": "模式切换指令已移除，肉鸽模式固定开启。\n",
+    "migration_im_only": "❌ 迁移码只能在即时通讯端通过 secrets 获取。",
+    "admin_required": "❌ 需要管理员令牌。",
+    "default_sender_name": "玩家"
+  }
+}

@@ -1,0 +1,186 @@
+{
+  "common": {
+    "class_separator": "·",
+    "list_separator": "、",
+    "player_not_found": "❌ 没有找到玩家【{query}】。",
+    "no_request": "❌ 【{name}】没有向你发送好友申请。",
+    "not_in_team": "❌ 你当前不在任何队伍中。",
+    "none": "无"
+  },
+  "online": {
+    "coop": "联机牌局中",
+    "solo": "单人牌局中",
+    "town": "主城中",
+    "idle": "空闲"
+  },
+  "friend_id": {
+    "account_bound": "，绑定账号 {account}",
+    "no_account": "，尚未绑定通讯账号",
+    "text": "🪪 你的玩家 ID:{player_id}\n昵称:{name}{account_text}"
+  },
+  "friend_name": {
+    "need_arg": "❌ 请提供新的昵称，例如：friend name 冒险者小明",
+    "too_long": "❌ 昵称最多 {limit} 个字符。",
+    "invalid_char": "❌ 昵称不能包含换行或制表符。",
+    "success": "✅ 昵称已修改为【{name}】。"
+  },
+  "friend_bind": {
+    "need_arg": "❌ 请提供要绑定的通讯账号，例如：friend bind QQ123456",
+    "too_long": "❌ 通讯账号最多 {limit} 个字符。",
+    "already_bound": "❌ 该通讯账号已被其他玩家绑定。",
+    "success": "✅ 已绑定通讯账号【{account}】，好友现在可以通过它搜索到你。"
+  },
+  "friend_search": {
+    "need_arg": "❌ 请提供搜索关键词，例如：friend search 小明",
+    "no_match": "🔍 没有找到与【{keyword}】匹配的玩家。",
+    "header": "🔍 找到 {count} 名玩家:",
+    "account_suffix": " | 账号 {account}",
+    "entry": "【{name}】{class_text}{account}",
+    "id_line": "  ID:{player_id}",
+    "hint": "💡 发送好友申请：friend add <玩家ID或昵称>"
+  },
+  "friend_add": {
+    "not_found": "❌ 没有找到玩家【{query}】。可先用 friend search <关键词> 搜索。",
+    "self": "❌ 不能添加自己为好友。",
+    "already_friend": "✅ 【{name}】已经是你的好友。",
+    "mutual": "✅ 你们此前已互相申请，现已成为好友：{name}。",
+    "sent": "📨 已向【{name}】发送好友申请，等待对方 accept。"
+  },
+  "friend_accept": {
+    "success": "✅ 已接受【{name}】的好友申请，现在你们是好友。"
+  },
+  "friend_reject": {
+    "success": "✅ 已拒绝【{name}】的好友申请。"
+  },
+  "friend_remove": {
+    "not_friend": "❌ 【{name}】不在你的好友列表中。",
+    "success": "✅ 已从好友列表中移除【{name}】。"
+  },
+  "friend_list": {
+    "empty": "👥 你的好友列表为空。使用 friend search 查找玩家，再用 friend add 发送申请。",
+    "header": "👥 好友列表({count} 人):",
+    "entry": " {index}. 【{name}】{class_text} | {online}",
+    "id_line": "    ID:{player_id}",
+    "hint": "💡 组队邀请：friend invite <好友昵称或ID>"
+  },
+  "friend_requests": {
+    "header": "📬 好友申请：",
+    "received": "收到：",
+    "incoming_entry": " [{index}] 【{name}】ID:{player_id}",
+    "actions": "接受：friend accept <昵称或ID>；拒绝：friend reject <昵称或ID>",
+    "received_none": "收到：无",
+    "sent": "已发送：",
+    "outgoing_entry": " - 【{name}】ID:{player_id}(等待对方处理)",
+    "sent_none": "已发送：无"
+  },
+  "lobby_status": {
+    "header": "🏠 队伍 {lobby_id}（队长：{leader}）",
+    "leader_marker": "（队长）",
+    "ready": "✅ 已准备",
+    "not_ready": "⬜ 未准备",
+    "member_entry": " - {name}{marker} | {class_text} | {ready_text}",
+    "invited": "📨 待接受邀请：{names}",
+    "member_count": "👥 人数：{count}/{max_members}"
+  },
+  "team_create": {
+    "already_in_team": "❌ 你已在队伍 {lobby_id} 中。\n{lobby_status}",
+    "in_coop": "❌ 你正在进行联机牌局，无法创建队伍。",
+    "personal_save": "❌ 你有一局单人冒险尚未结束。请先输入 放弃 结束单人存档，再创建队伍。",
+    "success": "🏠 已创建队伍 {lobby_id}。\n{lobby_status}\n邀请好友：friend invite <好友昵称或ID>"
+  },
+  "team_invite": {
+    "no_team": "❌ 你还没有队伍。先输入 team create 创建队伍。",
+    "not_leader": "❌ 只有队长可以邀请好友加入队伍。",
+    "in_coop": "❌ 联机牌局进行中，无法继续邀请队员。",
+    "self": "❌ 不能邀请自己。",
+    "not_friend": "❌ 【{name}】还不是你的好友。先发送 friend add。",
+    "already_member": "✅ 【{name}】已经在队伍中。",
+    "already_invited": "📨 已经邀请过【{name}】，等待对方 team join 接受。",
+    "full": "❌ 队伍最多 {max_members} 人，邀请名额已满。",
+    "target_in_coop": "❌ 【{name}】正在联机牌局中，无法接受邀请。",
+    "success": "📨 已邀请【{name}】加入队伍 {lobby_id}。\n对方可输入 team join {lobby_id} 接受邀请。"
+  },
+  "team_invites": {
+    "entry": "🏠 队伍 {lobby_id}（队长：{leader}，人数 {count}/{max_members}）",
+    "empty": "📭 当前没有收到组队邀请。",
+    "header": "📬 收到的组队邀请：",
+    "hint": "💡 输入 team join <队伍编号> 接受邀请。"
+  },
+  "team_join": {
+    "need_id": "❌ 请提供队伍编号，例如：team join A1B2C3。可输入 team invites 查看邀请。",
+    "not_found": "❌ 队伍【{lobby_id}】不存在。",
+    "not_invited": "❌ 你没有收到该队伍的邀请。",
+    "already_member": "✅ 你已经在队伍中。",
+    "in_coop": "❌ 你正在进行联机牌局，无法加入队伍。",
+    "already_in_other": "❌ 你已在队伍 {lobby_id} 中，请先 team leave。",
+    "personal_save": "❌ 你有一局单人冒险尚未结束。请先输入 放弃 结束单人存档，再接受邀请。",
+    "full": "❌ 该队伍人数已满。",
+    "success": "✅ 已加入队伍 {lobby_id}。\n{lobby_status}\n准备就绪：team ready"
+  },
+  "team_leave": {
+    "in_coop": "❌ 联机牌局进行中，无法离开队伍。",
+    "invite_cancelled": "✅ 已取消该队伍的邀请。",
+    "disbanded": "✅ 你已离开队伍 {lobby_id}，队伍已解散。",
+    "success": "✅ 你已离开队伍 {lobby_id}。\n{lobby_status}"
+  },
+  "team_disband": {
+    "not_leader": "❌ 只有队长可以解散队伍。",
+    "in_coop": "❌ 联机牌局进行中，无法解散队伍。",
+    "success": "✅ 队伍 {lobby_id} 已解散。"
+  },
+  "team_kick": {
+    "not_leader": "❌ 只有队长可以移出队员。",
+    "self": "❌ 不能移出自己。",
+    "target_in_coop": "❌ 【{name}】正在联机牌局中，无法移出队伍。",
+    "not_member": "❌ 【{name}】不在你的队伍中。",
+    "success": "✅ 已将【{name}】移出队伍。\n{lobby_status}"
+  },
+  "team_ready": {
+    "not_member": "❌ 你不在该队伍中。",
+    "ready": "✅ 你已准备就绪。\n{lobby_status}\n队长可输入 team start 开启联机牌局。",
+    "unready": "⬜ 你已取消准备。\n{lobby_status}"
+  },
+  "team_status": {
+    "in_coop": "❌ 你正在联机牌局中。"
+  },
+  "team_start": {
+    "not_leader": "❌ 只有队长可以开启联机牌局。",
+    "min_players": "❌ 联机牌局至少需要 {min_players} 名玩家。邀请好友后再开始。",
+    "max_players": "❌ 联机牌局最多 {max_members} 名玩家。",
+    "not_ready": "❌ 以下队员尚未准备：{names}。",
+    "member_in_coop": "❌ 【{name}】正在联机牌局中。",
+    "member_personal_save": "❌ 【{name}】还有单人冒险存档。请其先输入 放弃 结束单人存档。",
+    "stale": "❌ 以下队员已离开队伍：{names}。",
+    "no_engine": "❌ 联机引擎未初始化。",
+    "success": "🎉 队伍 {lobby_id} 已开启联机牌局！\n队伍成员：{names}\n所有队员输入任意冒险指令即可载入共享地图。"
+  },
+  "checkin": {
+    "claim_pending": "今日已签到，请选择一张集换卡盖章：\n",
+    "claim_done": "今日已签到。\n",
+    "stamp_already": "今日已签到，且今日的集换章已经盖过了。\n",
+    "stamp_not_found": "❌ 未找到该集换卡。请重新选择：\n",
+    "stamp_prefix": "今日签到完成。\n",
+    "stamped": "🏷️ 你为【{name}】盖上了 {count} 枚集换章。",
+    "current": "当前集换章：{current}/{required}",
+    "unlocked": "🎉 集换章达到 {required} 枚，已解锁【{name}】！下一局初始牌组将带入该卡。",
+    "remaining": "还需 {remaining} 枚集换章解锁【{name}】。",
+    "already_unlocked": "【{name}】已经解锁。",
+    "render_claim_title": "📅 今日签到成功！",
+    "render_claim_blessing": "🌙 每日祝福：{name}",
+    "desc_indent": "   {desc}",
+    "render_claim_note": "   该祝福只会在你下一局新游戏中生效，且只保留最新一次签到结果。",
+    "render_claim_choose": "请选择一张集换卡盖上今日的集换章：",
+    "unknown_blessing": "未知祝福",
+    "collection_unlocked": "已解锁",
+    "collection_progress": "{current}/{required}",
+    "collection_entry": " {index}. 【{name}】 集换章：{status}",
+    "collection_hint": "输入 签到 <序号|卡牌名> 盖章。",
+    "status_last": "📅 上次签到：{date}",
+    "status_blessing": "🌙 待生效每日祝福：{name}",
+    "status_title": "🏷️ 集换章：",
+    "status_entry": "   【{name}】 {current}/{required}"
+  },
+  "daily_blessing": {
+    "first_exhaust_log": "🌙 [每日祝福·消耗领域] 本场战斗首次消耗触发，抽 {draw_count} 张牌并获得 {action_count}A。"
+  }
+}

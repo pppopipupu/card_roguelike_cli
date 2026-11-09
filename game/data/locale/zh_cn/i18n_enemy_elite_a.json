@@ -1,0 +1,64 @@
+{
+  "common": {
+    "strength_name": "力量",
+    "strength_desc": "造成的伤害增加",
+    "time_entangle_name": "时间纠缠",
+    "time_entangle_desc": "在下一回合开始时，你将失去等同于此状态层数的动作点 (A)",
+    "void_entangle_name": "虚空纠缠",
+    "void_entangle_desc": "在下一回合开始时，你将失去等同于此状态层数的附赠动作点 (BA)",
+    "minor_vulnerable_name": "轻度易伤",
+    "minor_vulnerable_desc": "受到的所有类型伤害增加 50%",
+    "discard_next_turn_name": "下回合弃牌",
+    "discard_next_turn_desc": "在下一回合开始时，你将随机丢弃等同于此状态层数的手牌",
+    "slashing_vulnerable_name": "轻度挥砍易伤",
+    "slashing_vulnerable_desc": "受到的挥砍伤害增加 50%",
+    "fire_vulnerable_name": "轻度火焰易伤",
+    "fire_vulnerable_desc": "受到的火焰伤害增加 50%"
+  },
+  "ancient_warden": {
+    "portal_smash": "【{name}】使出门扉重击。{dmg_msg}",
+    "ancient_charge": "【{name}】先古充能，获得了 3 层力量。",
+    "space_lock": "【{name}】空间闭锁，使玩家在下一回合失去 1 个动作点（A）。"
+  },
+  "astral_hound": {
+    "star_bite": "【{name}】进行星光撕咬。{dmg_msg}",
+    "phase_shift_stun": "【{name}】施展相位转移，获得 12 护盾并清除了眩晕！",
+    "phase_shift": "【{name}】施展相位转移，获得 12 护盾。",
+    "star_fury": "【{name}】释放星光狂暴，使玩家下回合少抽 1 张牌。"
+  },
+  "beast_master": {
+    "defend": "【{name}】收缩防线，获得 {val} 点护盾。",
+    "hound_name": "狂暴猎犬",
+    "hound_intent_desc": "扑咬 (造成 2 伤害)",
+    "summon_beast": "【{name}】召唤了一只【狂暴猎犬】加入战场。"
+  },
+  "leng_spider": {
+    "venom_bite_suffix": "，并对你施加了 1 层【轻度易伤】",
+    "discard_suffix": "，并使玩家在下一回合开始时将被迫随机丢弃 1 张手牌",
+    "web_trap": "【{name}】编织蛛网，获得 {val} 点护盾{discard_msg}。"
+  },
+  "migo": {
+    "electric_probe": "【{name}】使用电击探针。{dmg_msg}，使玩家下回合少抽 1 张牌。",
+    "brain_case": "【{name}】尝试提取你的大脑。{dmg_msg}",
+    "bio_shield_purge": "【{name}】凝聚生物护盾，获得 {val} 点护盾并净化了【{buff}】！",
+    "bio_shield": "【{name}】凝聚生物护盾，获得 {val} 点护盾。"
+  },
+  "shoggoth": {
+    "acid_splash": "【{name}】泼溅强酸。{dmg_msg}，使玩家在下一回合失去 1 个附赠动作点（BA）。",
+    "slime_cocoon": "【{name}】分泌粘液茧，获得 {val} 点护盾。"
+  },
+  "star_vampire": {
+    "blood_drain": "【{name}】吸取你的鲜血。{dmg_msg}，并回复自身 {heal} 点生命。",
+    "invisible_stalker": "【{name}】隐形潜行，获得 {val} 点护盾与 4 层【力量】！"
+  },
+  "starspawn_of_cthulhu": {
+    "cosmic_blast": "【{name}】引导宇宙冲击。{dmg_msg}",
+    "cthulhu_gaze": "【{name}】投射克苏鲁之视。{dmg_msg}，使你下回合减少 1A。",
+    "star_regeneration": "【{name}】进行星光再生，获得 {val} 点护盾并回复 {heal} 生命。"
+  },
+  "doomguard": {
+    "doom_strike": "【{name}】施展毁灭打击。{dmg_msg}",
+    "hellfire": "【{name}】施展地狱火。{dmg_msg}",
+    "sacrifice": "【{name}】使用牺牲防御，获得 {val} 点护盾，但自身受到 2 点真实伤害反噬。"
+  }
+}

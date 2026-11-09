@@ -1,0 +1,58 @@
+{
+  "common": {
+    "strength_name": "力量",
+    "strength_desc": "造成的伤害增加",
+    "shock_name": "电击",
+    "shock_desc": "受到的闪电和雷鸣伤害每层增加 1 点",
+    "phase_transition_name": "转换阶段",
+    "phase_transition_desc": "处于转换阶段状态，免疫所有伤害"
+  },
+  "astral_puppy": {
+    "intent_star_bite": "星光撕咬 (造成 3 力场伤害)",
+    "bite": "【{name}】张开虚空之口扑咬过来。{dmg_msg}"
+  },
+  "lightning_orb": {
+    "lightning_strike": "【{name}】射出闪电。{dmg_msg} 且你受到了【电击】！",
+    "charge": "【{name}】开始蓄能，获得 1 层力量。"
+  },
+  "void_lurker": {
+    "intent_void_strike": "虚空打击 (造成 6 点黯蚀伤害)",
+    "void_strike": "【{name}】对玩家进行虚空打击。{dmg_msg}"
+  },
+  "ghost": {
+    "intent_play_card": "打出【{card_name}】",
+    "intent_attack": "怨念冲击 (造成 {damage} 伤害)",
+    "damage": "💀 【{name}】打出【{card_name}】，造成 {damage} 点伤害。",
+    "heal": "💀 【{name}】打出【{card_name}】，恢复 {heal} 点生命。",
+    "shield": "💀 【{name}】打出【{card_name}】，获得 {shield} 点护盾。",
+    "shield_fallback": "💀 【{name}】打出【{card_name}】，凝聚了 3 点护盾。"
+  },
+  "test_dummy": {
+    "sweep": "横扫击打 (造成 10 点钝击伤害)",
+    "repair": "自我修复 (获得 10 点护盾)"
+  },
+  "noob_slayer": {
+    "fireball": "施法火球 (造成 8 点火焰伤害)",
+    "ice_armor": "凝聚冰甲 (获得 8 点护盾)"
+  },
+  "sniper_elite": {
+    "aim": "精准瞄准 (锁定目标，下回合伤害增加)",
+    "shot": "穿甲射击 (造成 18 点穿刺伤害)",
+    "strength_desc": "造成伤害增加 3",
+    "aim_log": "敌人【{name}】进入了瞄准状态，获得了 3 层力量。"
+  },
+  "pppopipupu": {
+    "phase_intent": "热更新 (转换阶段：正在热更新插件中，暂时拒绝一切伤害请求的TCP握手)",
+    "phase_log": "⚠️ pppopipupu 受到了致命伤害，但他似乎正在通过某种方式重写代码... 进入了【转换阶段】状态！",
+    "awaken_log": "🌟 pppopipupu 在致命伤下苏醒了！无尽的力场虚空能重新充满了他的身躯！他进入了神级觉醒形态！",
+    "force_strike_intent": "猛击 (对玩家造成 100 点力场伤害)",
+    "fish_intent": "钓鱼 (无所事事地在靶场旁钓鱼)",
+    "force_strike_log": "敌人【{name}】发出了撕裂空间的猛击，对玩家造成了 100 点真实力场伤害！",
+    "fish_log": "敌人【{name}】在一旁悠闲地钓鱼。"
+  },
+  "gate_guardian": {
+    "slash": "强力挥砍 (造成 12 点挥砍伤害)",
+    "block": "铁盾格挡 (获得 15 点护盾)",
+    "bash": "重力盾击 (造成 20 点钝击伤害)"
+  }
+}

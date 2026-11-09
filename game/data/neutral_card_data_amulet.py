@@ -21,6 +21,7 @@ NEUTRAL_CARD_AMULETS = {
         "desc": "当你受到伤害时，对伤害来源造成 2 点伤害。",
         "rarity": "rare",
         "countdown": 2,
+        "base_dmg": 2,
         "amulet_desc": "受到伤害时，向伤害源反弹 2 点伤害。",
         "feedback_success": "将【{name}】部署到了格子 [{grid}]。",
         "feedback_fail": "战场格子已满，部署失败。"
@@ -34,6 +35,8 @@ NEUTRAL_CARD_AMULETS = {
         "desc": "吟唱 2。每回合开始时，对所有敌人施加 1 层易伤，并对随机敌人造成 5 点力场伤害。",
         "rarity": "rare",
         "countdown": 2,
+        "base_dmg": 5,
+        "buff_stacks": 1,
         "amulet_desc": "每回合开始时，对所有敌人施加 1 层易伤，并对随机敌人造成 5 点力场伤害。",
         "feedback_success": "将【{name}】部署到了格子 [{grid}]。"
     },
@@ -94,6 +97,8 @@ NEUTRAL_CARD_AMULETS = {
         "desc": "(消耗: 1A 1BA) 部署【终结的深渊祭坛】（吟唱 1）。谢幕曲对场上所有敌人造成 500 点真实伤害，你受到 10 点真实伤害。",
         "rarity": "legendary",
         "countdown": 1,
+        "base_dmg": 500,
+        "self_hp_cost": 10,
         "amulet_desc": "谢幕曲对场上所有敌人造成 500 点真实伤害，你受到 10 点真实伤害。",
         "feedback_success": "在格子 [{grid}] 部署了【{name}】。"
     }

@@ -2,6 +2,7 @@ from typing import Generator
 
 from ...base import CommandHandler
 from .....renderer import GameRenderer
+from .....data.locale_data import get_locale_text
 
 
 class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobby"], allowed_states=["menu", "town", "explore", "battle", "dialog", "cafe"]):
@@ -16,7 +17,7 @@ class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobb
             yield service.team_create(user_id)
         elif sub in ("invite", "邀请"):
             if not arg:
-                yield "❌ 请提供要邀请的好友昵称或 ID。"
+                yield get_locale_text("i18n_cli_general_a.team.invite_need_arg")
                 return
             yield service.team_invite(user_id, arg)
         elif sub in ("join", "accept", "加入", "接受"):
@@ -36,7 +37,7 @@ class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobb
                 yield result
         elif sub in ("kick", "踢", "踢出"):
             if not arg:
-                yield "❌ 请提供要移出的队员昵称或 ID。"
+                yield get_locale_text("i18n_cli_general_a.team.kick_need_arg")
                 return
             yield service.team_kick(user_id, arg)
         elif sub in ("disband", "dissolve", "解散"):
@@ -46,4 +47,4 @@ class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobb
         elif sub in ("invites", "invitations", "邀请列表"):
             yield service.team_invites(user_id)
         else:
-            yield "❌ 未知组队子指令。输入 team 查看当前队伍状态。"
+            yield get_locale_text("i18n_cli_general_a.team.unknown_sub")

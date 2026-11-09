@@ -1,13 +1,14 @@
+from ...data.locale_data import get_locale_text
 from ...models.events import CardPlayedCountEvent
 from ...models.state import ensure_card_state
 
 
 class InstantSummonHandler:
     PILE_ORDER = (
-        ("draw", "抽牌堆", "draw_pile"),
-        ("discard", "弃牌堆", "discard_pile"),
-        ("hand", "手牌", "hand"),
-        ("exhaust", "消耗堆", "exhaust_pile"),
+        ("draw", "i18n_battle_misc.pile_draw", "draw_pile"),
+        ("discard", "i18n_battle_misc.pile_discard", "discard_pile"),
+        ("hand", "i18n_battle_misc.pile_hand", "hand"),
+        ("exhaust", "i18n_battle_misc.pile_exhaust", "exhaust_pile"),
     )
 
     def __init__(self, event_bus, engine):
@@ -38,7 +39,7 @@ class InstantSummonHandler:
                 candidates.append((pile_name, pile, c_state, card, card_id))
         for pile_name, pile, c_state, card, card_id in candidates:
             if self.engine._get_free_grid(p) is None:
-                self.engine._log_event(run, f"✨ [瞬念召唤] 第 {event.count} 张牌结算时，战场已满，【{card.name}】无法跃入战场。")
+                self.engine._log_event(run, get_locale_text("i18n_battle_misc.instant_summon_battlefield_full", count=event.count, name=card.name))
                 break
             index = next((i for i, value in enumerate(pile) if value is c_state), None)
             if index is None:
@@ -57,6 +58,6 @@ class InstantSummonHandler:
             )
             if not grid:
                 pile.insert(index, c_state)
-                self.engine._log_event(run, f"✨ [瞬念召唤] 第 {event.count} 张牌结算时，【{card.name}】召唤失败。")
+                self.engine._log_event(run, get_locale_text("i18n_battle_misc.instant_summon_failed", count=event.count, name=card.name))
                 continue
-            self.engine._log_event(run, f"✨ [瞬念召唤] 第 {event.count} 张牌结算，【{card.name}】从{pile_name}跃入格子 [{grid}]！")
+            self.engine._log_event(run, get_locale_text("i18n_battle_misc.instant_summon_success", count=event.count, name=card.name, pile_name=get_locale_text(pile_name), grid=grid))

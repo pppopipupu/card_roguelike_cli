@@ -1,6 +1,7 @@
 from typing import Optional
-from ...data.potion_data import POTION_CONFIG, get_potion_name
+from ...data.potion_data import POTION_CONFIG, POTION_THROW_DAMAGE, get_potion_name
 from ...models.state import GameRun
+from ...data.locale_data import get_locale_text
 
 class PotionResolver:
     def __init__(self, engine):
@@ -12,126 +13,144 @@ class PotionResolver:
         resolver = self.engine.battle_engine.combat_resolver
         ally_info = resolver.resolve_ally(run, target)
         target_name = resolver.get_target_name(run, target)
+        potion_cfg = POTION_CONFIG.get(potion_id, {})
         
         if is_throw:
-            self.engine.battle_engine._log_event(run, f"💥 {target_name}被你投掷的【{name}】击中了！")
-            self.engine.battle_engine.combat_resolver.damage_target(run, target, 3, source="p0", damage_type="bludgeoning")
+            self.engine.battle_engine._log_event(run, get_locale_text("i18n_battle_core.throw_hit_log", target_name=target_name, name=name))
+            self.engine.battle_engine.combat_resolver.damage_target(run, target, POTION_THROW_DAMAGE, source="p0", damage_type="bludgeoning")
             
         if potion_id == "healing_potion":
-            self.engine.battle_engine.combat_resolver.heal_target(run, target, 10)
-            return f"🧪 使用了【{name}】，对【{target_name}】回复了 10 点生命值。"
+            heal = potion_cfg["heal_amount"]
+            self.engine.battle_engine.combat_resolver.heal_target(run, target, heal)
+            return get_locale_text("i18n_battle_core.healing_potion_log", name=name, target_name=target_name, heal=heal)
             
         elif potion_id == "shield_potion":
-            self.engine.battle_engine.combat_resolver.gain_shield(run, target, 25)
-            return f"🧪 使用了【{name}】，对【{target_name}】施加了 25 点护盾。"
+            shield = potion_cfg["shield_amount"]
+            self.engine.battle_engine.combat_resolver.gain_shield(run, target, shield)
+            return get_locale_text("i18n_battle_core.shield_potion_log", name=name, target_name=target_name, shield=shield)
             
         elif potion_id == "fire_potion":
             if not is_throw:
-                self.engine.battle_engine.combat_resolver.damage_target(run, "p0", 12, source="potion:fire_potion", damage_type="fire")
-                self.engine.battle_engine.combat_resolver.add_buff_to(p, "burning", "燃烧", "每回合开始时受到火焰伤害", 2)
-                return f"🧪 你喝下了【{name}】，内脏灼伤，受到了 12 点火焰伤害并被施加 2 层【燃烧】。"
+                damage = potion_cfg["drink_damage"]
+                stacks = potion_cfg["drink_buff_stacks"]
+                self.engine.battle_engine.combat_resolver.damage_target(run, "p0", damage, source="potion:fire_potion", damage_type="fire")
+                self.engine.battle_engine.combat_resolver.add_buff_to(p, "burning", get_locale_text("i18n_battle_core.buff_burning_name"), get_locale_text("i18n_battle_core.buff_burning_desc"), stacks)
+                return get_locale_text("i18n_battle_core.fire_potion_drink_log", name=name, damage=damage, stacks=stacks)
             else:
-                self.engine.battle_engine.combat_resolver.damage_target(run, target, 16, source="potion:fire_potion", damage_type="fire")
+                damage = potion_cfg["throw_damage"]
+                stacks = potion_cfg["throw_buff_stacks"]
+                self.engine.battle_engine.combat_resolver.damage_target(run, target, damage, source="potion:fire_potion", damage_type="fire")
                 if target.startswith("p") and target != "p0":
                     grid = target[1:]
                     if grid in p.minions:
-                        self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "burning", "燃烧", "每回合开始时受到火焰伤害", 2)
+                        self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "burning", get_locale_text("i18n_battle_core.buff_burning_name"), get_locale_text("i18n_battle_core.buff_burning_desc"), stacks)
                 elif target.startswith("e"):
                     try:
                         idx = int(target[1:]) - 1
                         if 0 <= idx < len(run.enemies):
-                            self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "burning", "燃烧", "每回合开始时受到火焰伤害", 2)
+                            self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "burning", get_locale_text("i18n_battle_core.buff_burning_name"), get_locale_text("i18n_battle_core.buff_burning_desc"), stacks)
                     except ValueError:
                         pass
-                return f"🧪 投掷了【{name}】，对【{target_name}】造成 16 点火焰伤害并施加 2 层【燃烧】。"
+                return get_locale_text("i18n_battle_core.fire_potion_throw_log", name=name, target_name=target_name, damage=damage, stacks=stacks)
                 
         elif potion_id == "frost_potion":
             if not is_throw:
-                self.engine.battle_engine.combat_resolver.damage_target(run, "p0", 10, source="potion:frost_potion", damage_type="cold")
-                return f"🧪 你喝下了【{name}】，身体冻僵，受到了 10 点寒冷伤害。"
+                damage = potion_cfg["drink_damage"]
+                self.engine.battle_engine.combat_resolver.damage_target(run, "p0", damage, source="potion:frost_potion", damage_type="cold")
+                return get_locale_text("i18n_battle_core.frost_potion_drink_log", name=name, damage=damage)
             else:
-                self.engine.battle_engine.combat_resolver.damage_target(run, target, 20, source="potion:frost_potion", damage_type="cold")
+                damage = potion_cfg["throw_damage"]
+                stacks = potion_cfg["throw_buff_stacks"]
+                self.engine.battle_engine.combat_resolver.damage_target(run, target, damage, source="potion:frost_potion", damage_type="cold")
                 if target.startswith("p") and target != "p0":
                     grid = target[1:]
                     if grid in p.minions:
-                        self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "minor_vulnerable_cold", "轻度寒冷易伤", "受到的寒冷伤害增加 50%", 1)
+                        self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "minor_vulnerable_cold", get_locale_text("i18n_battle_core.buff_minor_vulnerable_cold_name"), get_locale_text("i18n_battle_core.buff_minor_vulnerable_cold_desc"), stacks)
                 elif target.startswith("e"):
                     try:
                         idx = int(target[1:]) - 1
                         if 0 <= idx < len(run.enemies):
-                            self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "minor_vulnerable_cold", "轻度寒冷易伤", "受到的寒冷伤害增加 50%", 1)
+                            self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "minor_vulnerable_cold", get_locale_text("i18n_battle_core.buff_minor_vulnerable_cold_name"), get_locale_text("i18n_battle_core.buff_minor_vulnerable_cold_desc"), stacks)
                     except ValueError:
                         pass
-                return f"🧪 投掷了【{name}】，对【{target_name}】造成 20 点寒冷伤害并施加 1 层【轻度寒冷易伤】。"
+                return get_locale_text("i18n_battle_core.frost_potion_throw_log", name=name, target_name=target_name, damage=damage, stacks=stacks)
                 
         elif potion_id == "strength_potion":
+            stacks = potion_cfg["buff_stacks"]
             if target == "p0":
-                self.engine.battle_engine.combat_resolver.add_buff_to(p, "strength", "力量", "造成的伤害增加", 2)
+                self.engine.battle_engine.combat_resolver.add_buff_to(p, "strength", get_locale_text("i18n_battle_core.buff_strength_name"), get_locale_text("i18n_battle_core.buff_strength_desc"), stacks)
             elif ally_info:
                 ally = ally_info[1]
                 ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
-                resolver.add_buff_to(ally_minion or ally, "strength", "力量", "造成的伤害增加", 2)
+                resolver.add_buff_to(ally_minion or ally, "strength", get_locale_text("i18n_battle_core.buff_strength_name"), get_locale_text("i18n_battle_core.buff_strength_desc"), stacks)
             elif target.startswith("p"):
                 grid = target[1:]
                 if grid in p.minions:
-                    self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "strength", "力量", "造成的伤害增加", 2)
+                    self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "strength", get_locale_text("i18n_battle_core.buff_strength_name"), get_locale_text("i18n_battle_core.buff_strength_desc"), stacks)
             elif target.startswith("e"):
                 try:
                     idx = int(target[1:]) - 1
                     if 0 <= idx < len(run.enemies):
-                        self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "strength", "力量", "造成的伤害增加", 2)
+                        self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "strength", get_locale_text("i18n_battle_core.buff_strength_name"), get_locale_text("i18n_battle_core.buff_strength_desc"), stacks)
                 except ValueError:
                     pass
-            return f"🧪 使用了【{name}】，使【{target_name}】获得了 2 层【力量】。"
+            return get_locale_text("i18n_battle_core.strength_potion_log", name=name, target_name=target_name, stacks=stacks)
             
         elif potion_id == "swift_potion":
+            gain_a = potion_cfg["gain_a"]
+            gain_ba = potion_cfg["gain_ba"]
+            draw_count = potion_cfg["draw_count"]
             if target == "p0":
-                p.actions += 1
-                p.bonus_actions += 1
-                self.engine.battle_engine.card_player.draw_cards(p, 1, run)
-                return f"🧪 喝下了【{name}】，本回合获得 1A 1BA 并抽取 1 张牌。"
+                p.actions += gain_a
+                p.bonus_actions += gain_ba
+                self.engine.battle_engine.card_player.draw_cards(p, draw_count, run)
+                return get_locale_text("i18n_battle_core.swift_potion_self_log", name=name, gain_a=gain_a, gain_ba=gain_ba, draw_count=draw_count)
             elif ally_info:
                 ally = ally_info[1]
                 ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
                 if ally_minion:
-                    ally_minion.actions += 1
-                    ally_minion.bonus_actions += 1
-                    ally_minion.attack_actions += 1
-                    return f"🧪 对【{ally.name}】的随从【{ally_minion.name}】使用了【{name}】，其获得 1A 1BA 1AA。"
-                ally.actions += 1
-                ally.bonus_actions += 1
-                self.engine.battle_engine.card_player.draw_cards(ally, 1, run)
-                return f"🧪 对【{ally.name}】使用了【{name}】，其获得 1A 1BA 并抽取 1 张牌。"
+                    ally_minion.actions += potion_cfg["minion_gain_a"]
+                    ally_minion.bonus_actions += potion_cfg["minion_gain_ba"]
+                    ally_minion.attack_actions += potion_cfg["minion_gain_aa"]
+                    return get_locale_text("i18n_battle_core.swift_potion_ally_minion_log", ally=ally.name, minion=ally_minion.name, name=name, gain_a=potion_cfg['minion_gain_a'], gain_ba=potion_cfg['minion_gain_ba'], gain_aa=potion_cfg['minion_gain_aa'])
+                ally.actions += gain_a
+                ally.bonus_actions += gain_ba
+                self.engine.battle_engine.card_player.draw_cards(ally, draw_count, run)
+                return get_locale_text("i18n_battle_core.swift_potion_ally_log", ally=ally.name, name=name, gain_a=gain_a, gain_ba=gain_ba, draw_count=draw_count)
             else:
                 if target.startswith("p"):
                     grid = target[1:]
                     if grid in p.minions:
                         m = p.minions[grid]
-                        m.actions += 1
-                        m.bonus_actions += 1
-                        m.attack_actions += 1
-                        return f"🧪 投掷了【{name}】，使我方随从【{m.name}】获得了 1A 1BA 1AA。"
-                return f"🧪 投掷了【{name}】，但对【{target_name}】没有产生明显效果。"
+                        m.actions += potion_cfg["minion_gain_a"]
+                        m.bonus_actions += potion_cfg["minion_gain_ba"]
+                        m.attack_actions += potion_cfg["minion_gain_aa"]
+                        return get_locale_text("i18n_battle_core.swift_potion_minion_log", name=name, minion=m.name, gain_a=potion_cfg['minion_gain_a'], gain_ba=potion_cfg['minion_gain_ba'], gain_aa=potion_cfg['minion_gain_aa'])
+                return get_locale_text("i18n_battle_core.potion_no_effect", name=name, target_name=target_name)
                 
         elif potion_id == "poison_potion":
             if not is_throw:
-                self.engine.battle_engine.combat_resolver.damage_target(run, "p0", 10, source="potion:poison_potion", damage_type="poison")
-                self.engine.battle_engine.combat_resolver.add_buff_to(p, "poison", "中毒", "每回合开始时，受到层数点毒素伤害，层数减少 1", 4)
-                return f"🧪 你喝下了【{name}】，毒素入骨，受到了 10 点毒素伤害并被施加 4 层【中毒】。"
+                damage = potion_cfg["drink_damage"]
+                stacks = potion_cfg["drink_buff_stacks"]
+                self.engine.battle_engine.combat_resolver.damage_target(run, "p0", damage, source="potion:poison_potion", damage_type="poison")
+                self.engine.battle_engine.combat_resolver.add_buff_to(p, "poison", get_locale_text("i18n_battle_core.buff_poison_name"), get_locale_text("i18n_battle_core.buff_poison_desc"), stacks)
+                return get_locale_text("i18n_battle_core.poison_potion_drink_log", name=name, damage=damage, stacks=stacks)
             else:
-                self.engine.battle_engine.combat_resolver.damage_target(run, target, 10, source="potion:poison_potion", damage_type="poison")
+                damage = potion_cfg["throw_damage"]
+                stacks = potion_cfg["throw_buff_stacks"]
+                self.engine.battle_engine.combat_resolver.damage_target(run, target, damage, source="potion:poison_potion", damage_type="poison")
                 if target.startswith("p") and target != "p0":
                     grid = target[1:]
                     if grid in p.minions:
-                        self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "poison", "中毒", "每回合开始时，受到层数点毒素伤害，层数减少 1", 4)
+                        self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "poison", get_locale_text("i18n_battle_core.buff_poison_name"), get_locale_text("i18n_battle_core.buff_poison_desc"), stacks)
                 elif target.startswith("e"):
                     try:
                         idx = int(target[1:]) - 1
                         if 0 <= idx < len(run.enemies):
-                            self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "poison", "中毒", "每回合开始时，受到层数点毒素伤害，层数减少 1", 4)
+                            self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "poison", get_locale_text("i18n_battle_core.buff_poison_name"), get_locale_text("i18n_battle_core.buff_poison_desc"), stacks)
                     except ValueError:
                         pass
-                return f"🧪 投掷了【{name}】，对【{target_name}】造成 10 点毒素伤害并施加 4 层【中毒】。"
+                return get_locale_text("i18n_battle_core.poison_potion_throw_log", name=name, target_name=target_name, damage=damage, stacks=stacks)
                 
         elif potion_id == "cleanse_potion":
             from ...data.buff_data import BUFF_CONFIG
@@ -143,7 +162,7 @@ class PotionResolver:
                         to_remove.append(b)
                 for b in to_remove:
                     p.buffs.remove(b)
-                return f"🧪 喝下了【{name}】，清除了自身所有的负面状态。"
+                return get_locale_text("i18n_battle_core.cleanse_potion_self_log", name=name)
             elif ally_info:
                 ally = ally_info[1]
                 ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
@@ -155,7 +174,7 @@ class PotionResolver:
                         to_remove.append(b)
                 for b in to_remove:
                     target_entity.buffs.remove(b)
-                return f"🧪 对【{ally.name}】使用了【{name}】，清除了其所有的负面状态。"
+                return get_locale_text("i18n_battle_core.cleanse_potion_ally_log", ally=ally.name, name=name)
             else:
                 if target.startswith("p"):
                     grid = target[1:]
@@ -168,7 +187,7 @@ class PotionResolver:
                                 to_remove.append(b)
                         for b in to_remove:
                             m.buffs.remove(b)
-                        return f"🧪 对我方随从【{m.name}】投掷了【{name}】，清除了其负面状态。"
+                        return get_locale_text("i18n_battle_core.cleanse_potion_minion_log", name=name, minion=m.name)
                 elif target.startswith("e"):
                     try:
                         idx = int(target[1:]) - 1
@@ -182,128 +201,139 @@ class PotionResolver:
                                     to_remove.append(b)
                             for b in to_remove:
                                 e.buffs.remove(b)
-                            return f"🧪 投掷了【{name}】，驱散了敌人【{e.name}】身上的正面增益状态。"
+                            return get_locale_text("i18n_battle_core.cleanse_potion_enemy_log", name=name, enemy=e.name)
                     except ValueError:
                         pass
-                return f"🧪 投掷了【{name}】，但对【{target_name}】没有产生明显效果。"
+                return get_locale_text("i18n_battle_core.potion_no_effect", name=name, target_name=target_name)
                 
         elif potion_id == "iron_potion":
+            max_hp_gain = potion_cfg["max_hp_gain"]
+            shield = potion_cfg["shield_amount"]
+            heal = potion_cfg["heal_amount"]
+            stacks = potion_cfg["buff_stacks"]
             if target == "p0":
-                p.max_hp += 5
-                p.hp += 5
-                self.engine.battle_engine.combat_resolver.gain_shield(run, "p0", 20)
-                self.engine.battle_engine.combat_resolver.heal_target(run, "p0", 10)
-                self.engine.battle_engine.combat_resolver.add_buff_to(p, "iron_will", "钢铁意志", "最大生命上限增加 10 并回复 10 生命", 1)
+                p.max_hp += max_hp_gain
+                p.hp += max_hp_gain
+                self.engine.battle_engine.combat_resolver.gain_shield(run, "p0", shield)
+                self.engine.battle_engine.combat_resolver.heal_target(run, "p0", heal)
+                self.engine.battle_engine.combat_resolver.add_buff_to(p, "iron_will", get_locale_text("i18n_battle_core.buff_iron_will_name"), get_locale_text("i18n_battle_core.buff_iron_will_desc"), stacks)
             elif ally_info:
                 ally = ally_info[1]
                 ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
                 if ally_minion:
-                    ally_minion.max_hp += 5
-                    ally_minion.hp += 5
+                    ally_minion.max_hp += max_hp_gain
+                    ally_minion.hp += max_hp_gain
                 else:
-                    ally.max_hp += 5
-                    ally.hp += 5
-                resolver.gain_shield(run, target, 20)
-                resolver.heal_target(run, target, 10)
-                resolver.add_buff_to(ally_minion or ally, "iron_will", "钢铁意志", "最大生命上限增加 10 并回复 10 生命", 1)
+                    ally.max_hp += max_hp_gain
+                    ally.hp += max_hp_gain
+                resolver.gain_shield(run, target, shield)
+                resolver.heal_target(run, target, heal)
+                resolver.add_buff_to(ally_minion or ally, "iron_will", get_locale_text("i18n_battle_core.buff_iron_will_name"), get_locale_text("i18n_battle_core.buff_iron_will_desc"), stacks)
             elif target.startswith("p"):
                 grid = target[1:]
                 if grid in p.minions:
                     m = p.minions[grid]
-                    m.max_hp += 5
-                    m.hp += 5
-                    self.engine.battle_engine.combat_resolver.gain_shield(run, target, 20)
-                    self.engine.battle_engine.combat_resolver.heal_target(run, target, 10)
-                    self.engine.battle_engine.combat_resolver.add_buff_to(m, "iron_will", "钢铁意志", "最大生命上限增加 10 并回复 10 生命", 1)
+                    m.max_hp += max_hp_gain
+                    m.hp += max_hp_gain
+                    self.engine.battle_engine.combat_resolver.gain_shield(run, target, shield)
+                    self.engine.battle_engine.combat_resolver.heal_target(run, target, heal)
+                    self.engine.battle_engine.combat_resolver.add_buff_to(m, "iron_will", get_locale_text("i18n_battle_core.buff_iron_will_name"), get_locale_text("i18n_battle_core.buff_iron_will_desc"), stacks)
             elif target.startswith("e"):
                 try:
                     idx = int(target[1:]) - 1
                     if 0 <= idx < len(run.enemies):
                         e = run.enemies[idx]
-                        e.max_hp += 5
-                        e.hp += 5
-                        self.engine.battle_engine.combat_resolver.gain_shield(run, target, 20)
-                        self.engine.battle_engine.combat_resolver.heal_target(run, target, 10)
-                        self.engine.battle_engine.combat_resolver.add_buff_to(e, "iron_will", "钢铁意志", "最大生命上限增加 10 并回复 10 生命", 1)
+                        e.max_hp += max_hp_gain
+                        e.hp += max_hp_gain
+                        self.engine.battle_engine.combat_resolver.gain_shield(run, target, shield)
+                        self.engine.battle_engine.combat_resolver.heal_target(run, target, heal)
+                        self.engine.battle_engine.combat_resolver.add_buff_to(e, "iron_will", get_locale_text("i18n_battle_core.buff_iron_will_name"), get_locale_text("i18n_battle_core.buff_iron_will_desc"), stacks)
                 except ValueError:
                     pass
-            return f"🧪 使用了【{name}】，使【{target_name}】最大生命上限永久 +5，并获得 20 护盾、回复 10 生命与 1 层【钢铁意志】。"
+            return get_locale_text("i18n_battle_core.iron_potion_log", name=name, target_name=target_name, max_hp_gain=max_hp_gain, shield=shield, heal=heal, stacks=stacks)
             
         elif potion_id == "energy_potion":
+            gain_a = potion_cfg["gain_a"]
             if target == "p0":
-                p.actions += 2
-                return f"🧪 喝下了【{name}】，本回合额外获得 2 个动作点 (A)。"
+                p.actions += gain_a
+                return get_locale_text("i18n_battle_core.energy_potion_self_log", name=name, gain_a=gain_a)
             elif ally_info:
                 ally = ally_info[1]
                 ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
                 if ally_minion:
-                    ally_minion.actions += 2
-                    ally_minion.attack_actions += 1
-                    return f"🧪 对【{ally.name}】的随从【{ally_minion.name}】使用了【{name}】，其获得 2A 1AA。"
-                ally.actions += 2
-                return f"🧪 对【{ally.name}】使用了【{name}】，其获得 2 个动作点 (A)。"
+                    ally_minion.actions += potion_cfg["minion_gain_a"]
+                    ally_minion.attack_actions += potion_cfg["minion_gain_aa"]
+                    return get_locale_text("i18n_battle_core.energy_potion_ally_minion_log", ally=ally.name, minion=ally_minion.name, name=name, gain_a=potion_cfg['minion_gain_a'], gain_aa=potion_cfg['minion_gain_aa'])
+                ally.actions += gain_a
+                return get_locale_text("i18n_battle_core.energy_potion_ally_log", ally=ally.name, name=name, gain_a=gain_a)
             else:
                 if target.startswith("p"):
                     grid = target[1:]
                     if grid in p.minions:
                         m = p.minions[grid]
-                        m.actions += 2
-                        m.attack_actions += 1
-                        return f"🧪 投掷了【{name}】，使我方随从【{m.name}】获得了 2A 1AA。"
-                return f"🧪 投掷了【{name}】，但对【{target_name}】没有产生明显效果。"
+                        m.actions += potion_cfg["minion_gain_a"]
+                        m.attack_actions += potion_cfg["minion_gain_aa"]
+                        return get_locale_text("i18n_battle_core.energy_potion_minion_log", name=name, minion=m.name, gain_a=potion_cfg['minion_gain_a'], gain_aa=potion_cfg['minion_gain_aa'])
+                return get_locale_text("i18n_battle_core.potion_no_effect", name=name, target_name=target_name)
                 
         elif potion_id == "fury_potion":
+            stacks = potion_cfg["buff_stacks"]
+            self_hp_cost = potion_cfg["self_hp_cost"]
+            draw_count = potion_cfg["draw_count"]
             if target == "p0":
-                self.engine.battle_engine.combat_resolver.add_buff_to(p, "strength", "力量", "造成的伤害增加", 3)
-                self.engine.battle_engine.combat_resolver.damage_target(run, "p0", 5, source="potion:fury_potion", damage_type="true")
-                self.engine.battle_engine.card_player.draw_cards(p, 3, run)
-                return f"🧪 喝下了【{name}】，损失 5 生命，获得了 3 层【力量】并抽 3 张牌。"
+                self.engine.battle_engine.combat_resolver.add_buff_to(p, "strength", get_locale_text("i18n_battle_core.buff_strength_name"), get_locale_text("i18n_battle_core.buff_strength_desc"), stacks)
+                self.engine.battle_engine.combat_resolver.damage_target(run, "p0", self_hp_cost, source="potion:fury_potion", damage_type="true")
+                self.engine.battle_engine.card_player.draw_cards(p, draw_count, run)
+                return get_locale_text("i18n_battle_core.fury_potion_self_log", name=name, cost=self_hp_cost, stacks=stacks, draw_count=draw_count)
             elif ally_info:
                 ally = ally_info[1]
                 ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
-                resolver.add_buff_to(ally_minion or ally, "strength", "力量", "造成的伤害增加", 3)
-                self.engine.battle_engine.card_player.draw_cards(p, 3, run)
-                return f"🧪 对【{ally.name}】使用了【{name}】，其获得 3 层【力量】，你额外抽取了 3 张牌。"
+                resolver.add_buff_to(ally_minion or ally, "strength", get_locale_text("i18n_battle_core.buff_strength_name"), get_locale_text("i18n_battle_core.buff_strength_desc"), stacks)
+                self.engine.battle_engine.card_player.draw_cards(p, draw_count, run)
+                return get_locale_text("i18n_battle_core.fury_potion_ally_log", ally=ally.name, name=name, stacks=stacks, draw_count=draw_count)
             else:
                 if target.startswith("p"):
                     grid = target[1:]
                     if grid in p.minions:
-                        self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "strength", "力量", "造成的伤害增加", 3)
+                        self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "strength", get_locale_text("i18n_battle_core.buff_strength_name"), get_locale_text("i18n_battle_core.buff_strength_desc"), stacks)
                 elif target.startswith("e"):
                     try:
                         idx = int(target[1:]) - 1
                         if 0 <= idx < len(run.enemies):
-                            self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "strength", "力量", "造成的伤害增加", 3)
+                            self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "strength", get_locale_text("i18n_battle_core.buff_strength_name"), get_locale_text("i18n_battle_core.buff_strength_desc"), stacks)
                     except ValueError:
                         pass
-                self.engine.battle_engine.card_player.draw_cards(p, 3, run)
-                return f"🧪 投掷了【{name}】，使【{target_name}】获得 3 层【力量】，你额外抽取了 3 张牌。"
+                self.engine.battle_engine.card_player.draw_cards(p, draw_count, run)
+                return get_locale_text("i18n_battle_core.fury_potion_throw_log", name=name, target_name=target_name, stacks=stacks, draw_count=draw_count)
                 
         elif potion_id == "intellect_potion":
+            stacks = potion_cfg["buff_stacks"]
+            draw_count = potion_cfg["draw_count"]
             if target == "p0":
-                self.engine.battle_engine.combat_resolver.add_buff_to(p, "arcane_charge", "奥术充能", "法术伤害 +3", 2)
+                self.engine.battle_engine.combat_resolver.add_buff_to(p, "arcane_charge", get_locale_text("i18n_battle_core.buff_arcane_charge_name"), get_locale_text("i18n_battle_core.buff_arcane_charge_desc"), stacks)
             elif ally_info:
                 ally = ally_info[1]
                 ally_minion = ally.minions.get(ally_info[2]) if ally_info[2] else None
-                resolver.add_buff_to(ally_minion or ally, "arcane_charge", "奥术充能", "法术伤害 +3", 2)
+                resolver.add_buff_to(ally_minion or ally, "arcane_charge", get_locale_text("i18n_battle_core.buff_arcane_charge_name"), get_locale_text("i18n_battle_core.buff_arcane_charge_desc"), stacks)
             elif target.startswith("p"):
                 grid = target[1:]
                 if grid in p.minions:
-                    self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "arcane_charge", "奥术充能", "法术伤害 +3", 2)
+                    self.engine.battle_engine.combat_resolver.add_buff_to(p.minions[grid], "arcane_charge", get_locale_text("i18n_battle_core.buff_arcane_charge_name"), get_locale_text("i18n_battle_core.buff_arcane_charge_desc"), stacks)
             elif target.startswith("e"):
                 try:
                     idx = int(target[1:]) - 1
                     if 0 <= idx < len(run.enemies):
-                        self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "arcane_charge", "奥术充能", "法术伤害 +3", 2)
+                        self.engine.battle_engine.combat_resolver.add_buff_to(run.enemies[idx], "arcane_charge", get_locale_text("i18n_battle_core.buff_arcane_charge_name"), get_locale_text("i18n_battle_core.buff_arcane_charge_desc"), stacks)
                 except ValueError:
                     pass
-            self.engine.battle_engine.card_player.draw_cards(p, 4, run)
-            return f"🧪 使用了【{name}】，使【{target_name}】获得 2 层【奥术充能】，你额外抽取了 4 张牌。"
+            self.engine.battle_engine.card_player.draw_cards(p, draw_count, run)
+            return get_locale_text("i18n_battle_core.intellect_potion_log", name=name, target_name=target_name, stacks=stacks, draw_count=draw_count)
             
         elif potion_id == "destruction_potion":
             if not is_throw:
-                self.engine.battle_engine.combat_resolver.damage_target(run, "p0", 30, source="potion:destruction_potion", damage_type="force")
-                return f"🧪 你喝下了【{name}】，体内狂暴能量爆发，受到了 30 点力场伤害！"
+                damage = potion_cfg["drink_damage"]
+                self.engine.battle_engine.combat_resolver.damage_target(run, "p0", damage, source="potion:destruction_potion", damage_type="force")
+                return get_locale_text("i18n_battle_core.destruction_potion_drink_log", name=name, damage=damage)
             else:
                 target_enemy = None
                 enemy_idx = -1
@@ -317,7 +347,8 @@ class PotionResolver:
                 
                 other_enemies = [e for e in run.enemies if e != target_enemy and e.hp > 0]
                 
-                self.engine.battle_engine.combat_resolver.damage_target(run, target, 60, source="potion:destruction_potion", damage_type="force")
+                damage = potion_cfg["throw_damage"]
+                self.engine.battle_engine.combat_resolver.damage_target(run, target, damage, source="potion:destruction_potion", damage_type="force")
                 
                 is_dead = False
                 if target_enemy:
@@ -333,9 +364,9 @@ class PotionResolver:
                     for e in other_enemies:
                         if e in run.enemies:
                             curr_idx = run.enemies.index(e) + 1
-                            self.engine.battle_engine.combat_resolver.damage_target(run, f"e{curr_idx}", 20, source="potion:destruction_potion", damage_type="force")
-                    return f"🧪 投掷了【{name}】，对【{target_name}】造成了 60 点力场伤害并成功将其消灭，毁灭能量发生爆裂溅射，对其他所有敌人造成了 20 点力场伤害！"
+                            self.engine.battle_engine.combat_resolver.damage_target(run, f"e{curr_idx}", potion_cfg["splash_damage"], source="potion:destruction_potion", damage_type="force")
+                    return get_locale_text("i18n_battle_core.destruction_potion_splash_log", name=name, target_name=target_name, damage=damage, splash_damage=potion_cfg['splash_damage'])
                 else:
-                    return f"🧪 投掷了【{name}】，对【{target_name}】造成了 60 点力场伤害。"
+                    return get_locale_text("i18n_battle_core.destruction_potion_throw_log", name=name, target_name=target_name, damage=damage)
                     
-        return f"🧪 使用了未知药水：{potion_id}。"
+        return get_locale_text("i18n_battle_core.unknown_potion_log", potion_id=potion_id)

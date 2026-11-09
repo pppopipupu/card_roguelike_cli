@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("夺心魔")
 class MindFlayerTemplate(EnemyTemplate):
@@ -59,8 +60,8 @@ class MindFlayerTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(p, "grappled", "受擒", "你被夺心魔擒抱，每回合结束时层数减少 1", 1)
-            logs.append(f"【{enemy.name}】伸出滑腻的触须缠绕过来。{dmg_msg} 且你陷入了【受擒】状态！")
+            engine._add_buff_to(p, "grappled", get_locale_text("i18n_enemy_elite_c.grappled_name"), get_locale_text("i18n_enemy_elite_c.grappled_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_c.mind_flayer_tentacles_log", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "mind_blast":
             strength = 0
             for b in enemy.buffs:
@@ -71,16 +72,16 @@ class MindFlayerTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(p, "stun", "眩晕", "无法行动，回合开始时扣除一层恢复", 1)
-            logs.append(f"【{enemy.name}】发出狂暴的心灵冲击波。{dmg_msg} 且你受到了【眩晕】！")
+            engine._add_buff_to(p, "stun", get_locale_text("i18n_enemy_elite_c.stun_name"), get_locale_text("i18n_enemy_elite_c.stun_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_c.mind_blast_log", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "extract_brain":
             has_grappled = any(b.id == "grappled" for b in p.buffs)
             if has_grappled:
                 dmg_val = 25
-                msg_prefix = f"【{enemy.name}】将触须插入你的颅骨，开始吞食你的脑髓！"
+                msg_prefix = get_locale_text("i18n_enemy_elite_c.extract_brain_grappled_prefix", name=enemy.name)
             else:
                 dmg_val = 8
-                msg_prefix = f"【{enemy.name}】由于你挣脱了擒抱，只能进行普通的脑部突刺！"
+                msg_prefix = get_locale_text("i18n_enemy_elite_c.extract_brain_normal_prefix", name=enemy.name)
             
             strength = 0
             for b in enemy.buffs:
@@ -93,8 +94,9 @@ class MindFlayerTemplate(EnemyTemplate):
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             logs.append(f"{msg_prefix}{dmg_msg}")
         elif intent.type == "defend":
-            enemy.shield += intent.val
-            logs.append(f"【{enemy.name}】凝聚心灵屏障，获得 {intent.val} 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            logs.append(get_locale_text("i18n_enemy_elite_c.mind_flayer_defend_log", name=enemy.name, val=intent.val))
 
 
 @register_enemy("夺心魔奥术师")
@@ -154,8 +156,8 @@ class MindFlayerArcanistTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(p, "grappled", "受擒", "你被夺心魔擒抱，每回合结束时层数减少 1", 1)
-            logs.append(f"【{enemy.name}】伸出奥术触须缠绕过来。{dmg_msg} 且你陷入了【受擒】状态！")
+            engine._add_buff_to(p, "grappled", get_locale_text("i18n_enemy_elite_c.grappled_name"), get_locale_text("i18n_enemy_elite_c.grappled_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_c.arcanist_tentacles_log", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "mind_blast":
             strength = 0
             for b in enemy.buffs:
@@ -166,16 +168,16 @@ class MindFlayerArcanistTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(p, "stun", "眩晕", "无法行动，回合开始时扣除一层恢复", 1)
-            logs.append(f"【{enemy.name}】发出狂暴的心灵冲击波。{dmg_msg} 且你受到了【眩晕】！")
+            engine._add_buff_to(p, "stun", get_locale_text("i18n_enemy_elite_c.stun_name"), get_locale_text("i18n_enemy_elite_c.stun_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_c.mind_blast_log", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "extract_brain":
             has_grappled = any(b.id == "grappled" for b in p.buffs)
             if has_grappled:
                 dmg_val = 25
-                msg_prefix = f"【{enemy.name}】将触须插入你的颅骨，开始吞食你的脑髓！"
+                msg_prefix = get_locale_text("i18n_enemy_elite_c.extract_brain_grappled_prefix", name=enemy.name)
             else:
                 dmg_val = 8
-                msg_prefix = f"【{enemy.name}】由于你挣脱了擒抱，只能进行普通的脑部突刺！"
+                msg_prefix = get_locale_text("i18n_enemy_elite_c.extract_brain_normal_prefix", name=enemy.name)
             
             strength = 0
             for b in enemy.buffs:
@@ -200,9 +202,10 @@ class MindFlayerArcanistTemplate(EnemyTemplate):
                 after_logs = run.node_data.get("battle_logs", [])
                 if len(after_logs) > before_len:
                     missile_logs.append(after_logs.pop())
-            logs.append(f"【{enemy.name}】吟唱奥术飞弹，连续射出 3 枚飞弹：{', '.join(missile_logs)}")
+            logs.append(get_locale_text("i18n_enemy_elite_c.arcanist_magic_missile_log", name=enemy.name, missiles=', '.join(missile_logs)))
         elif intent.type == "shield_spell":
-            enemy.shield += intent.val
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
             to_remove = next((b for b in enemy.buffs if b.id == "stun"), None)
             if not to_remove:
                 neg_buffs = [b for b in enemy.buffs if b.id in ("minor_vulnerable_slashing", "minor_vulnerable_piercing", "minor_vulnerable_bludgeoning", "minor_vulnerable_fire", "minor_vulnerable_cold", "minor_vulnerable_lightning", "minor_vulnerable_thunder", "minor_vulnerable_necrotic", "minor_vulnerable_acid", "minor_vulnerable_poison", "minor_vulnerable_psychic", "minor_vulnerable_radiant", "minor_vulnerable_force")]
@@ -211,6 +214,6 @@ class MindFlayerArcanistTemplate(EnemyTemplate):
             if to_remove:
                 enemy.buffs.remove(to_remove)
                 engine._sync_enemy_intents(enemy)
-                logs.append(f"【{enemy.name}】施展护盾术，获得 {intent.val} 点护盾，并清除了【{to_remove.name}】负面效果！")
+                logs.append(get_locale_text("i18n_enemy_elite_c.arcanist_shield_clear_log", name=enemy.name, val=intent.val, buff_name=to_remove.name))
             else:
-                logs.append(f"【{enemy.name}】施展护盾术，获得 {intent.val} 点护盾。")
+                logs.append(get_locale_text("i18n_enemy_elite_c.arcanist_shield_log", name=enemy.name, val=intent.val))

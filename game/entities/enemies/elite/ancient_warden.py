@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("先古守卫")
 class AncientWardenTemplate(EnemyTemplate):
@@ -42,10 +43,10 @@ class AncientWardenTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="bludgeoning")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            logs.append(f"【{enemy.name}】使出门扉重击。{dmg_msg}")
+            logs.append(get_locale_text("i18n_enemy_elite_a.ancient_warden.portal_smash", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "ancient_charge":
-            engine._add_buff_to(enemy, "strength", "力量", "造成的伤害增加", 3)
-            logs.append(f"【{enemy.name}】先古充能，获得了 3 层力量。")
+            engine._add_buff_to(enemy, "strength", get_locale_text("i18n_enemy_elite_a.common.strength_name"), get_locale_text("i18n_enemy_elite_a.common.strength_desc"), 3)
+            logs.append(get_locale_text("i18n_enemy_elite_a.ancient_warden.ancient_charge", name=enemy.name))
         elif intent.type == "space_lock":
-            engine._add_buff_to(run.player, "drain_a", "时间纠缠", "在下一回合开始时，你将失去等同于此状态层数的动作点 (A)", 1)
-            logs.append(f"【{enemy.name}】空间闭锁，使玩家在下一回合失去 1 个动作点（A）。")
+            engine._add_buff_to(run.player, "drain_a", get_locale_text("i18n_enemy_elite_a.common.time_entangle_name"), get_locale_text("i18n_enemy_elite_a.common.time_entangle_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_a.ancient_warden.space_lock", name=enemy.name))

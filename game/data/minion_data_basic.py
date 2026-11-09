@@ -1,6 +1,7 @@
 MINION_BASIC_CONFIG = {
     "mercenary": {
         "name": "雇佣兵",
+        "atk_buff": 1,
         "skills": [
             {
                 "id": "heavy_strike",
@@ -78,6 +79,7 @@ MINION_BASIC_CONFIG = {
                 "cost_a": 2,
                 "cost_ba": 0,
                 "desc": "消耗 2A，扣除敌方领主下回合 1BA。",
+                "ba_reduction": 1,
                 "feedback": "扣除了敌人【{target}】下回合 1 个附赠动作点。"
             },
             {
@@ -87,6 +89,7 @@ MINION_BASIC_CONFIG = {
                 "cost_ba": 0,
                 "desc": "消耗 3A，造成 4 点伤害，若目标是随从则使其本回合无法攻击，若为领主则扣除其下回合 1A。",
                 "damage": 4,
+                "action_reduction": 1,
                 "feedback": "对【{target}】造成了 {damage} 点伤害。",
                 "feedback_boss": "对【{target}】造成了 {damage} 点伤害，并扣掉了其下回合 1 个动作点。"
             }
@@ -127,6 +130,7 @@ MINION_BASIC_CONFIG = {
                 "cost_ba": 0,
                 "desc": "消耗 2A，对所有敌人造成 4 点寒冷伤害，并使所有敌人受到 1 层轻度寒冷易伤。",
                 "damage": 4,
+                "vulnerable_layers": 1,
                 "feedback": "降下漫天冰雨散射攻击敌人。"
             },
             {
@@ -136,12 +140,15 @@ MINION_BASIC_CONFIG = {
                 "cost_ba": 0,
                 "desc": "消耗 1A，为玩家提供 8 点护盾，且我方所有随从和玩家均获得 4 点护盾（随从获得 4 点生命恢复，玩家共获得 12 点护盾）。",
                 "shield": 8,
+                "player_shield": 12,
+                "minion_heal": 4,
                 "feedback": "凝聚极光屏障，为所有人附加防护效果。"
             }
         ]
     },
     "mercenary+": {
         "name": "雇佣兵+",
+        "atk_buff": 2,
         "skills": [
             {
                 "id": "heavy_strike",
@@ -219,6 +226,7 @@ MINION_BASIC_CONFIG = {
                 "cost_a": 1,
                 "cost_ba": 0,
                 "desc": "消耗 1A，扣除敌方领主下回合 1BA。",
+                "ba_reduction": 1,
                 "feedback": "扣除了敌人【{target}】下回合 1 个附赠动作点。"
             },
             {
@@ -228,6 +236,7 @@ MINION_BASIC_CONFIG = {
                 "cost_ba": 0,
                 "desc": "消耗 3A，造成 7 点伤害，若目标是随从则使其本回合无法攻击，若为领主则扣除其下回合 1A 并使其眩晕 1 回合。",
                 "damage": 7,
+                "action_reduction": 1,
                 "stun": 1,
                 "feedback": "对【{target}】造成了 {damage} 点伤害并使其陷入眩晕！",
                 "feedback_boss": "对【{target}】造成了 {damage} 点伤害，并扣掉了其下回合 1 个动作点，且使其陷入眩晕！"
@@ -294,6 +303,7 @@ MINION_BASIC_CONFIG = {
                 "cost_ba": 0,
                 "desc": "消耗 2A，造成 6 点钝击伤害并使目标下回合动作 A 减少 1。",
                 "damage": 6,
+                "action_reduction": 1,
                 "feedback": "对【{target}】造成了 {damage} 点钝击伤害。"
             }
         ]
@@ -302,6 +312,7 @@ MINION_BASIC_CONFIG = {
         "name": "精灵射手小梅",
         "enter_damage": 16,
         "enter_hit_thresholds": [4, 6, 8],
+        "enter_current_card_bonus": 1,
         "enter_damage_type": "piercing",
         "enter_damage_name": "穿刺",
         "skills": []
@@ -316,6 +327,7 @@ MINION_BASIC_CONFIG = {
                 "cost_ba": 0,
                 "desc": "消耗 1A，造成 8 点钝击伤害并使目标下回合动作 A 减少 1。",
                 "damage": 8,
+                "action_reduction": 1,
                 "feedback": "对【{target}】造成了 {damage} 点钝击伤害并使其下回合动作点 A 减少 1。"
             }
         ]

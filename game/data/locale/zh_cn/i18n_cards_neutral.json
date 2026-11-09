@@ -1,0 +1,331 @@
+{
+  "neutral": {
+    "buffs": {
+      "all_resonance": {
+        "name": "万物共振",
+        "desc": "你的最终伤害呈指数翻倍增长"
+      },
+      "strength": {
+        "name": "力量",
+        "desc": "造成的伤害增加"
+      },
+      "double_tap": {
+        "name": "双发",
+        "desc": "打出的物理伤害牌会额外打出 1 次"
+      },
+      "buffer": {
+        "name": "缓冲",
+        "desc": "免疫接下来的伤害，受到一次伤害减少一层"
+      },
+      "weak": {
+        "name": "虚弱",
+        "desc": "造成的伤害减少 50%"
+      },
+      "vulnerable": {
+        "name": "易伤",
+        "desc": "受到的所有类型伤害翻倍"
+      },
+      "minor_vulnerable": {
+        "name": "轻度易伤",
+        "desc": "受到的所有类型伤害增加 50%"
+      },
+      "cold_vulnerable": {
+        "name": "轻度寒冷易伤",
+        "desc": "受到的寒冷伤害增加 50%"
+      },
+      "stun": {
+        "name": "眩晕",
+        "desc": "无法行动"
+      },
+      "arcane_charge": {
+        "name": "奥术充能",
+        "desc": "法术伤害 +3"
+      },
+      "aegis": {
+        "name": "援护",
+        "desc": "本回合受到的单体攻击伤害降低 25%，回合开始时移除。"
+      }
+    },
+    "base": {
+      "spell_damage": {
+        "kill_bonus": " ✨ [击杀奖励] 获得了 1A 动作点！",
+        "quick_strike_bonus": " 🛡️ [迅捷打击+] 场上所有我方随从本回合攻击力 +1！",
+        "agile_strike_bonus": " ⚡ [灵巧打击+] 抽了 1 张牌！",
+        "result": "使用了【{card_name}】，对【{target}】造成了 {dmg} 点伤害。"
+      },
+      "spell_heal": {
+        "shield_suffix": "，并获得了 2 点护盾",
+        "result_upgraded": "为【{target}】恢复了 {heal_amount} 点生命值{shield_msg}。",
+        "result": "为【{target}】恢复了 {heal_amount} 点生命值。"
+      },
+      "get_ready": {
+        "result_upgraded": "获得了 1A 1BA 并抽了 2 张牌。",
+        "result": "获得了 2BA 并抽了 1 张牌。"
+      },
+      "adrenaline": {
+        "result_upgraded": "获得了 1A 1BA 并抽了 1 张牌，失去了 3 点生命值。",
+        "result": "获得了 1A 并失去了 2 点生命值。"
+      },
+      "deploy_amulet": {
+        "abyss_altar_awaken_name": "苏醒的深渊祭坛",
+        "abyss_altar_awaken_desc": "谢幕曲：在此格子部署【汇集的深渊祭坛】。",
+        "success": "将【{name}】部署到了格子 [{grid}]。",
+        "fail": "战场格子已满，部署失败。"
+      },
+      "summon_minion": {
+        "disabled": "❌ 该卡牌当前已被管理员禁用，无法使用。",
+        "none": "无",
+        "mercenary_battlecry": "\n⚔️ [入场曲] 【雇佣兵+】立即攻击了【{target}】，造成了 {atk} 点伤害！",
+        "shield_guard_battlecry": "\n🛡️ [入场曲] 获得了 8 点入场曲护盾！",
+        "ice_rainbow_battlecry": "\n❄️ [入场曲] 获得了 8 点护盾，并使所有敌人受到 1 层轻度寒冷易伤！",
+        "gate_guard_battlecry": "\n🚪 [入场曲] 使【{target}】眩晕了 1 回合！",
+        "success": "在格子 [{grid}] 召唤了【{name}】。",
+        "fail": "战场已满，召唤失败。"
+      },
+      "ability": {
+        "result": "使用了【{name}】。"
+      }
+    },
+    "cards": {
+      "tactical_focus": {
+        "buff_name": "无法抽牌",
+        "buff_desc": "本回合无法再抽牌",
+        "result": "使用了【{name}】，免费抽了 {draw_count} 张牌，但本回合无法再抽牌。"
+      },
+      "iron_will": {
+        "buff_name_upgraded": "钢铁意志+",
+        "buff_name": "钢铁意志",
+        "buff_desc_upgraded": "最大生命上限增加 15 并回复 15 生命，治疗翻倍",
+        "buff_desc": "最大生命上限增加 10 并回复 10 生命",
+        "shield_suffix": "，并获得了 8 点护盾",
+        "result_upgraded": "使用了【钢铁意志+】，获得了【钢铁意志+】buff（最大生命上限增加 15 并回复 15 生命，治疗翻倍）{shield_msg}。",
+        "result": "使用了【钢铁意志】，获得了【钢铁意志】buff（最大生命上限增加 10 并回复 10 生命，可叠加）。"
+      },
+      "misty_step": {
+        "result": "使用了迷踪步，抽了 2 张牌。"
+      },
+      "arcane_intellect": {
+        "result": "使用了奥术智慧，抽了 3 张牌。"
+      },
+      "calculated_gamble": {
+        "result": "丢弃了所有的手牌（共 {discard_count} 张），并重新抽取了 {discard_count} 张牌。",
+        "empty": "手牌已空，没有丢弃任何卡牌。"
+      },
+      "mana_potion": {
+        "result_upgraded": "饮用了【魔力药水+】，获得了 1A 并抽了 2 张牌。",
+        "result": "饮用了【魔力药水】，获得了 1BA 并抽了 1 张牌。"
+      },
+      "mass_healing_word": {
+        "result": "使用了【{name}】,为自己和所有随从恢复了 {heal_amount} 点生命值。"
+      },
+      "refresh_spirit": {
+        "exhaust_log": "✨ [消耗] 【{card_name}】已被移入消耗堆。",
+        "bonus": " ⚡ [重振精神+] 获得了 1A 动作点！",
+        "result_upgraded": "使用了【{name}】，消耗了 {exhaust_count} 张非随从牌，获得了 {shield_amount} 点护盾。{bonus_msg}",
+        "result": "使用了【{name}】，消耗了 {exhaust_count} 张非随从牌，获得了 {shield_amount} 点护盾。"
+      },
+      "key_resonance": {
+        "result": "产生了秘钥共鸣，进行了 {recall_count} 次死者召回，并造成了 {damage_amount} 点力场伤害。",
+        "recall_details": "\n召回详情：\n"
+      },
+      "master_key": {
+        "deathrattle_log": "🔔 [谢幕曲] 我方【{amulet_name}】吟唱结束进入墓地：{lw_msg}",
+        "result": "使用了万能钥匙，所有护符的吟唱时间减少 {reduction}。"
+      },
+      "unmined_gem": {
+        "result_stacked": "使用了【{name}】。随机使手牌中的【{card_name}】获得了重放 {val} 效果（累计重放 {new_val}）。",
+        "result": "使用了【{name}】。随机使手牌中的【{card_name}】获得了重放 {val} 效果。",
+        "result_empty": "使用了【{name}】，但手牌为空，未触发重放赋予效果。"
+      },
+      "neutral_omega": {
+        "extra_play": " 🌀 [Omega 复制品打出] {feedback}",
+        "result": "🌌 引导了【Omega】的终极涟漪！"
+      },
+      "power_word_kill": {
+        "success": "你指着【{target}】吐露死亡真言：【律令死亡】！其身形瞬间枯萎，当场陨灭！",
+        "upgraded_fail": "❌ 律令未达致死判定条件，但【{target}】依然受到了 40 点时间的真实伤害！卡牌化作灰烬自毁。",
+        "fail": "❌ 律令失败：目标生命值不低于 {threshold} 点，无法将其即死！卡牌化作灰烬自毁。"
+      },
+      "power_word_stun": {
+        "buff_name": "单体晕眩",
+        "buff_desc": "下回合无法行动",
+        "success": "你吐露震慑真言：【律令震慑】！【{target}】脑部剧震，陷入深度晕眩！",
+        "upgraded_fail": "❌ 律令未达深度震慑条件，但【{target}】受到了 15 点力场伤害，且因受震慑其下回合动作点数减少 1A！",
+        "fail": "❌ 律令失败：目标生命值不低于 {threshold} 点，不受震慑干扰！"
+      },
+      "power_word_pain": {
+        "bleed_name": "流血",
+        "bleed_desc": "每回合开始受到4点真实伤害",
+        "weak_name": "虚弱",
+        "weak_desc": "造成的伤害减少50%",
+        "success": "你吐露痛苦真言：【律令痛苦】！【{target}】浑身皮肤崩裂，痛苦不堪，陷入 {bleed_layers} 层【流血】与 {weak_layers} 层【虚弱】状态！",
+        "upgraded_fail": "❌ 律令未达折磨判定条件，但你对【{target}】造成了 12 点物理挥砍伤害！",
+        "fail": "❌ 律令失败：目标生命值不低于 {threshold} 点，顶住了痛苦折磨！"
+      },
+      "plane_shift": {
+        "forbidden": "❌ 异界传送在此强力领主战中被神秘结界屏蔽了，你无法在这里传送脱逃！",
+        "result_upgraded": "🔮 你咏唱了【异界传送+】，张开空间裂缝使自己瞬间传送逃离战场！你凭借精妙的空间法术顺手带走了部分战场遗珍，获得了 40 点金币奖励！",
+        "result": "🔮 你咏唱了【异界传送】，张开空间裂缝使自己瞬间传送逃离战场！由于你半途脱逃，你将无法获得这场战斗的任何金币和卡牌奖励！"
+      },
+      "emperor_eye": {
+        "self_selected": "❌ 不能选择正在被打出的霸瞳天星作为保留卡牌。",
+        "out_of_range": "❌ 提供的手牌序号 {keep_idx} 超出范围。打出霸瞳天星前你共有 {hand_count} 张手牌。",
+        "invalid_arg": "❌ 参数必须为数字代表的手牌序号。",
+        "prompt": "👁️ 【霸瞳天星】已发动。请选择你要保留的手牌（输入 c <序号>，除此牌外的所有手牌都将被消耗）：\n{hand_list}"
+      },
+      "astral_strike": {
+        "invalid_target": "❌ 请指定敌方目标（例如：p 卡牌序号 e1）。",
+        "result": "你引导星辰砸落！{res}"
+      },
+      "hero_anthem": {
+        "result": "你唱响了【英雄赞歌】，身体洋溢着金色的气场（获得了 {shield} 点护盾，并抽了 1 张牌）！"
+      },
+      "elder_guidance": {
+        "cleanse": "，解除了你的【{removed}】负面状态",
+        "result": "👴 向导长老指点迷津！你清空了所有杂念{clean_msg}，并连续抽取了 3 张卡牌！"
+      },
+      "ironclad_rampart": {
+        "no_target": "❌ 没有可攻击的目标。",
+        "result": "🔨 铁匠艾恩克拉德在战场上升起精钢壁垒！你获得了 30 点护盾，重锤砸落：{dmg_msg}"
+      },
+      "button_magic": {
+        "no_effect": "按下了按钮，但什么也没有发生。",
+        "result_prefix": "🔮 按下了命运的按钮，触发了以下效果：\n",
+        "log_line": "第 {index} 次按钮：{result}",
+        "no_removed": "无",
+        "gate_guard_name": "门扉守卫",
+        "gate_guard_upgraded_name": "门扉守卫+",
+        "eff1": "✨【天界惩戒】所有敌人的生命值被设为 1 点！",
+        "eff2": "💥【命运逆反】命运的逆折反噬了你！你受到了 10 点真实伤害！",
+        "eff3": "🌀【维数减半】维度坍缩！所有敌人的生命值上限被削减了一半！",
+        "eff4": "🛡️【庇护结界】庇护之光笼罩了你！你获得了 30 点护盾与 5 层【缓冲】！",
+        "eff5": "⚠️【混乱侵蚀】虚空涌动！所有敌人获得了 30 点护盾、2 层【力量】与 2 层【缓冲】！",
+        "eff6": "🔥【战斗本能】狂暴之力在体内奔涌！你获得了 5 层【力量】与 2 层【双发】！",
+        "eff7": "👁️【战意低迷】虚空低语萦绕，你的意志变得消沉！你受到了 3 层【虚弱】与 3 层【易伤】！",
+        "eff8": "🃏【战术重整】你抽了 5 张牌，并获得了 2 点动作点 (A) 与 2 点附赠动作点 (BA)！",
+        "eff9": "🦁【救兵登场】命运的契约生效，一位【门扉守卫】加入了战场！",
+        "eff9_full": "🦁【救兵登场】战场格子已满，【门扉守卫】无法登场！",
+        "eff10": "💧【负能超载】护盾碎裂，负能反噬！你失去了所有护盾，并受到了 {dmg} 点真实伤害！",
+        "eff11": "✨【天界终结】所有敌人的生命值被设为 1 点，且你获得了 3 层【双发】！",
+        "eff12": "💥【命运回响】强化的气流减轻了反噬！你受到了 5 点真实伤害！",
+        "eff13": "🌀【维数坍缩】绝对维度降维！所有敌人的生命值上限被削减了 75%！",
+        "eff14": "🛡️【绝对壁垒】神圣护盾环绕，你获得了 60 点护盾与 10 层【缓冲】！",
+        "eff15": "⚠️【混沌洪流】混沌的虚空扭曲了战局！所有敌人获得了 60 点护盾、4 层【力量】与 4 层【缓冲】！",
+        "eff16": "🔥【毁灭暴怒】无尽怒火在燃烧！你获得了 10 层【力量】与 5 层【双发】！",
+        "eff17": "👁️【意志崩溃】虚空狂潮彻底撕碎了你的防御！你受到了 5 层【虚弱】与 5 层【易伤】！",
+        "eff18": "🃏【无限超越】超越限界！你补充了大量手牌，并获得了 5 点动作点 (A) 与 5 点附赠动作点 (BA)！",
+        "eff19": "🦁【终焉降临】法阵大开！两位【门扉守卫+】强势降临战场！",
+        "eff20": "🦁【终焉降临】法阵大开！一位【门扉守卫+】降临战场！（另一个位置已满）",
+        "eff21": "🦁【终焉降临】战场格子已满，召唤失败！",
+        "eff22": "💧【死星湮灭】星核坍缩！你失去了所有护盾，并受到了极具毁灭性的 {dmg} 点真实伤害！",
+        "eff23": "💫【霸瞳天星】星光降临，对所有敌人造成 99 点力场伤害，并使你获得 3 层【缓冲】！",
+        "eff24": "⏳【宇宙静止】时空停滞！你额外抽取 5 张卡牌，并获得了 3 点动作点 (A) 与 3 点附赠动作点 (BA)！",
+        "eff25": "🌀【时空抹除】时空风暴带走了你手里的 {lost_hand_count} 张牌，并且永久抹去了大牌组中的卡牌：【{removed_str}】！",
+        "eff26": "🌋【万物俱灭】末日熔岩吞噬了一切！对场上所有敌人和随从造成 999 点真实伤害！",
+        "eff27": "⚖️【真理审判】你触碰了宇宙的终极真理！你的生命上限与当前生命值直接翻倍（上限变为 {max_hp}），并获得了 100 点护盾！"
+      }
+    },
+    "special": {
+      "ancient_wisdom": {
+        "buff_name_upgraded": "古老智慧+",
+        "buff_name": "古老智慧",
+        "buff_desc_upgraded": "打中立卡时，获得 3 点护盾（每层）",
+        "buff_desc": "打中立卡时，获得 2 点护盾（每层）",
+        "result": "获得了 {shield} 点护盾与 {stacks} 层古老智慧形态。"
+      },
+      "merchant_collection": {
+        "names_joiner": "】和【",
+        "result": "🃏 卡牌商人掏出他的神话珍藏！你将升级版的【{names}】加入了手牌，且它们在本回合的消耗全部降为 0！"
+      },
+      "bard_epic": {
+        "result": "🎵 迷路的诗人为你高歌一曲英雄绝响之歌！歌声穿透灵魂，使你获得了 2 层【力量】与 1 层【双发】状态！"
+      },
+      "jack_brew": {
+        "result": "🍺 酒保杰克递上一杯冰镇烈性黑麦酒！你一饮而尽，生命值恢复了 15 点，且感到浑身充满了力量（获得 1A 1BA 动作点）！"
+      }
+    }
+  },
+  "coop": {
+    "target_required": "❌ 请指定一名存活队友，例如：使用 1 a2。",
+    "tactical_command": {
+      "result_upgraded": "🎯 【战术指挥+】指挥【{target_name}】获得 1A 与 2BA，你与【{player_name}】各抽 1 张牌。",
+      "result_minion": "🎯 【战术指挥】指挥随从【{minion_name}】获得 1A 与 1BA，其主人抽取 1 张牌。",
+      "result_player": "🎯 【战术指挥】指挥【{player_name}】获得 1A 与 1BA，并抽取 1 张牌。"
+    },
+    "phalanx_bulwark": {
+      "minion_not_allowed": "❌ 【方阵掩护】只能指定队友本人，不能指定随从。",
+      "result_upgraded": "🛡️ 【方阵掩护+】你与全体存活队友各获得 {shield} 点护盾，【{player_name}】获得 1 层【援护】。",
+      "result": "🛡️ 【方阵掩护】你与【{player_name}】各获得 {shield} 点护盾，【{player_name}】获得 1 层【援护】。"
+    },
+    "resonance_hymn": {
+      "result_upgraded": "🎵 【共鸣圣歌+】全体 {count} 名存活队友获得 2 层【力量】与 1 层【奥术充能】，你抽取 1 张牌。",
+      "result": "🎵 【共鸣圣歌】为【{target_name}】付与 2 层【力量】与 1 层【奥术充能】。"
+    },
+    "soul_link": {
+      "minion_not_allowed": "❌ 【灵魂链接】只能指定队友本人，不能指定随从。",
+      "buff_name": "灵魂共鸣",
+      "buff_desc": "下 {stacks} 次打出的攻击或法术牌伤害额外 +{bonus}，每次触发为链接者恢复 {restore} 点生命。",
+      "result": "🔗 【灵魂链接】为【{player_name}】恢复 {heal} 点生命，并赋予 {stacks} 层【灵魂共鸣】（伤害 +{bonus}，每次触发为你恢复 {restore} 点生命）。"
+    },
+    "unison_crusade": {
+      "no_target": "❌ 敌方目标不存在。",
+      "result_upgraded": "⚔️ 【同心协力+】全体 {count} 名存活队友各抽 {draw_count} 张牌并获得 {action_text}，对【{target_name}】造成 {damage} 点力场伤害，并施加 {count} 层【{buff_name}】。",
+      "result": "⚔️ 【同心协力】全体 {count} 名存活队友各抽 {draw_count} 张牌并获得 {action_text}，对【{target_name}】造成 {damage} 点力场伤害，并施加 {count} 层【{buff_name}】。"
+    }
+  },
+  "legendary": {
+    "time_warp": {
+      "buff_name": "时空强化",
+      "buff_desc": "本回合所有法术伤害 +2",
+      "result_upgraded": "时光倒流！已将所有卡牌重新洗回抽牌堆，重新抽取了 {draw_count} 张牌。玩家额外获得 1A 1BA，且本回合所有法术伤害 +2。",
+      "result": "时光倒流！已将所有卡牌重新洗回抽牌堆，并重新抽取了 {draw_count} 张牌。"
+    },
+    "meteor_swarm": {
+      "result_extra": "释放流星爆！对所有敌人造成了 {dmg} 点火焰伤害，并因大骰子额外造成 {extra_true_dmg} 点真实伤害。",
+      "result": "释放流星爆！对所有敌人造成了 {dmg} 点火焰伤害。"
+    },
+    "archmage_wish": {
+      "buff_name": "祈愿奥术",
+      "buff_desc_upgraded": "本场战斗法术伤害 +6",
+      "buff_desc": "本场战斗法术伤害 +4",
+      "result_upgraded": "完成了大法师的祈愿！获得了 15 点护盾，【祈愿奥术】法术伤害 +6，并抽了 3 张牌且它们本回合获得保留。",
+      "result": "完成了大法师的祈愿！获得了 10 点护盾，【祈愿奥术】法术伤害 +4，并抽了 2 张牌。"
+    },
+    "time_stop": {
+      "result_upgraded": "施展了时间停止！你获得了 4 个额外回合，且在额外回合中受到的负面效果暂停生效。",
+      "result": "施展了时间停止！你获得了 3 个额外回合。"
+    },
+    "break_limits": {
+      "result_upgraded": "突破了极限！使 {doubled_count} 个正面 Buff 的层数翻倍，获得了 1A 1BA。",
+      "result": "突破了极限！使 {doubled_count} 个正面 Buff 的层数翻倍，获得了 1A。"
+    },
+    "abyss_collapse": {
+      "part": "【{enemy_name}】受到 {final_dmg} 点黯蚀伤害",
+      "result": "释放深渊崩塌！{parts}。"
+    },
+    "demon_contract": {
+      "buff_name": "恶魔契约",
+      "buff_desc": "打出的下一张法术牌额外打出多次",
+      "result": "签结了恶魔契约！获得了 {ba_gain}BA 并抽了 {draw_cnt} 张牌，获得了【恶魔契约】Buff（下一次法术回响 {buff_stacks} 次）。"
+    },
+    "frost_nova": {
+      "part": "【{enemy_name}】受到 {dmg} 点冰霜伤害且被施加 {vuln_stacks} 层寒冷易伤与眩晕",
+      "result": "释放霜冻新星！{parts}。"
+    },
+    "glacier_fortress": {
+      "buff_name": "冰川壁垒",
+      "buff_desc": "回合结束时获得额外护盾",
+      "result": "筑起了冰川壁垒！获得了 {shield_val} 点护盾，且获得了【冰川壁垒】形态。"
+    },
+    "abyss_erosion": {
+      "buff_name": "虚空弱化",
+      "buff_desc": "受到的所有伤害增加",
+      "result": "释放了深渊侵蚀！对【{target}】施加了 {weakness_stacks} 层虚空弱化。"
+    },
+    "glacier_tempest": {
+      "part": "【{enemy_name}】受到 {dmg} 点冰霜伤害",
+      "shield_suffix": "，并获得了 {shield_gain} 点护盾",
+      "result": "释放了极寒风暴！{parts}{shield_msg}。"
+    }
+  }
+}

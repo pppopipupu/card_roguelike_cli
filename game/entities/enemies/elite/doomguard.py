@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("末日守卫")
 class DoomguardTemplate(EnemyTemplate):
@@ -34,16 +35,17 @@ class DoomguardTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="piercing")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(run.player, "minor_vulnerable_slashing", "轻度挥砍易伤", "受到的挥砍伤害增加 50%", 1)
-            logs.append(f"【{enemy.name}】施展毁灭打击。{dmg_msg}")
+            engine._add_buff_to(run.player, "minor_vulnerable_slashing", get_locale_text("i18n_enemy_elite_a.common.slashing_vulnerable_name"), get_locale_text("i18n_enemy_elite_a.common.slashing_vulnerable_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_a.doomguard.doom_strike", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "hellfire":
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="fire")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(run.player, "minor_vulnerable_fire", "轻度火焰易伤", "受到的火焰伤害增加 50%", 1)
-            logs.append(f"【{enemy.name}】施展地狱火。{dmg_msg}")
+            engine._add_buff_to(run.player, "minor_vulnerable_fire", get_locale_text("i18n_enemy_elite_a.common.fire_vulnerable_name"), get_locale_text("i18n_enemy_elite_a.common.fire_vulnerable_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_a.doomguard.hellfire", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "sacrifice":
-            enemy.shield += intent.val
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
             engine._damage_target(run, f"e{run.enemies.index(enemy)+1}", 2, source=f"enemy:{enemy.name}", damage_type="true")
-            logs.append(f"【{enemy.name}】使用牺牲防御，获得 {intent.val} 点护盾，但自身受到 2 点真实伤害反噬。")
+            logs.append(get_locale_text("i18n_enemy_elite_a.doomguard.sacrifice", name=enemy.name, val=intent.val))

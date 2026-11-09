@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("黑曜石巨灵")
 class ObsidianDjinnTemplate(EnemyTemplate):
@@ -26,8 +27,9 @@ class ObsidianDjinnTemplate(EnemyTemplate):
         p = run.player
         if intent.type == "quake":
             self._perform_attack(run, engine, enemy, intent.val, logs)
-            engine._add_buff_to(run.player, "drain_ba", "虚空纠缠", "在下一回合开始时，你将失去等同于此状态层数的附赠动作点 (BA)", 1)
-            logs.append(f"【{enemy.name}】引发地震，使玩家在下一回合失去 1 个附赠动作点 (BA)。")
+            engine._add_buff_to(run.player, "drain_ba", get_locale_text("i18n_enemy_elite_c.drain_ba_name"), get_locale_text("i18n_enemy_elite_c.drain_ba_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_c.obsidian_djinn_quake_log", name=enemy.name))
         elif intent.type == "defend":
-            enemy.shield += intent.val
-            logs.append(f"【{enemy.name}】加固外壳，获得 {intent.val} 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            logs.append(get_locale_text("i18n_enemy_elite_c.obsidian_djinn_defend_log", name=enemy.name, val=intent.val))

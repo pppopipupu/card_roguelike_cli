@@ -4,6 +4,7 @@ from typing import List, Dict, Any
 from ..models.state import UserStats
 from ..entities import ALL_CARDS
 from ..entities.cards.market import MARKET_SHELF_CARDS, get_market_price
+from ..data.locale_data import t, get_locale_text
 
 def _load_zh_cn() -> Dict[str, Any]:
     from ..core.locale_manager import LocaleManager
@@ -39,7 +40,7 @@ def render_town_map_classic(current_id: str) -> str:
         [None, "blacksmith", "market", None, None, None]
     ]
     
-    lines = ["🗺️ 【先古主城地图】"]
+    lines = [t("renderer_town.map_title")]
     for row in grid:
         row_strs = []
         for rid in row:
@@ -52,16 +53,36 @@ def render_town_map_classic(current_id: str) -> str:
         lines.append("".join(row_strs))
         
     lines.append("")
-    lines.append("📖 【主城地标图例手册】 ( 📍 标识当前所在位置 )")
+    lines.append(t("renderer_town.legend_title"))
     
-    def get_leg(rid: str, default_name: str) -> str:
+    def get_leg(rid: str, name_key: str) -> str:
         emo = "📍" if rid == current_id else emoji_map.get(rid, "🧱")
-        return f"{emo} {default_name}"
+        return f"{emo} {t(name_key)}"
         
-    lines.append(f"{get_leg('watch_tower', '守卫哨塔')}　　{get_leg('west_gate', '西大门')}　　　{get_leg('range', '训练靶场')}")
-    lines.append(f"{get_leg('alley', '偏僻小巷')}　　{get_leg('square', '中心广场')}　　{get_leg('fountain', '许愿喷泉')}")
-    lines.append(f"{get_leg('shop', '主城商店')}　　{get_leg('tavern', '酒馆大堂')}　　{get_leg('vip_room', '酒馆雅间')}")
-    lines.append(f"{get_leg('blacksmith', '铁匠铺')}　　　{get_leg('market', '卡牌大卖场')}　　🧱 墙壁障碍")
+    lines.append(t(
+        "renderer_town.legend_row_1",
+        watch_tower=get_leg("watch_tower", "renderer_town.room_watch_tower"),
+        west_gate=get_leg("west_gate", "renderer_town.room_west_gate"),
+        range=get_leg("range", "renderer_town.room_range")
+    ))
+    lines.append(t(
+        "renderer_town.legend_row_2",
+        alley=get_leg("alley", "renderer_town.room_alley"),
+        square=get_leg("square", "renderer_town.room_square"),
+        fountain=get_leg("fountain", "renderer_town.room_fountain")
+    ))
+    lines.append(t(
+        "renderer_town.legend_row_3",
+        shop=get_leg("shop", "renderer_town.room_shop"),
+        tavern=get_leg("tavern", "renderer_town.room_tavern"),
+        vip_room=get_leg("vip_room", "renderer_town.room_vip_room")
+    ))
+    lines.append(t(
+        "renderer_town.legend_row_4",
+        blacksmith=get_leg("blacksmith", "renderer_town.room_blacksmith"),
+        market=get_leg("market", "renderer_town.room_market"),
+        wall=t("renderer_town.legend_wall")
+    ))
     
     return "\n".join(lines)
 
@@ -200,10 +221,10 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
 
     name_key = room_data.get("name_key", current_id)
     room_loc = zh_cn.get("rooms", {}).get(name_key, {})
-    room_name = room_loc.get("name", zh_cn.get("global", {}).get("unknown_room", "未知房间"))
+    room_name = room_loc.get("name", get_locale_text("global.unknown_room"))
     desc = room_loc.get("desc", "")
 
-    title = zh_cn.get("global", {}).get("title_format", "✨ 先古主城 ── {name} ✨").format(name=room_name)
+    title = get_locale_text("global.title_format", name=room_name)
 
     entities_loc = zh_cn.get("interactive_entities", {})
 
@@ -221,8 +242,8 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
             ind = get_npc_quest_indicator(npc_id, stats)
             visible_npcs.append(f"{npc_name}{ind}")
 
-    none_label = zh_cn.get("global", {}).get("none", "无")
-    npc_str = "、".join(visible_npcs) if visible_npcs else none_label
+    none_label = get_locale_text("global.none")
+    npc_str = get_locale_text("renderer_town.list_separator").join(visible_npcs) if visible_npcs else none_label
 
     items_loc = zh_cn.get("items", {})
     visible_items = []
@@ -232,18 +253,18 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
             visible_items.append(item_name)
     
     if current_id == "vip_room" and not stats.town_flags.get("box_opened", 0):
-        chest_name = entities_loc.get("Chest", {}).get("name", "古老的铁宝箱")
+        chest_name = entities_loc.get("Chest", {}).get("name", t("renderer_town.chest_name"))
         visible_items.append(chest_name)
     
-    item_str = "、".join(visible_items) if visible_items else none_label
+    item_str = get_locale_text("renderer_town.list_separator").join(visible_items) if visible_items else none_label
 
     exits_dict = room_data.get("exits", {})
-    dir_names = zh_cn.get("global", {}).get("directions", {"w": "北", "s": "南", "a": "西", "d": "东"})
+    dir_names = {d: get_locale_text(f"global.directions.{d}") for d in ("w", "s", "a", "d")}
     exit_list = []
     for d, target in exits_dict.items():
         if d in dir_names:
             exit_list.append(f"{dir_names[d]}({d.upper()})")
-    exit_str = "、".join(exit_list) if exit_list else none_label
+    exit_str = get_locale_text("renderer_town.list_separator").join(exit_list) if exit_list else none_label
 
     if current_id == "market":
         shelf = stats.town_flags.get("market_shelf", [])
@@ -255,23 +276,29 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
         shelf_strs = []
         for idx, cid in enumerate(shelf):
             if not cid:
-                shelf_strs.append(f"{idx+1}. " + zh_cn.get("global", {}).get("market_sold_out", "【已售罄】"))
+                shelf_strs.append(f"{idx+1}. " + get_locale_text("global.market_sold_out"))
             else:
                 c_name = ALL_CARDS[cid].name if cid in ALL_CARDS else cid
                 card_obj = ALL_CARDS.get(cid)
-                rarity_str = "普通"
+                rarity_str = t("renderer_town.rarity_common")
                 if card_obj:
                     r = getattr(card_obj, "rarity", "common")
                     if r == "common":
-                        rarity_str = "普通"
+                        rarity_str = t("renderer_town.rarity_common")
                     elif r == "rare":
-                        rarity_str = "稀有"
+                        rarity_str = t("renderer_town.rarity_rare")
                     else:
-                        rarity_str = "珍奇"
+                        rarity_str = t("renderer_town.rarity_epic")
                 price = get_market_price(cid, card_obj)
-                shelf_strs.append(f"{idx+1}. 【{c_name}】({rarity_str} ─ {price} GP)")
-        desc += zh_cn.get("global", {}).get("market_shelf_header", "\n\n🏷️ 今日货架商品：\n") + "\n".join(shelf_strs)
-        desc += zh_cn.get("global", {}).get("market_shelf_footer", "\n（输入 交互/talk 卡牌商人 即可开启选购或锁定必带卡）")
+                shelf_strs.append(t(
+                    "renderer_town.market_shelf_item",
+                    idx=idx + 1,
+                    name=c_name,
+                    rarity=rarity_str,
+                    price=price
+                ))
+        desc += get_locale_text("global.market_shelf_header") + "\n".join(shelf_strs)
+        desc += get_locale_text("global.market_shelf_footer")
 
     quest_str = ""
     quest_state = stats.town_flags.get("quest_town_tour_state", "unstarted")
@@ -290,7 +317,7 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
     inv_display = []
     for item_id in town_inv:
         inv_display.append(items_loc.get(item_id, [item_id])[0])
-    inv_str = "、".join(inv_display) if inv_display else zh_cn.get("global", {}).get("empty", "空")
+    inv_str = get_locale_text("renderer_town.list_separator").join(inv_display) if inv_display else get_locale_text("global.empty")
 
     lines = [
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
@@ -298,19 +325,19 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
         map_str,
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-        zh_cn.get("global", {}).get("room_env", "环境：{desc}").format(desc=desc),
-        zh_cn.get("global", {}).get("room_exits", "出口：{exits}").format(exits=exit_str),
-        zh_cn.get("global", {}).get("room_npcs", "居民：{npcs}").format(npcs=npc_str),
-        zh_cn.get("global", {}).get("room_items", "物品：{items}").format(items=item_str),
+        get_locale_text("global.room_env", desc=desc),
+        get_locale_text("global.room_exits", exits=exit_str),
+        get_locale_text("global.room_npcs", npcs=npc_str),
+        get_locale_text("global.room_items", items=item_str),
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-        zh_cn.get("global", {}).get("room_inventory", "🎒 随身物品：{inv} | 💰 拥有 GP：{gp}").format(inv=inv_str, gp=stats.gp),
+        get_locale_text("global.room_inventory", inv=inv_str, gp=stats.gp),
         quest_str,
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-        zh_cn.get("global", {}).get("help_move", "💡 移动 (MOVE)：W(北/UP) / A(西/LEFT) / S(南/DOWN) / D(东/RIGHT)"),
-        zh_cn.get("global", {}).get("help_take", "💡 拿取 (TAKE)：拿取/捡起/take/pick <物品>"),
-        zh_cn.get("global", {}).get("help_use", "💡 使用 (USE)：使用/use <物品>"),
-        zh_cn.get("global", {}).get("help_talk", "💡 交互 (TALK)：交互/talk/interact/talk_to <名字>"),
-        zh_cn.get("global", {}).get("help_system", "💡 系统 (SYSTEM)：退出/exit/quit | 回城/home"),
+        get_locale_text("global.help_move"),
+        get_locale_text("global.help_take"),
+        get_locale_text("global.help_use"),
+        get_locale_text("global.help_talk"),
+        get_locale_text("global.help_system"),
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     ]
     return "\n".join(lines)

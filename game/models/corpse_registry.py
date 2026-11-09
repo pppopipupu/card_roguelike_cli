@@ -10,6 +10,7 @@ from typing import Optional
 
 from .state import GameRun, ensure_card_state
 from ..data.corpse_config import CorpseConfig
+from ..data.locale_data import get_locale_text
 
 _LOCK = threading.RLock()
 
@@ -68,7 +69,7 @@ class CorpseRegistry:
             "stage": stage,
             "user_id": str(getattr(run, "user_id", "")),
             "player_name": str(getattr(player, "name", "玩家")),
-            "cause": str(cause or "").strip() or "在第 %s 层倒下" % stage,
+            "cause": str(cause or "").strip() or get_locale_text("i18n_models.corpse_registry.fall_at_stage", stage=stage),
             "gold": gold,
             "gp_pool": max(0, gp_pool),
             "max_hp": int(getattr(player, "max_hp", 1)),

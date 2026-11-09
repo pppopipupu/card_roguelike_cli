@@ -2,6 +2,7 @@ import copy
 from typing import Optional
 from ..models.state import CardTag, Card, GameRun
 from ..models.events import CardPlayedEvent, CardExhaustEvent
+from ..data.locale_data import get_locale_text
 
 class ReplayTag(CardTag):
     def execute(self, card: Card, run: GameRun, target: Optional[str], engine) -> Optional[str]:
@@ -12,7 +13,7 @@ class ReplayTag(CardTag):
                 extra_res = engine._execute_card_effect(run, card, target)
                 played_evt_rep = CardPlayedEvent(run, card, target, extra_res, is_extra=True)
                 engine.event_bus.dispatch(played_evt_rep)
-                run.node_data.setdefault("extra_play_msgs", []).append(f" 🔁 [重放触发] {played_evt_rep.feedback}")
+                run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.replay_trigger_msg", res=played_evt_rep.feedback))
         return None
 
 class FragileTag(CardTag):
@@ -37,12 +38,12 @@ class FragileTag(CardTag):
                 found = dc
                 break
 
-        if curr_fragile <= 1:
+        if curr_fragile <= getattr(self, "break_threshold", 1):
             if found:
                 p.deck.remove(found)
-            engine._log_event(run, f"💥 【{card.name}】彻底碎裂，已从牌组中移除！")
+            engine._log_event(run, get_locale_text("i18n_buffs.fragile_break_log", card=card.name))
         else:
-            next_fragile = curr_fragile - 1
+            next_fragile = curr_fragile - getattr(self, "break_step", 1)
             next_cid = copy.copy(cid)
             next_cid.fragile = next_fragile
 
@@ -52,12 +53,12 @@ class FragileTag(CardTag):
                     p.deck.remove(found)
             elif any(b.id == "void_exhaustion" for b in p.buffs):
                 p.exhaust_pile.append(next_cid)
-                engine._log_event(run, f"✨ [虚空耗竭] 【{card.name}】已被强行移入消耗堆！")
+                engine._log_event(run, get_locale_text("i18n_buffs.void_exhaustion_move_log", card=card.name))
                 exhaust_evt = CardExhaustEvent(run, next_cid, "played")
                 engine.event_bus.dispatch(exhaust_evt)
             else:
                 p.discard_pile.append(next_cid)
                 next_card = ALL_CARDS.get(next_cid)
                 next_name = next_card.name if next_card else card.name
-                engine._log_event(run, f"🧩 【{card.name}】磨损，变更为【{next_name}】并移入弃牌堆。")
+                engine._log_event(run, get_locale_text("i18n_buffs.fragile_wear_log", card=card.name, next=next_name))
         return True

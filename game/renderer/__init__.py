@@ -1,4 +1,5 @@
 from ..models.state import GameRun, UserStats
+from ..data.locale_data import get_locale_text
 from .menu import render_menu, render_card_library, render_relic_library, render_deck, render_stats, render_help, render_tutorial
 from .battle import render_battle, render_detailed_battle, render_draw_pile, render_discard_pile, render_exhaust_pile, render_minion_graveyard, render_enemy_graveyard
 
@@ -79,7 +80,7 @@ class GameRenderer:
         elif nt == "cafe":
             from ..core.cafe_engine import CafeEngine
             return CafeEngine(None, None).render_cafe(run)
-        return "未知关卡状态"
+        return get_locale_text("i18n_renderer_extra.unknown_state")
 
     @staticmethod
     def render_query_info(query_str: str, user_id: str | None = None) -> str:

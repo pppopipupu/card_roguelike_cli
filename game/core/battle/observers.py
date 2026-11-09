@@ -5,6 +5,8 @@ from ...models.events import (
     MinionDeathEvent, CardExhaustEvent, HealCalculateEvent, EnemyBeforeDeathEvent,
     EnemySyncIntentsEvent, RewardGenerateEvent, CardSelectInitEvent, CardObtainEvent
 )
+from ...data.locale_data import get_locale_text
+from ...models.stats_tracker import StatsTracker
 
 class RelicTriggerHandler:
     def __init__(self, event_bus, engine):
@@ -148,33 +150,84 @@ class BuffTriggerHandler:
         event_bus.subscribe(HealCalculateEvent, self.on_heal_calculate)
         event_bus.subscribe(EnemySyncIntentsEvent, self.on_enemy_sync_intents)
 
-    def on_turn_start(self, event):
+    def _trigger_turn_buffs(self, event, entity, method_name):
         from ...entities.buffs import get_buff_impl
-        entities_with_buffs = []
-        if event.is_player:
-            entities_with_buffs.append((event.run.player, event.run.player))
+        for b in list(entity.buffs):
+            impl = get_buff_impl(b.id, b.stacks, getattr(b, "stacks2", None))
+            if impl and hasattr(impl, method_name):
+                getattr(impl, method_name)(event, b, entity)
+
+    def _trigger_coop_turn_buffs(self, event, method_name):
+        run = event.run
+        markers = run.node_data.get("_coop_buff_ticks")
+        if not isinstance(markers, dict):
+            markers = {}
+            run.node_data["_coop_buff_ticks"] = markers
+        order = [uid for uid in run.party_order if uid in run.players]
+        order.extend(uid for uid in run.players if uid not in order)
+        if method_name == "on_turn_end":
+            turn = run.node_data.get("turn_count", 1)
+            if markers.get("turn_count") != turn:
+                markers["turn_count"] = turn
+                ticked = []
+                markers[method_name] = ticked
+            else:
+                ticked = markers.get(method_name)
+                if not isinstance(ticked, list):
+                    ticked = []
+                    markers[method_name] = ticked
+                if ticked:
+                    return
         else:
-            for enemy in list(event.run.enemies):
-                entities_with_buffs.append((enemy, enemy))
-        for entity, original in entities_with_buffs:
-            for b in list(entity.buffs):
-                impl = get_buff_impl(b.id, b.stacks, getattr(b, "stacks2", None))
-                if impl and hasattr(impl, "on_turn_start"):
-                    impl.on_turn_start(event, b, entity)
+            positions = {uid: index for index, uid in enumerate(order)}
+            last_uid = markers.get("last_start_uid")
+            position = positions.get(run.user_id, len(order))
+            last_position = positions.get(last_uid, -1) if last_uid is not None else -1
+            if last_uid is not None and position > last_position:
+                ticked = markers.get(method_name)
+                if not isinstance(ticked, list):
+                    ticked = []
+                    markers[method_name] = ticked
+                if ticked:
+                    return
+            else:
+                ticked = []
+                markers[method_name] = ticked
+            markers["last_start_uid"] = run.user_id
+        original_player = run.player
+        original_uid = run.user_id
+        try:
+            for uid in order:
+                player = run.players[uid]
+                if player.downed or player.hp <= 0:
+                    continue
+                run.player = player
+                run.user_id = uid
+                self._trigger_turn_buffs(event, player, method_name)
+                ticked.append(uid)
+        finally:
+            run.player = original_player
+            run.user_id = original_uid
+
+    def on_turn_start(self, event):
+        if event.is_player:
+            if getattr(event.run, "coop_id", ""):
+                self._trigger_coop_turn_buffs(event, "on_turn_start")
+            else:
+                self._trigger_turn_buffs(event, event.run.player, "on_turn_start")
+            return
+        for enemy in list(event.run.enemies):
+            self._trigger_turn_buffs(event, enemy, "on_turn_start")
 
     def on_turn_end(self, event):
-        from ...entities.buffs import get_buff_impl
-        entities_with_buffs = []
         if event.is_player:
-            entities_with_buffs.append((event.run.player, event.run.player))
-        else:
-            for enemy in list(event.run.enemies):
-                entities_with_buffs.append((enemy, enemy))
-        for entity, original in entities_with_buffs:
-            for b in list(entity.buffs):
-                impl = get_buff_impl(b.id, b.stacks, getattr(b, "stacks2", None))
-                if impl and hasattr(impl, "on_turn_end"):
-                    impl.on_turn_end(event, b, entity)
+            if getattr(event.run, "coop_id", ""):
+                self._trigger_coop_turn_buffs(event, "on_turn_end")
+            else:
+                self._trigger_turn_buffs(event, event.run.player, "on_turn_end")
+            return
+        for enemy in list(event.run.enemies):
+            self._trigger_turn_buffs(event, enemy, "on_turn_end")
 
     def on_card_play(self, event):
         from ...entities.buffs import get_buff_impl
@@ -505,5 +558,24 @@ class CardTriggerHandler:
             p = event.run.player
             p.actions += 2
             p.bonus_actions += 2
-            self.engine._log_event(event.run, "✨ [盾牌猛击被消耗] 玩家获得了 2A 2BA！")
+            self.engine._log_event(event.run, get_locale_text("i18n_battle_misc.shield_bash_exhaust_log"))
+
+
+class StatTrackingHandler:
+    def __init__(self, event_bus, save_manager):
+        self.save_manager = save_manager
+        event_bus.subscribe(DamageTakeEvent, self.on_damage_take)
+        event_bus.subscribe(MinionDeathEvent, self.on_minion_death)
+        event_bus.subscribe(BattleWinEvent, self.on_battle_win)
+
+    def on_damage_take(self, event):
+        if event.target.startswith("e") and event.amount > 0:
+            StatsTracker.record_damage(event.run, event.run.user_id, event.amount)
+
+    def on_minion_death(self, event):
+        if event.is_enemy:
+            StatsTracker.record_kill(event.run, event.run.user_id)
+
+    def on_battle_win(self, event):
+        StatsTracker.flush(self.save_manager, event.run)
 

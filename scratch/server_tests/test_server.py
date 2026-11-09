@@ -64,6 +64,11 @@ class ServerTests(unittest.TestCase):
     def post(self, payload: dict, headers: dict):
         return self.client.post("/api/v1/action", json=payload, headers=headers)
 
+    def internal_uuid(self, web: str = "", im: str = "") -> str:
+        store = self.app.state.service.accounts
+        account = store.get_by_web(web) if web else store.get_by_im(im)
+        return account["uuid"]
+
     def test_health(self):
         response = self.client.get("/healthz")
         self.assertEqual(response.status_code, 200)
@@ -85,14 +90,14 @@ class ServerTests(unittest.TestCase):
         self.assertTrue(body["handled"])
         self.assertTrue(body["text"])
         self.assertIsNone(body["state"])
-        uuid = body["account"]["uuid"]
+        self.assertEqual(body["account"]["id"][0], "P")
         self.assertEqual(body["account"]["im_user_id"], "im-user-1")
 
         render = self.post(
             {"command": "", "channel": "im", "force": True}, self.im_headers()
         ).json()
         self.assertTrue(render["text"])
-        self.assertIn(uuid, render["account"]["uuid"])
+        self.assertEqual(render["account"]["id"], body["account"]["id"])
 
     def test_im_non_game_message_unhandled(self):
         body = self.post(
@@ -116,8 +121,10 @@ class ServerTests(unittest.TestCase):
         uuid_body = self.post(
             {"command": "uuid", "channel": "web"}, self.web_headers()
         ).json()
-        self.assertIn(start["account"]["uuid"], uuid_body["text"])
-        stats = self.app.state.service.save_manager.load_stats(start["account"]["uuid"])
+        self.assertIn(start["account"]["id"], uuid_body["text"])
+        stats = self.app.state.service.save_manager.load_stats(
+            self.internal_uuid(web="web-user-1")
+        )
         self.assertTrue(stats.rogue_mode)
 
     def test_im_mode_toggle(self):
@@ -125,7 +132,7 @@ class ServerTests(unittest.TestCase):
             {"command": "start confirm", "channel": "im", "force": True},
             self.im_headers("im-mode"),
         ).json()
-        uuid = start["account"]["uuid"]
+        uuid = self.internal_uuid(im="im-mode")
         stats = self.app.state.service.save_manager.load_stats(uuid)
         self.assertFalse(stats.rogue_mode)
 
@@ -159,7 +166,7 @@ class ServerTests(unittest.TestCase):
             {"command": "start confirm", "channel": "im", "force": True},
             self.im_headers("im-bind-target"),
         ).json()
-        target_uuid = im["account"]["uuid"]
+        target_uuid = self.internal_uuid(im="im-bind-target")
 
         self.post({"command": "start confirm", "channel": "web"}, self.web_headers("web-bind"))
         refused = self.post(
@@ -167,13 +174,13 @@ class ServerTests(unittest.TestCase):
             self.web_headers("web-bind"),
         ).json()
         self.assertIn("force", refused["text"])
-        self.assertNotEqual(refused["account"]["uuid"], target_uuid)
+        self.assertNotEqual(refused["account"]["id"], im["account"]["id"])
 
         accepted = self.post(
             {"command": f"绑定 {target_uuid} force", "channel": "web"},
             self.web_headers("web-bind"),
         ).json()
-        self.assertEqual(accepted["account"]["uuid"], target_uuid)
+        self.assertEqual(accepted["account"]["id"], im["account"]["id"])
         self.assertEqual(accepted["account"]["im_user_id"], "im-bind-target")
         self.assertEqual(accepted["account"]["web_user_id"], "web-bind")
 
@@ -202,14 +209,14 @@ class ServerTests(unittest.TestCase):
             {"command": "start confirm", "channel": "im", "force": True},
             self.im_headers("im-fresh-target"),
         ).json()
-        target_uuid = im["account"]["uuid"]
+        target_uuid = self.internal_uuid(im="im-fresh-target")
 
         self.post({"command": "uuid", "channel": "web"}, self.web_headers("web-fresh"))
         bound = self.post(
             {"command": f"绑定 {target_uuid}", "channel": "web"},
             self.web_headers("web-fresh"),
         ).json()
-        self.assertEqual(bound["account"]["uuid"], target_uuid)
+        self.assertEqual(bound["account"]["id"], im["account"]["id"])
         self.assertEqual(bound["account"]["web_user_id"], "web-fresh")
 
     def test_origin_key_enforced(self):
@@ -240,15 +247,16 @@ class ServerTests(unittest.TestCase):
             {"command": "我的ID", "channel": "im"}, self.im_headers("im-uuid-user")
         ).json()
         self.assertTrue(body["ok"])
-        self.assertIn("UUID", body["text"])
-        self.assertIsNotNone(body["account"]["uuid"])
+        self.assertIn("玩家 ID", body["text"])
+        self.assertNotIn("UUID", body["text"])
+        self.assertIsNotNone(body["account"]["id"])
 
     def test_im_secrets_returns_migration_uuid(self):
         body = self.post(
             {"command": "secrets", "channel": "im"}, self.im_headers("im-secrets-user")
         ).json()
         self.assertTrue(body["ok"])
-        self.assertIn(body["account"]["uuid"], body["text"])
+        self.assertIn(self.internal_uuid(im="im-secrets-user"), body["text"])
         self.assertIn("绑定", body["text"])
         self.assertEqual(body["account"]["im_user_id"], "im-secrets-user")
 
@@ -435,12 +443,14 @@ class ServerTests(unittest.TestCase):
             {"command": "start confirm", "channel": "web", "name": "低GP"},
             self.web_headers("web-lb-low"),
         ).json()
-        high_stats = self.app.state.service.save_manager.load_stats(high["account"]["uuid"])
+        high_uuid = self.internal_uuid(web="web-lb-high")
+        low_uuid = self.internal_uuid(web="web-lb-low")
+        high_stats = self.app.state.service.save_manager.load_stats(high_uuid)
         high_stats.gp = 5000
-        self.app.state.service.save_manager.save_stats(high["account"]["uuid"], high_stats)
-        low_stats = self.app.state.service.save_manager.load_stats(low["account"]["uuid"])
+        self.app.state.service.save_manager.save_stats(high_uuid, high_stats)
+        low_stats = self.app.state.service.save_manager.load_stats(low_uuid)
         low_stats.gp = 100
-        self.app.state.service.save_manager.save_stats(low["account"]["uuid"], low_stats)
+        self.app.state.service.save_manager.save_stats(low_uuid, low_stats)
 
         ranking = self.post(
             {"command": "leaderboard", "channel": "web"},

@@ -2,12 +2,13 @@ from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
 from .....data.potion_data import get_potion_name
+from .....data.locale_data import get_locale_text
 
 class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "drink", "use_potion", "丢弃药水", "discard_potion", "drop_potion", "丢药", "dp", "dr", "pot", "投掷", "投", "throw", "t"], allowed_states=["battle", "explore", "town", "menu"]):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:
-            yield "❌ 你当前没有正在进行的游戏。"
+            yield get_locale_text("i18n_cli_general_a.potion.no_run")
             return
         
         p = run.player
@@ -17,24 +18,24 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
         cmd = parts[0].lower()
         is_discard = cmd in ("丢弃药水", "discard_potion", "drop_potion", "丢药", "dp")
         if getattr(run, "coop_id", "") and p.downed and not is_discard:
-            yield "💀 你已倒地，无法使用药水。"
+            yield get_locale_text("i18n_cli_general_a.potion.downed")
             return
         
         if len(parts) < 2:
             if is_discard:
-                yield "❌ 请指定要丢弃的药水槽序号，例如：丢弃药水 1"
+                yield get_locale_text("i18n_cli_general_a.potion.discard_need_slot")
             else:
-                yield "❌ 请指定要使用的药水槽序号，例如：喝药水 1 或 投掷 1 e1"
+                yield get_locale_text("i18n_cli_general_a.potion.use_need_slot")
             return
             
         try:
             idx = int(parts[1]) - 1
         except ValueError:
-            yield "❌ 无效的药水槽序号。"
+            yield get_locale_text("i18n_cli_general_a.potion.invalid_slot")
             return
             
         if idx < 0 or idx >= len(p.potions):
-            yield f"❌ 无效的药水槽序号，你当前拥有 {len(p.potions)} 瓶药水。"
+            yield get_locale_text("i18n_cli_general_a.potion.invalid_slot_count", count=len(p.potions))
             return
             
         potion_id = p.potions[idx]
@@ -43,14 +44,14 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
         if is_discard:
             p.potions.pop(idx)
             router.save_manager.save_save(user_id, run)
-            yield f"🧪 已丢弃了药水：【{potion_name}】。\n" + GameRenderer.render_game(run)
+            yield get_locale_text("i18n_cli_general_a.potion.discarded", name=potion_name) + GameRenderer.render_game(run)
             return
 
         is_throw = cmd in ("投掷", "投", "throw", "t")
         target = None
         if is_throw:
             if len(parts) < 3:
-                yield "❌ 请指定投掷目标，例如：投掷 1 e1"
+                yield get_locale_text("i18n_cli_general_a.potion.throw_need_target")
                 return
             target = parts[2]
         else:
@@ -62,7 +63,7 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
                 
         if target != "p0":
             if run.node_type != "battle":
-                yield "❌ 只有在战斗中才能投掷药水。"
+                yield get_locale_text("i18n_cli_general_a.potion.throw_battle_only")
                 return
             if isinstance(target, str) and target.isdigit():
                 target = f"e{target}"
@@ -78,21 +79,21 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
                 except ValueError:
                     grid = 0
                 if grid < 0 or grid >= len(run.enemies):
-                    yield f"❌ 敌方格子 [{target}] 没有敌人。"
+                    yield get_locale_text("i18n_cli_general_a.potion.no_enemy", target=target)
                     return
             elif target.startswith("p"):
                 grid = target[1:]
                 if grid != "0" and grid not in p.minions:
-                    yield f"❌ 我方格子 [{grid}] 没有随从。"
+                    yield get_locale_text("i18n_cli_general_a.potion.no_minion", grid=grid)
                     return
             elif getattr(run, "coop_id", "") and router.engine.battle_engine.combat_resolver.resolve_ally(run, target):
                 is_throw = False
             else:
-                yield "❌ 无效的目标选择。"
+                yield get_locale_text("i18n_cli_general_a.potion.invalid_target")
                 return
 
         if run.node_type != "battle" and potion_id != "healing_potion":
-            yield "❌ 该药水只能在战斗中使用。"
+            yield get_locale_text("i18n_cli_general_a.potion.battle_only")
             return
 
         p.potions.pop(idx)

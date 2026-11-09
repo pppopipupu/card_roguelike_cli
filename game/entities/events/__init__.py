@@ -3,6 +3,7 @@ from ...data.map_config import MapConfig
 from .base import EventOption, EventTemplate
 from .registry import EVENT_OPTIONS_REGISTRY
 from ...data.event_data import EVENT_CONFIG
+from ...data.locale_data import get_locale_text
 
 from .fountain import *
 from .knight import *
@@ -24,77 +25,77 @@ ALL_EVENTS = [
         "fountain",
         EVENT_CONFIG["fountain"]["description"],
         [
-            DrinkFountainOption("饮用泉水", "drink_fountain"),
-            CoinFountainOption("投入金币", "coin_fountain"),
-            ObserveFountainOption("仔细观察泉底", "observe_fountain"),
-            LeaveEventOption("悄悄离开", "leave_event", "fountain")
+            DrinkFountainOption(get_locale_text("i18n_events_c.opt_fountain_drink"), "drink_fountain"),
+            CoinFountainOption(get_locale_text("i18n_events_c.opt_fountain_coin"), "coin_fountain"),
+            ObserveFountainOption(get_locale_text("i18n_events_c.opt_fountain_observe"), "observe_fountain"),
+            LeaveEventOption(get_locale_text("i18n_events_c.opt_leave_quiet"), "leave_event", "fountain")
         ]
     ),
     EventTemplate(
         "knight",
         EVENT_CONFIG["knight"]["description"],
         [
-            HelpKnightOption("施以援手", "help_knight"),
-            RobKnightOption("趁火打劫", "rob_knight"),
-            AskKnightOption("询问他的来历", "ask_knight"),
-            LeaveEventOption("置之不理", "leave_event", "knight")
+            HelpKnightOption(get_locale_text("i18n_events_c.opt_knight_help"), "help_knight"),
+            RobKnightOption(get_locale_text("i18n_events_c.opt_knight_rob"), "rob_knight"),
+            AskKnightOption(get_locale_text("i18n_events_c.opt_knight_ask"), "ask_knight"),
+            LeaveEventOption(get_locale_text("i18n_events_c.opt_knight_ignore"), "leave_event", "knight")
         ]
     ),
     EventTemplate(
         "altar",
         EVENT_CONFIG["altar"]["description"],
         [
-            AbsorbAltarOption("汲取奥术", "absorb_altar"),
-            BreakAltarOption("摧毁水晶", "break_altar"),
-            MeditateAltarOption("在祭坛前冥想", "meditate_altar"),
-            LeaveEventOption("绕道而行", "leave_event", "altar")
+            AbsorbAltarOption(get_locale_text("i18n_events_c.opt_altar_absorb"), "absorb_altar"),
+            BreakAltarOption(get_locale_text("i18n_events_c.opt_altar_break"), "break_altar"),
+            MeditateAltarOption(get_locale_text("i18n_events_c.opt_altar_meditate"), "meditate_altar"),
+            LeaveEventOption(get_locale_text("i18n_events_c.opt_altar_detour"), "leave_event", "altar")
         ]
     ),
     EventTemplate(
         "lost_maze",
         EVENT_CONFIG["lost_maze"]["description"],
         [
-            MazeFireOption("循着远处的微弱火光走", "maze_fire"),
-            MazeWaterOption("沿着潺潺的水流声走", "maze_water"),
-            MazeMarkOption("在墙壁做标记，小心翼翼前行", "maze_mark")
+            MazeFireOption(get_locale_text("i18n_events_c.opt_maze_fire"), "maze_fire"),
+            MazeWaterOption(get_locale_text("i18n_events_c.opt_maze_water"), "maze_water"),
+            MazeMarkOption(get_locale_text("i18n_events_c.opt_maze_mark"), "maze_mark")
         ]
     ),
     EventTemplate(
         "abandoned_mine",
         EVENT_CONFIG["abandoned_mine"]["description"],
         [
-            RideCartOption("坐上生锈矿车滑入矿坑", "ride_cart"),
-            ClimbLadderOption("沿着破旧梯子慢慢爬下去", "climb_ladder")
+            RideCartOption(get_locale_text("i18n_events_c.opt_mine_cart"), "ride_cart"),
+            ClimbLadderOption(get_locale_text("i18n_events_c.opt_mine_ladder"), "climb_ladder")
         ]
     ),
     EventTemplate(
         "phantom_mage",
         EVENT_CONFIG["phantom_mage"]["description"],
         [
-            ReadScrollOption("解读残卷", "read_scroll"),
-            ResonateScrollOption("用魔网产生共鸣", "resonate_scroll"),
-            DispelPhantomOption("驱散残影", "dispel_phantom"),
-            LeaveEventOption("悄悄离开", "leave_event", "phantom_mage")
+            ReadScrollOption(get_locale_text("i18n_events_c.opt_phantom_read"), "read_scroll"),
+            ResonateScrollOption(get_locale_text("i18n_events_c.opt_phantom_resonate"), "resonate_scroll"),
+            DispelPhantomOption(get_locale_text("i18n_events_c.opt_phantom_dispel"), "dispel_phantom"),
+            LeaveEventOption(get_locale_text("i18n_events_c.opt_leave_quiet"), "leave_event", "phantom_mage")
         ]
     ),
     EventTemplate(
         "goblin_gamble",
         EVENT_CONFIG["goblin_gamble"]["description"],
         [
-            GambleSmallOption("小赌一把", "gamble_small"),
-            GambleLargeOption("豪赌一把", "gamble_large"),
-            RobGoblinOption("强行抢劫", "rob_goblin"),
-            LeaveEventOption("拒绝并离开", "leave_event", "goblin_gamble")
+            GambleSmallOption(get_locale_text("i18n_events_c.opt_goblin_small"), "gamble_small"),
+            GambleLargeOption(get_locale_text("i18n_events_c.opt_goblin_large"), "gamble_large"),
+            RobGoblinOption(get_locale_text("i18n_events_c.opt_goblin_rob"), "rob_goblin"),
+            LeaveEventOption(get_locale_text("i18n_events_c.opt_goblin_refuse"), "leave_event", "goblin_gamble")
         ]
     ),
     EventTemplate(
         "fairy_tea",
         EVENT_CONFIG["fairy_tea"]["description"],
         [
-            DrinkNectarOption("饮用红色花蜜茶", "drink_nectar"),
-            EatCookieOption("享用绿色坚果饼", "eat_cookie"),
-            ListenMusicOption("倾听妖精的八音盒", "listen_music"),
-            LeaveEventOption("婉言谢绝并离开", "leave_event", "fairy_tea")
+            DrinkNectarOption(get_locale_text("i18n_events_c.opt_fairy_nectar"), "drink_nectar"),
+            EatCookieOption(get_locale_text("i18n_events_c.opt_fairy_cookie"), "eat_cookie"),
+            ListenMusicOption(get_locale_text("i18n_events_c.opt_fairy_music"), "listen_music"),
+            LeaveEventOption(get_locale_text("i18n_events_c.opt_fairy_decline"), "leave_event", "fairy_tea")
         ],
         min_stage=2,
         max_stage=12
@@ -103,10 +104,10 @@ ALL_EVENTS = [
         "void_contract",
         EVENT_CONFIG["void_contract"]["description"],
         [
-            ContractRelicOption("献祭生命换取遗物", "contract_relic"),
-            ContractLegendOption("以血肉之躯汲取奥法", "contract_legend"),
-            AbsorbVoidOption("将虚空吞噬", "absorb_void"),
-            LeaveEventOption("拒绝契约并离开", "leave_event", "void_contract")
+            ContractRelicOption(get_locale_text("i18n_events_c.opt_contract_relic"), "contract_relic"),
+            ContractLegendOption(get_locale_text("i18n_events_c.opt_contract_legend"), "contract_legend"),
+            AbsorbVoidOption(get_locale_text("i18n_events_c.opt_absorb_void"), "absorb_void"),
+            LeaveEventOption(get_locale_text("i18n_events_c.opt_contract_refuse"), "leave_event", "void_contract")
         ],
         min_stage=14,
         max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
@@ -115,11 +116,11 @@ ALL_EVENTS = [
         "forge_furnace",
         EVENT_CONFIG["forge_furnace"]["description"],
         [
-            ForgeFireOption("使用常规重铸", "forge_fire"),
-            OverloadForgeOption("过载重铸", "overload_forge"),
-            ForgeBackfireOption("汲取熔炉余温", "forge_backfire"),
-            ShatterForgeOption("强行破坏熔炉", "shatter_forge"),
-            LeaveEventOption("安全离开", "leave_event", "forge_furnace")
+            ForgeFireOption(get_locale_text("i18n_events_c.opt_forge_fire"), "forge_fire"),
+            OverloadForgeOption(get_locale_text("i18n_events_c.opt_forge_overload"), "overload_forge"),
+            ForgeBackfireOption(get_locale_text("i18n_events_c.opt_forge_backfire"), "forge_backfire"),
+            ShatterForgeOption(get_locale_text("i18n_events_c.opt_forge_shatter"), "shatter_forge"),
+            LeaveEventOption(get_locale_text("i18n_events_c.opt_forge_leave"), "leave_event", "forge_furnace")
         ],
         min_stage=2,
         max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
@@ -128,9 +129,9 @@ ALL_EVENTS = [
         "portal_chamber",
         EVENT_CONFIG["portal_chamber"]["description"],
         [
-            ContractPortalOption("献祭最大生命的 10%，获得遗物【门扉碎片】", "contract_portal"),
-            ArcanePortalOption("获得卡牌【万能钥匙】，但卡组中会被塞入一张诅咒卡【空间撕裂】", "arcane_portal"),
-            LeaveEventOption("悄然离开", "leave_event", "portal_chamber")
+            ContractPortalOption(get_locale_text("i18n_events_c.opt_portal_contract"), "contract_portal"),
+            ArcanePortalOption(get_locale_text("i18n_events_c.opt_portal_arcane"), "arcane_portal"),
+            LeaveEventOption(get_locale_text("i18n_events_c.opt_portal_leave"), "leave_event", "portal_chamber")
         ],
         min_stage=27,
         max_stage=30
@@ -139,9 +140,9 @@ ALL_EVENTS = [
         "void_library",
         EVENT_CONFIG["void_library"]["description"],
         [
-            ReadVoidTomeOption("强行阅读虚空秘典", "read_void_tome"),
-            BurnVoidBooksOption("点燃禁忌书架", "burn_void_books"),
-            SacrificeMindOption("献祭部分心智", "sacrifice_mind")
+            ReadVoidTomeOption(get_locale_text("i18n_events_c.opt_library_read"), "read_void_tome"),
+            BurnVoidBooksOption(get_locale_text("i18n_events_c.opt_library_burn"), "burn_void_books"),
+            SacrificeMindOption(get_locale_text("i18n_events_c.opt_library_sacrifice"), "sacrifice_mind")
         ],
         min_stage=6,
         max_stage=16
@@ -150,9 +151,9 @@ ALL_EVENTS = [
         "goblin_blackmarket",
         EVENT_CONFIG["goblin_blackmarket"]["description"],
         [
-            BuyBlackmarketRelicOption("强行买下神秘包裹", "buy_blackmarket_relic"),
-            RobBlackmarketOption("强行抢劫黑市", "rob_blackmarket"),
-            SellFleshOption("出售血肉", "sell_flesh")
+            BuyBlackmarketRelicOption(get_locale_text("i18n_events_c.opt_blackmarket_buy"), "buy_blackmarket_relic"),
+            RobBlackmarketOption(get_locale_text("i18n_events_c.opt_blackmarket_rob"), "rob_blackmarket"),
+            SellFleshOption(get_locale_text("i18n_events_c.opt_blackmarket_sell"), "sell_flesh")
         ],
         min_stage=14,
         max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
@@ -161,9 +162,9 @@ ALL_EVENTS = [
         "time_fountain_trial",
         EVENT_CONFIG["time_fountain_trial"]["description"],
         [
-            DrinkTimeSandOption("吞食时间光沙", "drink_time_sand"),
-            AccelerateCinderOption("加速自身薪火", "accelerate_cinder"),
-            TouchTimeRiftOption("触碰时间裂隙", "touch_time_rift")
+            DrinkTimeSandOption(get_locale_text("i18n_events_c.opt_time_sand"), "drink_time_sand"),
+            AccelerateCinderOption(get_locale_text("i18n_events_c.opt_time_accelerate"), "accelerate_cinder"),
+            TouchTimeRiftOption(get_locale_text("i18n_events_c.opt_time_rift"), "touch_time_rift")
         ],
         min_stage=27,
         max_stage=31
@@ -172,9 +173,9 @@ ALL_EVENTS = [
         "astral_caravan_disaster",
         EVENT_CONFIG["astral_caravan_disaster"]["description"],
         [
-            LootWreckageOption("强行搜刮飞船残骸", "loot_wreckage"),
-            RepairEngineOption("修复动力源并带走", "repair_engine"),
-            BraveStormOption("穿越虚空风暴逃跑", "brave_storm")
+            LootWreckageOption(get_locale_text("i18n_events_c.opt_caravan_loot"), "loot_wreckage"),
+            RepairEngineOption(get_locale_text("i18n_events_c.opt_caravan_repair"), "repair_engine"),
+            BraveStormOption(get_locale_text("i18n_events_c.opt_caravan_storm"), "brave_storm")
         ],
         min_stage=27,
         max_stage=30
@@ -183,9 +184,9 @@ ALL_EVENTS = [
         "nameless_tombstone",
         EVENT_CONFIG["nameless_tombstone"]["description"],
         [
-            DigGraveOption("掘开墓穴底下的陪葬品", "dig_grave"),
-            ReadEpitaphOption("强行解读墓碑碑文", "read_epitaph"),
-            CarveOwnNameOption("在碑文刻上自己的名字避邪", "carve_own_name")
+            DigGraveOption(get_locale_text("i18n_events_c.opt_tomb_dig"), "dig_grave"),
+            ReadEpitaphOption(get_locale_text("i18n_events_c.opt_tomb_read"), "read_epitaph"),
+            CarveOwnNameOption(get_locale_text("i18n_events_c.opt_tomb_carve"), "carve_own_name")
         ],
         min_stage=30,
         max_stage=31

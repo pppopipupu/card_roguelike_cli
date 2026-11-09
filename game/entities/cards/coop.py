@@ -1,6 +1,7 @@
 from typing import Optional
 
 from ...models.state import Card
+from ...data.locale_data import get_locale_text
 from .registry import register_card
 
 
@@ -71,32 +72,33 @@ class CoopTacticalCommand(Card):
     def execute(self, run, target, engine) -> str:
         resolved = _resolve_ally(run, target)
         if not resolved:
-            return "❌ 请指定一名存活队友，例如：使用 1 a2。"
+            return get_locale_text("i18n_cards_neutral.coop.target_required")
         uid, player, grid = resolved
         minion = player.minions.get(grid) if grid else None
+        gain_a = getattr(self, "gain_a", 1)
+        draw_count = getattr(self, "draw_count", 1)
         if self.upgraded:
+            gain_ba = getattr(self, "gain_ba", 2)
             if minion:
-                minion.actions += 1
-                minion.bonus_actions += 2
+                minion.actions += gain_a
+                minion.bonus_actions += gain_ba
             else:
-                player.actions += 1
-                player.bonus_actions += 2
-            _draw_for(engine, run, player, 1)
-            _draw_for(engine, run, run.player, 1)
+                player.actions += gain_a
+                player.bonus_actions += gain_ba
+            _draw_for(engine, run, player, draw_count)
+            _draw_for(engine, run, run.player, draw_count)
             target_name = minion.name if minion else player.name
-            return (
-                f"🎯 【战术指挥+】指挥【{target_name}】获得 1A 与 2BA，"
-                f"你与【{player.name}】各抽 1 张牌。"
-            )
+            return get_locale_text("i18n_cards_neutral.coop.tactical_command.result_upgraded", target_name=target_name, player_name=player.name)
+        gain_ba = getattr(self, "gain_ba", 1)
         if minion:
-            minion.actions += 1
-            minion.bonus_actions += 1
-            _draw_for(engine, run, player, 1)
-            return f"🎯 【战术指挥】指挥随从【{minion.name}】获得 1A 与 1BA，其主人抽取 1 张牌。"
-        player.actions += 1
-        player.bonus_actions += 1
-        _draw_for(engine, run, player, 1)
-        return f"🎯 【战术指挥】指挥【{player.name}】获得 1A 与 1BA，并抽取 1 张牌。"
+            minion.actions += gain_a
+            minion.bonus_actions += gain_ba
+            _draw_for(engine, run, player, draw_count)
+            return get_locale_text("i18n_cards_neutral.coop.tactical_command.result_minion", minion_name=minion.name)
+        player.actions += gain_a
+        player.bonus_actions += gain_ba
+        _draw_for(engine, run, player, draw_count)
+        return get_locale_text("i18n_cards_neutral.coop.tactical_command.result_player", player_name=player.name)
 
 
 @register_card("coop_phalanx_bulwark")
@@ -104,29 +106,29 @@ class CoopPhalanxBulwark(Card):
     def execute(self, run, target, engine) -> str:
         resolved = _resolve_ally(run, target, allow_self=self.upgraded)
         if not resolved:
-            return "❌ 请指定一名存活队友，例如：使用 1 a2。"
+            return get_locale_text("i18n_cards_neutral.coop.target_required")
         uid, player, grid = resolved
         if grid is not None:
-            return "❌ 【方阵掩护】只能指定队友本人，不能指定随从。"
+            return get_locale_text("i18n_cards_neutral.coop.phalanx_bulwark.minion_not_allowed")
         resolver = engine.combat_resolver
+        shield = getattr(self, "shield_amount", 10 if self.upgraded else 8)
+        buff_stacks = getattr(self, "buff_stacks", 1)
         if self.upgraded:
-            shield = 10
             for member in _alive_uids(run):
                 resolver.gain_shield(run, _target_ref(run, member), shield)
         else:
-            shield = 8
             resolver.gain_shield(run, "p0", shield)
             resolver.gain_shield(run, _target_ref(run, uid, grid), shield)
         resolver.add_buff_to(
             player,
             "coop_aegis",
-            "援护",
-            "本回合受到的单体攻击伤害降低 25%，回合开始时移除。",
-            1,
+            get_locale_text("i18n_cards_neutral.neutral.buffs.aegis.name"),
+            get_locale_text("i18n_cards_neutral.neutral.buffs.aegis.desc"),
+            buff_stacks,
         )
         if self.upgraded:
-            return f"🛡️ 【方阵掩护+】你与全体存活队友各获得 {shield} 点护盾，【{player.name}】获得 1 层【援护】。"
-        return f"🛡️ 【方阵掩护】你与【{player.name}】各获得 {shield} 点护盾，【{player.name}】获得 1 层【援护】。"
+            return get_locale_text("i18n_cards_neutral.coop.phalanx_bulwark.result_upgraded", shield=shield, player_name=player.name)
+        return get_locale_text("i18n_cards_neutral.coop.phalanx_bulwark.result", shield=shield, player_name=player.name)
 
 
 @register_card("coop_resonance_hymn")
@@ -134,22 +136,25 @@ class CoopResonanceHymn(Card):
     def execute(self, run, target, engine) -> str:
         resolved = _resolve_ally(run, target, allow_self=self.upgraded)
         if not resolved:
-            return "❌ 请指定一名存活队友，例如：使用 1 a2。"
+            return get_locale_text("i18n_cards_neutral.coop.target_required")
         uid, player, grid = resolved
         resolver = engine.combat_resolver
+        strength_stacks = getattr(self, "strength_gain", 2)
+        charge_stacks = getattr(self, "buff_stacks", 1)
         if self.upgraded:
             members = _alive_uids(run)
             for member in members:
                 ally = run.players[member]
-                resolver.add_buff_to(ally, "strength", "力量", "造成的伤害增加", 2)
-                resolver.add_buff_to(ally, "arcane_charge", "奥术充能", "法术伤害 +3", 1)
-            _draw_for(engine, run, run.player, 1)
-            return f"🎵 【共鸣圣歌+】全体 {len(members)} 名存活队友获得 2 层【力量】与 1 层【奥术充能】，你抽取 1 张牌。"
+                resolver.add_buff_to(ally, "strength", get_locale_text("i18n_cards_neutral.neutral.buffs.strength.name"), get_locale_text("i18n_cards_neutral.neutral.buffs.strength.desc"), strength_stacks)
+                resolver.add_buff_to(ally, "arcane_charge", get_locale_text("i18n_cards_neutral.neutral.buffs.arcane_charge.name"), get_locale_text("i18n_cards_neutral.neutral.buffs.arcane_charge.desc"), charge_stacks)
+            draw_count = getattr(self, "draw_count", 1)
+            _draw_for(engine, run, run.player, draw_count)
+            return get_locale_text("i18n_cards_neutral.coop.resonance_hymn.result_upgraded", count=len(members))
         target_entity = player.minions.get(grid) if grid else player
-        resolver.add_buff_to(target_entity, "strength", "力量", "造成的伤害增加", 2)
-        resolver.add_buff_to(target_entity, "arcane_charge", "奥术充能", "法术伤害 +3", 1)
+        resolver.add_buff_to(target_entity, "strength", get_locale_text("i18n_cards_neutral.neutral.buffs.strength.name"), get_locale_text("i18n_cards_neutral.neutral.buffs.strength.desc"), strength_stacks)
+        resolver.add_buff_to(target_entity, "arcane_charge", get_locale_text("i18n_cards_neutral.neutral.buffs.arcane_charge.name"), get_locale_text("i18n_cards_neutral.neutral.buffs.arcane_charge.desc"), charge_stacks)
         target_name = target_entity.name if target_entity is not player else player.name
-        return f"🎵 【共鸣圣歌】为【{target_name}】付与 2 层【力量】与 1 层【奥术充能】。"
+        return get_locale_text("i18n_cards_neutral.coop.resonance_hymn.result", target_name=target_name)
 
 
 @register_card("coop_soul_link")
@@ -157,36 +162,33 @@ class CoopSoulLink(Card):
     def execute(self, run, target, engine) -> str:
         resolved = _resolve_ally(run, target)
         if not resolved:
-            return "❌ 请指定一名存活队友，例如：使用 1 a2。"
+            return get_locale_text("i18n_cards_neutral.coop.target_required")
         uid, player, grid = resolved
         if grid is not None:
-            return "❌ 【灵魂链接】只能指定队友本人，不能指定随从。"
+            return get_locale_text("i18n_cards_neutral.coop.soul_link.minion_not_allowed")
         if self.upgraded:
-            heal = 9
-            stacks = 3
-            bonus = 6
-            restore = 3
+            heal = getattr(self, "heal_amount", 9)
+            stacks = getattr(self, "buff_stacks", 3)
+            bonus = getattr(self, "bonus_damage", 6)
+            restore = getattr(self, "restore_amount", 3)
         else:
-            heal = 6
-            stacks = 2
-            bonus = 4
-            restore = 2
+            heal = getattr(self, "heal_amount", 6)
+            stacks = getattr(self, "buff_stacks", 2)
+            bonus = getattr(self, "bonus_damage", 4)
+            restore = getattr(self, "restore_amount", 2)
         engine.combat_resolver.heal_target(run, _target_ref(run, uid, grid), heal)
         engine.combat_resolver.add_buff_to(
             player,
             "coop_soul_resonance",
-            "灵魂共鸣",
-            f"下 {stacks} 次打出的攻击或法术牌伤害额外 +{bonus}，每次触发为链接者恢复 {restore} 点生命。",
+            get_locale_text("i18n_cards_neutral.coop.soul_link.buff_name"),
+            get_locale_text("i18n_cards_neutral.coop.soul_link.buff_desc", stacks=stacks, bonus=bonus, restore=restore),
             stacks,
         )
         for buff in player.buffs:
             if buff.id == "coop_soul_resonance":
                 buff.source_uid = _current_uid(run)
                 buff.stacks2 = bonus
-        return (
-            f"🔗 【灵魂链接】为【{player.name}】恢复 {heal} 点生命，"
-            f"并赋予 {stacks} 层【灵魂共鸣】（伤害 +{bonus}，每次触发为你恢复 {restore} 点生命）。"
-        )
+        return get_locale_text("i18n_cards_neutral.coop.soul_link.result", player_name=player.name, heal=heal, stacks=stacks, bonus=bonus, restore=restore)
 
 
 @register_card("coop_unison_crusade")
@@ -194,14 +196,16 @@ class CoopUnisonCrusade(Card):
     def execute(self, run, target, engine) -> str:
         alive = _alive_uids(run)
         count = max(1, len(alive))
-        draw_count = 2 if self.upgraded else 1
+        draw_count = getattr(self, "draw_count", 2 if self.upgraded else 1)
+        gain_a = getattr(self, "gain_a", 1)
+        gain_ba = getattr(self, "gain_ba", 1)
         for member in alive:
             ally = run.players[member]
             _draw_for(engine, run, ally, draw_count)
             if self.upgraded:
-                ally.actions += 1
+                ally.actions += gain_a
             else:
-                ally.bonus_actions += 1
+                ally.bonus_actions += gain_ba
         enemy_target = target
         if not enemy_target or not str(enemy_target).startswith("e"):
             enemy_target = engine._get_first_alive_enemy(run)
@@ -210,24 +214,23 @@ class CoopUnisonCrusade(Card):
         except ValueError:
             index = 0
         if index < 0 or index >= len(run.enemies):
-            return "❌ 敌方目标不存在。"
+            return get_locale_text("i18n_cards_neutral.coop.unison_crusade.no_target")
         target_enemy = run.enemies[index]
         target_name = target_enemy.name
-        damage = count * (12 if self.upgraded else 8)
+        damage_per_member = getattr(self, "base_dmg", 12 if self.upgraded else 8)
+        damage = count * damage_per_member
         engine.combat_resolver.damage_target(run, f"e{index + 1}", damage, source="p0", damage_type="force")
         buff_id = "vulnerable" if self.upgraded else "minor_vulnerable"
-        buff_name = "易伤" if self.upgraded else "轻度易伤"
+        buff_name = get_locale_text("i18n_cards_neutral.neutral.buffs.vulnerable.name") if self.upgraded else get_locale_text("i18n_cards_neutral.neutral.buffs.minor_vulnerable.name")
         if any(enemy is target_enemy for enemy in run.enemies) and target_enemy.hp > 0:
             engine.combat_resolver.add_buff_to(
                 target_enemy,
                 buff_id,
                 buff_name,
-                "受到的所有类型伤害翻倍" if self.upgraded else "受到的所有类型伤害增加 50%",
+                get_locale_text("i18n_cards_neutral.neutral.buffs.vulnerable.desc") if self.upgraded else get_locale_text("i18n_cards_neutral.neutral.buffs.minor_vulnerable.desc"),
                 count,
             )
         action_text = "1A" if self.upgraded else "1BA"
-        return (
-            f"⚔️ 【同心协力{'+' if self.upgraded else ''}】全体 {count} 名存活队友各抽 {draw_count} 张牌并获得 {action_text}，"
-            f"对【{target_name}】造成 {damage} 点力场伤害，"
-            f"并施加 {count} 层【{buff_name}】。"
-        )
+        if self.upgraded:
+            return get_locale_text("i18n_cards_neutral.coop.unison_crusade.result_upgraded", count=count, draw_count=draw_count, action_text=action_text, target_name=target_name, damage=damage, buff_name=buff_name)
+        return get_locale_text("i18n_cards_neutral.coop.unison_crusade.result", count=count, draw_count=draw_count, action_text=action_text, target_name=target_name, damage=damage, buff_name=buff_name)

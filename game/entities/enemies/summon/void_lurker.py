@@ -1,11 +1,12 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
+from ....data.locale_data import get_locale_text
 
 @register_enemy("虚空潜伏者")
 class VoidLurkerTemplate(EnemyTemplate):
     def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
         from ....models.state import EnemyIntentState
-        return [EnemyIntentState(type="void_strike", val=6, desc="虚空打击 (造成 6 点黯蚀伤害)", cost_a=1, cost_ba=0)]
+        return [EnemyIntentState(type="void_strike", val=6, desc=get_locale_text("i18n_enemy_misc.void_lurker.intent_void_strike"), cost_a=1, cost_ba=0)]
 
     def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
         if logs is None:
@@ -27,4 +28,4 @@ class VoidLurkerTemplate(EnemyTemplate):
         engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="necrotic")
         after_logs = run.node_data.get("battle_logs", [])
         dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-        logs.append(f"【{enemy.name}】对玩家进行虚空打击。{dmg_msg}")
+        logs.append(get_locale_text("i18n_enemy_misc.void_lurker.void_strike", name=enemy.name, dmg_msg=dmg_msg))

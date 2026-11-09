@@ -1,0 +1,19 @@
+{
+  "err_no_active_game": "❌ 你当前没有正在进行的游戏。",
+  "err_battle_piles_only": "❌ 只有在战斗中才能查询战斗牌堆。",
+  "err_battle_graveyard_only": "❌ 只有在战斗中才能查询战斗墓地。",
+  "query_no_game_hint": "❌ 你当前没有正在进行的游戏。输入 /rogue start 开始新游戏。\n💡 提示：你可以通过 /rogue i <名称>（如：/rogue i 力量）或 /rogue i buff 来查看相关效果描述。",
+  "query_not_battle_hint": "❌ 只有在战斗中才能查询详细战斗信息。请输入想要查询的随从、遗物、Buff名称。\n💡 提示：你可以通过 /rogue i <名称>（如：/rogue i 力量）或 /rogue i buff 来查看相关效果描述。",
+  "mode_status_on": "开启",
+  "mode_status_off": "关闭",
+  "mode_toggle": "✨ 免前缀肉鸽模式已{status}！此设置仅对你个人生效。",
+  "err_coop_no_solo": "❌ 你当前处于联机队伍或联机牌局中，无法开启单人冒险。组队阶段可输入 team leave，联机牌局可输入 abandon confirm。",
+  "msg_restarted": "已重新开始新的一局游戏。\n",
+  "warn_restart_confirm": "⚠️ 你当前已有一局正在进行中的游戏。若要强制重新开始并覆盖存档，请输入：\n/rogue start confirm",
+  "msg_abandoned_coop": "已放弃当前联机牌局，全队进度已结算。\n{settle_msg}",
+  "msg_abandoned_solo": "已放弃当前局内游戏，当前进度已清空。\n{settle_msg}",
+  "warn_abandon_confirm": "⚠️ 确认放弃当前游戏？放弃后进度将无法恢复。确认请输入：\n/rogue abandon confirm",
+  "err_invalid_option_index": "❌ 无效的选项序号。",
+  "err_no_game_class_hint": "❌ 你当前没有正在进行的游戏。如需切换职业，请使用 /rogue class 命令。\n💡 选择命令 c 仅用于局内选项选择，无法用于选择职业。",
+  "err_deck_no_game": "❌ 你当前没有正在进行的游戏。输入 /rogue start 开始新游戏。"
+}

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from game.data.locale_data import get_locale_text
+
 from .models import ShellContext, ShellResult
 from .registry import command as _command
 
@@ -127,7 +129,7 @@ class ExtraCommands:
 
     @_command("clear", "cls")
     def _cmd_clear(self, context: ShellContext, args: list[str], stdin: str | None) -> ShellResult:
-        return ShellResult("屏幕已清空。\n", 0, True)
+        return ShellResult(get_locale_text("i18n_server_shell.clear_done"), 0, True)
 
     @_command("git")
     def _cmd_git(self, context: ShellContext, args: list[str], stdin: str | None) -> ShellResult:
@@ -166,7 +168,7 @@ class ExtraCommands:
                 '-  "ascension": 6\n'
                 '+  "ascension": 7\n'
             )
-        return ShellResult(f"git: '{command}' 不可用。\n", 1)
+        return ShellResult(get_locale_text("i18n_server_shell.err_git_unavailable", command=command), 1)
 
     @_command("docker")
     def _cmd_docker(self, context: ShellContext, args: list[str], stdin: str | None) -> ShellResult:
@@ -183,7 +185,7 @@ class ExtraCommands:
                 "rogue/cardd      7.9.3     7f3a91c20d6b   184MB\n"
                 "rogue/vault      sealed    91c20d6b7a1f   96MB\n"
             )
-        return ShellResult(f"docker: '{command}' 不可用。\n", 1)
+        return ShellResult(get_locale_text("i18n_server_shell.err_docker_unavailable", command=command), 1)
 
     @_command("systemctl")
     def _cmd_systemctl(self, context: ShellContext, args: list[str], stdin: str | None) -> ShellResult:
@@ -198,7 +200,7 @@ class ExtraCommands:
                 "     Memory: 148.9M\n"
                 "        CPU: 1.220s\n"
             )
-        return ShellResult("systemctl: 权限被拒。\n", 1)
+        return ShellResult(get_locale_text("i18n_server_shell.err_systemctl_denied"), 1)
 
     @_command("journalctl")
     def _cmd_journalctl(self, context: ShellContext, args: list[str], stdin: str | None) -> ShellResult:
@@ -261,7 +263,7 @@ class ExtraCommands:
 
     @_command("exit")
     def _cmd_exit(self, context: ShellContext, args: list[str], stdin: str | None) -> ShellResult:
-        return ShellResult("logout: 当前终端由网页会话托管，无法退出。\n", 1)
+        return ShellResult(get_locale_text("i18n_server_shell.err_logout"), 1)
 
 
 

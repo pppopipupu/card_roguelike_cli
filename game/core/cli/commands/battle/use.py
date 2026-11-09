@@ -1,15 +1,16 @@
 from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
+from .....data.locale_data import get_locale_text
 
 class UseCommand(CommandHandler, names=["使用", "p"], allowed_states=["battle"]):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:
-            yield "❌ 你当前没有正在进行的游戏。"
+            yield get_locale_text("i18n_cli_commands.err_no_active_game")
             return
         if len(parts) < 2:
-            yield "❌ 请提供手牌序号或卡牌名称拼音首字母，例如：/rogue 使用 1 或 /rogue 使用 ssxs"
+            yield get_locale_text("i18n_cli_commands.battle_use_missing_arg")
             return
         full_arg = " ".join(parts[1:])
         is_queue = False

@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("吉斯洋基至高指挥官")
 class GithyankiSupremeCommanderTemplate(EnemyTemplate):
@@ -50,23 +51,24 @@ class GithyankiSupremeCommanderTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="slashing")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(p, "minor_vulnerable_slashing", "轻度挥砍易伤", "受到的挥砍伤害增加 50%", 1)
-            logs.append(f"【{enemy.name}】高高跃起挥舞银光大剑重斩！{dmg_msg} 且你受到了【轻度挥砍易伤】！")
+            engine._add_buff_to(p, "minor_vulnerable_slashing", get_locale_text("i18n_enemy_elite_b.common.slashing_vulnerable_name"), get_locale_text("i18n_enemy_elite_b.common.slashing_vulnerable_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_b.githyanki_supreme_commander.silver_greatsword", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "commanding_presence":
             for other_e in run.enemies:
                 if other_e.hp > 0:
-                    engine._add_buff_to(other_e, "strength", "力量", "造成的伤害增加", 2)
-            logs.append(f"【{enemy.name}】发出威严的指挥咆哮：“星界归一，斩灭诸敌！” 敌方全体获得了 2 层力量！")
+                    engine._add_buff_to(other_e, "strength", get_locale_text("i18n_enemy_elite_b.common.strength_name"), get_locale_text("i18n_enemy_elite_b.common.strength_desc"), 2)
+            logs.append(get_locale_text("i18n_enemy_elite_b.githyanki_supreme_commander.commanding_presence", name=enemy.name))
         elif intent.type == "psionic_barrier":
-            enemy.shield += intent.val
-            engine._add_buff_to(enemy, "strength", "力量", "造成的伤害增加", 1)
-            logs.append(f"【{enemy.name}】爆发灵能屏障，自身获得 {intent.val} 点护盾与 1 层力量！")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            engine._add_buff_to(enemy, "strength", get_locale_text("i18n_enemy_elite_b.common.strength_name"), get_locale_text("i18n_enemy_elite_b.common.strength_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_b.githyanki_supreme_commander.psionic_barrier", name=enemy.name, val=intent.val))
         elif intent.type == "summon_hound":
             from ....models.state import EnemyState, EnemyIntentState
             cfg = ENEMY_CONFIG.get("吉斯洋基至高指挥官", {})
             sh = cfg.get("summon_hound", {})
             new_hound = EnemyState(
-                name=sh.get("name", "星界幼犬"),
+                name=sh.get("name", get_locale_text("i18n_enemy_elite_b.githyanki_supreme_commander.hound_name")),
                 hp=sh.get("hp", 15),
                 max_hp=sh.get("max_hp", 15),
                 shield=0,
@@ -78,10 +80,10 @@ class GithyankiSupremeCommanderTemplate(EnemyTemplate):
                 intents=[EnemyIntentState(
                     type="star_bite",
                     val=sh.get("intent_val", 3),
-                    desc=sh.get("intent_desc", "星光撕咬 (造成 3 力场伤害)"),
+                    desc=sh.get("intent_desc", get_locale_text("i18n_enemy_elite_b.githyanki_supreme_commander.hound_intent_desc")),
                     cost_a=1,
                     cost_ba=0
                 )]
             )
             run.enemies.append(new_hound)
-            logs.append(f"【{enemy.name}】撕裂星界通道，召唤了一只【星界幼犬】加入战斗！")
+            logs.append(get_locale_text("i18n_enemy_elite_b.githyanki_supreme_commander.summon_hound", name=enemy.name))

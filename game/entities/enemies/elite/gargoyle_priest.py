@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("石像鬼祭司")
 class GargoylePriestTemplate(EnemyTemplate):
@@ -26,11 +27,13 @@ class GargoylePriestTemplate(EnemyTemplate):
         if intent.type == "attack":
             self._perform_attack(run, engine, enemy, intent.val, logs)
         elif intent.type == "defend":
-            enemy.shield += intent.val
-            logs.append(f"【{enemy.name}】施展暗影护盾，获得 {intent.val} 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            logs.append(get_locale_text("i18n_enemy_elite_b.gargoyle_priest.shadow_shield", name=enemy.name, val=intent.val))
         elif intent.type == "drain":
             self._perform_attack(run, engine, enemy, intent.val, logs)
             if run.enemies:
                 min_hp_enemy = min(run.enemies, key=lambda e: e.hp)
-                min_hp_enemy.hp = min(min_hp_enemy.max_hp, min_hp_enemy.hp + 4)
-                logs.append(f"【{enemy.name}】汲取生命，为【{min_hp_enemy.name}】恢复了 4 点生命值。")
+                if min_hp_enemy in run.enemies:
+                    engine._heal_target(run, f"e{run.enemies.index(min_hp_enemy)+1}", 4)
+                logs.append(get_locale_text("i18n_enemy_elite_b.gargoyle_priest.drain", name=enemy.name, target=min_hp_enemy.name))

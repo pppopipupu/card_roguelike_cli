@@ -1,12 +1,17 @@
 import random
 from .base import EventOption
+from ...data.event_data import EVENT_CONFIG, EVENT_MIN_HP, EVENT_MIN_MAX_HP
+from ...data.relic_data import RELIC_CONFIG
 from ..relics import get_relic_name
 from ..cards import ALL_CARDS
+from ...core.deck_service import DeckService
+from ...data.locale_data import get_locale_text
 
-class ContractRelicOption(EventOption, action="contract_relic", text="献祭生命换取遗物"):
+class ContractRelicOption(EventOption, action="contract_relic", text=get_locale_text("i18n_events_c.opt_contract_relic")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.hp = max(1, p.hp - 10)
+        cfg = EVENT_CONFIG.get("void_contract", {})
+        p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("relic_hp_cost", 10))
         relics_pool = ["lucky_coin", "red_bottle", "leather_armor", "whetstone", "ready_pack", "arcane_rune", "ancient_eye", "gold_compass", "dragon_blood", "energy_core", "heavy_armor"]
         available_relics = [r for r in relics_pool if r not in p.relics]
         got_relic = ""
@@ -14,17 +19,19 @@ class ContractRelicOption(EventOption, action="contract_relic", text="献祭生�
             got_relic = random.choice(available_relics)
             p.relics.append(got_relic)
             if got_relic == "red_bottle":
-                p.max_hp += 5
-                p.hp += 5
-        relic_msg = f"获得了珍贵的遗物【{get_relic_name(got_relic)}】" if got_relic else "but there are no relics available to take"
+                red_bottle_cfg = RELIC_CONFIG.get("red_bottle", {})
+                p.max_hp += red_bottle_cfg.get("max_hp_gain", 5)
+                p.hp += red_bottle_cfg.get("heal_amount", 5)
+        relic_msg = get_locale_text("i18n_events_c.relic_gained", name=get_relic_name(got_relic)) if got_relic else get_locale_text("i18n_events_c.relic_none")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return f"🖤 契约达成！你感到生命被抽离（失去 10 点生命值），但虚空中降下了一道宝光，你{relic_msg}。"
+        return get_locale_text("i18n_events_c.result_contract_relic", relic_msg=relic_msg)
 
-class ContractLegendOption(EventOption, action="contract_legend", text="以血肉之躯汲取奥法"):
+class ContractLegendOption(EventOption, action="contract_legend", text=get_locale_text("i18n_events_c.opt_contract_legend")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.max_hp = max(5, p.max_hp - 3)
+        cfg = EVENT_CONFIG.get("void_contract", {})
+        p.max_hp = max(EVENT_MIN_MAX_HP, p.max_hp - cfg.get("legend_max_hp_cost", 3))
         p.hp = min(p.hp, p.max_hp)
         stats = None
         if hasattr(engine.save_manager, "load_stats"):
@@ -36,20 +43,21 @@ class ContractLegendOption(EventOption, action="contract_legend", text="以血�
         if not killed_yog:
             legends = [cid for cid in legends if cid != "neutral_button_magic"]
         got_card = random.choice(legends) if legends else "doomsday_judgment"
-        p.deck.append(got_card)
+        DeckService.add_card_to_deck(p, got_card)
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return f"🖤 契约达成！你的灵魂本源受到了虚空的侵蚀（最大生命值上限减少 3 点），同时一张强大的传奇卡牌【{ALL_CARDS[got_card].name}】悄然融入了你的卡组。"
+        return get_locale_text("i18n_events_c.result_contract_legend", card_name=ALL_CARDS[got_card].name)
 
-class AbsorbVoidOption(EventOption, action="absorb_void", text="将虚空吞噬"):
+class AbsorbVoidOption(EventOption, action="absorb_void", text=get_locale_text("i18n_events_c.opt_absorb_void")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.gold += 35
-        p.deck.append("curse_agony")
+        cfg = EVENT_CONFIG.get("void_contract", {})
+        p.gold += cfg.get("absorb_gold", 35)
+        DeckService.add_card_to_deck(p, "curse_agony")
         heal_msg = ""
         if "wither_seed" not in p.relics:
-            p.hp = min(p.max_hp, p.hp + 6)
-            heal_msg = "，但其精纯的暗影魔力却在你的血管中奔流，反而治愈了你身上的伤势（生命值回复了 6 点）"
+            p.hp = min(p.max_hp, p.hp + cfg.get("absorb_heal", 6))
+            heal_msg = get_locale_text("i18n_events_c.absorb_void_heal")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return f"🌌 你张开双臂疯狂吸收周围的虚空能量，虚空结晶化为了 35 金币落入你的行囊。虽然狂暴的虚空能量给你的心灵留下了难以磨灭的【苦恼】（1张【苦恼】卡牌已加入卡组）{heal_msg}。"
+        return get_locale_text("i18n_events_c.result_absorb_void", heal_msg=heal_msg)

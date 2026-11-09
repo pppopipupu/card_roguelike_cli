@@ -1,0 +1,52 @@
+{
+  "deep_one": {
+    "tsunami_extra": "，且由于你拥有护盾，额外承受了 3 点真实伤害（{dmg}）",
+    "defend": "【{name}】凝聚潮汐之盾，获得 {val} 点护盾。"
+  },
+  "ghoul": {
+    "rot_bite_suffix": "，并对你施加了 1 层【轻度易伤】",
+    "buff_minor_vulnerable": "轻度易伤",
+    "buff_minor_vulnerable_desc": "受到的所有类型伤害增加 50%"
+  },
+  "nightgaunt": {
+    "tickle_claw": "【{name}】使用搔痒爪。{dmg}",
+    "void_glide": "【{name}】施展虚空滑翔，获得 {val} 点护盾与【星界加速】！",
+    "buff_astral_speed": "星界加速",
+    "buff_astral_speed_desc": "下回合开始时，获得 1 个额外动作点"
+  },
+  "shantak": {
+    "wind_buffet": "【{name}】使用狂风拍击。{dmg}",
+    "shriek": "【{name}】发出凄厉尖啸。{dmg}{discard}。",
+    "shriek_discard": "，并使玩家在下一回合开始时将被迫随机丢弃 1 张手牌",
+    "buff_discard_next_turn": "下回合弃牌",
+    "buff_discard_next_turn_desc": "在下一回合开始时，你将随机丢弃等同于此状态层数的手牌"
+  },
+  "shambler": {
+    "phase_strike": "【{name}】使用相位打击。{dmg}",
+    "dimensional_shift": "【{name}】进行维度偏移，获得 {val} 点护盾。"
+  },
+  "cultist_kaka": {
+    "ritual_start": "【{name}】大喊：“咔咔！”，开始施展神秘仪式！",
+    "buff_ritual": "仪式",
+    "buff_ritual_desc": "每回合开始时，获得等同于此状态层数的力量"
+  },
+  "demon_servant": {
+    "evil_gaze": "【{name}】施展邪恶凝视，获得 {val} 点护盾。"
+  },
+  "githyanki_pirate": {
+    "silver_sword": "【{name}】使出银剑横扫劈向你。{dmg}{extra}",
+    "silver_sword_extra": " 银剑产生共鸣，对有盾的目标额外造成 4 点力场伤害！{dmg}",
+    "astral_step": "【{name}】施展星界跃迁进行闪避与充能，获得 {val} 点护盾与【星界加速】！",
+    "parry": "【{name}】做出招架姿态，获得 {val} 点护盾。",
+    "buff_astral_speed": "星界加速",
+    "buff_astral_speed_desc": "下回合开始时，获得 1 个额外动作点"
+  },
+  "void_wanderer": {
+    "void_bite": "【{name}】进行虚空噬咬。{dmg}",
+    "void_erosion": "【{name}】施展虚空侵蚀，使玩家受到 2 级虚空虚弱！",
+    "buff_minor_vulnerable_necrotic": "轻度黯蚀易伤",
+    "buff_minor_vulnerable_necrotic_desc": "受到的黯蚀伤害增加 50%",
+    "buff_void_weakness": "虚空虚弱",
+    "buff_void_weakness_desc": "造成的法术伤害减少 3 点，回合结束时层数减少 1"
+  }
+}

@@ -31,6 +31,9 @@ NEUTRAL_CARD_SPELLS = {
         "cost_ba": 0,
         "desc": "获得 2BA，抽 1 张牌。",
         "rarity": "common",
+        "bonus_action_gain": 2,
+        "gain_ba": 2,
+        "draw_count": 1,
         "feedback": "获得了 2BA 并抽了 1 张牌。"
     },
     "adrenaline": {
@@ -41,6 +44,10 @@ NEUTRAL_CARD_SPELLS = {
         "cost_ba": 0,
         "desc": "获得 1A，失去 2 点生命。",
         "rarity": "rare",
+        "action_gain": 1,
+        "gain_a": 1,
+        "self_damage": 2,
+        "self_hp_cost": 2,
         "feedback": "获得了 1A，失去了 2 点生命值。"
     },
     "tactical_focus": {
@@ -51,6 +58,7 @@ NEUTRAL_CARD_SPELLS = {
         "cost_ba": 0,
         "desc": "免费抽 3 张牌，但本回合无法再抽牌。",
         "rarity": "epic",
+        "draw_count": 3,
         "feedback": "使用了【{name}】，免费抽了 {draw_count} 张牌，但本回合无法再抽牌。"
     },
     "iron_will": {
@@ -61,6 +69,8 @@ NEUTRAL_CARD_SPELLS = {
         "cost_ba": 0,
         "desc": "你最大生命值在本次战斗中 +10 并回复 10 生命。",
         "rarity": "epic",
+        "heal_amount": 10,
+        "buff_stacks": 1,
         "feedback": "使用了【钢铁意志】，获得了【钢铁意志】buff（最大生命上限增加 10 并回复 10 生命，可叠加）。"
     },
     "quick_strike": {
@@ -84,6 +94,9 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "获得 1BA，抽 1 张牌。消耗。",
         "rarity": "rare",
         "exhaust": True,
+        "bonus_action_gain": 1,
+        "gain_ba": 1,
+        "draw_count": 1,
         "feedback": "饮用了【魔力药水】，获得了 1BA 并抽了 1 张牌。"
     },
     "agile_strike": {
@@ -109,6 +122,8 @@ NEUTRAL_CARD_SPELLS = {
         "rarity": "rare",
         "base_dmg": 6,
         "fleeting": True,
+        "draw_count": 2,
+        "discard_count": 1,
         "damage_type": "force",
         "feedback": "对【{target}】使用【即逝星火】。"
     },
@@ -153,6 +168,8 @@ NEUTRAL_CARD_SPELLS = {
         "cost_ba": 1,
         "desc": "消耗所有手牌中的非随从牌，每消耗一个获得6点护盾。",
         "rarity": "rare",
+        "shield_amount": 6,
+        "threshold": 3,
         "feedback": "使用了【重振精神】，消耗了 {exhaust_count} 张非随从牌，获得了 {shield_amount} 点护盾。"
     },
     "key_resonance": {
@@ -163,6 +180,9 @@ NEUTRAL_CARD_SPELLS = {
         "cost_ba": 0,
         "desc": "进行X次死者召回：10。若拥有门之钥匙，每消耗1A额外对所有敌人造成6点力场伤害。",
         "rarity": "rare",
+        "base_dmg": 6,
+        "count": 10,
+        "hit_count": 10,
         "feedback": "产生了秘钥共鸣，进行了 {recall_count} 次死者召回，并造成了 {damage_amount} 点力场伤害。"
     },
     "master_key": {
@@ -173,6 +193,7 @@ NEUTRAL_CARD_SPELLS = {
         "cost_ba": 0,
         "desc": "使你战场中所有护符的吟唱时间减少 2。",
         "rarity": "rare",
+        "reduction": 2,
         "feedback": "使用了万能钥匙，所有护符的吟唱时间减少 {reduction}。"
     },
     "ancient_wisdom": {
@@ -183,6 +204,8 @@ NEUTRAL_CARD_SPELLS = {
         "cost_ba": -1,
         "desc": "立即获得Y*3点护盾，且在本场战斗中获得X层古老智慧Buff：你每打出一张中立卡牌时，获得2点护盾。",
         "rarity": "rare",
+        "coef": 3,
+        "shield_amount": 2,
         "feedback": "获得了 {shield} 点护盾与 {stacks} 层古老智慧形态。"
     },
     "curse_dimensional_tear": {
@@ -194,6 +217,7 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "不能被打出。回合结束时，如果仍在手牌中，则对你造成 3 点真实伤害并消耗自身。",
         "rarity": "curse",
         "unplayable": True,
+        "self_hp_cost": 3,
         "feedback": "手牌中的空间撕裂发生坍缩，对你造成 3 点真实伤害并自身消耗。"
     },
     "break_limits": {
@@ -205,6 +229,9 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "使你的所有层数不高于 2000 的正面 Buff 计数器翻倍，并获得 1A。消耗。",
         "rarity": "legendary",
         "exhaust": True,
+        "threshold": 2000,
+        "action_gain": 1,
+        "gain_a": 1,
         "feedback": "突破了极限！使层数不高于 2000 的正面 Buff 层数翻倍，并获得了 1A。"
     },
     "abyss_collapse": {
@@ -218,6 +245,7 @@ NEUTRAL_CARD_SPELLS = {
         "exhaust": True,
         "base_dmg": 24,
         "damage_type": "necrotic",
+        "stun_multiplier": 2,
         "feedback": "释放了深渊崩塌！"
     },
     "demon_contract": {
@@ -229,6 +257,10 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "获得 2BA 动作点与抽 3 张卡，且本回合内你打出的下一张非恶魔契约法术牌额外打出 1 次。消耗。",
         "rarity": "legendary",
         "exhaust": True,
+        "bonus_action_gain": 2,
+        "gain_ba": 2,
+        "draw_count": 3,
+        "buff_stacks": 1,
         "feedback": "签结了恶魔契约！"
     },
     "frost_nova": {
@@ -242,6 +274,9 @@ NEUTRAL_CARD_SPELLS = {
         "exhaust": True,
         "base_dmg": 14,
         "damage_type": "cold",
+        "buff_stacks": 2,
+        "stun_turns": 1,
+        "buff_turns": 1,
         "feedback": "释放了霜冻新星！"
     },
     "glacier_fortress": {
@@ -253,6 +288,8 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "获得 20 点护盾，且在本场战斗中，你在回合结束时获得的护盾量增加 4 点。消耗。",
         "rarity": "legendary",
         "exhaust": True,
+        "shield_amount": 20,
+        "buff_stacks": 1,
         "feedback": "筑起了冰川壁垒！"
     },
     "abyss_erosion": {
@@ -266,6 +303,7 @@ NEUTRAL_CARD_SPELLS = {
         "exhaust": True,
         "base_dmg": 10,
         "damage_type": "necrotic",
+        "buff_stacks": 3,
         "feedback": "释放了深渊侵蚀！"
     },
     "glacier_tempest": {
@@ -279,6 +317,7 @@ NEUTRAL_CARD_SPELLS = {
         "exhaust": True,
         "base_dmg": 12,
         "damage_type": "cold",
+        "shield_ratio": 0.5,
         "feedback": "释放了极寒风暴！"
     },
     "curse_wound": {
@@ -300,6 +339,7 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "随机给予手牌中的一张卡牌重放 3。消耗。",
         "rarity": "legendary",
         "exhaust": True,
+        "replay_amount": 3,
         "feedback": "使用了【未掘宝石】。"
     },
     "neutral_power_word_kill": {
@@ -311,6 +351,7 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "若目标生命低于 60 点则直接消灭；否则无效果。消耗。",
         "rarity": "epic",
         "exhaust": True,
+        "threshold": 60,
         "feedback": "你指着目标吐露死亡真言：【律令死亡】！"
     },
     "neutral_power_word_stun": {
@@ -321,6 +362,8 @@ NEUTRAL_CARD_SPELLS = {
         "cost_ba": 1,
         "desc": "若目标生命低于 100 点，使其【单体晕眩】1 回合；否则无效果。",
         "rarity": "rare",
+        "threshold": 100,
+        "buff_turns": 1,
         "feedback": "你吐露震慑真言：【律令震慑】！"
     },
     "neutral_power_word_pain": {
@@ -331,6 +374,9 @@ NEUTRAL_CARD_SPELLS = {
         "cost_ba": 0,
         "desc": "若目标生命低于 120 点，使其获得 3 层【流血】与 2 层【虚弱】；否则无效果。",
         "rarity": "common",
+        "threshold": 120,
+        "buff_stacks": 3,
+        "buff_turns": 2,
         "feedback": "你吐露痛苦真言：【律令痛苦】！"
     },
     "neutral_plane_shift": {
@@ -342,6 +388,8 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "传送脱逃离开遭遇战，无任何战利品金币奖励。20层和25层BOSS战禁用。即逝。",
         "rarity": "mythic",
         "fleeting": True,
+        "forbidden_stages": (25, 32),
+        "gp_reward": 0,
         "feedback": "🔮 你咏唱了【异界传送】，张开空间裂缝使自己瞬间传送逃离战场！"
     },
     "neutral_emperor_eye": {
@@ -377,6 +425,8 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "获得 6 点护盾，抽 1 张牌。消耗。",
         "rarity": "rare",
         "exhaust": True,
+        "shield_amount": 6,
+        "draw_count": 1,
         "feedback": "唱响【英雄赞歌】！获得 6 点护盾并抽了一张牌！"
     },
     "curse_indigestion": {
@@ -388,6 +438,7 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "打出时失去 1BA。消耗。",
         "rarity": "curse",
         "exhaust": True,
+        "gain_ba": -1,
         "feedback": "你感觉胃部翻江倒海，消化不良！"
     },
     "curse_mana_backflow": {
@@ -399,6 +450,7 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "打出时流失 8 点生命。消耗。",
         "rarity": "curse",
         "exhaust": True,
+        "self_hp_cost": 8,
         "feedback": "狂暴的魔力在经络中逆流！"
     },
     "elder_guidance": {
@@ -410,6 +462,7 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "移除你所有的负面状态，并抽 3 张卡牌。消耗。",
         "rarity": "mythic",
         "exhaust": True,
+        "draw_count": 3,
         "feedback": "使用了【长老的先古指引】！"
     },
     "ironclad_rampart": {
@@ -423,6 +476,7 @@ NEUTRAL_CARD_SPELLS = {
         "exhaust": True,
         "base_dmg": 15,
         "damage_type": "bludgeoning",
+        "shield_amount": 30,
         "feedback": "使用了【艾恩克拉德的壁垒】！"
     },
     "jack_brew": {
@@ -435,6 +489,10 @@ NEUTRAL_CARD_SPELLS = {
         "rarity": "mythic",
         "exhaust": True,
         "heal_amount": 15,
+        "action_gain": 1,
+        "gain_a": 1,
+        "bonus_action_gain": 1,
+        "gain_ba": 1,
         "feedback": "使用了【杰克的烈性黑啤】！"
     },
     "merchant_collection": {
@@ -446,6 +504,8 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "随机将 2 张升级过的职业传奇或神话卡牌加入手牌，本回合打出它们消耗为 0。消耗。",
         "rarity": "mythic",
         "exhaust": True,
+        "count": 2,
+        "hit_count": 2,
         "feedback": "使用了【商人的神话藏品】！"
     },
     "bard_epic": {
@@ -457,6 +517,9 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "使你获得 2 层【力量】和 1 层【双发】。消耗。",
         "rarity": "mythic",
         "exhaust": True,
+        "strength_gain": 2,
+        "buff_stacks": 2,
+        "replay_amount": 1,
         "feedback": "使用了【诗人的绝响之歌】！"
     },
     "neutral_omega": {
@@ -480,6 +543,7 @@ NEUTRAL_CARD_SPELLS = {
         "rarity": "curse",
         "retain": True,
         "exhaust": True,
+        "draw_count": -3,
         "feedback": "你被打出的【无形低语】所蛊惑，思维产生了剧烈动摇！"
     },
     "neutral_button_magic": {
@@ -491,6 +555,7 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "随机触发 X 个按钮效果（上限 10 个）。即逝。",
         "rarity": "mythic",
         "fleeting": True,
+        "max_count": 10,
         "feedback": "使用了【按钮术】，按下了命运的按钮！"
     }
 }

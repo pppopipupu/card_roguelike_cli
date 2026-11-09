@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("星界猎犬")
 class AstralHoundTemplate(EnemyTemplate):
@@ -42,16 +43,17 @@ class AstralHoundTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="force")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            logs.append(f"【{enemy.name}】进行星光撕咬。{dmg_msg}")
+            logs.append(get_locale_text("i18n_enemy_elite_a.astral_hound.star_bite", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "phase_shift":
-            enemy.shield += 12
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", 12)
             to_remove = next((b for b in enemy.buffs if b.id == "stun"), None)
             if to_remove:
                 enemy.buffs.remove(to_remove)
                 engine._sync_enemy_intents(enemy)
-                logs.append(f"【{enemy.name}】施展相位转移，获得 12 护盾并清除了眩晕！")
+                logs.append(get_locale_text("i18n_enemy_elite_a.astral_hound.phase_shift_stun", name=enemy.name))
             else:
-                logs.append(f"【{enemy.name}】施展相位转移，获得 12 护盾。")
+                logs.append(get_locale_text("i18n_enemy_elite_a.astral_hound.phase_shift", name=enemy.name))
         elif intent.type == "star_fury":
             run.node_data["draw_penalty_next_turn"] = run.node_data.get("draw_penalty_next_turn", 0) + 1
-            logs.append(f"【{enemy.name}】释放星光狂暴，使玩家下回合少抽 1 张牌。")
+            logs.append(get_locale_text("i18n_enemy_elite_a.astral_hound.star_fury", name=enemy.name))

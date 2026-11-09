@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("亡灵巫师")
 class NecromancerTemplate(EnemyTemplate):
@@ -34,12 +35,12 @@ class NecromancerTemplate(EnemyTemplate):
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="necrotic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(run.player, "minor_vulnerable_necrotic", "轻度黯蚀易伤", "受到的黯蚀伤害增加 50%", 1)
-            logs.append(f"【{enemy.name}】射出暗影箭。{dmg_msg}，并对玩家施加了 1 层【轻度黯蚀易伤】。")
+            engine._add_buff_to(run.player, "minor_vulnerable_necrotic", get_locale_text("i18n_enemy_elite_c.necrotic_vulnerable_name"), get_locale_text("i18n_enemy_elite_c.necrotic_vulnerable_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_c.necromancer_shadow_bolt_log", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "raise_dead":
             from ....models.state import EnemyState, EnemyIntentState
             new_skeleton = EnemyState(
-                name="骷髅兵",
+                name=get_locale_text("i18n_enemy_elite_c.skeleton_name"),
                 hp=6,
                 max_hp=6,
                 shield=0,
@@ -51,17 +52,18 @@ class NecromancerTemplate(EnemyTemplate):
                 intents=[EnemyIntentState(
                     type="attack",
                     val=2,
-                    desc="攻击 (造成 2 点钝击伤害)",
+                    desc=get_locale_text("i18n_enemy_elite_c.skeleton_attack_desc"),
                     cost_a=1,
                     cost_ba=0
                 )]
             )
             run.enemies.append(new_skeleton)
-            logs.append(f"【{enemy.name}】吟唱复苏法术，召唤了一只【骷髅兵】加入战场。")
+            logs.append(get_locale_text("i18n_enemy_elite_c.necromancer_raise_dead_log", name=enemy.name))
         elif intent.type == "soul_drain":
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="necrotic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            enemy.hp = min(enemy.max_hp, enemy.hp + 4)
-            logs.append(f"【{enemy.name}】吸取玩家灵魂，恢复了 4 点生命值。{dmg_msg}")
+            if enemy in run.enemies:
+                engine._heal_target(run, f"e{run.enemies.index(enemy)+1}", 4)
+            logs.append(get_locale_text("i18n_enemy_elite_c.necromancer_soul_drain_log", name=enemy.name, dmg_msg=dmg_msg))

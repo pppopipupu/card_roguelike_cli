@@ -1,8 +1,9 @@
+from ..data.locale_data import t
 from ..models.state import GameRun
 
 
 def render_party_status(run: GameRun) -> str:
-    lines = ["👥 队伍状态："]
+    lines = [t("renderer_town.party_title")]
     reason = getattr(run, "coop_end_reason", "")
     if reason:
         lines.append(f"⏳ {reason}")
@@ -11,13 +12,20 @@ def render_party_status(run: GameRun) -> str:
         member = (getattr(run, "players", {}) or {}).get(uid)
         if member is None:
             continue
-        marker = "（你）" if uid == run.user_id else ""
+        marker = t("renderer_town.party_you_marker") if uid == run.user_id else ""
         if member.downed or member.hp <= 0:
-            hp_text = "倒地"
+            hp_text = t("renderer_town.party_downed")
         else:
             hp_text = f"{member.hp}/{member.max_hp}"
-        grid_text = f" 场上 a{idx}"
-        lines.append(f" a{idx}. {member.name}{marker}：❤️ {hp_text}{grid_text}")
+        grid_text = t("renderer_town.party_grid", idx=idx)
+        lines.append(t(
+            "renderer_town.party_member_line",
+            idx=idx,
+            name=member.name,
+            marker=marker,
+            hp=hp_text,
+            grid=grid_text
+        ))
     return "\n".join(lines)
 
 
@@ -25,5 +33,5 @@ def render_waiting(run: GameRun) -> str:
     return (
         "━━━━━━━━━━━━━━━━━━━━\n"
         f"{render_party_status(run)}\n\n"
-        "⏳ 你已结束本节点行动，正在等待其他队友完成。"
+        + t("renderer_town.party_waiting")
     )

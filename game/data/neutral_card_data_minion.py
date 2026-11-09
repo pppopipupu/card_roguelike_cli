@@ -22,6 +22,7 @@ NEUTRAL_CARD_MINIONS = {
         "rarity": "rare",
         "minion_hp": 15,
         "minion_atk": 1,
+        "shield_amount": 2,
         "feedback_success": "在格子 [{grid}] 召唤了【{name}】。",
         "feedback_fail": "战场已满，召唤失败。"
     },
@@ -48,6 +49,9 @@ NEUTRAL_CARD_MINIONS = {
         "rarity": "rare",
         "minion_hp": 12,
         "minion_atk": 2,
+        "stun_turns": 1,
+        "buff_turns": 1,
+        "base_dmg": 6,
         "feedback_success": "在格子 [{grid}] 召唤了【{name}】并使【{target}】眩晕。"
     },
     "elf_archer_xiaomei": {
@@ -60,6 +64,8 @@ NEUTRAL_CARD_MINIONS = {
         "rarity": "rare",
         "minion_hp": 4,
         "minion_atk": 1,
+        "base_dmg": 16,
+        "hit_count": 3,
         "instant_summon": True,
         "instant_summon_thresholds": [4, 6, 8],
         "instant_summon_piles": ["draw", "discard"],

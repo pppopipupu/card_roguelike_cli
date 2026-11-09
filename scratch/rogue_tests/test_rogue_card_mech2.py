@@ -778,14 +778,14 @@ class TestRogueCardMech2(unittest.TestCase):
         
         enemy.hp = 200
         enemy.buffs = []
-        player.action_a = 3
+        player.actions = 3
         card_time = CardState("wizard_time_ravage", upgraded=True)
         time_obj = ALL_CARDS.get(card_time)
         time_obj.execute(run, "e1", engine)
         self.assertEqual(enemy.hp, 175)
         self.assertEqual(next(b for b in enemy.buffs if b.id == "weak").stacks, 3)
         self.assertEqual(next(b for b in enemy.buffs if b.id == "vulnerable").stacks, 3)
-        self.assertEqual(player.action_a, 4)
+        self.assertEqual(player.actions, 4)
         
         enemy.hp = 120
         enemy.buffs = []
@@ -1077,4 +1077,81 @@ class TestRogueCardMech2(unittest.TestCase):
         from game.renderer.map import render_map_select
         map_text = render_map_select(run)
         self.assertIn("💡 提示：输入 /rogue help 或 help 可查看指令用法帮助。", map_text)
+
+    def test_unsaved_continuous_card_effects_keep_card_state(self):
+        from game.models.state import CardState
+        class DummySaveManager:
+            def save_save(self, user_id, run):
+                pass
+            def delete_save(self, user_id):
+                pass
+            def load_stats(self, user_id):
+                class DummyStats:
+                    selected_class = "战士"
+                    killed_icerainboww = False
+                return DummyStats()
+            def save_stats(self, user_id, stats):
+                pass
+            def record_stage_passed(self, user_id):
+                pass
+        engine = BattleEngine(DummySaveManager())
+        player = PlayerState(
+            hp=50,
+            max_hp=50,
+            shield=0,
+            gold=0,
+            stage=1,
+            deck=[CardState("power_through"), CardState("warrior_anger"), CardState("commander_valiant_herald")],
+            hand=[CardState("power_through"), CardState("warrior_anger"), CardState("commander_valiant_herald")],
+            draw_pile=[CardState("officer_recruit_vanguard")],
+            discard_pile=[],
+            exhaust_pile=[],
+            actions=20,
+            bonus_actions=20
+        )
+        enemy = EnemyState(
+            name="地精",
+            hp=9999,
+            max_hp=9999,
+            shield=0,
+            actions=0,
+            bonus_actions=0,
+            max_actions=0,
+            max_bonus_actions=0
+        )
+        run = GameRun(
+            user_id="continuous_card_state",
+            node_type="battle",
+            player=player,
+            enemies=[enemy],
+            node_data={"cards_played_this_turn": 0, "rally_count": 6}
+        )
+
+        result = engine.play_card(run, 1)
+        self.assertIn("硬撑", result)
+        self.assertEqual(sum(1 for card in player.hand if isinstance(card, CardState) and card.id == "curse_wound"), 2)
+        self.assertTrue(all(isinstance(card, CardState) for card in player.hand))
+
+        result = engine.play_card(run, 1)
+        self.assertIn("愤怒", result)
+        self.assertTrue(any(isinstance(card, CardState) and card.id == "warrior_anger" for card in player.discard_pile))
+        self.assertTrue(all(isinstance(card, CardState) for card in player.hand + player.discard_pile))
+
+        result = engine.play_card(run, 1)
+        self.assertIn("传令官", result)
+        upgraded = [
+            card
+            for card in player.hand
+            if isinstance(card, CardState) and card.id == "officer_recruit_vanguard" and card.upgraded
+        ]
+        self.assertEqual(len(upgraded), 1)
+        self.assertTrue(all(isinstance(card, CardState) for card in player.hand))
+
+        hand_index = player.hand.index(upgraded[0]) + 1
+        result = engine.play_card(run, hand_index)
+        self.assertNotIn("❌", result)
+        engine.end_turn(run)
+
+        for pile in (player.hand, player.deck, player.draw_pile, player.discard_pile, player.exhaust_pile):
+            self.assertTrue(all(isinstance(card, CardState) for card in pile))
 

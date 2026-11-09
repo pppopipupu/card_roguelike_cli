@@ -8,6 +8,7 @@ from ..data.gem_data import GEM_CONFIG
 from ..data.amulet_data import AMULET_CONFIG
 from ..data.potion_data import POTION_CONFIG
 from .menu import get_card_cost_str
+from ..data.locale_data import get_locale_text
 
 def render_query_info(query_str: str, user_id: str | None = None) -> str:
     from ..models.manager import SaveManager
@@ -22,16 +23,16 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
     
     query_str_lower = query_str.strip().lower()
     if not query_str_lower:
-        return "❌ 请输入具体的查询内容。"
+        return get_locale_text("renderer_menu.query_empty")
         
     rarity_map = {
-        "common": "普通",
-        "rare": "稀有",
-        "epic": "珍奇",
-        "legendary": "传奇",
-        "mythic": "神话",
-        "artifact": "神器",
-        "curse": "诅咒"
+        "common": get_locale_text("renderer_menu.rarity_common"),
+        "rare": get_locale_text("renderer_menu.rarity_rare"),
+        "epic": get_locale_text("renderer_menu.rarity_epic"),
+        "legendary": get_locale_text("renderer_menu.rarity_legendary"),
+        "mythic": get_locale_text("renderer_menu.rarity_mythic"),
+        "artifact": get_locale_text("renderer_menu.rarity_artifact"),
+        "curse": get_locale_text("renderer_menu.rarity_curse")
     }
     
     def get_rarity_key(val: str) -> str | None:
@@ -52,7 +53,7 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
         tier_str = m.group(1).strip()
         tier_filter = get_rarity_key(tier_str)
         if not tier_filter:
-            return "❌ 无效的稀有度等级。可选：普通/common, 稀有/rare, 珍奇/epic, 传奇/legendary, 神话/mythic, 神器/artifact, 诅咒/curse"
+            return get_locale_text("renderer_menu.query_invalid_tier")
         q_search = query_str_lower[:m.start()].strip()
     else:
         r_key = get_rarity_key(query_str_lower)
@@ -60,17 +61,17 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             tier_filter = r_key
             q_search = ""
 
-    lines = ["━━━━━━━━━━━━━━━━━━━━", f"🔍 查询结果：{query_str}", ""]
+    lines = [get_locale_text("renderer_menu.separator"), get_locale_text("renderer_menu.query_result", query=query_str), ""]
     found = False
     
     if not tier_filter and q_search in ("potion", "potions", "药水", "药水一览"):
         found = True
-        lines.append("🧪 【全体药水一览】")
+        lines.append(get_locale_text("renderer_menu.potions_all_title"))
         for pid, cfg in POTION_CONFIG.items():
             pname = cfg.get("name", pid)
             rarity = cfg.get("rarity", "common")
             prarity_ch = rarity_map.get(rarity, rarity)
-            lines.append(f"  • 【{pname}】 ({prarity_ch}) - 饮用：{cfg.get('drink_desc', '')} | 投掷：{cfg.get('throw_desc', '')}")
+            lines.append(get_locale_text("renderer_menu.potion_all_line", name=pname, rarity=prarity_ch, drink=cfg.get('drink_desc', ''), throw=cfg.get('throw_desc', '')))
         lines.append("")
 
     for pid, cfg in POTION_CONFIG.items():
@@ -82,39 +83,39 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             pname = cfg.get("name", pid)
             rarity = cfg.get("rarity", "common")
             prarity_ch = rarity_map.get(rarity, rarity)
-            lines.append(f"🧪 药水：{pname} (ID: {pid}) ({prarity_ch})")
-            lines.append(f"  饮用效果：{cfg.get('drink_desc', '')}")
-            lines.append(f"  投掷效果：{cfg.get('throw_desc', '')}")
+            lines.append(get_locale_text("renderer_menu.potion_title", name=pname, id=pid, rarity=prarity_ch))
+            lines.append(get_locale_text("renderer_menu.potion_drink_line", drink=cfg.get('drink_desc', '')))
+            lines.append(get_locale_text("renderer_menu.potion_throw_line", throw=cfg.get('throw_desc', '')))
             lines.append("")
             
     if not tier_filter and q_search in ("buff", "buffs", "状态", "战斗效果", "效果"):
         found = True
-        lines.append("✨ 【全体战斗效果 (Buff) 一览】")
+        lines.append(get_locale_text("renderer_menu.buffs_all_title"))
         for bid, cfg in BUFF_CONFIG.items():
             bname = cfg.get("name", bid)
             desc = cfg.get("desc", "")
-            lines.append(f"  • 【{bname}】: {desc}")
+            lines.append(get_locale_text("renderer_menu.buff_all_line", name=bname, desc=desc))
         lines.append("")
         
     if not tier_filter and q_search in ("keyword", "keywords", "词条", "机制"):
         found = True
-        lines.append("🧩 【全体卡牌词条与机制一览】")
+        lines.append(get_locale_text("renderer_menu.keywords_all_title"))
         for kid, cfg in KEYWORD_CONFIG.items():
             kname = cfg.get("name", kid)
             desc = cfg.get("desc", "")
-            lines.append(f"  • 【{kname}】: {desc}")
+            lines.append(get_locale_text("renderer_menu.keywords_all_line", name=kname, desc=desc))
         lines.append("")
 
     if not tier_filter and q_search in ("gem", "gems", "宝石", "宝石一览"):
         found = True
-        lines.append("💎 【全体镶嵌宝石一览】")
+        lines.append(get_locale_text("renderer_menu.gems_all_title"))
         for gid, cfg in GEM_CONFIG.items():
             gname = cfg.get("name", gid)
             rarity = cfg.get("rarity", "common")
             grarity_ch = rarity_map.get(rarity, rarity)
             desc = cfg.get("desc", "")
             price = cfg.get("price", 0)
-            lines.append(f"  • 【{gname}】 ({grarity_ch}) - 效果：{desc} | 价格：{price} GP")
+            lines.append(get_locale_text("renderer_menu.gem_all_line", name=gname, rarity=grarity_ch, desc=desc, price=price))
         lines.append("")
         
     for rid, cfg in RELIC_CONFIG.items():
@@ -128,9 +129,9 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             rname_rarity = rarity_map.get(rarity, rarity)
             desc = cfg.get("desc", "")
             price = cfg.get("price", 0)
-            lines.append(f"🎒 遗物：{rname} (ID: {rid}) ({rname_rarity})")
-            lines.append(f"效果：{desc}")
-            lines.append(f"售价：{price} 金币")
+            lines.append(get_locale_text("renderer_menu.relic_detail_title", name=rname, id=rid, rarity=rname_rarity))
+            lines.append(get_locale_text("renderer_menu.effect_line", desc=desc))
+            lines.append(get_locale_text("renderer_menu.price_line", price=price))
             lines.append("")
             
     for bid, cfg in BUFF_CONFIG.items():
@@ -140,8 +141,8 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             found = True
             bname = cfg.get("name", bid)
             desc = cfg.get("desc", "")
-            lines.append(f"✨ 战斗效果 (Buff)：{bname} (ID: {bid})")
-            lines.append(f"描述：{desc}")
+            lines.append(get_locale_text("renderer_menu.buff_detail_title", name=bname, id=bid))
+            lines.append(get_locale_text("renderer_menu.desc_line", desc=desc))
             lines.append("")
             
     for kid, cfg in KEYWORD_CONFIG.items():
@@ -151,8 +152,8 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             found = True
             kname = cfg.get("name", kid)
             desc = cfg.get("desc", "")
-            lines.append(f"🧩 词条/机制：{kname} (ID: {kid})")
-            lines.append(f"描述：{desc}")
+            lines.append(get_locale_text("renderer_menu.keyword_detail_title", name=kname, id=kid))
+            lines.append(get_locale_text("renderer_menu.desc_line", desc=desc))
             lines.append("")
 
     for gid, cfg in GEM_CONFIG.items():
@@ -166,9 +167,9 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             grarity_ch = rarity_map.get(rarity, rarity)
             desc = cfg.get("desc", "")
             price = cfg.get("price", 0)
-            lines.append(f"💎 宝石：{gname} (ID: {gid}) ({grarity_ch})")
-            lines.append(f"效果：{desc}")
-            lines.append(f"售价：{price} 金币")
+            lines.append(get_locale_text("renderer_menu.gem_detail_title", name=gname, id=gid, rarity=grarity_ch))
+            lines.append(get_locale_text("renderer_menu.effect_line", desc=desc))
+            lines.append(get_locale_text("renderer_menu.price_line", price=price))
             lines.append("")
             
     for mid, cfg in MINION_CONFIG.items():
@@ -179,25 +180,25 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
         if q_search == mid.lower() or q_search in cfg.get("name", "").lower():
             found = True
             mname = cfg.get("name", mid)
-            lines.append(f"🦁 随从：{mname} (ID: {mid})")
+            lines.append(get_locale_text("renderer_menu.minion_title", name=mname, id=mid))
             card_cfg = CARD_CONFIG.get(mid)
             if card_cfg:
                 hp = card_cfg.get("minion_hp", 0)
                 atk = card_cfg.get("minion_atk", 0)
-                lines.append(f"基础属性：生命值 {hp} | 攻击力 {atk}")
+                lines.append(get_locale_text("renderer_menu.minion_stats_line", hp=hp, atk=atk))
             skills = cfg.get("skills", [])
             if skills:
-                lines.append("技能列表：")
+                lines.append(get_locale_text("renderer_menu.skills_title"))
                 for s in skills:
                     cost_str = ""
                     if s.get("cost_a", 0) > 0:
                         cost_str += f"{s['cost_a']}A "
                     if s.get("cost_ba", 0) > 0:
                         cost_str += f"{s['cost_ba']}BA "
-                    cost_str = cost_str.strip() or "免费"
-                    lines.append(f"  • {s.get('name')} (消耗: {cost_str}) - {s.get('desc')}")
+                    cost_str = cost_str.strip() or get_locale_text("renderer_menu.free_cost")
+                    lines.append(get_locale_text("renderer_menu.skill_line", name=s.get('name'), cost=cost_str, desc=s.get('desc')))
             else:
-                lines.append("技能列表：仅有普通攻击 (消耗 1A)。")
+                lines.append(get_locale_text("renderer_menu.skills_basic"))
             lines.append("")
             
     for cid, cfg in CARD_CONFIG.items():
@@ -212,23 +213,23 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             cname = cfg.get("name", cid)
             ctype = cfg.get("type", "")
             type_map = {
-                "spell": "法术",
-                "amulet": "护符",
-                "ability": "能力",
-                "minion": "随从"
+                "spell": get_locale_text("renderer_menu.type_spell"),
+                "amulet": get_locale_text("renderer_menu.type_amulet_generic"),
+                "ability": get_locale_text("renderer_menu.type_ability"),
+                "minion": get_locale_text("renderer_menu.type_minion")
             }
             ctype_ch = type_map.get(ctype, ctype)
             rarity = cfg.get("rarity", "common")
             rname_rarity = rarity_map.get(rarity, rarity)
             from ..cards import ALL_CARDS
             card_obj = ALL_CARDS.get(cid)
-            cost_str = get_card_cost_str(card_obj) if card_obj else "免费"
+            cost_str = get_card_cost_str(card_obj) if card_obj else get_locale_text("renderer_menu.free_cost")
             desc = cfg.get("desc", "")
             if cid == "neutral_button_magic" and not killed_yog:
-                desc = "此卡牌的细节将在以后揭晓..."
-            lines.append(f"📜 卡牌：{cname} (ID: {cid}) ({ctype_ch} | {rname_rarity})")
-            lines.append(f"消耗：{cost_str}")
-            lines.append(f"效果：{desc}")
+                desc = get_locale_text("renderer_menu.card_hidden_desc")
+            lines.append(get_locale_text("renderer_menu.card_title", name=cname, id=cid, type_ch=ctype_ch, rarity=rname_rarity))
+            lines.append(get_locale_text("renderer_menu.cost_line", cost=cost_str))
+            lines.append(get_locale_text("renderer_menu.effect_line", desc=desc))
             lines.append("")
             
             from ..data.card_upgrade_data import CARD_UPGRADE_CONFIG
@@ -238,10 +239,10 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
                     up_cost_str = get_card_cost_str(up_card)
                     up_desc = up_card.desc
                     if cid == "neutral_button_magic" and not killed_yog:
-                        up_desc = "此卡牌的细节将在以后揭晓..."
-                    lines.append(f"🔨 升级变体：{up_card.name} (ID: {cid}+) ({ctype_ch} | {rname_rarity})")
-                    lines.append(f"升级消耗：{up_cost_str}")
-                    lines.append(f"升级效果：{up_desc}")
+                        up_desc = get_locale_text("renderer_menu.card_hidden_desc")
+                    lines.append(get_locale_text("renderer_menu.card_upgrade_title", name=up_card.name, id=cid, type_ch=ctype_ch, rarity=rname_rarity))
+                    lines.append(get_locale_text("renderer_menu.upgrade_cost_line", cost=up_cost_str))
+                    lines.append(get_locale_text("renderer_menu.upgrade_effect_line", desc=up_desc))
                     lines.append("")
                     
     for aid, cfg in AMULET_CONFIG.items():
@@ -254,9 +255,9 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             aname = cfg.get("name", aid)
             desc = cfg.get("desc", "")
             cd = cfg.get("countdown", 1)
-            lines.append(f"🔔 护符：{aname} (ID: {aid})")
-            lines.append(f"吟唱时间：{cd} 回合")
-            lines.append(f"效果：{desc}")
+            lines.append(get_locale_text("renderer_menu.amulet_title", name=aname, id=aid))
+            lines.append(get_locale_text("renderer_menu.amulet_countdown_line", countdown=cd))
+            lines.append(get_locale_text("renderer_menu.effect_line", desc=desc))
             lines.append("")
 
     for eid, cfg in ENEMY_CONFIG.items():
@@ -274,43 +275,43 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             ename = cfg.get("name", eid)
             etype = cfg.get("type", "normal")
             type_map = {
-                "normal": "普通",
-                "elite": "精英",
-                "boss": "领主",
-                "summon": "召唤物"
+                "normal": get_locale_text("renderer_menu.enemy_type_normal"),
+                "elite": get_locale_text("renderer_menu.enemy_type_elite"),
+                "boss": get_locale_text("renderer_menu.enemy_type_boss"),
+                "summon": get_locale_text("renderer_menu.enemy_type_summon")
             }
             etype_ch = type_map.get(etype, etype)
-            ehp = cfg.get("hp", "未知")
+            ehp = cfg.get("hp", get_locale_text("renderer_menu.unknown"))
             eact = cfg.get("actions", "1A 0BA")
-            lines.append(f"👾 怪物：{ename} (ID: {eid}) ({etype_ch})")
-            lines.append(f"基础属性：生命值 {ehp} | 动作资源 {eact}")
+            lines.append(get_locale_text("renderer_menu.enemy_title", name=ename, id=eid, type_ch=etype_ch))
+            lines.append(get_locale_text("renderer_menu.enemy_stats_line", hp=ehp, actions=eact))
             passive = cfg.get("passive")
             if passive:
-                lines.append(f"特有效果：{passive}")
+                lines.append(get_locale_text("renderer_menu.enemy_passive_line", passive=passive))
             intents = cfg.get("intents", [])
             if intents:
-                lines.append("意图/行为列表：")
+                lines.append(get_locale_text("renderer_menu.enemy_intents_title"))
                 for s in intents:
-                    lines.append(f"  • {s.get('desc') or s.get('name') or s.get('id')}")
+                    lines.append(get_locale_text("renderer_menu.bullet_line", text=(s.get('desc') or s.get('name') or s.get('id'))))
             cycle_info = cfg.get("cycle_info", [])
             if cycle_info:
-                lines.append("行动循环列表：")
+                lines.append(get_locale_text("renderer_menu.enemy_cycle_title"))
                 for c in cycle_info:
-                    lines.append(f"  • {c}")
+                    lines.append(get_locale_text("renderer_menu.bullet_line", text=c))
             summon_goblin = cfg.get("summon_goblin")
             if summon_goblin:
-                lines.append("关联召唤物：")
-                s_name = summon_goblin.get("name", "未知")
+                lines.append(get_locale_text("renderer_menu.enemy_summons_title"))
+                s_name = summon_goblin.get("name", get_locale_text("renderer_menu.unknown"))
                 s_hp = summon_goblin.get("hp", 0)
                 s_desc = summon_goblin.get("intent_desc", "")
-                lines.append(f"  • {s_name} (生命值: {s_hp} | 动作资源: 1A 0BA) - {s_desc}")
+                lines.append(get_locale_text("renderer_menu.enemy_summon_line", name=s_name, hp=s_hp, desc=s_desc))
             summon_hound = cfg.get("summon_hound")
             if summon_hound:
-                lines.append("关联召唤物：")
-                s_name = summon_hound.get("name", "未知")
+                lines.append(get_locale_text("renderer_menu.enemy_summons_title"))
+                s_name = summon_hound.get("name", get_locale_text("renderer_menu.unknown"))
                 s_hp = summon_hound.get("hp", 0)
                 s_desc = summon_hound.get("intent_desc", "")
-                lines.append(f"  • {s_name} (生命值: {s_hp} | 动作资源: 1A 0BA) - {s_desc}")
+                lines.append(get_locale_text("renderer_menu.enemy_summon_line", name=s_name, hp=s_hp, desc=s_desc))
             lines.append("")
 
     from .town import _load_zh_cn
@@ -324,9 +325,9 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             if q_search == item_id.lower() or any(q_search == alias.lower() or q_search in alias.lower() for alias in aliases):
                 found = True
                 ch_name = aliases[0]
-                desc = item_descs.get(item_id, "一件主城的特殊物品。")
-                lines.append(f"🎒 物品：{ch_name} ({item_id})")
-                lines.append(f"描述：{desc}")
+                desc = item_descs.get(item_id, get_locale_text("renderer_menu.town_default_item_desc"))
+                lines.append(get_locale_text("renderer_menu.town_item_title", name=ch_name, id=item_id))
+                lines.append(get_locale_text("renderer_menu.desc_line", desc=desc))
                 lines.append("")
                 
         npcs_map = town_data.get("interactive_entities", {})
@@ -336,19 +337,19 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             npc_name = npc_cfg.get("name", npc_id)
             if q_search == npc_id.lower() or q_search == npc_name.lower() or q_search in npc_name.lower():
                 found = True
-                desc = npc_cfg.get("desc", "先古主城的一位普通居民。")
-                lines.append(f"👤 居民：{npc_name} ({npc_id})")
-                lines.append(f"介绍：{desc}")
+                desc = npc_cfg.get("desc", get_locale_text("renderer_menu.npc_default_desc"))
+                lines.append(get_locale_text("renderer_menu.npc_title", name=npc_name, id=npc_id))
+                lines.append(get_locale_text("renderer_menu.npc_intro_line", desc=desc))
                 
                 idle_talks = npc_cfg.get("idle_talk", [])
                 if idle_talks:
-                    lines.append("闲聊语录：")
+                    lines.append(get_locale_text("renderer_menu.npc_talk_title"))
                     for t in idle_talks:
-                        lines.append(f"  • {t}")
+                        lines.append(get_locale_text("renderer_menu.bullet_line", text=t))
                 lines.append("")
                 
     if not found:
-        lines.append("❌ 未找到与该名称或 ID 匹配的随从、遗物、Buff、卡牌、怪物、主城居民或物品信息。")
+        lines.append(get_locale_text("renderer_menu.query_not_found"))
         lines.append("")
-    lines.append("━━━━━━━━━━━━━━━━━━━━")
+    lines.append(get_locale_text("renderer_menu.separator"))
     return "\n".join(lines).strip()

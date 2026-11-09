@@ -1,13 +1,18 @@
 import random
 from .base import EventOption
 from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
+from ...data.event_data import EVENT_CONFIG, EVENT_MIN_HP, EVENT_MIN_MAX_HP, EVENT_MIN_GOLD, EVENT_TIME_SAND_MIN_MAX_HP
 from ..cards import ALL_CARDS
+from ...core.deck_service import DeckService
+from ...models.state import ensure_card_state
+from ...data.locale_data import get_locale_text
 
-class ReadVoidTomeOption(EventOption, action="read_void_tome", text="强行阅读虚空秘典"):
+class ReadVoidTomeOption(EventOption, action="read_void_tome", text=get_locale_text("i18n_events_a.chaos_read_void_tome_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.hp = max(1, p.hp - 10)
-        p.deck.append("curse_dimensional_tear")
+        cfg = EVENT_CONFIG.get("void_library", {})
+        p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("read_hp_cost", 10))
+        DeckService.add_card_to_deck(p, "curse_dimensional_tear")
         stats = None
         if hasattr(engine.save_manager, "load_stats"):
             stats = engine.save_manager.load_stats(run.user_id)
@@ -18,30 +23,33 @@ class ReadVoidTomeOption(EventOption, action="read_void_tome", text="强行阅�
         if not killed_yog:
             legends = [cid for cid in legends if cid != "neutral_button_magic"]
         got_card = random.choice(legends) if legends else "doomsday_judgment"
-        p.deck.append(got_card)
+        DeckService.add_card_to_deck(p, got_card)
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
         card_name = ALL_CARDS[got_card].name if got_card in ALL_CARDS else got_card
-        return f"📖 你强行翻开了虚空秘典，狂暴的禁忌低语几乎将你的精神撕碎（失去 10 点生命值），一张【空间撕裂】诅咒悄然融入你的卡组。但同时，你领悟了【{card_name}】的奥秘！"
+        return get_locale_text("i18n_events_a.chaos_read_void_tome_result", card_name=card_name)
 
-class BurnVoidBooksOption(EventOption, action="burn_void_books", text="点燃禁忌书架"):
+class BurnVoidBooksOption(EventOption, action="burn_void_books", text=get_locale_text("i18n_events_a.chaos_burn_void_books_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.max_hp = max(5, p.max_hp - 7)
+        cfg = EVENT_CONFIG.get("void_library", {})
+        p.max_hp = max(EVENT_MIN_MAX_HP, p.max_hp - cfg.get("burn_max_hp_cost", 7))
         p.hp = min(p.hp, p.max_hp)
         if "doomsday_core" not in p.relics:
             p.relics.append("doomsday_core")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return "🔥 你放火点燃了飞舞的书卷，烈火将虚空的倒影焚烧殆尽。虽然你被火焰中倒映的末日幻象重创了灵魂本源（最大生命上限减少 7 点），但你在灰烬中找到了一块【末日核心】（遗物）。"
+        return get_locale_text("i18n_events_a.chaos_burn_void_books_result")
 
-class SacrificeMindOption(EventOption, action="sacrifice_mind", text="献祭部分心智"):
+class SacrificeMindOption(EventOption, action="sacrifice_mind", text=get_locale_text("i18n_events_a.chaos_sacrifice_mind_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.hp = max(1, p.hp - 8)
+        cfg = EVENT_CONFIG.get("void_library", {})
+        p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("sacrifice_hp_cost", 8))
         removed_names = []
-        if len(p.deck) > 2:
-            removed = random.sample(p.deck, 2)
+        sacrifice_count = cfg.get("sacrifice_card_count", 2)
+        if len(p.deck) > cfg.get("sacrifice_deck_threshold", 2):
+            removed = random.sample(p.deck, sacrifice_count)
             for r in removed:
                 p.deck.remove(r)
                 from ...models.state import ensure_card_state
@@ -55,22 +63,24 @@ class SacrificeMindOption(EventOption, action="sacrifice_mind", text="献祭部�
                 base_cid = ensure_card_state(r).id
                 if base_cid in ALL_CARDS:
                     removed_names.append(ALL_CARDS[base_cid].name)
-        p.deck.append("curse_dazed")
+        DeckService.add_card_to_deck(p, "curse_dazed")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        rem_msg = f"失去了卡牌【{'】和【'.join(removed_names)}】" if removed_names else "没有卡牌可以失去"
-        return f"🧠 你斩断了自己的一部分精神，虚空迷雾随之散去。你感到一阵剧烈的头痛，同时一张【晕眩】卡牌加入卡组，你的生命值减少了 8 点。你脑海中某些记忆变得模糊，你{rem_msg}。"
+        rem_msg = get_locale_text("i18n_events_a.chaos_sacrifice_mind_removed", names=get_locale_text("i18n_events_a.names_join_and").join(removed_names)) if removed_names else get_locale_text("i18n_events_a.chaos_sacrifice_mind_none")
+        return get_locale_text("i18n_events_a.chaos_sacrifice_mind_result", rem_msg=rem_msg)
 
-class BuyBlackmarketRelicOption(EventOption, action="buy_blackmarket_relic", text="强行买下神秘包裹"):
+class BuyBlackmarketRelicOption(EventOption, action="buy_blackmarket_relic", text=get_locale_text("i18n_events_a.chaos_buy_blackmarket_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
+        cfg = EVENT_CONFIG.get("goblin_blackmarket", {})
         cost_msg = ""
-        if p.gold >= 50:
-            p.gold -= 50
-            cost_msg = "支付了 50 金币"
+        buy_gold_cost = cfg.get("buy_gold_cost", 50)
+        if p.gold >= buy_gold_cost:
+            p.gold -= buy_gold_cost
+            cost_msg = get_locale_text("i18n_events_a.chaos_buy_blackmarket_paid")
         else:
-            p.hp = max(1, p.hp - 15)
-            cost_msg = "由于金币不足，你被地精警卫狠狠教训了一顿，失去了 15 点生命值作为抵偿"
+            p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("buy_hp_penalty", 15))
+            cost_msg = get_locale_text("i18n_events_a.chaos_buy_blackmarket_penalty")
         from ...data.relic_data import RELIC_CONFIG
         pool = [rid for rid, r in RELIC_CONFIG.items() if r.get("rarity") != "curse" and rid != "time_sand_blessing"]
         available = [rid for rid in pool if rid not in p.relics]
@@ -80,13 +90,14 @@ class BuyBlackmarketRelicOption(EventOption, action="buy_blackmarket_relic", tex
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
         relic_name = RELIC_CONFIG.get(got_relic, {}).get("name", got_relic)
-        return f"📦 你{cost_msg}，强行买下了地精的神秘包裹。打开包裹，你获得了遗物【{relic_name}】。"
+        return get_locale_text("i18n_events_a.chaos_buy_blackmarket_result", cost_msg=cost_msg, relic_name=relic_name)
 
-class RobBlackmarketOption(EventOption, action="rob_blackmarket", text="强行抢劫黑市"):
+class RobBlackmarketOption(EventOption, action="rob_blackmarket", text=get_locale_text("i18n_events_a.chaos_rob_blackmarket_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        if random.random() < 0.7:
-            p.gold += 100
+        cfg = EVENT_CONFIG.get("goblin_blackmarket", {})
+        if random.random() < cfg.get("rob_success_chance", 0.7):
+            p.gold += cfg.get("rob_gold", 100)
             from ...data.gem_data import GEM_CONFIG
             gem_pool = list(GEM_CONFIG.keys())
             gem_id = random.choice(gem_pool)
@@ -95,80 +106,82 @@ class RobBlackmarketOption(EventOption, action="rob_blackmarket", text="强行�
             next_data = run.node_data.copy() if isinstance(run.node_data, dict) else {}
             msg = engine.explore_engine.start_gem_insert_flow(run, gem_id, next_type, next_data)
             engine.save_manager.save_save(run.user_id, run)
-            return f"💰 抢劫成功！你悄无声息地打晕了地精黑市商贩，夺走了他的钱袋（获得 100 金币）和一颗宝石。{msg}"
+            return get_locale_text("i18n_events_a.chaos_rob_blackmarket_success", msg=msg)
         else:
             engine.battle_engine._init_battle_node(run, "elite")
             run.node_type = "battle"
             engine.save_manager.save_save(run.user_id, run)
-            return engine.battle_engine._append_logs_to_res(run, "🚨 抢劫失败！你的小动作被地精警卫发现了，尖锐的警报声响起，大批守卫将你包围！进入战斗。")
+            return engine.battle_engine._append_logs_to_res(run, get_locale_text("i18n_events_a.chaos_rob_blackmarket_fail"))
 
-class SellFleshOption(EventOption, action="sell_flesh", text="出售血肉"):
+class SellFleshOption(EventOption, action="sell_flesh", text=get_locale_text("i18n_events_a.chaos_sell_flesh_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.max_hp = max(5, p.max_hp - 5)
+        cfg = EVENT_CONFIG.get("goblin_blackmarket", {})
+        p.max_hp = max(EVENT_MIN_MAX_HP, p.max_hp - cfg.get("sell_max_hp_cost", 5))
         p.hp = min(p.hp, p.max_hp)
-        p.gold += 80
+        p.gold += cfg.get("sell_gold", 80)
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return "🩸 你与邪异的黑市商人完成了血肉契约，将自身的生命力出售（最大生命上限减少 5 点）。随之，80 金币落入了你的行囊。"
+        return get_locale_text("i18n_events_a.chaos_sell_flesh_result")
 
-class DrinkTimeSandOption(EventOption, action="drink_time_sand", text="吞食时间光沙"):
+class DrinkTimeSandOption(EventOption, action="drink_time_sand", text=get_locale_text("i18n_events_a.chaos_drink_time_sand_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.max_hp = max(2, p.max_hp - p.max_hp // 4)
-        p.hp = max(1, p.hp - p.hp // 4)
+        cfg = EVENT_CONFIG.get("time_fountain_trial", {})
+        hp_divisor = cfg.get("time_sand_max_hp_divisor", 4)
+        p.max_hp = max(EVENT_TIME_SAND_MIN_MAX_HP, p.max_hp - p.max_hp // hp_divisor)
+        p.hp = max(EVENT_MIN_HP, p.hp - p.hp // hp_divisor)
         if "time_sand_blessing" not in p.relics:
             p.relics.append("time_sand_blessing")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return "⏳ 你吞下了金色的时间光沙。时间法则在你体内生根，你的生命本源被撕裂削弱（最大生命上限与当前生命值减少25%），但时间沙之赐福（遗物）让你在战斗中行动更加敏捷！"
+        return get_locale_text("i18n_events_a.chaos_drink_time_sand_result")
 
-class AccelerateCinderOption(EventOption, action="accelerate_cinder", text="加速自身薪火"):
+class AccelerateCinderOption(EventOption, action="accelerate_cinder", text=get_locale_text("i18n_events_a.chaos_accelerate_cinder_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.hp = max(1, p.hp - 12)
-        p.deck.append("warrior_source_of_cinder")
+        cfg = EVENT_CONFIG.get("time_fountain_trial", {})
+        p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("cinder_hp_cost", 12))
+        DeckService.add_card_to_deck(p, "warrior_source_of_cinder")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return "🔥 你引导古泉的温度加速了自身薪火的燃烧（失去了 12 点生命值），同时卡牌【薪火之源】加入了你的卡组。"
+        return get_locale_text("i18n_events_a.chaos_accelerate_cinder_result")
 
-class TouchTimeRiftOption(EventOption, action="touch_time_rift", text="触碰时间裂隙"):
+class TouchTimeRiftOption(EventOption, action="touch_time_rift", text=get_locale_text("i18n_events_a.chaos_touch_time_rift_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.hp = max(1, p.hp - 6)
-        p.deck.append("curse_dimensional_tear")
+        cfg = EVENT_CONFIG.get("time_fountain_trial", {})
+        p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("rift_hp_cost", 6))
+        DeckService.add_card_to_deck(p, "curse_dimensional_tear")
         upgraded_names = []
         counts = {}
-        for c_id in p.deck:
-            base_cid = c_id.split(":gems:")[0]
-            if not base_cid.endswith("+") and base_cid in CARD_UPGRADE_CONFIG:
-                counts[c_id] = counts.get(c_id, 0) + 1
+        for entry in p.deck:
+            state = ensure_card_state(entry)
+            if not state.upgraded and state.id in CARD_UPGRADE_CONFIG:
+                counts[state] = counts.get(state, 0) + 1
         upgradable = list(counts.keys())
         if upgradable:
-            to_upgrade = random.sample(upgradable, min(3, len(upgradable)))
-            for cid in to_upgrade:
-                p.deck.remove(cid)
-                if ":gems:" in cid:
-                    parts = cid.split(":gems:", 1)
-                    new_cid = parts[0] + "+" + ":gems:" + parts[1]
-                else:
-                    new_cid = cid + "+"
-                p.deck.append(new_cid)
-                base_cid = cid.split(":gems:")[0]
-                if base_cid in ALL_CARDS:
-                    upgraded_names.append(ALL_CARDS[base_cid].name)
+            rift_upgrade_count = cfg.get("rift_upgrade_count", 3)
+            to_upgrade = random.sample(upgradable, min(rift_upgrade_count, len(upgradable)))
+            for state in to_upgrade:
+                p.deck.remove(state)
+                upg_state = DeckService.upgrade_state(state)
+                DeckService.add_card_to_deck(p, upg_state)
+                if state.id in ALL_CARDS:
+                    upgraded_names.append(ALL_CARDS[state.id].name)
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        up_msg = f"卡组中的【{'】、【'.join(upgraded_names)}】获得了时间加速并永久升级" if upgraded_names else "没有卡牌可以升级"
-        return f"🌀 你将手伸入了闪隙的时间裂隙。你的生命被紊乱的时间波动击伤（失去 6 点生命值），一张【空间撕裂】诅咒卡加入卡组。但你的{up_msg}！"
+        up_msg = get_locale_text("i18n_events_a.chaos_touch_time_rift_upgraded", names=get_locale_text("i18n_events_a.names_join_enum").join(upgraded_names)) if upgraded_names else get_locale_text("i18n_events_a.chaos_touch_time_rift_none")
+        return get_locale_text("i18n_events_a.chaos_touch_time_rift_result", up_msg=up_msg)
 
-class LootWreckageOption(EventOption, action="loot_wreckage", text="强行搜刮飞船残骸"):
+class LootWreckageOption(EventOption, action="loot_wreckage", text=get_locale_text("i18n_events_a.chaos_loot_wreckage_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.gold += 120
-        p.hp = max(1, p.hp - 12)
-        p.deck.append("curse_dazed")
-        p.deck.append("curse_dazed")
+        cfg = EVENT_CONFIG.get("astral_caravan_disaster", {})
+        p.gold += cfg.get("loot_gold", 120)
+        p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("loot_hp_cost", 12))
+        for _ in range(cfg.get("loot_curse_count", 2)):
+            DeckService.add_card_to_deck(p, "curse_dazed")
         from ...data.gem_data import GEM_CONFIG
         gem_pool = list(GEM_CONFIG.keys())
         gem_id = random.choice(gem_pool)
@@ -177,13 +190,14 @@ class LootWreckageOption(EventOption, action="loot_wreckage", text="强行搜刮
         next_data = run.node_data.copy() if isinstance(run.node_data, dict) else {}
         msg = engine.explore_engine.start_gem_insert_flow(run, gem_id, next_type, next_data)
         engine.save_manager.save_save(run.user_id, run)
-        return f"🚀 你强行剥离了商船残骸的货仓，获得了 120 金币，但强烈的虚空辐射灼伤了你（失去 12 点生命值），你的精神极度涣散（2张【晕眩】加入卡组）。同时你搜刮到了一颗宝石。{msg}"
+        return get_locale_text("i18n_events_a.chaos_loot_wreckage_result", msg=msg)
 
-class RepairEngineOption(EventOption, action="repair_engine", text="修复动力源并带走"):
+class RepairEngineOption(EventOption, action="repair_engine", text=get_locale_text("i18n_events_a.chaos_repair_engine_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.gold = max(0, p.gold - 30)
-        p.max_hp = max(5, p.max_hp - 5)
+        cfg = EVENT_CONFIG.get("astral_caravan_disaster", {})
+        p.gold = max(EVENT_MIN_GOLD, p.gold - cfg.get("repair_gold_cost", 30))
+        p.max_hp = max(EVENT_MIN_MAX_HP, p.max_hp - cfg.get("repair_max_hp_cost", 5))
         p.hp = min(p.hp, p.max_hp)
         got_relic = random.choice(["doomsday_core", "energy_core"])
         if got_relic not in p.relics:
@@ -192,22 +206,24 @@ class RepairEngineOption(EventOption, action="repair_engine", text="修复动力
         engine.save_manager.save_save(run.user_id, run)
         from ...data.relic_data import RELIC_CONFIG
         relic_name = RELIC_CONFIG.get(got_relic, {}).get("name", got_relic)
-        return f"🔧 你使用工具修复了商船的动力源，并将其强行拆卸融合到了自己的装备中（消耗 30 金币，最大生命上限减少 5 点），你获得了遗物【{relic_name}】。"
+        return get_locale_text("i18n_events_a.chaos_repair_engine_result", relic_name=relic_name)
 
-class BraveStormOption(EventOption, action="brave_storm", text="穿越虚空风暴逃跑"):
+class BraveStormOption(EventOption, action="brave_storm", text=get_locale_text("i18n_events_a.chaos_brave_storm_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        loss = int(p.hp * 0.4)
-        p.hp = max(1, p.hp - loss)
+        cfg = EVENT_CONFIG.get("astral_caravan_disaster", {})
+        loss = int(p.hp * cfg.get("storm_hp_ratio", 0.4))
+        p.hp = max(EVENT_MIN_HP, p.hp - loss)
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return f"⚡ 你咬紧牙关，迎着呼啸的虚空风暴强行突围！狂暴的奥能风暴疯狂撕扯着你的躯壳，你失去了 {loss} 点生命值（当前生命的 40%），终于艰难地逃出了风暴圈。"
+        return get_locale_text("i18n_events_a.chaos_brave_storm_result", loss=loss)
 
-class DigGraveOption(EventOption, action="dig_grave", text="掘开墓穴底下的陪葬品"):
+class DigGraveOption(EventOption, action="dig_grave", text=get_locale_text("i18n_events_a.chaos_dig_grave_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.deck.append("curse_dimensional_tear")
-        p.deck.append("curse_dimensional_tear")
+        cfg = EVENT_CONFIG.get("nameless_tombstone", {})
+        for _ in range(cfg.get("dig_curse_count", 2)):
+            DeckService.add_card_to_deck(p, "curse_dimensional_tear")
         if "necromancer_skull" not in p.relics:
             p.relics.append("necromancer_skull")
         from ...data.gem_data import GEM_CONFIG
@@ -218,24 +234,26 @@ class DigGraveOption(EventOption, action="dig_grave", text="掘开墓穴底下�
         next_data = run.node_data.copy() if isinstance(run.node_data, dict) else {}
         msg = engine.explore_engine.start_gem_insert_flow(run, gem_id, next_type, next_data)
         engine.save_manager.save_save(run.user_id, run)
-        return f"🪦 你粗暴地掘开了古老的墓穴。墓碑上的邪神低语瞬间在虚空中爆发，化为诅咒缠绕你的灵魂（2张【空间撕裂】加入卡组），但你成功夺取了陪葬遗物【巫师颅骨】和一颗闪烁的宝石。{msg}"
+        return get_locale_text("i18n_events_a.chaos_dig_grave_result", msg=msg)
 
-class ReadEpitaphOption(EventOption, action="read_epitaph", text="强行解读墓碑碑文"):
+class ReadEpitaphOption(EventOption, action="read_epitaph", text=get_locale_text("i18n_events_a.chaos_read_epitaph_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.max_hp += 20
+        cfg = EVENT_CONFIG.get("nameless_tombstone", {})
+        p.max_hp += cfg.get("epitaph_max_hp_gain", 20)
         if "wither_seed" not in p.relics:
-            p.hp = min(p.max_hp, p.hp + 20)
-        p.gold = 0
-        p.deck.append("curse_agony")
+            p.hp = min(p.max_hp, p.hp + cfg.get("epitaph_heal", 20))
+        p.gold = EVENT_MIN_GOLD
+        DeckService.add_card_to_deck(p, "curse_agony")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return "🪱 你凝视着墓碑上邪异晦涩的符文强行解读。疯狂的启示涌入你的脑海，你的体魄得到了诡异的强化（最大生命上限增加 20 并恢复 20 生命值），但你精神恍惚导致身上所有的金币都在迷雾中流失了（失去全部金币），且 1张【苦恼】卡牌加入卡组。"
+        return get_locale_text("i18n_events_a.chaos_read_epitaph_result")
 
-class CarveOwnNameOption(EventOption, action="carve_own_name", text="在碑文刻上自己的名字避邪"):
+class CarveOwnNameOption(EventOption, action="carve_own_name", text=get_locale_text("i18n_events_a.chaos_carve_own_name_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.hp = max(1, p.hp - 15)
+        cfg = EVENT_CONFIG.get("nameless_tombstone", {})
+        p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("carve_hp_cost", 15))
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return "✍️ 你用利刃在墓碑上刻下了自己的名字。古老的诅咒被名字吸引，瞬间抽干了你的部分气血（失去 15 点生命值），但缠绕周围的黑雾终于消散，你得以继续前行。"
+        return get_locale_text("i18n_events_a.chaos_carve_own_name_result")

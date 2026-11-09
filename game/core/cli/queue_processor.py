@@ -1,4 +1,5 @@
-from ..cli.base import split_by_comma_with_brackets
+from ..cli.base import split_by_comma_with_brackets, CommandHandler
+from ...data.locale_data import get_locale_text
 
 class QueueProcessor:
     def __init__(self, save_manager, engine):
@@ -28,23 +29,22 @@ class QueueProcessor:
                     if term:
                         return True
                 else:
-                    cmd_handler = router.command_router._command_handlers.get(first_sub)
+                    curr_state = run.node_type if run else "menu"
+                    cmd_handler, exists = CommandHandler.resolve(first_sub, curr_state)
+                    term = False
                     if cmd_handler:
-                        curr_state = run.node_type if run else "menu"
-                        if curr_state in getattr(cmd_handler, "allowed_states", []):
-                            gen = cmd_handler.execute(router, user_id, parts_sub)
-                            res_list = []
-                            success = True
-                            try:
-                                while True:
-                                    res_list.append(next(gen))
-                            except StopIteration as e:
-                                success = e.value if e.value is not None else True
-                            res = "\n".join(res_list)
-                        else:
-                            res = f"❌ 指令【{first_sub}】在当前状态下不可用。"
-                            success = False
-                        term = False
+                        gen = cmd_handler.execute(router, user_id, parts_sub)
+                        res_list = []
+                        success = True
+                        try:
+                            while True:
+                                res_list.append(next(gen))
+                        except StopIteration as e:
+                            success = e.value if e.value is not None else True
+                        res = "\n".join(res_list)
+                    elif exists:
+                        res = get_locale_text("i18n_cli_commands.err_command_unavailable", sub=first_sub)
+                        success = False
                     else:
                         res, term, success = router.action_router.execute_action(router, user_id, run, parts_sub)
                     results.append(res)

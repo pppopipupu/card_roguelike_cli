@@ -308,7 +308,7 @@ class TestRogueCardMech1(unittest.TestCase):
         engine = BattleEngine(DummySaveManager())
         card_wave = ALL_CARDS.get("thunderwave")
         self.assertEqual(card_wave.fragile, 3)
-        self.assertIn("(易碎 3)", card_wave.name)
+        self.assertEqual(card_wave.name, "雷鸣波")
         self.assertIn("易碎 3。", card_wave.desc)
         
         engine.play_card(run, 1)
@@ -319,7 +319,7 @@ class TestRogueCardMech1(unittest.TestCase):
         player.hand = ["thunderwave:fragile:2"]
         card_fragile_2 = ALL_CARDS.get("thunderwave:fragile:2")
         self.assertEqual(card_fragile_2.fragile, 2)
-        self.assertIn("(易碎 2)", card_fragile_2.name)
+        self.assertEqual(card_fragile_2.name, "雷鸣波")
         self.assertIn("易碎 2。", card_fragile_2.desc)
         
         engine.play_card(run, 1)
@@ -336,14 +336,14 @@ class TestRogueCardMech1(unittest.TestCase):
         
         card_wave_plus = ALL_CARDS.get("thunderwave+")
         self.assertEqual(card_wave_plus.fragile, 3)
-        self.assertIn("(易碎 3)", card_wave_plus.name)
+        self.assertEqual(card_wave_plus.name, "雷鸣波+")
         self.assertIn("雷鸣波+", card_wave_plus.name)
         self.assertIn("易碎 3。", card_wave_plus.desc)
         
         card_wave_plus_2 = ALL_CARDS.get("thunderwave+:fragile:2")
         self.assertEqual(card_wave_plus_2.fragile, 2)
         self.assertIn("雷鸣波+", card_wave_plus_2.name)
-        self.assertIn("(易碎 2)", card_wave_plus_2.name)
+        self.assertEqual(card_wave_plus_2.name, "雷鸣波+")
 
         q_fragile = render_query_info("易碎")
         self.assertIn("易碎", q_fragile)

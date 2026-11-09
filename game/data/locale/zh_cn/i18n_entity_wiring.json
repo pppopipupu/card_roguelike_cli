@@ -1,0 +1,10 @@
+{
+  "enemy_base": {
+    "intent_attack": "攻击 (造成 {val} 伤害)",
+    "intent_defend": "防御 (获得 {val} 护盾)",
+    "ward_attack": "敌人【{name}】受【守护】吸引，攻击了我方随从【{m_name}】。{dmg_msg}",
+    "minion_attack": "敌人【{name}】攻击了我方随从【{m_name}】。{dmg_msg}",
+    "player_attack": "敌人【{name}】对玩家发动攻击。{dmg_msg}",
+    "defend_log": "敌人【{name}】进行防守，获得 {val} 点护盾。"
+  }
+}

@@ -1,5 +1,14 @@
+EVENT_MIN_HP = 1
+EVENT_MIN_MAX_HP = 5
+EVENT_MIN_GOLD = 0
+EVENT_MIN_PRICE = 0
+EVENT_TIME_SAND_MIN_MAX_HP = 2
+
 EVENT_CONFIG = {
     "fountain": {
+        "hp_gain": 10,
+        "gold_cost": 10,
+        "wizard_sample_count": 3,
         "description": "你在荒野中发现了一座泛着蓝光的神秘喷泉。喷泉中央有一座双手捧杯的雕像。",
         "options": [
             {
@@ -21,6 +30,7 @@ EVENT_CONFIG = {
         ]
     },
     "fountain_observe": {
+        "success_chance": 0.5,
         "description": "你凑近水面，透过蓝光发现池底有一具古代法师的骸骨，骸骨的脖子上挂着一根闪闪发光的【奥术项链】(遗物)。但骸骨周围隐约有符文法阵在闪烁，似乎有防盗陷阱。",
         "options": [
             {
@@ -34,6 +44,7 @@ EVENT_CONFIG = {
         ]
     },
     "knight": {
+        "rob_gold": 25,
         "description": "一位受伤的奥术骑士靠在树旁，他的盔甲已经破损，正虚弱地向你求助。",
         "options": [
             {
@@ -68,6 +79,7 @@ EVENT_CONFIG = {
         ]
     },
     "knight_cave": {
+        "enemy_hp": 15,
         "description": "你走入黑暗的洞穴。突然，一只狂暴的魔仆从阴影中扑了过来！你必须击败它以获取佩剑。",
         "options": [
             {
@@ -77,6 +89,8 @@ EVENT_CONFIG = {
         ]
     },
     "altar": {
+        "break_gold": 20,
+        "break_hp_cost": 4,
         "description": "前方是一处古老的法师祭坛，祭坛上的水晶依然散发着狂暴的奥术波动。",
         "options": [
             {
@@ -98,6 +112,9 @@ EVENT_CONFIG = {
         ]
     },
     "altar_portal": {
+        "shop_chance": 0.5,
+        "price_multiplier": 0.5,
+        "shatter_gold": 40,
         "description": "你在祭坛前坐下，静静感受虚空中的奥术脉动。随着你的冥想，祭坛中央狂暴的水晶产生了共鸣，一道幽蓝色的奥术虚空之门在你面前缓缓开启，里面隐隐传来宝物的波动，但也十分不稳定。",
         "options": [
             {
@@ -111,6 +128,7 @@ EVENT_CONFIG = {
         ]
     },
     "lost_maze": {
+        "mark_gold": 10,
         "description": "你步入了一座由古老符文石墙构成的巨大迷宫。石墙上爬满了发光的青苔，通道向各个方向延伸。你只能选择一条路前行。",
         "options": [
             {
@@ -128,6 +146,9 @@ EVENT_CONFIG = {
         ]
     },
     "maze_guard": {
+        "bribe_gold": 20,
+        "guard_hp_base": 30,
+        "guard_hp_per_stage": 2,
         "description": "你沿着温暖的火光走去，突然石门落下，一个燃烧着的【火元素守卫】挡住了去路。它发出隆隆的声响，似乎不允许你通过，除非你向它进献财物。",
         "options": [
             {
@@ -145,6 +166,10 @@ EVENT_CONFIG = {
         ]
     },
     "maze_pool": {
+        "max_hp_gain": 3,
+        "heal": 15,
+        "relic_chance": 0.5,
+        "max_hp_loss": 2,
         "description": "你沿着水流，来到了一处流淌着生命能量的纯澈池塘。池底散落着一些冒险者的遗物，但池水散发着古老而圣洁的压迫感。",
         "options": [
             {
@@ -171,6 +196,9 @@ EVENT_CONFIG = {
         ]
     },
     "mine_cart_crash": {
+        "jump_gold": 40,
+        "fail_hp_loss": 10,
+        "fail_gold": 10,
         "description": "矿车呼啸着向深处疾驰，速度越来越快！突然，前方的轨道断裂，矿车即将坠入黑暗深渊！",
         "options": [
             {
@@ -184,6 +212,10 @@ EVENT_CONFIG = {
         ]
     },
     "mine_ladder_body": {
+        "loot_gold": 25,
+        "loot_heal": 4,
+        "dig_gold_success": 50,
+        "dig_gold_fail": 15,
         "description": "你小心地沿着木梯向下爬。在半路上的一处木质平台上，你发现了一具古代矿工的干尸，他的怀里死死抱着一个发光的密封铁盒。",
         "options": [
             {
@@ -197,6 +229,9 @@ EVENT_CONFIG = {
         ]
     },
     "phantom_mage": {
+        "read_success_chance": 0.5,
+        "resonate_gold": 15,
+        "dispel_heal": 15,
         "description": "你在荒野道路中央遇到了一位若隐若现的幻影法师。他手中正握着一卷闪烁着奥术幽光的残卷，用空洞的眼神注视着你。",
         "options": [
             {
@@ -218,6 +253,15 @@ EVENT_CONFIG = {
         ]
     },
     "goblin_gamble": {
+        "small_cost": 15,
+        "small_win_chance": 0.5,
+        "small_win_gold": 30,
+        "large_cost": 30,
+        "large_win_chance": 0.4,
+        "large_win_gold": 60,
+        "rob_success_chance": 0.7,
+        "rob_gold": 40,
+        "rob_fail_hp_loss": 8,
         "description": "一个贼眉鼠眼的哥布林商人坐在路边，抛玩着几枚金币。看到你走来，他露出了贪婪的笑容：“嘿，冒险者，来玩一把刺激的猜硬币游戏吗？赢了双倍，输了可就什么都没了！”",
         "options": [
             {
@@ -239,6 +283,8 @@ EVENT_CONFIG = {
         ]
     },
     "fairy_tea": {
+        "nectar_heal": 12,
+        "cookie_max_hp_gain": 4,
         "description": "在静谧的林间空地上，几只花妖精正在举办茶会。她们看到你，热情地邀请你加入，并呈上了五彩缤纷的茶点。",
         "options": [
             {
@@ -260,6 +306,10 @@ EVENT_CONFIG = {
         ]
     },
     "void_contract": {
+        "relic_hp_cost": 10,
+        "legend_max_hp_cost": 3,
+        "absorb_gold": 35,
+        "absorb_heal": 6,
         "description": "空气突然变得冰冷，一个由紫黑色虚空能量凝聚而成的无面商人从阴影中浮现。他张开双臂，向你展示着闪烁着暗影波动的强大力量，但他的契约总是伴随着沉痛的代价。",
         "options": [
             {
@@ -281,6 +331,14 @@ EVENT_CONFIG = {
         ]
     },
     "forge_furnace": {
+        "overload_success_chance": 0.8,
+        "overload_upgrade_count": 2,
+        "overload_hp_cost": 8,
+        "backfire_max_hp_gain": 5,
+        "backfire_heal": 10,
+        "backfire_buff_stacks": 2,
+        "shatter_gold": 50,
+        "shatter_hp_cost": 6,
         "description": "你在废墟的中心发现了一座依然在熊熊燃烧的【奥术符文熔炉】。熔炉内部的魔法符文正处于不稳定状态，散发着诱人但危险的热量。",
         "options": [
             {
@@ -310,6 +368,7 @@ EVENT_CONFIG = {
         "action": "leave_event"
     },
     "portal_chamber": {
+        "contract_max_hp_ratio": 0.05,
         "description": "你走进了一座泛着星光的石室。墙壁上的繁复浮雕与你身上的门之钥匙产生共鸣，开启了三扇闪烁的传送门。",
         "options": [
             {
@@ -327,6 +386,11 @@ EVENT_CONFIG = {
         ]
     },
     "void_library": {
+        "read_hp_cost": 10,
+        "burn_max_hp_cost": 7,
+        "sacrifice_hp_cost": 8,
+        "sacrifice_card_count": 2,
+        "sacrifice_deck_threshold": 2,
         "description": "你来到了一座倒悬于虚空之上的巨大图书馆。书架上的书页在狂暴地翻飞，低语声在你的脑海中回荡，没有任何安全的退路。",
         "options": [
             {
@@ -344,6 +408,12 @@ EVENT_CONFIG = {
         ]
     },
     "goblin_blackmarket": {
+        "buy_gold_cost": 50,
+        "buy_hp_penalty": 15,
+        "rob_success_chance": 0.7,
+        "rob_gold": 100,
+        "sell_max_hp_cost": 5,
+        "sell_gold": 80,
         "description": "一个穿着黑色风衣的地精拦住了你，他拉开风衣露出琳琅满目的违禁品，他阴险地笑称这儿是强买强卖的黑市，别想空手离开。",
         "options": [
             {
@@ -361,6 +431,10 @@ EVENT_CONFIG = {
         ]
     },
     "time_fountain_trial": {
+        "time_sand_max_hp_divisor": 4,
+        "cinder_hp_cost": 12,
+        "rift_hp_cost": 6,
+        "rift_upgrade_count": 3,
         "description": "你面前出现了一口流淌着金色光沙的古泉。古泉周围的时间流速极其混乱，空间在不断扭曲，你被困在了时间膨胀的漩涡中，必须做出抉择。",
         "options": [
             {
@@ -378,6 +452,12 @@ EVENT_CONFIG = {
         ]
     },
     "astral_caravan_disaster": {
+        "loot_gold": 120,
+        "loot_hp_cost": 12,
+        "loot_curse_count": 2,
+        "repair_gold_cost": 30,
+        "repair_max_hp_cost": 5,
+        "storm_hp_ratio": 0.4,
         "description": "一艘星界商船坠毁在你面前，破碎的星屑散落一地。奄奄一息的商人们指着残骸，四周正有虚空风暴在疯狂逼近，无法退缩。",
         "options": [
             {
@@ -395,6 +475,10 @@ EVENT_CONFIG = {
         ]
     },
     "nameless_tombstone": {
+        "dig_curse_count": 2,
+        "epitaph_max_hp_gain": 20,
+        "epitaph_heal": 20,
+        "carve_hp_cost": 15,
         "description": "一块巨大的无名墓碑倒在黑色荒野上，墓碑上刻着不知名上古邪神的晦涩名讳，黑色雾气将你死死缠绕，没有退路。",
         "options": [
             {

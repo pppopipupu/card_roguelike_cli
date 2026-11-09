@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("狂暴魔仆")
 class DemonServantTemplate(EnemyTemplate):
@@ -35,5 +36,6 @@ class DemonServantTemplate(EnemyTemplate):
             final_dmg = val + strength
             self._perform_attack(run, engine, enemy, final_dmg, logs, damage_type="piercing")
         elif intent.type == "evil_gaze":
-            enemy.shield += intent.val
-            logs.append(f"【{enemy.name}】施展邪恶凝视，获得 {intent.val} 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            logs.append(get_locale_text("i18n_enemy_normal.demon_servant.evil_gaze", name=enemy.name, val=intent.val))

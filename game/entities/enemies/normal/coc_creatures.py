@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("深潜者")
 class DeepOneTemplate(EnemyTemplate):
@@ -38,15 +39,16 @@ class DeepOneTemplate(EnemyTemplate):
                 engine.combat_resolver.damage_target(run, "p0", 3, source=f"enemy:{enemy.name}", damage_type="true")
                 after_logs = run.node_data.get("battle_logs", [])
                 true_dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-                extra_msg = f"，且由于你拥有护盾，额外承受了 3 点真实伤害（{true_dmg_msg}）"
+                extra_msg = get_locale_text("i18n_enemy_normal.deep_one.tsunami_extra", dmg=true_dmg_msg)
             
             before_len = len(run.node_data.get("battle_logs", []))
             self._perform_attack(run, engine, enemy, final_dmg, logs)
             if extra_msg and logs:
                 logs[-1] += extra_msg
         elif intent.type == "defend":
-            enemy.shield += intent.val
-            logs.append(f"【{enemy.name}】凝聚潮汐之盾，获得 {intent.val} 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            logs.append(get_locale_text("i18n_enemy_normal.deep_one.defend", name=enemy.name, val=intent.val))
 
 @register_enemy("食尸鬼")
 class GhoulTemplate(EnemyTemplate):
@@ -78,9 +80,9 @@ class GhoulTemplate(EnemyTemplate):
                         strength += b.stacks
             final_dmg = val + strength
             self._perform_attack(run, engine, enemy, final_dmg, logs)
-            engine._add_buff_to(run.player, "minor_vulnerable", "轻度易伤", "受到的所有类型伤害增加 50%", 1)
+            engine._add_buff_to(run.player, "minor_vulnerable", get_locale_text("i18n_enemy_normal.ghoul.buff_minor_vulnerable"), get_locale_text("i18n_enemy_normal.ghoul.buff_minor_vulnerable_desc"), 1)
             if logs:
-                logs[-1] += "，并对你施加了 1 层【轻度易伤】"
+                logs[-1] += get_locale_text("i18n_enemy_normal.ghoul.rot_bite_suffix")
         elif intent.type == "claw_slash":
             val = intent.val
             strength = 0
@@ -124,11 +126,12 @@ class NightgauntTemplate(EnemyTemplate):
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            logs.append(f"【{enemy.name}】使用搔痒爪。{dmg_msg}")
+            logs.append(get_locale_text("i18n_enemy_normal.nightgaunt.tickle_claw", name=enemy.name, dmg=dmg_msg))
         elif intent.type == "void_glide":
-            enemy.shield += intent.val
-            engine._add_buff_to(enemy, "astral_speed", "星界加速", "下回合开始时，获得 1 个额外动作点", 1)
-            logs.append(f"【{enemy.name}】施展虚空滑翔，获得 {intent.val} 点护盾与【星界加速】！")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            engine._add_buff_to(enemy, "astral_speed", get_locale_text("i18n_enemy_normal.nightgaunt.buff_astral_speed"), get_locale_text("i18n_enemy_normal.nightgaunt.buff_astral_speed_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_normal.nightgaunt.void_glide", name=enemy.name, val=intent.val))
 
 @register_enemy("夏塔克鸟")
 class ShantakTemplate(EnemyTemplate):
@@ -163,7 +166,7 @@ class ShantakTemplate(EnemyTemplate):
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="force")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            logs.append(f"【{enemy.name}】使用狂风拍击。{dmg_msg}")
+            logs.append(get_locale_text("i18n_enemy_normal.shantak.wind_buffet", name=enemy.name, dmg=dmg_msg))
         elif intent.type == "shriek":
             val = intent.val
             strength = 0
@@ -177,10 +180,10 @@ class ShantakTemplate(EnemyTemplate):
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             
-            engine._add_buff_to(run.player, "discard_next_turn", "下回合弃牌", "在下一回合开始时，你将随机丢弃等同于此状态层数的手牌", 1)
-            discard_msg = "，并使玩家在下一回合开始时将被迫随机丢弃 1 张手牌"
-            
-            logs.append(f"【{enemy.name}】发出凄厉尖啸。{dmg_msg}{discard_msg}。")
+            engine._add_buff_to(run.player, "discard_next_turn", get_locale_text("i18n_enemy_normal.shantak.buff_discard_next_turn"), get_locale_text("i18n_enemy_normal.shantak.buff_discard_next_turn_desc"), 1)
+            discard_msg = get_locale_text("i18n_enemy_normal.shantak.shriek_discard")
+
+            logs.append(get_locale_text("i18n_enemy_normal.shantak.shriek", name=enemy.name, dmg=dmg_msg, discard=discard_msg))
 
 @register_enemy("空鬼")
 class DimensionalShamblerTemplate(EnemyTemplate):
@@ -215,7 +218,8 @@ class DimensionalShamblerTemplate(EnemyTemplate):
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="true")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            logs.append(f"【{enemy.name}】使用相位打击。{dmg_msg}")
+            logs.append(get_locale_text("i18n_enemy_normal.shambler.phase_strike", name=enemy.name, dmg=dmg_msg))
         elif intent.type == "dimensional_shift":
-            enemy.shield += intent.val
-            logs.append(f"【{enemy.name}】进行维度偏移，获得 {intent.val} 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            logs.append(get_locale_text("i18n_enemy_normal.shambler.dimensional_shift", name=enemy.name, val=intent.val))

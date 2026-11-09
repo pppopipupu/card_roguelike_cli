@@ -5,6 +5,8 @@ from dataclasses import dataclass
 
 import jwt
 
+from game.data.locale_data import get_locale_text
+
 from .config import Settings
 
 
@@ -51,19 +53,21 @@ class AuthService:
         try:
             header = jwt.get_unverified_header(token)
         except jwt.PyJWTError as exc:
-            raise AuthError("无效的访问令牌。") from exc
+            raise AuthError(get_locale_text("i18n_server_core.auth.invalid_token")) from exc
         algorithm = header.get("alg", "")
         if algorithm == "HS256":
             if not self.settings.supabase_jwt_secret:
-                raise AuthError("服务器未配置 HS256 校验密钥。", 503)
+                raise AuthError(get_locale_text("i18n_server_core.auth.missing_hs256_secret"), 503)
             key = self.settings.supabase_jwt_secret
         else:
             if algorithm not in ("RS256", "ES256", "EdDSA"):
-                raise AuthError("不支持的令牌签名算法。")
+                raise AuthError(get_locale_text("i18n_server_core.auth.unsupported_algorithm"))
             try:
                 key = self._jwks_client.get_signing_key_from_jwt(token).key
             except Exception as exc:
-                raise AuthError("无法获取 Supabase 签名公钥。", 503) from exc
+                raise AuthError(
+                    get_locale_text("i18n_server_core.auth.jwks_fetch_failed"), 503
+                ) from exc
         try:
             return jwt.decode(
                 token,
@@ -74,15 +78,15 @@ class AuthService:
                 options={"require": ["exp", "sub"]},
             )
         except jwt.PyJWTError as exc:
-            raise AuthError("访问令牌无效或已过期。") from exc
+            raise AuthError(get_locale_text("i18n_server_core.auth.token_expired")) from exc
 
     async def verify_bearer(self, token: str) -> Principal:
         if not token:
-            raise AuthError("缺少访问令牌。")
+            raise AuthError(get_locale_text("i18n_server_core.auth.missing_token"))
         payload = await asyncio.to_thread(self._verify_locked, token)
         subject = payload.get("sub")
         if not isinstance(subject, str) or not subject:
-            raise AuthError("访问令牌缺少用户标识。")
+            raise AuthError(get_locale_text("i18n_server_core.auth.missing_subject"))
         return Principal(
             kind="web",
             user_id=subject,
@@ -96,11 +100,11 @@ class AuthService:
 
     def verify_im(self, token: str, im_user_id: str) -> Principal:
         if not self.settings.im_token:
-            raise AuthError("服务器未启用即时通讯认证。", 503)
+            raise AuthError(get_locale_text("i18n_server_core.auth.im_disabled"), 503)
         if not token or not hmac.compare_digest(token, self.settings.im_token):
-            raise AuthError("即时通讯令牌无效。")
+            raise AuthError(get_locale_text("i18n_server_core.auth.im_token_invalid"))
         if not im_user_id or len(im_user_id) > 128:
-            raise AuthError("缺少或非法的即时通讯用户标识。")
+            raise AuthError(get_locale_text("i18n_server_core.auth.im_user_invalid"))
         return Principal(kind="im", user_id=im_user_id)
 
     def verify_admin(self, token: str) -> bool:

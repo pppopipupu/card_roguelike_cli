@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("邪教徒咔咔")
 class CultistKakaTemplate(EnemyTemplate):
@@ -30,7 +31,7 @@ class CultistKakaTemplate(EnemyTemplate):
         from ....entities.enemies.trash_talk_actions import try_trash_talk
         try_trash_talk(run, enemy, logs)
         if intent.type == "caw":
-            engine._add_buff_to(enemy, "ritual", "仪式", "每回合开始时，获得等同于此状态层数的力量", 1)
-            logs.append(f"【{enemy.name}】大喊：“咔咔！”，开始施展神秘仪式！")
+            engine._add_buff_to(enemy, "ritual", get_locale_text("i18n_enemy_normal.cultist_kaka.buff_ritual"), get_locale_text("i18n_enemy_normal.cultist_kaka.buff_ritual_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_normal.cultist_kaka.ritual_start", name=enemy.name))
         elif intent.type == "peck":
             self._perform_attack(run, engine, enemy, intent.val, logs, damage_type="piercing")

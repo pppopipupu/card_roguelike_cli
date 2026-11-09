@@ -1,65 +1,72 @@
 import random
 from .base import EventOption
 from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
+from ...data.event_data import EVENT_CONFIG
+from ...data.relic_data import RELIC_CONFIG
 from ..cards import ALL_CARDS
 from ..relics import get_relic_name
-from ...models.state import BuffState
+from ...models.state import BuffState, ensure_card_state
+from ...core.deck_service import DeckService
+from ...data.locale_data import get_locale_text
 
-class ForgeFireOption(EventOption, action="forge_fire", text="使用常规重铸"):
+class ForgeFireOption(EventOption, action="forge_fire", text=get_locale_text("i18n_events_a.forge_fire_text")):
     def _run_effect(self, run, engine) -> str:
         run.node_data["upgrade_source"] = "event"
         return "UPGRADE_FLOW"
 
-class OverloadForgeOption(EventOption, action="overload_forge", text="过载重铸"):
+class OverloadForgeOption(EventOption, action="overload_forge", text=get_locale_text("i18n_events_a.forge_overload_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        if random.random() < 0.8:
+        cfg = EVENT_CONFIG.get("forge_furnace", {})
+        if random.random() < cfg.get("overload_success_chance", 0.8):
             upgradable_cards = []
             for card_state in p.deck:
                 if not card_state.upgraded and card_state.id in CARD_UPGRADE_CONFIG:
                     upgradable_cards.append(card_state)
             if not upgradable_cards:
-                res = "熔炉隆隆作响，但你的卡组中没有可以升级的卡牌！你并没有受到任何效果。"
+                res = get_locale_text("i18n_events_a.forge_overload_no_cards")
             else:
                 upgraded_names = []
-                to_upgrade = random.sample(upgradable_cards, min(2, len(upgradable_cards)))
+                upgrade_count = cfg.get("overload_upgrade_count", 2)
+                to_upgrade = random.sample(upgradable_cards, min(upgrade_count, len(upgradable_cards)))
                 for card_state in to_upgrade:
                     card_state.upgraded = True
                     upgraded_names.append(ALL_CARDS[card_state.id].name)
-                res = f"🔥 熔炉光芒大盛！你成功将卡组中的【{'】和【'.join(upgraded_names)}】随机升级为了它们的强力变体！"
+                res = get_locale_text("i18n_events_a.forge_overload_success", names=get_locale_text("i18n_events_a.names_join_and").join(upgraded_names))
         else:
-            from ...models.state import CardState
-            p.hp -= 8
-            p.deck.append(CardState.from_cid("curse_pain"))
-            res = "💥 糟糕！熔炉突然发生能量逆流！熔炉的狂暴能量反噬了你（受到 8 点伤害，且1张【苦恼】卡牌已加入卡组）。"
+            p.hp -= cfg.get("overload_hp_cost", 8)
+            DeckService.add_card_to_deck(p, ensure_card_state("curse_pain"))
+            res = get_locale_text("i18n_events_a.forge_overload_backfire")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
         return res
 
-class ForgeBackfireOption(EventOption, action="forge_backfire", text="汲取熔炉余温"):
+class ForgeBackfireOption(EventOption, action="forge_backfire", text=get_locale_text("i18n_events_a.forge_backfire_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        p.max_hp += 5
-        p.hp = min(p.max_hp, p.hp + 10)
+        cfg = EVENT_CONFIG.get("forge_furnace", {})
+        p.max_hp += cfg.get("backfire_max_hp_gain", 5)
+        p.hp = min(p.max_hp, p.hp + cfg.get("backfire_heal", 10))
+        buff_stacks = cfg.get("backfire_buff_stacks", 2)
         found = False
         for b in p.buffs:
             if b.id == "forge_backfire":
-                b.stacks += 2
+                b.stacks += buff_stacks
                 found = True
                 break
         if not found:
-            p.buffs.append(BuffState("forge_backfire", "炉温反噬", 2, "造成的法术伤害-1"))
+            p.buffs.append(BuffState("forge_backfire", get_locale_text("i18n_events_a.forge_backfire_buff_name"), buff_stacks, get_locale_text("i18n_events_a.forge_backfire_buff_desc")))
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return "🍀 你坐在熔炉旁，缓缓引导并吸取其余温。你感到肉体在温暖的奥能下得到了升华（生命上限+5，生命回复了 10 点），但同时体内充斥着紊乱的余温热量，法术释放受到了干扰（获得了 2 层【炉温反噬】buff）。已前往下一关。"
+        return get_locale_text("i18n_events_a.forge_backfire_result")
 
-class ShatterForgeOption(EventOption, action="shatter_forge", text="强行破坏熔炉"):
+class ShatterForgeOption(EventOption, action="shatter_forge", text=get_locale_text("i18n_events_a.forge_shatter_text")):
     def _run_effect(self, run, engine) -> str:
-        from ...models.state import CardState
         p = run.player
-        p.gold += 50
-        p.hp -= 6
-        p.deck.append(CardState.from_cid("curse_dazed"))
+        cfg = EVENT_CONFIG.get("forge_furnace", {})
+        p.gold += cfg.get("shatter_gold", 50)
+        p.hp -= cfg.get("shatter_hp_cost", 6)
+        DeckService.add_card_to_deck(p, ensure_card_state("curse_dazed"))
         relics_pool = ["lucky_coin", "red_bottle", "leather_armor", "whetstone", "ready_pack", "arcane_rune", "ancient_eye", "gold_compass", "dragon_blood", "energy_core", "heavy_armor"]
         available_relics = [r for r in relics_pool if r not in p.relics]
         got_relic = ""
@@ -67,9 +74,10 @@ class ShatterForgeOption(EventOption, action="shatter_forge", text="强行破坏
             got_relic = random.choice(available_relics)
             p.relics.append(got_relic)
             if got_relic == "red_bottle":
-                p.max_hp += 5
-                p.hp += 5
-        relic_msg = f"与遗物【{get_relic_name(got_relic)}】" if got_relic else ""
+                red_bottle_cfg = RELIC_CONFIG.get("red_bottle", {})
+                p.max_hp += red_bottle_cfg.get("max_hp_gain", 5)
+                p.hp += red_bottle_cfg.get("heal_amount", 5)
+        relic_msg = get_locale_text("i18n_events_a.forge_shatter_relic_suffix", relic_name=get_relic_name(got_relic)) if got_relic else ""
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        return f"💥 你用法术强行破坏了熔炉！炉体瞬间发生剧烈爆炸，碎片四射！你受到了 6 点爆炸伤害，1张【晕眩】卡牌已加入卡组。但你在废墟中搜刮到了 50 金币{relic_msg}。已前往下一关。"
+        return get_locale_text("i18n_events_a.forge_shatter_result", relic_msg=relic_msg)

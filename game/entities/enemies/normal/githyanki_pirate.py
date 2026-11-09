@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("吉斯洋基海盗")
 class GithyankiPirateTemplate(EnemyTemplate):
@@ -57,13 +58,15 @@ class GithyankiPirateTemplate(EnemyTemplate):
                 engine._damage_target(run, "p0", 4, source=f"enemy:{enemy.name}", damage_type="force")
                 extra_after = run.node_data.get("battle_logs", [])
                 if len(extra_after) > extra_before:
-                    extra_msg = f" 银剑产生共鸣，对有盾的目标额外造成 4 点力场伤害！{extra_after.pop()}"
+                    extra_msg = get_locale_text("i18n_enemy_normal.githyanki_pirate.silver_sword_extra", dmg=extra_after.pop())
             
-            logs.append(f"【{enemy.name}】使出银剑横扫劈向你。{dmg_msg}{extra_msg}")
+            logs.append(get_locale_text("i18n_enemy_normal.githyanki_pirate.silver_sword", name=enemy.name, dmg=dmg_msg, extra=extra_msg))
         elif intent.type == "astral_step":
-            enemy.shield += intent.val
-            engine._add_buff_to(enemy, "astral_speed", "星界加速", "下回合开始时，获得 1 个额外动作点", 1)
-            logs.append(f"【{enemy.name}】施展星界跃迁进行闪避与充能，获得 {intent.val} 点护盾与【星界加速】！")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            engine._add_buff_to(enemy, "astral_speed", get_locale_text("i18n_enemy_normal.githyanki_pirate.buff_astral_speed"), get_locale_text("i18n_enemy_normal.githyanki_pirate.buff_astral_speed_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_normal.githyanki_pirate.astral_step", name=enemy.name, val=intent.val))
         elif intent.type == "parry":
-            enemy.shield += intent.val
-            logs.append(f"【{enemy.name}】做出招架姿态，获得 {intent.val} 点护盾。")
+            if enemy in run.enemies:
+                engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
+            logs.append(get_locale_text("i18n_enemy_normal.githyanki_pirate.parry", name=enemy.name, val=intent.val))

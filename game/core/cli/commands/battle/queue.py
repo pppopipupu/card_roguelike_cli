@@ -1,11 +1,12 @@
 from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
+from .....data.locale_data import get_locale_text
 
 class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_interrupt", "中断队列"]):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         if len(parts) < 2:
-            yield "❌ 请提供队列操作，例如：/rogue 队列 [使用 1, 随从 1 技能 2, 结束]"
+            yield get_locale_text("i18n_cli_commands.battle_queue_missing_arg")
             return
         is_qi = parts[0].lower() in ("qi", "queue_interrupt", "中断队列")
         full_arg = " ".join(parts[1:]).strip()
@@ -49,10 +50,10 @@ class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_i
                             success = e.value if e.value is not None else True
                         res = "\n".join(res_list)
                     else:
-                        res = f"❌ 指令【{first_sub}】在当前状态下不可用。"
+                        res = get_locale_text("i18n_cli_commands.err_command_unavailable", sub=first_sub)
                         success = False
                 else:
-                    res = f"❌ 未知指令：{first_sub}"
+                    res = get_locale_text("i18n_cli_commands.err_unknown_command", sub=first_sub)
                     success = False
                 results.append(res)
                 if is_qi and not success:
@@ -60,4 +61,4 @@ class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_i
             if results:
                 yield "\n\n".join(results)
             else:
-                yield "💬 队列未执行任何有效指令。"
+                yield get_locale_text("i18n_cli_commands.battle_queue_no_valid")

@@ -1,0 +1,41 @@
+{
+  "cards": {
+    "gem_effect": {
+      "gem_retain": "保留。",
+      "gem_vuln_1": "打出时对首个敌人施加 1 层易伤。",
+      "gem_weak_2": "打出时对首个敌人施加 2 层虚弱。",
+      "gem_copy_1": "复制 1。",
+      "gem_return_3": "返回 3。",
+      "gem_return_5": "返回 5。",
+      "gem_gain_a_1": "打出时获得 1A。",
+      "gem_gain_a_1_ba_1": "打出时获得 1A 1BA。"
+    },
+    "fragile_label": "易碎",
+    "fragile_marker": "易碎 {value}。",
+    "replay_label": "重放",
+    "replay_marker": "重放 {value}。",
+    "sentence_period": "。",
+    "gem_damage_upgrade": "宝石强化：伤害提升至 {damage}。",
+    "gem_damage_fallback": "造成 {damage} 点效果伤害。",
+    "gem_shield_upgrade": "宝石强化：护盾提升至 {shield}。",
+    "gem_shield_gain": "获得 {shield} 点护盾。",
+    "gem_heal_upgrade": "宝石强化：生命回复提升至 {heal}。",
+    "gem_heal_gain": "回复 {heal} 点生命。",
+    "gem_ba_reduction": "BA消耗减少 {amount}。",
+    "gem_inlay_separator": "，",
+    "gem_inlay": " （镶嵌：{gems}）",
+    "power_penalty": " （魔力受损：效果降低 {penalty}）"
+  },
+  "preview": {
+    "condition_wrapped": "{prefix}（{body}）",
+    "annotated_number": "{pre}（{final}）",
+    "default_damage_name": "伤害",
+    "cards_played_hits": "（当前本回合已打出 {count} 张，进入战场将触发 {hits} 次{damage}伤害）",
+    "cards_played_pending": "（当前本回合已打出 {count} 张，尚未达到 {threshold} 张）"
+  },
+  "battle": {
+    "potion_item": "[{idx}]【{name}】",
+    "detailed_potion_item": "[{idx}]【{name}】({desc})",
+    "detailed_relic_line": "    • 【{name}】: {desc}"
+  }
+}

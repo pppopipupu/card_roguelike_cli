@@ -1,6 +1,7 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
+from ....data.locale_data import get_locale_text
 
 @register_enemy("幽灵大魔法师")
 class GhostArchmageTemplate(EnemyTemplate):
@@ -29,5 +30,5 @@ class GhostArchmageTemplate(EnemyTemplate):
             self._perform_attack(run, engine, enemy, intent.val, logs)
         elif intent.type == "mana_drain":
             self._perform_attack(run, engine, enemy, intent.val, logs)
-            engine._add_buff_to(run.player, "discard_next_turn", "下回合弃牌", "在下一回合开始时，你将随机丢弃等同于此状态层数的手牌", 1)
-            logs.append(f"【{enemy.name}】施展虹吸，使玩家在下一回合开始时将被迫随机丢弃 1 张手牌。")
+            engine._add_buff_to(run.player, "discard_next_turn", get_locale_text("i18n_enemy_elite_b.common.discard_next_turn_name"), get_locale_text("i18n_enemy_elite_b.common.discard_next_turn_desc"), 1)
+            logs.append(get_locale_text("i18n_enemy_elite_b.ghost_archmage.siphon", name=enemy.name))
