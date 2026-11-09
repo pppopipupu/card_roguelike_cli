@@ -629,7 +629,7 @@ class BossYogSothothTemplate(EnemyTemplate):
             enemy.max_actions = 2
             enemy.max_bonus_actions = 2
             enemy.buffs.clear()
-            enemy.buffs.append(BuffState(id="end_gate_passive", name="终焉之门", stacks=1, desc="每回合开始时获得 15 点护盾，且清除自身所有负面效果，受到伤害时 30% 几率反弹 4 点真实伤害"))
+            enemy.buffs.append(BuffState(id="end_gate_passive", name="终焉之门", stacks=1, desc="每回合开始获得 15 点护盾并清除自身负面效果；拥有护盾时，受到伤害会反弹 1 点真实伤害"))
             enemy.buffs.append(BuffState(id="phase_transition_immune", name="转换阶段", stacks=1, desc="处于转换阶段状态，免疫所有伤害"))
             run.node_data["yog_sothoth_phase"] = 2
             run.node_data["yog_sothoth_turn"] = 0
@@ -647,7 +647,7 @@ class BossYogSothothTemplate(EnemyTemplate):
             enemy.max_bonus_actions = 2
             enemy.buffs.clear()
             from ...models.state import BuffState, EnemyIntentState
-            enemy.buffs.append(BuffState(id="doomsday_gate_passive", name="终焉庇护", stacks=1, desc="每回合开始获得 20 护盾，且攻击力永久 +2"))
+            enemy.buffs.append(BuffState(id="doomsday_gate_passive", name="终焉庇护", stacks=1, desc="每回合开始获得 20 护盾与 2 层力量；拥有护盾时，受到伤害会反弹 1 点真实伤害与 2 点力场伤害"))
             enemy.buffs.append(BuffState(id="phase_transition_immune", name="转换阶段", stacks=1, desc="处于转换阶段状态，免疫所有伤害"))
             run.node_data["yog_sothoth_phase"] = 3
             run.node_data["yog_sothoth_turn"] = 0

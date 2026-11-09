@@ -323,7 +323,7 @@ class AncientProtectionBuff(BuffImpl):
             event.engine._log_event(event.run, f"🛡️ 【{entity.name}】触发【先古庇护】：清除了所有负面效果！")
 
     def on_damage_calculate_defend(self, event, buff_state, entity):
-        if event.modified_damage > 0:
+        if event.modified_damage > 0 and entity.shield > 0:
             recoil_dmg = max(1, int(event.modified_damage * 0.20))
             event.engine._damage_target(event.run, "p0", recoil_dmg, source=f"buff:{entity.name}", damage_type="force")
             event.engine._log_event(event.run, f"⚡ 【{entity.name}】的反弹结界触发，对玩家反弹了 {recoil_dmg} 点力场伤害！")
@@ -341,7 +341,7 @@ class EndGatePassiveBuff(BuffImpl):
             event.engine._log_event(event.run, f"🚪 【{entity.name}】触发【终焉之门】：获得 15 护盾并清除了所有负面效果！")
 
     def on_damage_calculate_defend(self, event, buff_state, entity):
-        if event.modified_damage > 0:
+        if event.modified_damage > 0 and entity.shield > 0:
             event.engine._damage_target(event.run, "p0", 1, source=f"buff:{entity.name}", damage_type="true")
             event.engine._log_event(event.run, f"⚡ 【{entity.name}】的终焉结界触发，对玩家反弹了 1 点真实伤害！")
 
@@ -353,7 +353,7 @@ class DoomsdayGatePassiveBuff(BuffImpl):
             event.engine._log_event(event.run, f"🌌 【{entity.name}】触发【终焉庇护】：获得了 20 点护盾与 2 层力量！")
 
     def on_damage_calculate_defend(self, event, buff_state, entity):
-        if event.modified_damage > 0:
+        if event.modified_damage > 0 and entity.shield > 0:
             event.engine._damage_target(event.run, "p0", 1, source=f"buff:{entity.name}", damage_type="true")
             event.engine._damage_target(event.run, "p0", 2, source=f"buff:{entity.name}", damage_type="force")
             event.engine._log_event(event.run, f"⚡ 【{entity.name}】的终焉结界触发，对玩家反弹了 1 点真实伤害与 2 点力场伤害！")

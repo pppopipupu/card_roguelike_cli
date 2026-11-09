@@ -292,7 +292,7 @@ class BattleEngine(BaseBattleEngine):
                     max_actions=2,
                     max_bonus_actions=1
                 )]
-                self._add_buff_to(run.enemies[0], "ancient_protection", "先古庇护", "受到伤害的 20% 反弹为真实伤害，回合开始有盾清除负面效果")
+                self._add_buff_to(run.enemies[0], "ancient_protection", "先古庇护", "拥有护盾时，受到伤害的 20% 反弹为力场伤害；回合开始时若拥有护盾则清除自身负面效果")
                 run.node_data["boss_name"] = "虚空之门·尤格-索托斯"
                 run.node_data["yog_sothoth_phase"] = 1
                 run.node_data["yog_sothoth_turn"] = 1

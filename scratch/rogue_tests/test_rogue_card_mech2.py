@@ -467,7 +467,7 @@ class TestRogueCardMech2(unittest.TestCase):
             "终焉测试",
             100,
             100,
-            0,
+            10,
             buffs=[BuffState("doomsday_gate_passive", "终焉庇护")],
         )
         run = GameRun("test_thorns_user", "battle", player, [enemy], {}, {})

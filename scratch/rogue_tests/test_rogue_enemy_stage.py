@@ -184,6 +184,50 @@ class TestRogueEnemyStage(unittest.TestCase):
         self.assertTrue(any(b.id == "strength" and b.stacks == 2 for b in commander.buffs))
         self.assertTrue(any(b.id == "strength" and b.stacks == 2 for b in run.enemies[1].buffs))
 
+    def test_yog_reflect_requires_shield_and_query(self):
+        from game.renderer import render_query_info
+
+        class DummySaveManager:
+            def save_save(self, user_id, run):
+                pass
+            def delete_save(self, user_id):
+                pass
+            def load_stats(self, user_id):
+                return UserStats()
+
+        engine = BattleEngine(DummySaveManager())
+        cases = (
+            ("ancient_protection", "先古庇护", 98),
+            ("end_gate_passive", "终焉之门", 99),
+            ("doomsday_gate_passive", "终焉庇护", 97),
+        )
+        for buff_id, buff_name, shielded_hp in cases:
+            for shield in (10, 0):
+                player = PlayerState(100, 100, 0, 0, 1, name="测试")
+                enemy = EnemyState(
+                    "测试尤格",
+                    500,
+                    500,
+                    shield,
+                    buffs=[BuffState(buff_id, buff_name)],
+                )
+                run = GameRun("test_yog_reflect", "battle", player, [enemy], {}, {})
+                engine._damage_target(run, "e1", 10, damage_type="force")
+                if shield > 0:
+                    self.assertEqual(player.hp, shielded_hp)
+                else:
+                    self.assertEqual(player.hp, 100)
+
+        q_gate = render_query_info("终焉之门")
+        self.assertIn("拥有护盾时", q_gate)
+        self.assertIn("反弹", q_gate)
+        q_awaken = render_query_info("【觉醒】虚空之门·尤格-索托斯")
+        self.assertIn("拥有护盾时", q_awaken)
+        self.assertIn("反弹", q_awaken)
+        q_end = render_query_info("【终焉】虚空之门·尤格-索托斯")
+        self.assertIn("拥有护盾时", q_end)
+        self.assertIn("反弹", q_end)
+
     def test_enemy_trash_talk(self):
         class DummySaveManager:
             def save_save(self, user_id, run):
