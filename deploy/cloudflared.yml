@@ -1,7 +1,0 @@
-tunnel: REPLACE_WITH_TUNNEL_ID
-credentials-file: /etc/cloudflared/REPLACE_WITH_TUNNEL_ID.json
-
-ingress:
-  - hostname: origin-rogue.114514256.xyz
-    service: http://127.0.0.1:8787
-  - service: http_status:404
