@@ -9,6 +9,7 @@ from .corpse_registry import CorpseRegistry
 from .save_codec import SaveCodecMixin
 from .settlement import SettlementMixin
 from ..data.locale_data import get_locale_text
+from ..data.starting_deck_config import LOCK_SLOT_LIMIT
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,10 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 d = json.load(f)
+            locked_cards = d.get("locked_cards", [])
+            if not isinstance(locked_cards, list):
+                locked_cards = []
+            locked_cards = locked_cards[:LOCK_SLOT_LIMIT]
             projection_feed = d.get("projection_feed", [])
             if not isinstance(projection_feed, list):
                 projection_feed = []
@@ -111,7 +116,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 in_town=d.get("in_town", False),
                 town_pos=d.get("town_pos", "square"),
                 guaranteed_card=d.get("guaranteed_card", None),
-                locked_cards=d.get("locked_cards", []),
+                locked_cards=locked_cards,
                 purchased_pool=d.get("purchased_pool", []),
                 defeated_town_npcs=d.get("defeated_town_npcs", []),
                 town_inventory=d.get("town_inventory", []),

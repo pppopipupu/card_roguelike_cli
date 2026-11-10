@@ -3,6 +3,7 @@ from ...base import CommandHandler
 from .....renderer import GameRenderer
 from .....entities import ALL_CARDS
 from .....data.locale_data import get_locale_text
+from .....data.starting_deck_config import LOCK_PRICE_GP, LOCK_SLOT_LIMIT
 
 class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解锁", "unlock"]):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
@@ -33,7 +34,7 @@ class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解�
                 get_locale_text("i18n_cli_general_a.lock.title"),
                 get_locale_text("i18n_cli_general_a.lock.separator"),
                 get_locale_text("i18n_cli_general_a.lock.gp", gp=gp),
-                get_locale_text("i18n_cli_general_a.lock.locked_count", count=len(locked_list)),
+                get_locale_text("i18n_cli_general_a.lock.locked_count", count=len(locked_list), limit=LOCK_SLOT_LIMIT),
             ]
             if locked_list:
                 for idx, cid in enumerate(locked_list):
@@ -48,13 +49,13 @@ class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解�
                 "",
                 get_locale_text("i18n_cli_general_a.lock.rules_title"),
                 get_locale_text("i18n_cli_general_a.lock.rule_1"),
-                get_locale_text("i18n_cli_general_a.lock.rule_2"),
+                get_locale_text("i18n_cli_general_a.lock.rule_2", limit=LOCK_SLOT_LIMIT),
                 get_locale_text("i18n_cli_general_a.lock.rule_3"),
-                get_locale_text("i18n_cli_general_a.lock.rule_4"),
+                get_locale_text("i18n_cli_general_a.lock.rule_4", price=LOCK_PRICE_GP),
                 get_locale_text("i18n_cli_general_a.lock.rule_5"),
                 "",
                 get_locale_text("i18n_cli_general_a.lock.commands_title"),
-                get_locale_text("i18n_cli_general_a.lock.cmd_lock"),
+                get_locale_text("i18n_cli_general_a.lock.cmd_lock", price=LOCK_PRICE_GP),
                 get_locale_text("i18n_cli_general_a.lock.cmd_unlock"),
                 get_locale_text("i18n_cli_general_a.lock.cmd_clear"),
                 get_locale_text("i18n_cli_general_a.lock.separator")
@@ -122,15 +123,15 @@ class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解�
             yield get_locale_text("i18n_cli_general_a.lock.lock_already", name=c_obj.name)
             return
 
-        if len(stats.locked_cards) >= 8:
-            yield get_locale_text("i18n_cli_general_a.lock.lock_limit")
+        if len(stats.locked_cards) >= LOCK_SLOT_LIMIT:
+            yield get_locale_text("i18n_cli_general_a.lock.lock_limit", limit=LOCK_SLOT_LIMIT)
             return
 
-        if stats.gp < 300:
-            yield get_locale_text("i18n_cli_general_a.lock.lock_no_gp", gp=stats.gp)
+        if stats.gp < LOCK_PRICE_GP:
+            yield get_locale_text("i18n_cli_general_a.lock.lock_no_gp", gp=stats.gp, price=LOCK_PRICE_GP)
             return
 
-        stats.gp -= 300
+        stats.gp -= LOCK_PRICE_GP
         stats.locked_cards.append(target_cid)
         router.save_manager.save_stats(user_id, stats)
-        yield get_locale_text("i18n_cli_general_a.lock.lock_success", name=c_obj.name)
+        yield get_locale_text("i18n_cli_general_a.lock.lock_success", name=c_obj.name, price=LOCK_PRICE_GP)

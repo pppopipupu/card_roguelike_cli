@@ -6,6 +6,7 @@ from ..models.state import UserStats, GameRun, PlayerState, EnemyState, BuffStat
 from ..entities import ALL_CARDS
 from ..entities.cards.market import MARKET_SHELF_CARDS, is_card_available
 from ..data.locale_data import get_locale_text
+from ..data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
 
 class TownEngine:
     def __init__(self, save_manager, engine):
@@ -236,7 +237,7 @@ class TownEngine:
         commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and is_card_available(cid, stats)]
         rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and is_card_available(cid, stats)]
         epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and is_card_available(cid, stats)]
-        locked_cards = list(getattr(stats, "locked_cards", []) or [])
+        locked_cards = list(getattr(stats, "locked_cards", []) or [])[:LOCK_SLOT_LIMIT]
         g_card = getattr(stats, "guaranteed_card", None)
         if g_card:
             if g_card not in locked_cards:
@@ -246,9 +247,9 @@ class TownEngine:
         if p_pool:
             locked_cards.extend(p_pool)
             stats.purchased_pool = []
-        stats.locked_cards = locked_cards
+        stats.locked_cards = locked_cards[:LOCK_SLOT_LIMIT]
         self.save_manager.save_stats(user_id, stats)
-        target_counts = {"common": 5, "rare": 2, "epic": 1}
+        target_counts = dict(STARTING_ROLL_COUNTS)
         for cid in locked_cards:
             c_obj = ALL_CARDS.get(cid)
             r = getattr(c_obj, "rarity", "common") if c_obj else "common"
@@ -263,7 +264,7 @@ class TownEngine:
                     target_counts["rare"] -= 1
                 elif target_counts["epic"] > 0:
                     target_counts["epic"] -= 1
-        deck = list(locked_cards)
+        deck = list(CLASS_STARTING_CARDS.get(selected_class, CLASS_STARTING_CARDS["法师"])) + list(locked_cards)
         for _ in range(target_counts["common"]):
             deck.append(random.choice(commons))
         for _ in range(target_counts["rare"]):

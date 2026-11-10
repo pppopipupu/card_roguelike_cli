@@ -18,7 +18,7 @@
   "shop_locked": "未解锁",
   "shop_not_buyable": "❌ 【{name}】为通关解锁内容，无需在此处购买。",
   "card_lock_already": "❌ 锁定失败：卡牌【{choice}】已经在你的锁定列表中了。",
-  "card_lock_limit": "❌ 锁定失败：最多只能同时锁定 8 张卡牌。",
+  "card_lock_limit": "❌ 锁定失败：最多只能同时锁定 {limit} 张卡牌。",
   "quest_tour_title": "📖 任务：向导的观光指引 [{status}]",
   "quest_tour_intro": "   介绍：向导长老希望你游览主城商业区的全部11个地标以熟悉环境。",
   "quest_tour_goal": "探索先古主城的全部 11 个地标 (当前进度: {visited_cnt}/11)",

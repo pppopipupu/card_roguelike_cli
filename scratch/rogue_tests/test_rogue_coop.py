@@ -53,6 +53,10 @@ class TestRogueCoop(unittest.TestCase):
             ready = self.run_cmd("team ready", uid)
             self.assertIn("已准备就绪", ready)
         random.seed(0)
+        from game.data.starting_deck_config import STARTING_ROLL_COUNTS
+        legacy_roll_calls = 8 - sum(STARTING_ROLL_COUNTS.values())
+        for _ in range(legacy_roll_calls * len(uids)):
+            random.choice([0, 1])
         started = self.run_cmd("team start", leader)
         self.assertIn("已开启联机牌局", started)
         for uid in uids:

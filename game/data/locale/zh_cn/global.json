@@ -78,7 +78,7 @@
     "take_success": "🎒 你成功拿取了【{target}】并存入你的背包中。",
     "use_not_found": "❌ 背包里没有【{target}】该如何使用？",
     "use_cannot_use": "❌ 【{target}】无法在主城内直接使用。",
-    "card_lock_success": "🔒 成功扣除 300 GP，下局游戏开始初始牌组将必定带有【{name}】！",
+    "card_lock_success": "🔒 成功扣除 {price} GP，下局游戏开始初始牌组将必定带有【{name}】！",
     "card_lock_failed_legendary": "❌ 卡牌大卖场无法锁定传奇稀有度卡牌。",
     "card_lock_failed_not_found": "❌ 未能匹配到叫【{name}】的卡牌。",
     "card_buy_success": "🛒 成功花费 {price} GP 购买了【{name}】。它会在你开启下一局新游戏时注入到你的初始牌组中！",

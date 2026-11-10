@@ -673,9 +673,9 @@ class TestRogueSystem(unittest.TestCase):
             self.assertIn("已经", res_fail_dup)
 
             stats.gp = 5000
-            for i in range(7):
-                stats.locked_cards.append(f"dummy_card_{i}")
+            stats.locked_cards.append("dummy_card_0")
             plugin.save_manager.save_stats(user_id, stats)
+            self.assertEqual(len(plugin.save_manager.load_stats(user_id).locked_cards), 2)
 
             res_fail_limit = await run_command(plugin, "lock 防御", sender_id=user_id)
             self.assertIn("最多只能同时锁定", res_fail_limit)
@@ -716,6 +716,58 @@ class TestRogueSystem(unittest.TestCase):
             stats_path = plugin.save_manager.get_stats_path(user_id)
             if os.path.exists(stats_path):
                 os.remove(stats_path)
+
+        asyncio.run(go())
+
+    def test_locked_cards_truncated_to_two(self):
+        plugin = MyPlugin(DummyContext())
+        user_id = "test_user_lock_truncate"
+        stats_path = plugin.save_manager.get_stats_path(user_id)
+        if os.path.exists(stats_path):
+            os.remove(stats_path)
+
+        stats = plugin.save_manager.load_stats(user_id)
+        stats.locked_cards = ["warrior_strike", "warrior_defend", "warrior_bash", "fire_bolt", "shield"]
+        plugin.save_manager.save_stats(user_id, stats)
+
+        loaded = plugin.save_manager.load_stats(user_id)
+        self.assertEqual(loaded.locked_cards, ["warrior_strike", "warrior_defend"])
+
+        async def go():
+            res = await run_command(plugin, "lock", sender_id=user_id)
+            self.assertIn("(2 / 2)", res)
+
+        asyncio.run(go())
+        if os.path.exists(stats_path):
+            os.remove(stats_path)
+
+    def test_starting_deck_class_cards(self):
+        plugin = MyPlugin(DummyContext())
+
+        async def go():
+            for class_name, tag, expected in (
+                ("战士", "warrior", ["warrior_strike", "warrior_defend", "warrior_bash"]),
+                ("法师", "wizard", ["fire_bolt", "shield", "magic_missile"]),
+            ):
+                user_id = "test_user_starting_" + tag
+                stats_path = plugin.save_manager.get_stats_path(user_id)
+                if os.path.exists(stats_path):
+                    os.remove(stats_path)
+                stats = plugin.save_manager.load_stats(user_id)
+                stats.rogue_mode = True
+                stats.selected_class = class_name
+                plugin.save_manager.save_stats(user_id, stats)
+
+                await run_command(plugin, "start", sender_id=user_id)
+                run = plugin.save_manager.load_save(user_id)
+                self.assertIsNotNone(run)
+                card_ids = [c.id for c in run.player.deck]
+                self.assertEqual(card_ids[:3], expected)
+                self.assertEqual(len(card_ids), 8)
+
+                plugin.save_manager.delete_save(user_id)
+                if os.path.exists(stats_path):
+                    os.remove(stats_path)
 
         asyncio.run(go())
 

@@ -5,6 +5,7 @@ from ...models.state import UserStats
 from ...cards import ALL_CARDS
 from ...entities.cards.market import get_market_price
 from ...data.locale_data import get_locale_text
+from ...data.starting_deck_config import LOCK_PRICE_GP, LOCK_SLOT_LIMIT
 
 
 def _option(action: Optional[str], label: Any, condition: Optional[Callable[[UserStats], bool]] = None, target: Any = None, prefix: bool = True, selectable: bool = True) -> Dict[str, Any]:
@@ -395,17 +396,17 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
             return get_locale_text("global.card_lock_failed_legendary")
         if target_cid in getattr(stats, "locked_cards", []):
             return get_locale_text("i18n_town.card_lock_already", choice=choice)
-        if len(getattr(stats, "locked_cards", [])) >= 8:
-            return get_locale_text("i18n_town.card_lock_limit")
-        if stats.gp < 300:
-            return get_locale_text("global.gp_insufficient", req=300, owned=stats.gp)
-        stats.gp -= 300
+        if len(getattr(stats, "locked_cards", [])) >= LOCK_SLOT_LIMIT:
+            return get_locale_text("i18n_town.card_lock_limit", limit=LOCK_SLOT_LIMIT)
+        if stats.gp < LOCK_PRICE_GP:
+            return get_locale_text("global.gp_insufficient", req=LOCK_PRICE_GP, owned=stats.gp)
+        stats.gp -= LOCK_PRICE_GP
         if not hasattr(stats, "locked_cards") or stats.locked_cards is None:
             stats.locked_cards = []
         stats.locked_cards.append(target_cid)
         stats.town_flags.pop("market_sub_menu", None)
         save()
-        res_msg = get_locale_text("global.card_lock_success", name=choice)
+        res_msg = get_locale_text("global.card_lock_success", name=choice, price=LOCK_PRICE_GP)
         return res_msg + "\n\n" + rerender()
 
     if action == "shop_buy":
@@ -490,7 +491,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         stats.gp += 300
         if not hasattr(stats, "locked_cards") or stats.locked_cards is None:
             stats.locked_cards = []
-        if "discover" not in stats.locked_cards and len(stats.locked_cards) < 8:
+        if "discover" not in stats.locked_cards and len(stats.locked_cards) < LOCK_SLOT_LIMIT:
             stats.locked_cards.append("discover")
         save()
         return npc_data.get("open_success", "") + "\n\n" + rerender()
@@ -505,7 +506,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         elif c_effect == "card":
             if not hasattr(stats, "locked_cards") or stats.locked_cards is None:
                 stats.locked_cards = []
-            if "discover" not in stats.locked_cards and len(stats.locked_cards) < 8:
+            if "discover" not in stats.locked_cards and len(stats.locked_cards) < LOCK_SLOT_LIMIT:
                 stats.locked_cards.append("discover")
             res = npc_data.get("wish_success_card", "")
         else:

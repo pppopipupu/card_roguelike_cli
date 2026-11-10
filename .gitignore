@@ -212,3 +212,8 @@ __marimo__/
 .agent/
 
 .cloudflare/
+
+# 本地部署目录（已跟踪文件需另行取消跟踪）
+supabase/
+server/
+deploy/
