@@ -74,14 +74,14 @@ PYTHONPATH="." .venv/Scripts/python.exe -m uvicorn server.app:create_app --facto
 
 ### 管理员授权
 
-管理员身份由账号数据库 `players.is_admin` 字段决定，默认 `0`；`rogueadmin`、`admin` 与 `admin accounts` 仅对该字段为 `1` 的用户开放。线上目前只为 `pppopipupu` 授权：
+管理员身份由账号数据库 `players.is_admin` 字段决定，默认 `0`；`rogueadmin`、`admin` 与 `admin accounts` 仅对该字段为 `1` 的用户开放。线上目前只授权了 `pppopipupu` 的主账号：
 
 ```bash
-py -m server.adminctl set pppopipupu on
+py -m server.adminctl set <用户ID> on
 py -m server.adminctl list
 ```
 
-`set` 按 `id`、`im_user_id`、`web_user_id` 精确定位用户，不按昵称匹配；用户需先登录一次生成记录。也可直接执行 `UPDATE players SET is_admin = 1 WHERE im_user_id = 'pppopipupu';`。设为 `off` 可收回权限。
+`set` 按 `id`、`im_user_id`、`web_user_id` 精确定位用户，不按昵称匹配；用户需先登录一次生成记录，具体用户 ID 可由 `adminctl list` 查看。也可直接执行 `UPDATE players SET is_admin = 1 WHERE id = '<用户ID>';`。设为 `off` 可收回权限。Linux 部署时把上述命令中的 `py` 换成虚拟环境中的 `python`。
 
 ### 接口
 
