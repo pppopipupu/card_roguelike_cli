@@ -4,10 +4,12 @@
 
 ## 当前状态
 
-- 核心与联机测试:178 项通过,2 项跳过。
-- 后端测试:17 项通过。
+- 核心与联机测试:185 项通过,2 项跳过。
+- 后端测试:21 项通过。
 - 联机日志按玩家隔离;队友投影按操作逐条返回,私聊与网页默认开启,群聊禁用。
 - `logs` 查看个人战斗与行动日志,`logc` 查看队伍日志,默认 20 条、最多 50 条;命令队列最多 50 条指令。
+- `help` 按分类列出全部指令,`help <指令|别名>` 查看单条指令的用法、别名、可用场景与示例。
+- `potion list` 查看药水槽与效果,`potion drink`、`potion throw`、`potion drop` 分别饮用、投掷与丢弃药水;投掷省略目标时默认投向第一个敌人。
 - 联机地图与事件采用同一套队伍决策:队长选择直接生效,半数及以上存活队员选择同一分支或选项时生效;事件为全队共享一个,效果作用于所有队员,触发战斗时全队一并进入。
 - 战斗日志只输出本次指令新产生的事件;联机【我方战场】按队员分段展示全队随从与护符;单回合 Buff、每回合出牌计数与流血层数按玩家各自结算。
 - 架构重构已完成战斗、联机、路由、渲染、本地化与数值配置化;`game/` 与 `server/` 全部 Python 文件不超过 650 行。
@@ -20,8 +22,10 @@
 | `server/` | FastAPI 单接口后端：`POST /api/v1/action` |
 | `server/shell/` | 终端：文件系统、历史与补全提示 |
 | `play_rogue.py` | 本地控制台入口，免前缀游玩 |
-| `scratch/rogue_tests/` | 核心单元与集成测试 |
-| `scratch/server_tests/` | 后端账号、认证与接口测试 |
+| `game/test/core/` | 核心与联机回归测试：游戏逻辑与主要交互 |
+| `game/test/server/` | 后端账号、认证与接口回归测试 |
+| `game/test/check_refactor_gates.py` | 重构门禁扫描 |
+| `scratch/` | 临时脚本目录，已被 gitignore，不提交 |
 | `deploy/` | systemd、Cloudflare Tunnel 与环境变量模板 |
 
 ## 本地游玩
@@ -35,7 +39,7 @@ py play_rogue.py
 ## 核心测试
 
 ```bash
-PYTHONPATH="." PYTHONIOENCODING="utf-8" py scratch/test_flow.py
+PYTHONPATH="." PYTHONIOENCODING="utf-8" py -m unittest discover -s game/test/core -t . -p "test_*.py"
 ```
 
 ## 后端
@@ -156,7 +160,7 @@ Content-Type: application/json
 | 彩蛋 | `neofetch`、`git status`、`systemctl status rogue-core`、`journalctl -u rogue-core` |
 | 帮助 | `help system`、`man ls`、`history`、`clear` |
 
-`help` 默认显示肉鸽指令帮助；`help system` 显示终端命令帮助。网页端肉鸽模式固定开启，`mode` 指令已移除；即时通讯端使用 `mode` 切换免前缀模式。
+`help` 默认显示分类指令一览,`help <指令|别名>` 显示单条指令详解；`help system` 显示终端命令帮助。网页端肉鸽模式固定开启，`mode` 指令已移除；即时通讯端使用 `mode` 切换免前缀模式。
 
 账号命令也走同一接口：
 
@@ -186,8 +190,11 @@ Content-Type: application/json
 
 ## 测试
 
+回归测试长期保留在 `game/test/`，只覆盖核心游戏逻辑与主要交互；临时脚本放在 `scratch/`，该目录已被 gitignore，不进入版本库。
+
 ```bash
-PYTHONPATH="." PYTHONIOENCODING="utf-8" .venv/Scripts/python.exe -m unittest discover -s scratch/server_tests -p "test_*.py" -v
+PYTHONPATH="." PYTHONIOENCODING="utf-8" py -m unittest discover -s game/test/core -t . -p "test_*.py"
+PYTHONPATH="." PYTHONIOENCODING="utf-8" .venv/Scripts/python.exe -m unittest discover -s game/test/server -t . -p "test_*.py" -v
 ```
 
 ## 相关仓库

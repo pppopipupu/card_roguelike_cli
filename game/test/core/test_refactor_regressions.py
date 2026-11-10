@@ -5,7 +5,7 @@ import re
 import tempfile
 import unittest
 
-from scratch.rogue_tests.base import CorePlugin, run_command
+from game.test.core.base import CorePlugin, run_command
 from game.core.battle_engine import BattleEngine
 from game.data.gem_data import GEM_CONFIG
 from game.models.coop_view import apply_view

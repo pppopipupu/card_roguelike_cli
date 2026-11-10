@@ -193,8 +193,8 @@ class ServerTests(unittest.TestCase):
             {"command": ".rogue help", "channel": "im", "force": True},
             self.im_headers("im-mode"),
         ).json()["text"]
-        self.assertIn("mode --", help_text)
-        self.assertIn("免前缀模式", help_text)
+        self.assertIn("指令一览", help_text)
+        self.assertIn("切换免前缀快捷指令模式", help_text)
 
         enabled = self.post(
             {"command": ".rogue mode", "channel": "im", "force": True},
@@ -451,7 +451,7 @@ class ServerTests(unittest.TestCase):
         help_game = self.post(
             {"command": "help", "channel": "web"}, self.web_headers("web-shell")
         ).json()
-        self.assertIn("魔法肉鸽卡牌游戏指令帮助", help_game["text"])
+        self.assertIn("指令一览", help_game["text"])
         self.assertNotIn("可用终端命令", help_game["text"])
 
         help_system = self.post(

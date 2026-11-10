@@ -5,7 +5,7 @@ from .....renderer import GameRenderer
 from .....data.balance_config import QUEUE_MAX_COMMANDS
 from .....data.locale_data import get_locale_text
 
-class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_interrupt", "中断队列"]):
+class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_interrupt", "中断队列"], help_key="queue"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         if len(parts) < 2:
             yield get_locale_text("i18n_cli_commands.battle_queue_missing_arg")

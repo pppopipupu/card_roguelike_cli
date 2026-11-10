@@ -286,17 +286,17 @@ class CombatResolver:
         grid = self.get_free_grid(run.player)
         if grid:
             m = MinionState(minion_id, name, hp, hp, atk, 1, ba)
+            run.player.minions[grid] = m
             evt = MinionSummonEvent(run, m, grid)
             self.engine.event_bus.dispatch(evt)
-            run.player.minions[grid] = m
             return grid
         return None
 
-    def damage_target(self, game_run_context: GameRun, target: str, dmg: int, source: str = "effect", damage_type: str = "effect", card: Optional[Card] = None, damage_ready: bool = False):
+    def damage_target(self, game_run_context: GameRun, target: str, dmg: int, source: str = "effect", damage_type: str = "effect", card: Optional[Card] = None, damage_ready: bool = False, is_attack: bool = False):
         if self._redirect_ally(
             game_run_context,
             target,
-            lambda inner: self.damage_target(game_run_context, inner, dmg, source, damage_type, card, damage_ready),
+            lambda inner: self.damage_target(game_run_context, inner, dmg, source, damage_type, card, damage_ready, is_attack),
         ):
             return
         target_name = self.get_target_name(game_run_context, target)
@@ -321,7 +321,7 @@ class CombatResolver:
         if damage_ready:
             final_dmg = dmg
         else:
-            calc_evt = DamageCalculateEvent(game_run_context, card, source, target, damage_type, dmg, dmg)
+            calc_evt = DamageCalculateEvent(game_run_context, card, source, target, damage_type, dmg, dmg, is_attack)
             self.engine.event_bus.dispatch(calc_evt)
             final_dmg = max(0, calc_evt.modified_damage)
         p = game_run_context.player

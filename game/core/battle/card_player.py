@@ -4,7 +4,7 @@ from typing import Optional
 from ...models.state import GameRun, PlayerState
 from .card_player_rewards import CardPlayerRewardsMixin
 from .card_player_turn import CardPlayerTurnMixin
-from .coop_targeting import validate_coop_target
+from .coop_targeting import validate_coop_target, normalize_coop_target
 from ..deck_service import DeckService
 from ...data.locale_data import get_locale_text
 
@@ -291,6 +291,8 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         is_emperor_eye = base_id.startswith("neutral_emperor_eye")
         is_coop_card = bool(getattr(card, "coop_only", False))
         if is_coop_card:
+            target = normalize_coop_target(run, card, base_id, target)
+        if is_coop_card:
             error = validate_coop_target(self.engine, run, card, base_id, target)
             if error:
                 return error
@@ -517,7 +519,7 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
             return get_locale_text("i18n_battle_core.enemy_grid_invalid", target=opp_grid)
         enemy = run.enemies[opp_idx]
         opp_grid = f"e{opp_idx+1}"
-        self.engine._damage_target(run, opp_grid, m.atk, source=f"p{my_grid}", damage_type="bludgeoning")
+        self.engine._damage_target(run, opp_grid, m.atk, source=f"p{my_grid}", damage_type="bludgeoning", is_attack=True)
         res = get_locale_text("i18n_battle_core.minion_attack_log", minion=m.name, enemy=enemy.name)
         self.engine.save_manager.save_save(run.user_id, run)
         res = self._post_battle_action_check(run, initial_status, res, p)

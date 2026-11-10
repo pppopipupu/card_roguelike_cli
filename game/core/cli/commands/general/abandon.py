@@ -2,7 +2,7 @@ from typing import Generator
 from ...base import CommandHandler
 from .....data.locale_data import get_locale_text
 
-class AbandonCommand(CommandHandler, names=["放弃", "abandon"], allowed_states=["explore", "battle"]):
+class AbandonCommand(CommandHandler, names=["放弃", "abandon"], allowed_states=["explore", "battle"], help_key="abandon"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:

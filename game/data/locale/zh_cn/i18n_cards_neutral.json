@@ -75,7 +75,6 @@
       "summon_minion": {
         "disabled": "❌ 该卡牌当前已被管理员禁用，无法使用。",
         "none": "无",
-        "mercenary_battlecry": "\n⚔️ [入场曲] 【雇佣兵+】立即攻击了【{target}】，造成了 {atk} 点伤害！",
         "shield_guard_battlecry": "\n🛡️ [入场曲] 获得了 8 点入场曲护盾！",
         "ice_rainbow_battlecry": "\n❄️ [入场曲] 获得了 8 点护盾，并使所有敌人受到 1 层轻度寒冷易伤！",
         "gate_guard_battlecry": "\n🚪 [入场曲] 使【{target}】眩晕了 1 回合！",

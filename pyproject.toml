@@ -24,3 +24,4 @@ rogue-server = "server.app:run"
 
 [tool.setuptools.packages.find]
 include = ["game*", "server*"]
+exclude = ["game.test*"]

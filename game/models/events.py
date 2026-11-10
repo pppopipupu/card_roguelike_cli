@@ -58,6 +58,7 @@ class DamageCalculateEvent(GameEvent):
     damage_type: str
     base_damage: int
     modified_damage: int = 0
+    is_attack: bool = False
 
 @dataclass
 class DamageTakeEvent(GameEvent):

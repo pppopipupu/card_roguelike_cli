@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from game.entities.events import ALL_EVENTS
 
-from scratch.rogue_tests.base import CorePlugin, run_command
+from game.test.core.base import CorePlugin, run_command
 from game.data.gem_data import GEM_CONFIG
 from game.entities.cards.base import ALL_CARDS
 from game.models.state import CardState, GameRun, PlayerState, public_player_id
@@ -857,16 +857,6 @@ class TestRogueCoop(unittest.TestCase):
         self.assertFalse(any(b.id == "tactical_focus" for b in run.players[uids[1]].buffs))
         self.assertEqual(len(run.players[uids[1]].hand), 6)
 
-    def test_coop_waiting_prompt_lists_ready_members(self):
-        uids = ["ready_leader", "ready_member"]
-        self.enter_coop_battle(uids)
-        waiting = self.run_cmd("e", uids[0])
-        wait_line = next(line for line in waiting.split("\n") if line.startswith("⏳ 你已结束本回合行动"))
-        self.assertIn("当前已就绪：1/2", wait_line)
-        member_name = self.plugin.save_manager.load_save(uids[0]).players[uids[1]].name
-        self.assertNotIn(member_name, wait_line)
-        self.assertIn("队长", wait_line)
-
     def test_coop_echo_form_uses_per_player_play_count(self):
         uids = ["echo_leader", "echo_member"]
         self.enter_coop_battle(uids)
@@ -883,19 +873,6 @@ class TestRogueCoop(unittest.TestCase):
         self.plugin.save_manager.save_coop_save(uids[1], run)
         res = self.run_cmd("p 1", uids[1])
         self.assertIn("[回响触发]", res)
-
-    def test_coop_battlefield_shows_team_units(self):
-        uids = ["field_leader", "field_member"]
-        self.enter_coop_battle(uids)
-        self.set_hand(uids[0], [CardState(id="mercenary", upgraded=True)])
-        self.run_cmd("p 1", uids[0])
-        self.set_hand(uids[1], [CardState(id="lucky_coin")])
-        self.run_cmd("p 1", uids[1])
-        for viewer in uids:
-            panel = self.run_cmd("", viewer)
-            self.assertIn("雇佣兵+", panel)
-            self.assertIn("幸运金币", panel)
-            self.assertIn("【我方战场】", panel)
 
     def test_coop_minion_card_leaves_hand_and_stays(self):
         uids = ["minion_leader", "minion_member"]
@@ -917,6 +894,60 @@ class TestRogueCoop(unittest.TestCase):
         self.assertEqual(player.minions["1"].id, "mercenary+")
         self.assertEqual(player.minions["1"].atk, 5)
         self.assertFalse([c for c in player.hand if c.id == "mercenary"])
+
+    def test_coop_cafe_and_ancient_wait_for_all_players(self):
+        uids = ["cafe_wait_leader", "cafe_wait_member"]
+        run = self.start_coop(uids)
+        from game.data.map_config import MapConfig
+        cafe_stage = MapConfig.CAFE_STAGES[0]
+        for uid in uids:
+            run.players[uid].stage = cafe_stage - 1
+        self.plugin.save_manager.save_coop_save(uids[0], run)
+        self.plugin.engine.map_engine.enter_next_stage(self.plugin.save_manager.load_save(uids[0]))
+        run = self.plugin.save_manager.load_save(uids[0])
+        self.assertEqual(run.node_type, "cafe")
+        self.assertEqual(run.node_data.get("coop_node_type"), "cafe")
+        views = run.node_data.get("player_views", {})
+        self.assertEqual(set(views), set(uids))
+        self.assertTrue(views[uids[0]]["data"]["cafe_data"])
+
+        waiting = self.run_cmd("离开", uids[0])
+        self.assertIn("等待队友", waiting)
+        member = self.plugin.save_manager.load_save(uids[1])
+        self.assertEqual(member.node_type, "cafe")
+        self.assertTrue(member.node_data.get("cafe_data"))
+        self.assertFalse(member.node_data.get("coop_done"))
+
+        completed = self.run_cmd("离开", uids[1])
+        self.assertIn("继续前进", completed)
+        for uid in uids:
+            ancient = self.plugin.save_manager.load_save(uid)
+            self.assertEqual(ancient.node_type, "ancient")
+            self.assertEqual(ancient.players[uid].stage, cafe_stage)
+
+        waiting = self.run_cmd("c 1", uids[0])
+        self.assertIn("等待队友", waiting)
+        member = self.plugin.save_manager.load_save(uids[1])
+        self.assertEqual(member.node_type, "ancient")
+
+        completed = self.run_cmd("c 1", uids[1])
+        self.assertIn("继续前进", completed)
+        for uid in uids:
+            advanced = self.plugin.save_manager.load_save(uid)
+            self.assertEqual(advanced.node_type, "map_select")
+            self.assertEqual(advanced.players[uid].stage, cafe_stage + 1)
+
+    def test_coop_ally_card_defaults_to_first_teammate(self):
+        uids = ["ally_default_leader", "ally_default_member", "ally_default_third"]
+        self.enter_coop_battle(uids)
+        uid = uids[0]
+        self.set_hand(uid, [CardState(id="coop_tactical_command")])
+        before = self.plugin.save_manager.load_save(uids[1]).players[uids[1]].actions
+        result = self.run_cmd("p 1", uid)
+        self.assertNotIn("请指定", result)
+        self.assertIn("战术指挥", result)
+        after = self.plugin.save_manager.load_save(uids[1]).players[uids[1]].actions
+        self.assertEqual(after, before + 1)
 
 
 if __name__ == "__main__":

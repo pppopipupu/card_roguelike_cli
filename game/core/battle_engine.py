@@ -98,8 +98,8 @@ class BattleEngine(BaseBattleEngine):
     def _get_target_name(self, run: GameRun, target: Optional[str]) -> str:
         return self.combat_resolver.get_target_name(run, target)
 
-    def _damage_target(self, run: GameRun, target: str, dmg: int, source: str = "effect", damage_type: str = "effect", card: Optional[Card] = None, damage_ready: bool = False):
-        self.combat_resolver.damage_target(run, target, dmg, source, damage_type, card, damage_ready)
+    def _damage_target(self, run: GameRun, target: str, dmg: int, source: str = "effect", damage_type: str = "effect", card: Optional[Card] = None, damage_ready: bool = False, is_attack: bool = False):
+        self.combat_resolver.damage_target(run, target, dmg, source, damage_type, card, damage_ready, is_attack)
 
     def _heal_target(self, run: GameRun, target: str, heal: int):
         self.combat_resolver.heal_target(run, target, heal)

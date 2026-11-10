@@ -3,7 +3,7 @@ from ...base import CommandHandler
 from .....renderer import GameRenderer
 from .....data.locale_data import get_locale_text
 
-class ChooseCommand(CommandHandler, names=["选择", "c"], allowed_states=["menu", "explore", "battle", "cafe"]):
+class ChooseCommand(CommandHandler, names=["选择", "c"], allowed_states=["menu", "explore", "battle", "cafe"], help_key="choose"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if run is not None and run.node_type == "cafe":

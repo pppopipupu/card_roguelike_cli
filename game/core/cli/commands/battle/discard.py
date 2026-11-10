@@ -3,7 +3,7 @@ from ...base import CommandHandler
 from .....renderer import GameRenderer
 from .....data.locale_data import get_locale_text
 
-class DiscardCommand(CommandHandler, names=["弃牌堆", "discard", "discard_pile"], allowed_states=["battle"]):
+class DiscardCommand(CommandHandler, names=["弃牌堆", "discard", "discard_pile"], allowed_states=["battle"], help_key="discard"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:

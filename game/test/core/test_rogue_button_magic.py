@@ -2,7 +2,7 @@ import os
 import unittest
 import asyncio
 import random
-from scratch.rogue_tests.base import *
+from game.test.core.base import *
 from game.models.state import GameRun, PlayerState, EnemyState, CardState
 from game.entities.cards.neutral import NeutralButtonMagicCard
 from game.renderer.menu import get_rogue_card_library_items

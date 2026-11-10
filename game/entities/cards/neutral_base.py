@@ -189,13 +189,7 @@ class SummonMinionCard(Card):
         if grid:
             battlecry_msg = ""
             target_name = get_locale_text("i18n_cards_neutral.neutral.base.summon_minion.none")
-            if is_upgraded_card(self, "mercenary"):
-                chosen_target = target if (target and target.startswith("e")) else engine._get_first_alive_enemy(run)
-                if chosen_target:
-                    engine._damage_target(run, chosen_target, self.minion_atk, source=f"p{grid}", damage_type="bludgeoning")
-                    tname = engine._get_target_name(run, chosen_target)
-                    battlecry_msg = get_locale_text("i18n_cards_neutral.neutral.base.summon_minion.mercenary_battlecry", target=tname, atk=self.minion_atk)
-            elif is_upgraded_card(self, "shield_guard"):
+            if is_upgraded_card(self, "shield_guard"):
                 shield_amount = getattr(self, "shield_amount", 8)
                 engine._gain_shield(run, "p0", shield_amount)
                 battlecry_msg = get_locale_text("i18n_cards_neutral.neutral.base.summon_minion.shield_guard_battlecry")

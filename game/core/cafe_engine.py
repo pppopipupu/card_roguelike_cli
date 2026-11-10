@@ -22,7 +22,16 @@ class CafeEngine(CafeDialogMixin):
         self.save_manager = save_manager
         self.map_engine = map_engine
 
-    def init_cafe(self, run: GameRun):
+    def _coop(self, run):
+        from .coop_engine import coop_for_map_engine
+        return coop_for_map_engine(self.save_manager, self.map_engine)
+
+    def _coop_waiting(self, run):
+        if getattr(run, "coop_id", "") and run.node_data.get("coop_done"):
+            return get_locale_text("i18n_coop_explore.coop_done_waiting")
+        return ""
+
+    def init_cafe(self, run: GameRun, persist: bool = True):
         p = run.player
 
         num_guests = random.randint(CAFE_GUEST_COUNT_MIN, CAFE_GUEST_COUNT_MAX)
@@ -63,7 +72,8 @@ class CafeEngine(CafeDialogMixin):
 
         run.node_type = "cafe"
         run.node_data["cafe_data"] = cafe_data
-        self.save_manager.save_save(run.user_id, run)
+        if persist:
+            self.save_manager.save_save(run.user_id, run)
 
     def render_cafe(self, run: GameRun) -> str:
         p = run.player
@@ -119,6 +129,9 @@ class CafeEngine(CafeDialogMixin):
             return "\n".join(lines)
 
     def talk_npc(self, run: GameRun, target: str) -> str:
+        waiting = self._coop_waiting(run)
+        if waiting:
+            return waiting
         cafe_data = run.node_data.setdefault("cafe_data", {})
         npcs = cafe_data.get("npcs", [])
 
@@ -171,12 +184,21 @@ class CafeEngine(CafeDialogMixin):
         return get_locale_text("i18n_map_cafe.cafe_err_already_lobby")
 
     def leave_cafe(self, run: GameRun) -> str:
+        waiting = self._coop_waiting(run)
+        if waiting:
+            return waiting
+        msg = get_locale_text("i18n_map_cafe.cafe_msg_leave_cafe")
+        if getattr(run, "coop_id", ""):
+            return self._coop(run).finish_cafe_node(run, run.user_id, msg)
         run.node_type = "ancient"
         self.map_engine._init_ancient_node(run)
         self.save_manager.save_save(run.user_id, run)
-        return get_locale_text("i18n_map_cafe.cafe_msg_leave_cafe")
+        return msg
 
     def choose_option(self, run: GameRun, idx: int) -> str:
+        waiting = self._coop_waiting(run)
+        if waiting:
+            return waiting
         cafe_data = run.node_data.setdefault("cafe_data", {})
         active_npc = cafe_data.get("active_npc")
         dialog_state = cafe_data.get("dialog_state")

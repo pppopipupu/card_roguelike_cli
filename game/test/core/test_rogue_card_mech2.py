@@ -1,5 +1,5 @@
 import unittest
-from scratch.rogue_tests.base import *
+from game.test.core.base import *
 
 class TestRogueCardMech2(unittest.TestCase):
     def test_unmined_gem_and_replay_logic(self):
@@ -901,6 +901,8 @@ class TestRogueCardMech2(unittest.TestCase):
 
     def test_astral_strike_logic(self):
         from game.models.state import CardState
+        from game.data.buff_data import BUFF_CONFIG
+        from game.data.card_upgrade_data import CARD_UPGRADE_CONFIG
         class DummySaveManager:
             def save_save(self, user_id, run):
                 pass
@@ -930,23 +932,27 @@ class TestRogueCardMech2(unittest.TestCase):
             enemies=[EnemyState("测试敌人", 100, 100, 0)]
         )
         engine.play_card(run, 1)
-        self.assertEqual(run.enemies[0].hp, 64)
+        card = ALL_CARDS.get("neutral_astral_strike")
+        upgrade = CARD_UPGRADE_CONFIG["neutral_astral_strike"]
+        mult = BUFF_CONFIG["strength"]["astral_strike_multiplier"]
+        up_mult = BUFF_CONFIG["strength"]["astral_strike_upgraded_multiplier"]
+        self.assertEqual(run.enemies[0].hp, 100 - card.base_dmg)
         run.enemies = [EnemyState("测试敌人", 100, 100, 0)]
         player.hand = ["neutral_astral_strike"]
         engine._add_buff_to(player, "strength", "力量", "", 2)
         engine.play_card(run, 1)
-        self.assertEqual(run.enemies[0].hp, 56)
+        self.assertEqual(run.enemies[0].hp, 100 - card.base_dmg - 2 * mult)
         player.buffs = []
         run.enemies = [EnemyState("测试敌人", 100, 100, 0)]
         player.hand = [CardState("neutral_astral_strike", upgraded=True)]
         engine.play_card(run, 1)
-        self.assertEqual(run.enemies[0].hp, 52)
+        self.assertEqual(run.enemies[0].hp, 100 - upgrade["base_dmg"])
         self.assertEqual(len(run.node_data.get("pending_gems", [])), 0)
         run.enemies = [EnemyState("测试敌人", 100, 100, 0)]
         player.hand = [CardState("neutral_astral_strike", upgraded=True)]
         engine._add_buff_to(player, "strength", "力量", "", 2)
         engine.play_card(run, 1)
-        self.assertEqual(run.enemies[0].hp, 42)
+        self.assertEqual(run.enemies[0].hp, 100 - upgrade["base_dmg"] - 2 * up_mult)
 
     def test_meteor_strike_and_strike_of_all(self):
         from game.models.state import CardState
@@ -1044,17 +1050,24 @@ class TestRogueCardMech2(unittest.TestCase):
 
     def test_help_and_menu_guides(self):
         from game.renderer import GameRenderer
-        help_text = GameRenderer.render_help()
-        self.assertIn("bag", help_text)
-        self.assertIn("quest", help_text)
-        self.assertIn("lock", help_text)
-        self.assertIn("map", help_text)
-        self.assertIn("qi", help_text)
-        self.assertIn("draw", help_text)
-        self.assertIn("mg (eg)", help_text)
-        self.assertIn("exit (quit/取消)", help_text)
-        self.assertIn("talk", help_text)
-        
+        index_text = GameRenderer.render_help_index([("basic", [{"usage": "bag", "brief": "查看背包"}])])
+        self.assertIn("指令一览", index_text)
+        self.assertIn("bag", index_text)
+        self.assertIn("查看背包", index_text)
+
+        detail_text = GameRenderer.render_help_detail({
+            "name": "使用卡牌",
+            "usage": "p <序号>",
+            "aliases": ["使用", "p"],
+            "states": ["battle"],
+            "desc": "打出指定手牌。",
+            "example": "p 1"
+        })
+        self.assertIn("使用卡牌", detail_text)
+        self.assertIn("使用 / p", detail_text)
+        self.assertIn("战斗", detail_text)
+        self.assertIn("p 1", detail_text)
+
         menu_text = GameRenderer.render_menu()
         self.assertIn("💡 提示：输入 /rogue help 或 help 可查看指令用法帮助。", menu_text)
 

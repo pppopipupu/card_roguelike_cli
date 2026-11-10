@@ -233,6 +233,8 @@ def handle_start_ancient(engine, run, option_idx, target=None) -> str | None:
 
 def handle_ancient(engine, run, option_idx, target=None) -> str | None:
     p = run.player
+    if getattr(run, "coop_id", "") and run.node_data.get("coop_done"):
+        return get_locale_text("i18n_coop_explore.coop_done_waiting")
     options = run.node_data.get("options", [])
     if option_idx < 1 or option_idx > len(options):
         return get_locale_text("err_invalid_option_idx")
@@ -246,9 +248,12 @@ def handle_ancient(engine, run, option_idx, target=None) -> str | None:
         bonus_str = get_locale_text("i18n_explore_core.ancient_blessing_card_relic", card_name=ALL_CARDS[cid].name, relic_name=get_relic_name(rid))
     else:
         bonus_str = get_locale_text("i18n_explore_core.ancient_blessing_relic", relic_name=get_relic_name(rid))
+    msg = get_locale_text("i18n_explore_core.ancient_blessing", bonus=bonus_str)
+    if getattr(run, "coop_id", ""):
+        return engine._coop_finish(run, msg)
     engine.map_engine.enter_next_stage(run)
     engine.save_manager.save_save(run.user_id, run)
-    return get_locale_text("i18n_explore_core.ancient_blessing", bonus=bonus_str)
+    return msg
 
 
 def handle_treasure(engine, run, option_idx, target=None) -> str | None:

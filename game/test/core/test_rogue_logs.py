@@ -3,7 +3,7 @@ import random
 import tempfile
 import unittest
 
-from scratch.rogue_tests.base import CorePlugin, run_command
+from game.test.core.base import CorePlugin, run_command
 
 
 class TestRogueLogs(unittest.TestCase):

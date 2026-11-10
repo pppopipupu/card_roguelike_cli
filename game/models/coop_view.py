@@ -25,6 +25,7 @@ VIEW_KEYS = {
     "coop_done",
     "coop_downed",
     "coop_pending_upgrade",
+    "cafe_data",
 }
 
 SHARED_PERSIST_KEYS = {
@@ -57,6 +58,7 @@ VIEW_NODES = {
     "treasure",
     "boss_chest",
     "gem_insert",
+    "cafe",
 }
 
 

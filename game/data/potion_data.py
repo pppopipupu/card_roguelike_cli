@@ -1,5 +1,6 @@
 import random
 
+POTION_SLOT_LIMIT = 3
 POTION_THROW_DAMAGE = 3
 POTION_RARITY_THRESHOLDS = (
     ("common", 0.60),
@@ -127,11 +128,17 @@ POTION_CONFIG = {
 def get_potion_name(pid: str) -> str:
     return POTION_CONFIG.get(pid, {}).get("name", pid)
 
+def get_potion_drink_text(pid: str) -> str:
+    return POTION_CONFIG.get(pid, {}).get("drink_desc", "")
+
+def get_potion_throw_text(pid: str) -> str:
+    return POTION_CONFIG.get(pid, {}).get("throw_desc", "")
+
 def get_potion_desc(pid: str) -> str:
     cfg = POTION_CONFIG.get(pid, {})
     if not cfg:
         return ""
-    return f"饮用效果：{cfg.get('drink_desc', '')} | 投掷效果：{cfg.get('throw_desc', '')}"
+    return f"饮用效果：{get_potion_drink_text(pid)} | 投掷效果：{get_potion_throw_text(pid)}"
 
 def roll_potion(player_class: str) -> str:
     r = random.random()

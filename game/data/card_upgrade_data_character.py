@@ -249,8 +249,8 @@ CARD_UPGRADE_CONFIG_CHARACTER = {
         "desc": "选择手牌中的一张手牌，消耗除选择牌以外的所有牌，获得等同于消耗牌数量的随机除对决模式外的卡牌。额外对一个随机敌人造成 49 点力场伤害。消耗。"
     },
     "neutral_astral_strike": {
-        "base_dmg": 48,
-        "desc": "造成 48 点力场伤害。力量对该牌伤害的加成效果乘以 5。消耗。"
+        "base_dmg": 32,
+        "desc": "造成 32 点力场伤害。力量对该牌伤害的加成效果乘以 5。消耗。",
     },
     "neutral_hero_anthem": {
         "shield_amount": 10,

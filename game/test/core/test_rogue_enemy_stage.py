@@ -1,5 +1,5 @@
 import unittest
-from scratch.rogue_tests.base import *
+from game.test.core.base import *
 
 class TestRogueEnemyStage(unittest.TestCase):
     def test_dynamic_boss_victory_message(self):

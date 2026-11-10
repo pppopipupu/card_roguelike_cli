@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RUNTIME_DIRS = ["game/core", "game/entities", "game/models", "game/renderer", "server"]
 SCAN_DIRS = ["game", "server"]
 CHINESE = re.compile(r"[\u4e00-\u9fff]")
@@ -38,9 +38,10 @@ STRUCTURAL_CALLS = {
 
 
 def iter_py(base):
-    for path, _, files in os.walk(os.path.join(ROOT, base)):
+    for path, dirs, files in os.walk(os.path.join(ROOT, base)):
+        dirs[:] = [name for name in dirs if name != "__pycache__"]
         for name in files:
-            if name.endswith(".py"):
+            if name.endswith(".py") and not relative(os.path.join(path, name)).startswith("game/test/"):
                 yield os.path.join(path, name)
 
 

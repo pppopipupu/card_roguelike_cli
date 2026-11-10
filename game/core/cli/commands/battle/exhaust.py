@@ -3,7 +3,7 @@ from ...base import CommandHandler
 from .....renderer import GameRenderer
 from .....data.locale_data import get_locale_text
 
-class ExhaustCommand(CommandHandler, names=["消耗堆", "exhaust", "exhaust_pile"], allowed_states=["battle"]):
+class ExhaustCommand(CommandHandler, names=["消耗堆", "exhaust", "exhaust_pile"], allowed_states=["battle"], help_key="exhaust"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:

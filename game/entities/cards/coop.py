@@ -56,9 +56,9 @@ def _resolve_ally(run, target, allow_self=False):
             return None
         return uid, player, grid
     candidates = [uid for uid in alive if uid != current]
-    if len(candidates) == 1:
+    if candidates:
         return candidates[0], run.players[candidates[0]], None
-    if not candidates and allow_self and current in alive:
+    if allow_self and current in alive:
         return current, run.players[current], None
     return None
 

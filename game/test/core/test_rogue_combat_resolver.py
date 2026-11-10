@@ -1,5 +1,5 @@
 import unittest
-from scratch.rogue_tests.base import *
+from game.test.core.base import *
 
 class TestRogueCombatResolver(unittest.TestCase):
     def test_damage_system_and_real_damage(self):

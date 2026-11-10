@@ -1,6 +1,6 @@
 import unittest
 import asyncio
-from scratch.rogue_tests.base import *
+from game.test.core.base import *
 
 class TestRogueExplore(unittest.TestCase):
     def test_inner_shop_flow(self):

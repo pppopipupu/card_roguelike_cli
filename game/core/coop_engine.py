@@ -27,6 +27,12 @@ AOE_INTENT_TYPES = {
 }
 
 
+def coop_for_map_engine(save_manager, map_engine):
+    battle_engine = map_engine.battle_engine
+    root = getattr(battle_engine, "game_engine", None) or battle_engine
+    return CoopEngine(save_manager, root)
+
+
 class CoopEngine:
     def __init__(self, save_manager, engine=None):
         self.save_manager = save_manager
@@ -265,9 +271,7 @@ class CoopEngine:
         previous, previous_user = self._swap(run, leader_player)
         from ..data.map_config import MapConfig
         if target_stage in MapConfig.CAFE_STAGES:
-            from .cafe_engine import CafeEngine
-            CafeEngine(self.save_manager, map_engine).init_cafe(run)
-            run.node_data["coop_node_type"] = run.node_type
+            self.init_coop_cafe(run, map_engine)
         elif target_stage in MapConfig.BOSS_STAGES:
             run.node_type = "battle"
             self.battle_engine._init_battle_node(run, "boss")
@@ -282,6 +286,58 @@ class CoopEngine:
         self._restore(run, previous, previous_user)
         self._attach_notices(run, carried, caller)
         run.node_data["votes"] = {}
+        self.apply_view(run, caller)
+        self.save_manager.save_coop_save(caller, run)
+
+    def init_coop_cafe(self, run, map_engine):
+        from .cafe_engine import CafeEngine
+        cafe = CafeEngine(self.save_manager, map_engine)
+        views = {}
+        ready = {}
+        for uid in run.party_order:
+            player = run.players[uid]
+            previous, previous_user = self._swap(run, player)
+            cafe.init_cafe(run, persist=False)
+            data = {"cafe_data": run.node_data.get("cafe_data", {})}
+            data["coop_done"] = player.downed
+            views[uid] = {"node_type": "cafe", "data": data}
+            ready[uid] = player.downed
+            self._restore(run, previous, previous_user)
+        run.node_type = "cafe"
+        run.node_data = {
+            "coop_node_type": "cafe",
+            "player_views": views,
+            "stage_ready": ready,
+        }
+
+    def enter_ancient_node(self, run):
+        map_engine = self._require_map_engine()
+        caller = run.user_id
+        carried = self._collect_notices(run)
+        run.enemies.clear()
+        views = {}
+        ready = {}
+        for uid in run.party_order:
+            player = run.players[uid]
+            previous, previous_user = self._swap(run, player)
+            map_engine._init_ancient_node(run)
+            data = {
+                key: run.node_data[key]
+                for key in ("options", "style")
+                if key in run.node_data
+            }
+            data["coop_done"] = player.downed
+            views[uid] = {"node_type": "ancient", "data": data}
+            ready[uid] = player.downed
+            self._restore(run, previous, previous_user)
+        run.node_type = "ancient"
+        run.node_data = {
+            "coop_node_type": "ancient",
+            "player_views": views,
+            "stage_ready": ready,
+        }
+        self._attach_notices(run, carried, caller)
+        self.apply_view(run, caller)
         self.save_manager.save_coop_save(caller, run)
 
     def start_coop(self, engine, member_ids, leader_id):
@@ -318,7 +374,7 @@ class CoopEngine:
         self.save_manager.save_coop_save(leader_id, run)
         return run
 
-    def _finish_notice(self, run, uid, prefix=""):
+    def _finish_notice(self, run, uid, prefix="", on_all_ready=None):
         ready = run.node_data.setdefault("stage_ready", {})
         ready[uid] = True
         views = run.node_data.get("player_views", {})
@@ -333,7 +389,8 @@ class CoopEngine:
         if all(ready.get(u, False) or run.players[u].downed for u in alive):
             notices = self.resolve_relic_claims(run)
             player_names = get_locale_text("i18n_explore_core.list_delimiter").join(run.players[u].name for u in alive)
-            self.enter_next_stage(run)
+            advance = on_all_ready or self.enter_next_stage
+            advance(run)
             self.save_manager.save_coop_save(run.user_id, run)
             notice_text = "\n".join(notices)
             extra = f"\n{notice_text}" if notice_text else ""
@@ -349,6 +406,9 @@ class CoopEngine:
 
     def finish_player_node(self, run, uid, prefix=""):
         return self._finish_notice(run, uid, prefix)
+
+    def finish_cafe_node(self, run, uid, prefix=""):
+        return self._finish_notice(run, uid, prefix, on_all_ready=self.enter_ancient_node)
 
     def resolve_relic_claims(self, run):
         claims = run.node_data.get("relic_claims", {})

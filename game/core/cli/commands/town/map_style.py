@@ -2,7 +2,7 @@ from typing import Generator
 from ...base import CommandHandler
 from .....data.locale_data import get_locale_text
 
-class MapStyleCommand(CommandHandler, names=["地图", "map"]):
+class MapStyleCommand(CommandHandler, names=["地图", "map"], help_key="map_style"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         stats = router.save_manager.load_stats(user_id)
         if not stats.in_town:

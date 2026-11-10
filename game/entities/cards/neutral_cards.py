@@ -201,12 +201,12 @@ class NeutralEmperorEyeCard(Card):
 class AstralStrikeCard(Card):
     def execute(self, run, target, engine) -> str:
         p = run.player
-        dmg = getattr(self, "base_dmg", 48 if self.upgraded else 36)
+        dmg = getattr(self, "base_dmg", 32 if self.upgraded else 24)
         if not target:
             target = "e1"
         if not target.startswith("e"):
             return get_locale_text("i18n_cards_neutral.neutral.cards.astral_strike.invalid_target")
-        res = engine.combat_resolver.damage_target(run, target, dmg, source="p0", damage_type="force")
+        res = engine.combat_resolver.damage_target(run, target, dmg, source="p0", damage_type="force", card=self)
         return get_locale_text("i18n_cards_neutral.neutral.cards.astral_strike.result", res=res)
 
 @register_card("neutral_hero_anthem")

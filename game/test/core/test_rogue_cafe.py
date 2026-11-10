@@ -1,6 +1,6 @@
 import unittest
 import asyncio
-from scratch.rogue_tests.base import *
+from game.test.core.base import *
 from game.models.state import GameRun, PlayerState, EnemyState, Card, BuffState
 from game.models.events import BattleStartEvent, TurnStartEvent, CardPlayedEvent, DamageCalculateEvent
 from game.core.cafe_engine import CafeEngine

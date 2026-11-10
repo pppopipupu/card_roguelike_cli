@@ -214,6 +214,9 @@ __marimo__/
 .cloudflare/
 
 # 本地部署目录（已跟踪文件需另行取消跟踪）
-supabase/
-server/
-deploy/
+/supabase/
+/server/
+/deploy/
+
+# 临时脚本目录（本地临时校验脚本，不入库）
+scratch/

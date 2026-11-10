@@ -1,6 +1,8 @@
 from ..models.state import GameRun, UserStats
 from ..data.locale_data import get_locale_text
-from .menu import render_menu, render_card_library, render_relic_library, render_deck, render_stats, render_help, render_tutorial
+from .menu import render_menu, render_card_library, render_relic_library, render_deck, render_stats, render_tutorial
+from .help import render_help_index, render_help_detail
+from .potion import render_potion_list
 from .battle import render_battle, render_detailed_battle, render_draw_pile, render_discard_pile, render_exhaust_pile, render_minion_graveyard, render_enemy_graveyard
 
 from .map import render_map_select, render_start_ancient, render_ancient
@@ -26,8 +28,16 @@ class GameRenderer:
         return render_menu(stats)
 
     @staticmethod
-    def render_help(include_mode: bool = True) -> str:
-        return render_help(include_mode)
+    def render_help_index(sections: list) -> str:
+        return render_help_index(sections)
+
+    @staticmethod
+    def render_help_detail(entry: dict) -> str:
+        return render_help_detail(entry)
+
+    @staticmethod
+    def render_potion_list(run: GameRun) -> str:
+        return render_potion_list(run)
 
     @staticmethod
     def render_tutorial() -> str:

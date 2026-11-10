@@ -2,7 +2,7 @@ import os
 import unittest
 import asyncio
 import sys
-from scratch.rogue_tests.base import *
+from game.test.core.base import *
 from game.entities.cards.market import MARKET_SHELF_CARDS
 
 class TestRogueTown(unittest.TestCase):
@@ -30,7 +30,7 @@ class TestRogueTown(unittest.TestCase):
             self.assertIn("生涯统计", res_s)
 
             res_h = await run_command(plugin, ".rogue 帮助")
-            self.assertIn("游戏指令帮助", res_h)
+            self.assertIn("指令一览", res_h)
 
             res = await run_command(plugin, ".rogue talk Guide_Elder")
             self.assertIn("与向导长老闲聊", res)
@@ -836,7 +836,8 @@ class TestRogueTown(unittest.TestCase):
 
     def test_no_absolute_imports_from_game(self):
         import os
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        import game
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(game.__file__)))
         targets = [
             os.path.join(base_dir, "game", "core", "town", "dialog_handler.py"),
             os.path.join(base_dir, "game", "core", "cli", "commands", "general", "class_cmd.py"),

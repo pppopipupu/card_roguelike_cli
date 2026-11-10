@@ -2,7 +2,7 @@ import asyncio
 import unittest
 from tempfile import TemporaryDirectory
 
-from scratch.rogue_tests.base import MyPlugin, DummyContext, run_command
+from game.test.core.base import MyPlugin, DummyContext, run_command
 from game.models.state import GameRun, PlayerState, CardState, EnemyState
 from game.entities.enemies.base import get_enemy_template
 

@@ -2,7 +2,7 @@ from typing import Generator
 from ...base import CommandHandler
 from .....data.locale_data import get_locale_text
 
-class SkillCommand(CommandHandler, names=["技能", "skill", "sk", "k"], allowed_states=["battle"]):
+class SkillCommand(CommandHandler, names=["技能", "skill", "sk", "k"], allowed_states=["battle"], help_key="skill"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run or run.node_type != "battle":

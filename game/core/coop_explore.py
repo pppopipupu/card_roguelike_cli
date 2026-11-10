@@ -17,10 +17,8 @@ from .deck_service import DeckService
 
 class CoopExploreMixin:
     def _coop(self, run):
-        from .coop_engine import CoopEngine
-        battle_engine = self.map_engine.battle_engine
-        root = getattr(battle_engine, "game_engine", None) or battle_engine
-        return CoopEngine(self.save_manager, root)
+        from .coop_engine import coop_for_map_engine
+        return coop_for_map_engine(self.save_manager, self.map_engine)
 
     def _coop_finish(self, run, prefix):
         return self._coop(run).finish_player_node(run, run.user_id, prefix)

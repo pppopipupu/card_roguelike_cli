@@ -432,21 +432,15 @@ class MinionTriggerHandler:
             template = ALL_MINIONS.get(base_id)
             if template and hasattr(template, "on_damage_calculate"):
                 template.on_damage_calculate(event.run, grid, event, self.engine)
-            if event.source == f"p{grid}" and event.damage_type == "attack":
+            if event.source == f"p{grid}" and getattr(event, "is_attack", False):
                 if template and hasattr(template, "on_attack"):
                     template.on_attack(event.run, grid, event, self.engine)
 
     def on_minion_summon(self, event):
         from ...entities.minions.minions import ALL_MINIONS
-        for grid, mstate in list(event.run.player.minions.items()):
-            base_id = mstate.id.rstrip("+")
-            template = ALL_MINIONS.get(base_id)
-            if template and hasattr(template, "on_minion_summon"):
-                template.on_minion_summon(event.run, grid, event, self.engine)
-        new_mstate = event.minion_state
-        base_id = new_mstate.id.rstrip("+")
-        template = ALL_MINIONS.get(base_id)
-        if template and hasattr(template, "on_minion_summon"):
+        mstate = event.minion_state
+        template = ALL_MINIONS.get(mstate.id.rstrip("+"))
+        if template:
             template.on_minion_summon(event.run, event.grid, event, self.engine)
 
 

@@ -2,6 +2,7 @@ import re
 from ..data.checkin_data import DAILY_BLESSINGS
 from ..data.minion_data import MINION_CONFIG
 from ..data.locale_data import get_locale_text
+from ..data.buff_data import BUFF_CONFIG
 from ..entities.cards.base import get_gem_numeric_modifiers, replace_structured_number
 
 
@@ -63,10 +64,23 @@ def _card_damage_bonus(card, run) -> int:
     bonus = 0
     damage_type = getattr(card, "damage_type", "effect")
     physical = damage_type in ("slashing", "bludgeoning", "piercing")
+    card_id = getattr(card, "id", "")
+    for marker in (":replay:", ":fragile:"):
+        card_id = card_id.split(marker)[0]
+    card_id = card_id.rstrip("+")
+    if card_id.startswith("duel_"):
+        card_id = card_id[5:]
     if physical:
         for buff in run.player.buffs:
             if buff.id == "strength":
                 bonus += buff.stacks
+    elif card_id == "neutral_astral_strike":
+        strength_cfg = BUFF_CONFIG.get("strength", {})
+        key = "astral_strike_upgraded_multiplier" if getattr(card, "upgraded", False) else "astral_strike_multiplier"
+        multiplier = strength_cfg.get(key, strength_cfg.get("default_multiplier", 1))
+        for buff in run.player.buffs:
+            if buff.id == "strength":
+                bonus += buff.stacks * multiplier
     if damage_type == "spell":
         for buff in run.player.buffs:
             if buff.id == "arcane_charge":

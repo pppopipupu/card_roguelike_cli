@@ -246,6 +246,17 @@ class GateGuardTemplate(MinionTemplate):
 
 
 class MercenaryTemplate(MinionTemplate):
+    def on_minion_summon(self, run, grid, event, engine):
+        m = event.minion_state
+        if grid != event.grid or m.id.rstrip("+") != self.id or not m.id.endswith("+"):
+            return
+        target = engine._get_first_alive_enemy(run)
+        if not target:
+            return
+        atk = m.atk
+        engine._damage_target(run, target, atk, source=f"p{grid}", damage_type="bludgeoning", is_attack=True)
+        engine._log_event(run, get_locale_text("i18n_minions.basic.mercenary_entrance_log", name=m.name, target=engine._get_target_name(run, target), atk=atk))
+
     def on_attack(self, run, grid, event, engine):
         m = run.player.minions.get(grid)
         if m:

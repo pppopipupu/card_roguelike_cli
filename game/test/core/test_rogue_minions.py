@@ -1,5 +1,5 @@
 import unittest
-from scratch.rogue_tests.base import *
+from game.test.core.base import *
 
 class TestRogueMinions(unittest.TestCase):
     def test_minion_reindexing(self):

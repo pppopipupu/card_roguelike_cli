@@ -1,6 +1,6 @@
 import unittest
 import random
-from scratch.rogue_tests.base import *
+from game.test.core.base import *
 from game.models.state import PlayerState, GameRun, EnemyState, CardState
 from game.entities.cards.base import ALL_CARDS
 from game.core.battle_engine import BattleEngine

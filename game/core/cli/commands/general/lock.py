@@ -5,7 +5,7 @@ from .....entities import ALL_CARDS
 from .....data.locale_data import get_locale_text
 from .....data.starting_deck_config import LOCK_PRICE_GP, LOCK_SLOT_LIMIT
 
-class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解锁", "unlock"]):
+class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解锁", "unlock"], help_key="lock"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         stats = router.save_manager.load_stats(user_id)
         if not hasattr(stats, "locked_cards") or stats.locked_cards is None:

@@ -1,6 +1,5 @@
 from ..models.state import GameRun, UserStats
 from ..cards import ALL_CARDS
-from ..data.balance_config import LOG_DEFAULT_ENTRIES, LOG_MAX_ENTRIES, QUEUE_MAX_COMMANDS
 from ..data.locale_data import t
 
 def render_menu(stats: UserStats = None) -> str:
@@ -348,74 +347,6 @@ def render_stats(stats: UserStats, include_mode: bool = True) -> str:
         t("renderer_menu.separator")
     ]
     return "\n".join(lines)
-
-def render_help(include_mode: bool = True) -> str:
-    mode_line = [t("renderer_menu.help_mode_line")] if include_mode else []
-    mode_tip = [t("renderer_menu.help_mode_tip")] if include_mode else []
-    lines = [
-        t("renderer_menu.separator"),
-        t("renderer_menu.help_title"),
-        "",
-        t("renderer_menu.rogue_intro"),
-        "",
-        t("renderer_menu.help_intro"),
-        "",
-        t("renderer_menu.help_basic_section"),
-        t("renderer_menu.help_start"),
-        t("renderer_menu.help_help"),
-        t("renderer_menu.help_tutorial"),
-        t("renderer_menu.help_status"),
-        t("renderer_menu.help_deck"),
-        t("renderer_menu.help_overview"),
-        t("renderer_menu.help_stat"),
-        t("renderer_menu.help_leaderboard"),
-        t("renderer_menu.help_leaderboard_online"),
-        t("renderer_menu.help_checkin"),
-        t("renderer_menu.help_class"),
-        t("renderer_menu.help_shop"),
-        t("renderer_menu.help_abandon"),
-        *mode_line,
-        t("renderer_menu.help_bag"),
-        t("renderer_menu.help_quest"),
-        t("renderer_menu.help_lock"),
-        t("renderer_menu.help_map"),
-        t("renderer_menu.help_friend"),
-        t("renderer_menu.help_team"),
-        t("renderer_menu.help_projection"),
-        t("renderer_menu.help_logs", count=LOG_DEFAULT_ENTRIES, max=LOG_MAX_ENTRIES),
-        t("renderer_menu.help_logc", count=LOG_DEFAULT_ENTRIES, max=LOG_MAX_ENTRIES),
-        "",
-        t("renderer_menu.help_combat_section"),
-        t("renderer_menu.help_play"),
-        t("renderer_menu.help_minion"),
-        t("renderer_menu.help_minion_slots"),
-        t("renderer_menu.help_minion_actions"),
-        t("renderer_menu.help_choose"),
-        t("renderer_menu.help_special"),
-        t("renderer_menu.help_end"),
-        t("renderer_menu.help_fold"),
-        t("renderer_menu.help_queue", limit=QUEUE_MAX_COMMANDS),
-        t("renderer_menu.help_queue_interrupt", limit=QUEUE_MAX_COMMANDS),
-        t("renderer_menu.help_info"),
-        t("renderer_menu.help_draw"),
-        t("renderer_menu.help_graveyard"),
-        t("renderer_menu.help_exit"),
-        "",
-        t("renderer_menu.help_town_section"),
-        t("renderer_menu.help_talk"),
-        t("renderer_menu.help_take"),
-        t("renderer_menu.help_use"),
-        t("renderer_menu.help_look"),
-        t("renderer_menu.help_leave"),
-        "",
-        t("renderer_menu.help_tips_section"),
-        t("renderer_menu.help_tip_abbrev"),
-        t("renderer_menu.help_tip_numeric"),
-        *mode_tip,
-        t("renderer_menu.separator")
-    ]
-    return "\n".join(lines)
-
 
 def strip_markdown(text: str) -> str:
     import re

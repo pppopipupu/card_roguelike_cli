@@ -21,7 +21,8 @@
     "icerainboww_spray_suffix": "（对所有敌人造成 {damage} 点寒冷伤害并附加 {layers} 层轻度寒冷易伤）",
     "icerainboww_shield_suffix": "（为玩家提供 {p_shield} 点护盾，并为我方所有随从恢复 {m_heal} 点生命）",
     "cards_played_entry_log": "✨ 【{name}】进入战场时，本回合已打出 {count} 张牌，触发了 {hit_count} 次{damage_name}伤害！",
-    "mercenary_attack_log": "⚔️ 【{name}】发起攻击，触发攻击时效果：本回合自身攻击力提升了 {val} 点。"
+    "mercenary_attack_log": "⚔️ 【{name}】发起攻击，触发攻击时效果：本回合自身攻击力提升了 {val} 点。",
+    "mercenary_entrance_log": "\n⚔️ [入场曲] 【{name}】立即攻击了【{target}】，造成了 {atk} 点伤害！"
   },
   "officer": {
     "banner_bearer_no_target": "没有其他我方随从可以激励。",

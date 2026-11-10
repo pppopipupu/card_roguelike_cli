@@ -2,7 +2,7 @@ from typing import Generator
 from ...base import CommandHandler
 from .....data.locale_data import get_locale_text
 
-class ClassCommand(CommandHandler, names=["职业", "class"], allowed_states=["menu", "town"]):
+class ClassCommand(CommandHandler, names=["职业", "class"], allowed_states=["menu", "town"], help_key="class"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         stats = router.save_manager.load_stats(user_id)
         selected_class = getattr(stats, "selected_class", "法师")

@@ -89,16 +89,22 @@
   "potion": {
     "no_run": "❌ 你当前没有正在进行的游戏。",
     "downed": "💀 你已倒地，无法使用药水。",
-    "discard_need_slot": "❌ 请指定要丢弃的药水槽序号，例如：丢弃药水 1",
-    "use_need_slot": "❌ 请指定要使用的药水槽序号，例如：喝药水 1 或 投掷 1 e1",
+    "drop_need_slot": "❌ 请指定要丢弃的药水槽序号，例如：potion drop 1",
+    "drink_need_slot": "❌ 请指定要饮用的药水槽序号，例如：potion drink 1",
+    "throw_need_slot": "❌ 请指定要投掷的药水槽序号，例如：potion throw 1；未指定目标时默认投向第一个敌人。",
     "invalid_slot": "❌ 无效的药水槽序号。",
     "invalid_slot_count": "❌ 无效的药水槽序号，你当前拥有 {count} 瓶药水。",
     "discarded": "🧪 已丢弃了药水：【{name}】。\n",
-    "throw_need_target": "❌ 请指定投掷目标，例如：投掷 1 e1",
     "throw_battle_only": "❌ 只有在战斗中才能投掷药水。",
     "no_enemy": "❌ 敌方格子 [{target}] 没有敌人。",
     "no_minion": "❌ 我方格子 [{grid}] 没有随从。",
     "invalid_target": "❌ 无效的目标选择。",
-    "battle_only": "❌ 该药水只能在战斗中使用。"
+    "battle_only": "❌ 该药水只能在战斗中使用。",
+    "list_title": "🧪 【药水列表】({count}/{limit})",
+    "list_empty": "你的药水槽是空的。",
+    "list_entry": "{idx}. 【{name}】",
+    "list_drink": "   饮用：{desc}",
+    "list_throw": "   投掷：{desc}",
+    "list_hint": "💡 用法：potion drink <编号> 饮用，potion throw <编号> <目标> 投掷，potion drop <编号> 丢弃。"
   }
 }

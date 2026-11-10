@@ -17,6 +17,7 @@ from ..data.balance_config import (
     TREASURE_GOLD_MIN,
 )
 from ..data.reward_config import TREASURE_RELIC_POOL
+from ..data.potion_data import POTION_SLOT_LIMIT
 from ..data.locale_data import get_locale_text
 from .coop_explore import CoopExploreMixin
 from .deck_service import DeckService
@@ -101,7 +102,7 @@ class ExploreEngine(CoopExploreMixin):
             pid = item.get("potion_id")
             if not hasattr(p, "potions"):
                 p.potions = []
-            if len(p.potions) >= 3:
+            if len(p.potions) >= POTION_SLOT_LIMIT:
                 item["taken"] = False
                 from ..data.potion_data import get_potion_name
                 return get_locale_text("i18n_explore_core.potion_slots_full", potion_name=get_potion_name(pid))

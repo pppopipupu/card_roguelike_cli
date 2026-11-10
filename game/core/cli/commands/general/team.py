@@ -5,7 +5,7 @@ from .....renderer import GameRenderer
 from .....data.locale_data import get_locale_text
 
 
-class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobby"], allowed_states=["menu", "town", "explore", "battle", "dialog", "cafe"]):
+class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobby"], allowed_states=["menu", "town", "explore", "battle", "dialog", "cafe"], help_key="team"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         service = router.social_service
         if len(parts) < 2:

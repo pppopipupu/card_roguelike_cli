@@ -1,5 +1,5 @@
 import unittest
-from scratch.rogue_tests.base import *
+from game.test.core.base import *
 from game.models.state import CardState
 
 class TestRogueCardMech1(unittest.TestCase):
@@ -836,6 +836,9 @@ class TestRogueCardMech1(unittest.TestCase):
         player.hand = [CardState("mercenary", upgraded=True)]
         engine.card_player.play_card(run, 1)
         self.assertLess(enemy.hp, 60)
+        self.assertEqual(player.minions["1"].atk, 7)
+        engine.card_player.minion_attack(run, "1", "e1")
+        self.assertEqual(player.minions["1"].atk, 9)
         self.assertEqual(player.minions["1"].id, "mercenary+")
         self.assertFalse([c for c in player.hand if c.id == "mercenary"])
         self.assertFalse([c for c in player.discard_pile if c.id == "mercenary"])
