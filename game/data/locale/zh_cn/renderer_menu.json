@@ -71,6 +71,8 @@
   "stats_footer": "这些数据属于你的勇士生涯，不会随着放弃游戏而消失。",
   "tutorial_missing": "❌ 未找到游戏教程文档。",
   "tutorial_read_error": "❌ 读取游戏教程文档失败。",
+  "changelog_missing": "❌ 未找到更新日志文档。",
+  "changelog_read_error": "❌ 读取更新日志文档失败。",
   "shop_title": "🏪 魔法肉鸽局外成长商店",
   "shop_keeper": "🔮 神秘店主说：",
   "shop_quote_line": "  {quote}",

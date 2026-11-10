@@ -23,7 +23,58 @@ class ActionRouter:
         if state_stack:
             top_state = state_stack[-1]
             stype = top_state.get("type")
-            if stype == "force_discard":
+            if stype == "cthulhu_puzzle_choice":
+                head = parts[0].lower()
+                if head in ("取消", "cancel"):
+                    state_stack.pop()
+                    self.engine.battle_engine.rollback_suspended_card(run)
+                    self.save_manager.save_save(user_id, run)
+                    return get_locale_text("i18n_cli_core.cthulhu_puzzle_cancelled"), False, False
+                if head == "c":
+                    if len(parts) > 1:
+                        return get_locale_text("i18n_cli_core.err_cthulhu_puzzle_invalid"), False, False
+                    state_stack.pop()
+                    self.engine.battle_engine.rollback_suspended_card(run)
+                    self.save_manager.save_save(user_id, run)
+                    return get_locale_text("i18n_cli_core.cthulhu_puzzle_cancelled"), False, False
+                answer = ""
+                if len(parts) == 1 and head.isdecimal():
+                    answer = head
+                elif head == "选择" and len(parts) >= 2:
+                    answer = parts[1]
+                if answer:
+                    if not answer.isdecimal():
+                        return get_locale_text("i18n_cli_core.err_cthulhu_puzzle_invalid"), False, False
+                    idx = int(answer)
+                    if idx < 1 or idx > 3:
+                        return get_locale_text("i18n_cli_core.err_cthulhu_puzzle_invalid"), False, False
+                    from ...entities.enemies.boss.cthulhu_boss import resolve_cthulhu_puzzle
+                    res = resolve_cthulhu_puzzle(run, self.engine, idx, run.player)
+                    state_stack.pop()
+                    self.engine.battle_engine.resolve_suspended_card(run)
+                    self.save_manager.save_save(user_id, run)
+                    if run.player.hp <= 0:
+                        settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
+                        if getattr(run, "coop_id", ""):
+                            return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, True
+                        return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, True
+                    if self.engine.is_battle_won(run):
+                        self.engine._handle_battle_win(run)
+                        if run.node_type == "victory":
+                            settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=True)
+                            boss_name = run.node_data.get("boss_name")
+                            if not boss_name and run.enemies:
+                                boss_name = run.enemies[0].name
+                            if not boss_name:
+                                boss_name = get_locale_text("i18n_cli_core.final_boss_default")
+                            return self.engine.battle_engine._append_logs_to_res(run, get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg)), True, True
+                        return self.engine.battle_engine._append_logs_to_res(run, get_locale_text("i18n_cli_core.battle_won", res=res)), True, True
+                    return self.engine.battle_engine._append_logs_to_res(run, res), False, True
+                if head == "选择":
+                    return get_locale_text("i18n_cli_core.err_cthulhu_puzzle_invalid"), False, False
+                if head not in self._action_handlers:
+                    return get_locale_text("i18n_cli_core.err_cthulhu_puzzle_invalid"), False, False
+            elif stype == "force_discard":
                 sub = parts[0]
                 if sub.isdigit():
                     parts = ["选择"] + parts

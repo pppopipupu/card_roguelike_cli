@@ -28,6 +28,10 @@
   },
   "beast_master": {
     "defend": "【{name}】收缩防线，获得 {val} 点护盾。",
+    "attack": "【{name}】挥出狂野鞭笞。{dmg_msg}{hound_suffix}",
+    "hound_suffix": "，每一只狂暴猎犬都撕咬出额外的穿刺伤害！",
+    "pack_howl": "【{name}】发出兽群咆哮，所有狂暴猎犬获得 2 层力量与 4 点护盾！",
+    "pack_howl_alone": "【{name}】发出兽群咆哮，自身获得 1 层力量与 5 点护盾！",
     "hound_name": "狂暴猎犬",
     "hound_intent_desc": "扑咬 (造成 2 伤害)",
     "summon_beast": "【{name}】召唤了一只【狂暴猎犬】加入战场。"
@@ -59,6 +63,21 @@
   "doomguard": {
     "doom_strike": "【{name}】施展毁灭打击。{dmg_msg}",
     "hellfire": "【{name}】施展地狱火。{dmg_msg}",
-    "sacrifice": "【{name}】使用牺牲防御，获得 {val} 点护盾，但自身受到 2 点真实伤害反噬。"
+    "sacrifice": "【{name}】使用鲜血献祭，失去 {self_dmg} 点生命，获得 {val} 点护盾与 {strength} 层力量！"
+  },
+  "necromancer": {
+    "soul_drain": "【{name}】吸取玩家灵魂，恢复了 {heal} 点生命值。{dmg_msg}"
+  },
+  "faceless_dreamweaver": {
+    "name": "无面织梦者",
+    "intent_weave_nightmare": "编织梦魇 (造成 {val} 点心灵伤害)",
+    "intent_psionic_shatter": "心智震荡 (造成 {val} 点心灵伤害)",
+    "intent_mirage_cloak": "幻境披风 (获得 {val} 点护盾)",
+    "intent_drowsy_hex": "沉睡魔咒 (使玩家下回合减少 1BA)",
+    "weave_nightmare": "【{name}】编织梦魇。{dmg_msg}，将 1 张【无形低语】洗入你的抽牌堆，并使 2 张手牌获得【易碎 1】！",
+    "psionic_shatter": "【{name}】发动心智震荡。{dmg_msg}，并额外造成 {extra} 点力场伤害！",
+    "mirage_cloak": "【{name}】披上幻境披风，获得 {val} 点护盾并清除了 1 个负面状态！",
+    "drowsy_hex": "【{name}】施放沉睡魔咒，使你下回合失去 1 个附赠动作点 (BA)！",
+    "passive_dream_eater": "每当玩家消耗卡牌时，无面织梦者获得 4 点护盾并恢复 3 点生命"
   }
 }

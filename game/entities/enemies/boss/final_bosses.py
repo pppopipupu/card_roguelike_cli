@@ -487,7 +487,7 @@ class BossYogSothothTemplate(EnemyTemplate):
             from ....models.state import EnemyState, EnemyIntentState
             for _ in range(summon_count):
                 new_minion = EnemyState(
-                    name="虚空潜伏者",
+                    name="虚空潜影",
                     hp=20,
                     max_hp=20,
                     shield=0,

@@ -44,5 +44,10 @@
   "option_blessing": "{prefix}【{relic}】 + 卡牌【{card}】",
   "blessing_desc": "{relic_desc}；{card_desc}",
   "card_upgraded": " [已升级]",
-  "card_gems": " [宝石:{gems}]"
+  "card_gems": " [宝石:{gems}]",
+  "screen_cthulhu_puzzle": "群星封印",
+  "option_cthulhu_puzzle": "{index}. {label}",
+  "option_cthulhu_cancel": "取消",
+  "desc_cthulhu_puzzle": "【拉莱耶的群星封印】第 {stage} 幕",
+  "item_banished_gold": "被放逐的敌人未留下金币"
 }

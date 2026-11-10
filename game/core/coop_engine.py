@@ -24,6 +24,14 @@ AOE_INTENT_TYPES = {
     "aoe_attack",
     "all_attack",
     "aoe_damage",
+    "hellfire",
+    "electrodynamics",
+    "soul_daggers",
+    "focus_bloom",
+    "sunken_tsunami",
+    "mist_condense_1",
+    "tail_sweep",
+    "inferno_breath",
 }
 
 

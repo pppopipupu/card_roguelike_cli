@@ -350,6 +350,12 @@ class BattleEngine(BaseBattleEngine):
                 hp_final = base_hp + p.stage * encounter["hp_per_stage"]
                 name = f"{base_name} {chr(65 + i)}" if num_enemies > 1 else base_name
                 run.enemies.append(self._build_enemy_state(name, hp_final, actions, bonus_actions))
+        from ..entities import get_enemy_template
+        for enemy in list(run.enemies):
+            template = get_enemy_template(enemy.name)
+            if template and hasattr(template, "on_battle_start") and not getattr(enemy, "_battle_init_done", False):
+                enemy._battle_init_done = True
+                template.on_battle_start(run, enemy, self)
 
     def play_card(self, run: GameRun, hand_idx: int, target: Optional[str] = None) -> str:
         self.current_run = run

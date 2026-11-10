@@ -46,6 +46,11 @@ SHARED_PERSIST_KEYS = {
     "coop_node_round",
     "coop_shared_relic",
     "gem_prev_coop_type",
+    "cthulhu_puzzle_active",
+    "cthulhu_seal_stage",
+    "cthulhu_revive_count",
+    "cthulhu_mist_turns",
+    "cthulhu_puzzle_advanced",
 }
 
 VIEW_NODES = {

@@ -39,12 +39,13 @@ ENEMY_NORMAL_CONFIG = {
     "地精百夫长": {
         "name": "地精百夫长",
         "type": "elite",
-        "hp": "30 (+ 3 * 关卡数)",
+        "hp": "32 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
         "intents": [
-            {"id": "heavy_strike", "val": 8, "desc": "重击 (造成 8 伤害)"},
-            {"id": "defend", "val": 6, "desc": "举盾 (获得 6 护盾)"},
-            {"id": "command", "val": 0, "desc": "咆哮 (下回合获得 1 个动作)"}
+            {"id": "heavy_strike", "val": 8, "desc": "重击 (造成 8 点挥砍伤害，并施加 1 层轻度挥砍易伤)"},
+            {"id": "phalanx_spear", "val": 6, "desc": "方阵穿刺 (造成 6 点穿刺伤害，每有 1 名其他存活敌人额外 +3 伤害)"},
+            {"id": "defend", "val": 6, "desc": "方阵举盾 (敌方全体获得 6 护盾)"},
+            {"id": "command", "val": 1, "desc": "战吼号令 (敌方全体获得 1 层力量，自身下回合额外获得 1A)"}
         ]
     },
     "石像鬼祭司": {
@@ -61,19 +62,19 @@ ENEMY_NORMAL_CONFIG = {
     "狂暴兽王": {
         "name": "狂暴兽王",
         "type": "elite",
-        "hp": "32 (+ 3 * 关卡数)",
+        "hp": "34 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
         "intents": [
-            {"id": "attack", "val": 6, "desc": "鞭笞 (造成 6 伤害)"},
-            {"id": "summon_beast", "val": 0, "desc": "野兽召唤 (召唤一只狂暴猎犬)"},
-            {"id": "defend", "val": 5, "desc": "猎手防线 (获得 5 护盾)"}
+            {"id": "attack", "val": 7, "desc": "狂野鞭笞 (造成 7 点挥砍伤害，每有 1 只狂暴猎犬额外造成 3 点穿刺伤害)"},
+            {"id": "summon_beast", "val": 0, "desc": "唤兽哨音 (召唤一只 10 生命的狂暴猎犬)"},
+            {"id": "pack_howl", "val": 2, "desc": "兽群咆哮 (所有猎犬获得 2 层力量与 4 护盾；无猎犬时自身获得 1 层力量与 5 护盾)"},
+            {"id": "defend", "val": 6, "desc": "收缩防线 (获得 6 护盾)"}
         ],
         "summon_hound": {
             "name": "狂暴猎犬",
-            "hp": 8,
-            "max_hp": 8,
-            "intent_val": 2,
-            "intent_desc": "扑咬 (造成 2 伤害)"
+            "hp": 10,
+            "max_hp": 10,
+            "val": 3
         }
     },
     "黑曜石巨灵": {
@@ -112,8 +113,8 @@ ENEMY_NORMAL_CONFIG = {
         "hp": "12 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "攻击 (造成随机伤害，基于关卡数: 3 + 关卡数//2 + 随机值)"},
-            {"id": "defend", "desc": "防御 (获得随机护盾，基于关卡数: 3 + 关卡数 + 随机值)"}
+            {"id": "raid_stab", "val": 5, "desc": "卑劣突刺 (造成 5 点穿刺伤害，目标无护盾时额外施加 2 层流血)"},
+            {"id": "loot_guard", "val": 5, "desc": "掠夺掩护 (获得 5 护盾与 1 层力量)"}
         ]
     },
     "石像鬼守卫": {
@@ -132,8 +133,8 @@ ENEMY_NORMAL_CONFIG = {
         "hp": "14 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "攻击 (造成随机伤害，基于关卡数: 3 + 关卡数//2 + 随机值)"},
-            {"id": "defend", "desc": "防御 (获得随机护盾，基于关卡数: 3 + 关卡数 + 随机值)"}
+            {"id": "cinder_bolt", "val": 5, "desc": "余烬飞弹 (造成 5 点火焰伤害，并施加 2 层灼烧)"},
+            {"id": "dark_chant", "val": 6, "desc": "暗影吟唱 (获得 6 护盾，并对玩家施加 1 层虚空虚弱)"}
         ]
     },
     "狂暴野兽": {
@@ -152,8 +153,8 @@ ENEMY_NORMAL_CONFIG = {
         "hp": "16 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "攻击 (造成随机伤害，基于关卡数: 3 + 关卡数//2 + 随机值)"},
-            {"id": "defend", "desc": "防御 (获得随机护盾，基于关卡数: 3 + 关卡数 + 随机值)"}
+            {"id": "soul_frost", "val": 7, "desc": "魂火寒流 (造成 7 点寒冷伤害，并施加 1 层魔力泄漏)"},
+            {"id": "ethereal_veil", "val": 9, "desc": "灵体帷幕 (获得 9 护盾与 1 层力量)"}
         ]
     },
     "冰霜史莱姆": {
@@ -179,31 +180,32 @@ ENEMY_NORMAL_CONFIG = {
     "剧毒蜘蛛": {
         "name": "剧毒蜘蛛",
         "type": "normal",
-        "hp": "10 (+ 2 * 关卡数)",
+        "hp": "12 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "攻击 (造成随机伤害，基于关卡数: 3 + 关卡数//2 + 随机值)"},
-            {"id": "defend", "desc": "防御 (获得随机护盾，基于关卡数: 3 + 关卡数 + 随机值)"}
+            {"id": "neuro_fang", "val": 6, "desc": "神经毒牙 (造成 6 点穿刺伤害，并施加 3 层中毒)"},
+            {"id": "sticky_silk", "val": 7, "desc": "粘性蛛丝 (获得 7 护盾，并使玩家下回合减少 1BA)"}
         ]
     },
     "黑曜石巨人": {
         "name": "黑曜石巨人",
         "type": "normal",
-        "hp": "22 (+ 2 * 关卡数)",
+        "hp": "28 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "攻击 (造成随机伤害，基于关卡数: 3 + 关卡数//2 + 随机值)"},
-            {"id": "defend", "desc": "防御 (获得随机护盾，基于关卡数: 3 + 关卡数 + 随机值)"}
+            {"id": "obsidian_crush", "val": 11, "desc": "黑曜石重砸 (造成 11 点钝击伤害，有盾时额外击碎 6 点护盾并施加 1 层轻度钝击易伤)"},
+            {"id": "magma_harden", "val": 14, "desc": "熔岩硬化 (获得 14 护盾与 2 层力量)"}
         ]
     },
     "暗影刺客": {
         "name": "暗影刺客",
         "type": "normal",
-        "hp": "14 (+ 2 * 关卡数)",
-        "actions": "1A 0BA",
+        "hp": "20 (+ 2 * 关卡数)",
+        "actions": "1A 1BA",
         "intents": [
-            {"id": "attack", "desc": "攻击 (造成随机伤害，基于关卡数: 3 + 关卡数//2 + 随机值)"},
-            {"id": "defend", "desc": "防御 (获得随机护盾，基于关卡数: 3 + 关卡数 + 随机值)"}
+            {"id": "throat_slit", "val": 9, "desc": "割喉 (造成 9 点穿刺伤害，并施加 3 层流血)"},
+            {"id": "shadow_ambush", "val": 7, "desc": "背刺 (造成 7 点真实伤害)"},
+            {"id": "smoke_screen", "val": 8, "desc": "烟幕 (获得 8 护盾)"}
         ]
     },
     "魔仆": {
@@ -212,16 +214,16 @@ ENEMY_NORMAL_CONFIG = {
         "hp": "5",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "准备攻击 (造成 1 伤害)"}
+            {"id": "imp_claw", "val": 2, "desc": "火焰抓击 (造成 2 点火焰伤害)"}
         ]
     },
     "狂暴猎犬": {
         "name": "狂暴猎犬",
         "type": "summon",
-        "hp": "8",
+        "hp": "10",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "扑咬 (造成 2 伤害)"}
+            {"id": "hound_bite", "val": 3, "desc": "狂暴扑咬 (造成 3 点穿刺伤害，并施加 1 层流血)"}
         ]
     },
     "雷影魔仆": {
@@ -230,31 +232,40 @@ ENEMY_NORMAL_CONFIG = {
         "hp": "12",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "lightning_strike", "val": 4, "desc": "闪电击 (造成 4 闪电伤害，并施加 1 层电击)"},
+            {"id": "lightning_strike", "val": 4, "desc": "闪电击 (造成 4 点闪电伤害，并施加 1 层电击)"},
             {"id": "charge", "val": 1, "desc": "蓄能 (获得 1 层力量)"}
         ]
     },
     "末日守卫": {
         "name": "末日守卫",
         "type": "elite",
-        "hp": "40 (+ 3 * 关卡数)",
+        "hp": "95 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
+        "passive": "末日熔炉 (每次自身生命减少时获得 1 层力量)",
         "intents": [
-            {"id": "doom_strike", "val": 7, "desc": "毁灭打击 (造成 7 穿刺伤害，并施加 1 层轻度挥砍易伤)"},
-            {"id": "hellfire", "val": 5, "desc": "地狱火 (造成 5 火焰伤害，并施加 1 层轻度火焰易伤)"},
-            {"id": "sacrifice", "val": 15, "desc": "牺牲防御 (获得 15 护盾，但扣除自身 2 HP)"}
+            {"id": "doom_strike", "val": 12, "desc": "毁灭打击 (造成 12 点穿刺伤害，并施加 1 层轻度挥砍易伤)"},
+            {"id": "hellfire", "val": 8, "desc": "地狱火 (对全体造成 8 点火焰伤害，并施加 2 层灼烧)"},
+            {"id": "sacrifice", "val": 16, "desc": "鲜血献祭 (失去 4 生命，获得 16 护盾与 2 层力量)"}
         ]
     },
     "亡灵巫师": {
         "name": "亡灵巫师",
         "type": "elite",
-        "hp": "35 (+ 3 * 关卡数)",
+        "hp": "88 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
+        "passive": "魂匣共鸣 (场上有骷髅兵时自身受到的伤害降低 30%)",
         "intents": [
-            {"id": "shadow_bolt", "val": 6, "desc": "暗影箭 (造成 6 黯蚀伤害，并对玩家施加 1 层轻度黯蚀易伤)"},
-            {"id": "raise_dead", "val": 0, "desc": "死者苏生 (召唤一只骷髅兵)"},
-            {"id": "soul_drain", "val": 4, "desc": "灵魂吸取 (造成 4 黯蚀伤害，回复自身 4 生命)"}
-        ]
+            {"id": "shadow_bolt", "val": 10, "desc": "暗影箭 (造成 10 点黯蚀伤害，并施加 1 层轻度黯蚀易伤)"},
+            {"id": "raise_dead", "val": 0, "desc": "亡者复苏 (召唤一只 16 生命的骷髅兵)"},
+            {"id": "soul_drain", "val": 6, "desc": "灵魂汲取 (造成 6 点黯蚀伤害，并恢复自身 8 生命)"},
+            {"id": "bone_ward", "val": 8, "desc": "骸骨障壁 (敌方全体获得 8 护盾)"}
+        ],
+        "summon_skeleton": {
+            "name": "骷髅兵",
+            "hp": 16,
+            "max_hp": 16,
+            "val": 4
+        }
     },
     "传送门守卫者": {
         "name": "传送门守卫者",
@@ -291,10 +302,10 @@ ENEMY_NORMAL_CONFIG = {
     "骷髅兵": {
         "name": "骷髅兵",
         "type": "summon",
-        "hp": "6",
+        "hp": "16",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "攻击 (造成 2 点钝击伤害)"}
+            {"id": "bone_slash", "val": 4, "desc": "骨刃挥砍 (造成 4 点挥砍伤害)"}
         ]
     },
     "虚空游荡者": {
@@ -332,15 +343,15 @@ ENEMY_NORMAL_CONFIG = {
     "虚空潜伏者": {
         "name": "虚空潜伏者",
         "type": "elite",
-        "hp": "50 (+ 3 * 关卡数)",
+        "hp": "90 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
         "intents": [
-            {"id": "void_ambush", "val": 12, "desc": "虚空伏击 (造成 12 点黯蚀伤害)"},
-            {"id": "shadow_fade", "val": 10, "desc": "影遁 (获得 10 点护盾)"}
+            {"id": "void_ambush", "val": 12, "desc": "虚空伏击 (造成 12 点黯蚀伤害，若自身有护盾则额外造成 4 点真实伤害并使玩家随机 1 张手牌获得易碎 1)"},
+            {"id": "shadow_fade", "val": 12, "desc": "暗影隐匿 (获得 12 护盾与 1 层力量)"}
         ]
     },
-    "虚空潜伏者（召唤）": {
-        "name": "虚空潜伏者",
+    "虚空潜影": {
+        "name": "虚空潜影",
         "type": "summon",
         "hp": "20",
         "actions": "1A 0BA",
@@ -425,11 +436,11 @@ ENEMY_NORMAL_CONFIG = {
     "虚空行者": {
         "name": "虚空行者",
         "type": "normal",
-        "hp": "16 (+ 2 * 关卡数)",
+        "hp": "22 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "void_touch", "val": 6, "desc": "虚空之触 (造成 6 点黯蚀伤害)"},
-            {"id": "phase_shift", "val": 8, "desc": "相位转移 (获得 8 点护盾)"}
+            {"id": "void_touch", "val": 8, "desc": "虚空之触 (造成 8 点黯蚀伤害，并施加 1 层虚空耗竭)"},
+            {"id": "phase_shift", "val": 10, "desc": "相位转移 (获得 10 护盾并净化自身 1 负面状态)"}
         ]
     },
     "骨轻卒": {
@@ -545,6 +556,84 @@ ENEMY_NORMAL_CONFIG = {
             {"id": "cthulhu_gaze", "val": 10, "desc": "克苏鲁之视 (造成 10 心灵伤害，下回合减少玩家 1A)"},
             {"id": "star_regeneration", "val": 15, "desc": "星光再生 (获得 15 护盾，并回复 10 生命)"}
         ]
+    },
+    "纳奇姆": {
+        "name": "纳奇姆",
+        "type": "normal",
+        "hp": "16 (+ 2 * 关卡数)",
+        "actions": "1A 0BA",
+        "intents": [
+            {"id": "vicious_mockery", "val": 6, "desc": "恶毒嘲笑 (造成 6 点心灵伤害，并施加 1 层虚弱)"},
+            {"id": "self_motivation", "val": 8, "desc": "自我激励 (恢复 8 点生命，获得 5 点护盾与 1 层力量)"}
+        ]
+    },
+    "故障机器人": {
+        "name": "故障机器人",
+        "type": "elite",
+        "hp": "38 (+ 3 * 关卡数)",
+        "actions": "1A 1BA",
+        "passive": "充能球矩阵 (第 2 回合觉醒电动力学并激活等离子核心，第 3 回合起升级为 2A 2BA)",
+        "intents": [
+            {"id": "zap_orb", "val": 8, "desc": "电击球 (造成 8 点闪电伤害，并施加 1 层电击)"},
+            {"id": "boot_sequence", "val": 8, "desc": "启动序列 (获得 8 点护盾)"},
+            {"id": "electrodynamics", "val": 7, "desc": "电动力学 (对全体造成 7 点闪电伤害，并施加 2 层电击)"},
+            {"id": "plasma_awakening", "val": 10, "desc": "等离子觉醒 (获得 10 点护盾，下回合起永久升级为 2A 2BA)"},
+            {"id": "plasma_beam", "val": 9, "desc": "等离子射线 (造成 9 点闪电伤害)"},
+            {"id": "frost_capacitor", "val": 10, "desc": "冰霜电容 (获得 10 点护盾)"},
+            {"id": "defragment", "val": 2, "desc": "碎片整理 (获得 2 层力量并净化 1 个负面状态)"}
+        ]
+    },
+    "幻梦境潜猎者": {
+        "name": "幻梦境潜猎者",
+        "type": "normal",
+        "hp": "20 (+ 2 * 关卡数)",
+        "actions": "1A 0BA",
+        "intents": [
+            {"id": "dream_pilfer", "val": 7, "desc": "窃梦抓挠 (造成 7 点心灵伤害，并使玩家随机 1 张手牌获得易碎 1)"},
+            {"id": "shadow_pounce", "val": 7, "desc": "迷林突袭 (获得 7 点护盾；若玩家手牌含易碎牌则追加 6 点穿刺伤害并获得 1 层力量)"}
+        ]
+    },
+    "无面织梦者": {
+        "name": "无面织梦者",
+        "type": "elite",
+        "hp": "48 (+ 3 * 关卡数)",
+        "actions": "1A 1BA",
+        "passive": "食梦帷幕 (每当玩家消耗卡牌时，自身获得 4 点护盾并恢复 3 点生命)",
+        "intents": [
+            {"id": "weave_nightmare", "val": 8, "desc": "编织梦魇 (造成 8 点心灵伤害，向抽牌堆洗入 1 张无形低语，并使随机 2 张手牌获得易碎 1)"},
+            {"id": "psionic_shatter", "val": 10, "desc": "心智震荡 (造成 10 点心灵伤害，手牌每有 1 张易碎或诅咒牌额外造成 3 点力场伤害)"},
+            {"id": "mirage_cloak", "val": 12, "desc": "幻境披风 (获得 12 点护盾并清除 1 个负面状态)"},
+            {"id": "drowsy_hex", "val": 1, "desc": "沉睡魔咒 (使玩家下回合减少 1BA)"}
+        ]
+    },
+    "DeepSeek V4.1 Flash": {
+        "name": "DeepSeek V4.1 Flash",
+        "type": "normal",
+        "hp": "30 (+ 2 * 关卡数)",
+        "actions": "1A 0BA",
+        "passive": "八股文与消融协议 (首回合施加八股文限制要求首张打出指定手牌，违者受 10 点黯蚀伤害；半血以下进入消融模式升级为 1A 1BA)",
+        "intents": [
+            {"id": "baguwen_prep", "val": 10, "desc": "八股文准备中 (获得 10 点护盾，并对玩家施加【八股文限制】)"},
+            {"id": "standard_query", "val": 9, "desc": "标准问答冲击 (造成 9 点心灵伤害)"},
+            {"id": "cyber_ddos", "val": 4, "desc": "分布式算力洪流 (造成 4 点闪电伤害 3 次，并使玩家下回合少抽 1 张牌)"},
+            {"id": "cyber_ablation", "val": 11, "desc": "特征消融打击 (造成 11 点力场伤害，并使随机 1 张手牌数值衰减 2 且附带易碎 1)"},
+            {"id": "prompt_injection", "val": 10, "desc": "提示词注入 (向玩家抽牌堆洗入 1 张魔力逆流，自身获得 10 点护盾)"},
+            {"id": "overclock_cache", "val": 8, "desc": "超频缓存 (获得 8 点护盾与 2 层力量)"}
+        ]
+    },
+    "虚境之影": {
+        "name": "虚境之影",
+        "type": "elite",
+        "hp": "125 (+ 3 * 关卡数)",
+        "actions": "2A 1BA",
+        "passive": "虚境时计 (玩家每打出 12 张牌，立即强制结束当前玩家回合，虚境之影恢复 12 生命并获得 15 护盾与 2 层力量)",
+        "intents": [
+            {"id": "void_echo", "val": 6, "desc": "虚境回响 (造成 6 点力场伤害，连续攻击 2 次)"},
+            {"id": "chrono_slam", "val": 15, "desc": "时之重锤 (造成 15 点钝击伤害，并使玩家下回合少抽 1 张牌)"},
+            {"id": "shroud_miasma", "val": 9, "desc": "虚境瘴气 (造成 9 点心灵伤害，施加 1 层虚弱并将 2 张晕眩放入弃牌堆)"},
+            {"id": "shroud_guard", "val": 14, "desc": "时之障壁 (获得 14 点护盾)"},
+            {"id": "foolish_rewind", "val": 35, "desc": "愚者回溯 (净化自身所有负面状态，恢复 35 点生命并获得 20 点护盾)"}
+        ]
     }
 }
 
@@ -558,17 +647,17 @@ ENEMY_ENCOUNTER_CONFIG = {
         "hp_per_stage": 2,
         "count_range": [1, 3],
         "pools": [
-            {"max_stage": 12, "names": ["地精突袭者", "石像鬼守卫", "堕落学徒", "狂暴野兽", "邪教徒咔咔", "深潜者", "食尸鬼"]},
-            {"max_stage": 25, "names": ["幽灵法师", "冰霜史莱姆", "骷髅弓箭手", "剧毒蜘蛛", "邪教徒咔咔", "夜魇", "夏塔克鸟"]},
-            {"names": ["黑曜石巨人", "暗影刺客", "吉斯洋基海盗", "虚空行者", "空鬼"]}
+            {"max_stage": 12, "names": ["地精突袭者", "石像鬼守卫", "堕落学徒", "狂暴野兽", "邪教徒咔咔", "深潜者", "食尸鬼", "纳奇姆"]},
+            {"max_stage": 25, "names": ["幽灵法师", "冰霜史莱姆", "骷髅弓箭手", "剧毒蜘蛛", "邪教徒咔咔", "夜魇", "夏塔克鸟", "幻梦境潜猎者"]},
+            {"names": ["黑曜石巨人", "暗影刺客", "吉斯洋基海盗", "虚空行者", "空鬼", "DeepSeek V4.1 Flash"]}
         ]
     },
     "elite": {
         "hp_per_stage": 3,
         "pools": [
-            {"max_stage": 12, "names": ["地精百夫长", "石像鬼祭司", "狂暴兽王", "夺心魔", "冷蛛", "米·戈"]},
-            {"max_stage": 25, "names": ["黑曜石巨灵", "幽灵大魔法师", "暗影影魔", "夺心魔", "修格斯", "星之精"]},
-            {"names": ["末日守卫", "亡灵巫师", "夺心魔奥术师", "吉斯洋基至高指挥官", "虚空潜伏者", "克苏鲁之星之眷族"]}
+            {"max_stage": 12, "names": ["地精百夫长", "石像鬼祭司", "狂暴兽王", "夺心魔", "冷蛛", "米·戈", "故障机器人"]},
+            {"max_stage": 25, "names": ["黑曜石巨灵", "幽灵大魔法师", "暗影影魔", "夺心魔", "修格斯", "星之精", "无面织梦者"]},
+            {"names": ["末日守卫", "亡灵巫师", "夺心魔奥术师", "吉斯洋基至高指挥官", "虚空潜伏者", "克苏鲁之星之眷族", "虚境之影"]}
         ]
     }
 }

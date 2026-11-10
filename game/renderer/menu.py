@@ -362,18 +362,24 @@ def strip_markdown(text: str) -> str:
     text = re.sub(r'^-\s+', r'• ', text, flags=re.MULTILINE)
     return text
 
-def render_tutorial() -> str:
+def render_root_document(filename: str, missing_key: str, read_error_key: str) -> str:
     import os
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    path = os.path.join(base_dir, "TUTORIAL.md")
+    path = os.path.join(base_dir, filename)
     if not os.path.exists(path):
-        return t("renderer_menu.tutorial_missing")
+        return t(missing_key)
     try:
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
         return strip_markdown(content)
     except Exception:
-        return t("renderer_menu.tutorial_read_error")
+        return t(read_error_key)
+
+def render_tutorial() -> str:
+    return render_root_document("TUTORIAL.md", "renderer_menu.tutorial_missing", "renderer_menu.tutorial_read_error")
+
+def render_changelog() -> str:
+    return render_root_document("CHANGELOG.md", "renderer_menu.changelog_missing", "renderer_menu.changelog_read_error")
 
 
 def render_shop(stats: UserStats) -> str:

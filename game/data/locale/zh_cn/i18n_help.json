@@ -45,6 +45,13 @@
       "desc": "输出长篇教程，覆盖局内流程、牌组循环、战斗机制与联机规则。",
       "example": "tutorial"
     },
+    "changelog": {
+      "name": "更新日志",
+      "usage": "changelog",
+      "brief": "查看近期的游戏更改",
+      "desc": "读取仓库根目录的更新日志文档，按时间列出新增内容、机制重做与问题修复；在任意场景均可使用。",
+      "example": "cl"
+    },
     "status": {
       "name": "当前状态",
       "usage": "s",

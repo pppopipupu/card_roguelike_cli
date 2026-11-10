@@ -5,6 +5,7 @@ COMMAND_SECTION_ORDER = {
         "start",
         "help",
         "tutorial",
+        "changelog",
         "status",
         "choose",
         "deck",

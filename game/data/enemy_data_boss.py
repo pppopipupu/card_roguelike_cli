@@ -13,27 +13,37 @@ ENEMY_BOSS_CONFIG = {
     "Icerainboww": {
         "name": "Icerainboww",
         "type": "boss",
-        "hp": "160",
-        "actions": "2A 0BA",
+        "hp": "190",
+        "actions": "2A 1BA",
+        "passive": "极寒领域 (玩家每回合打出第 4 张及之后卡牌时若带轻度寒冷易伤则受 2 点寒冷伤害；回合结束无护盾则受 1 层轻度寒冷易伤)",
         "intents": [
-            {"id": "icerain_shoot", "val": 2, "desc": "冰雨弓射击 (造成 2 寒冷伤害，使玩家下回合失去 1A)"},
+            {"id": "icerain_shoot", "val": 6, "desc": "冰雨弓射击 (造成 6 寒冷伤害，使玩家下回合失去 1A)"},
             {"id": "fury", "val": 1, "desc": "愤怒 (获得 1 层愤怒buff，被打出珍奇或传奇卡牌激怒时自身增伤)"},
             {"id": "smash_attack", "val": 10, "desc": "粉碎攻击 (造成 10 寒冷伤害，并使玩家受到轻度寒冷易伤)"},
-            {"id": "aurora_shield", "val": 12, "desc": "极光屏障 (获得 12 护盾并净化 1 负面 Buff，无负面时额外获得 4 护盾)"},
+            {"id": "aurora_shield", "val": 14, "desc": "极光屏障 (获得 14 护盾并净化 1 负面 Buff，无负面时额外获得 4 护盾)"},
             {"id": "winter_gaze", "val": 4, "desc": "寒冬凝视 (造成 4 心灵伤害，并使玩家受到轻度寒冷易伤)"},
-            {"id": "frost_blast", "val": 6, "desc": "冰霜爆震 (对玩家与所有我方随从造成 6 寒冷伤害)"}
+            {"id": "frost_blast", "val": 6, "desc": "冰霜爆震 (对玩家与所有我方随从造成 6 寒冷伤害)"},
+            {"id": "ice_refraction", "val": 10, "desc": "冰晶折射 (获得 10 护盾)"},
+            {"id": "frost_trap", "val": 1, "desc": "霜冻陷阱 (使玩家下回合失去 1BA)"},
+            {"id": "arctic_whisper", "val": 1, "desc": "极寒低语 (使玩家下回合少抽 1 张牌)"}
         ]
     },
     "远古红龙": {
         "name": "远古红龙",
         "type": "boss",
-        "hp": "140",
+        "hp": "145",
         "actions": "1A 2BA",
+        "passive": "龙威鳞甲 (回合开始无盾时获得 8 护盾；持盾受物理攻击时反弹 2 点火焰伤害并施加 1 层灼烧)",
         "intents": [
-            {"id": "attack", "val": 12, "desc": "喷吐火焰 (造成 12 伤害)"},
+            {"id": "summon", "val": 0, "desc": "呼唤魔仆 (召唤魔仆加入战场)"},
             {"id": "defend", "val": 10, "desc": "龙鳞防护 (获得 10 护盾)"},
-            {"id": "summon", "val": 0, "desc": "召唤魔仆"},
-            {"id": "attack_all", "val": 6, "desc": "扫尾 (造成 6 伤害，并攻击我方所有随从)"}
+            {"id": "dragon_roar", "val": 1, "desc": "龙威咆哮 (敌方全体获得 1 层力量)"},
+            {"id": "fire_breath", "val": 12, "desc": "喷吐火焰 (造成 12 点火焰伤害，并施加 2 层灼烧)"},
+            {"id": "tail_sweep", "val": 6, "desc": "扫尾 (对玩家及所有我方随从造成 6 点钝击伤害)"},
+            {"id": "molten_inhale", "val": 16, "desc": "熔火深吸 (获得 16 护盾与熔火蓄力，破盾可打断蓄力并暴露易伤)"},
+            {"id": "fireball", "val": 6, "desc": "火球点射 (造成 6 点火焰伤害)"},
+            {"id": "inferno_breath", "val": 12, "desc": "炼狱吐息 (对全体造成 12 点火焰伤害与 3 层灼烧，若保留熔火蓄力则伤害 +6)"},
+            {"id": "devour_imp", "val": 12, "desc": "吞噬魔仆 (吞噬 1 只魔仆恢复 12 生命并获得 2 层力量；无魔仆时获得 10 护盾)"}
         ],
         "summon_goblin": {
             "name": "魔仆",
@@ -71,8 +81,9 @@ ENEMY_BOSS_CONFIG = {
     "雷霆领主": {
         "name": "雷霆领主",
         "type": "boss",
-        "hp": "130",
+        "hp": "135",
         "actions": "1A 2BA",
+        "passive": "雷暴力场 (每只存活雷影魔仆使雷霆领主造成的雷电伤害 +2；回合开始若有护盾则对玩家施加 1 层电击)",
         "intents": [
             {"id": "thunder_strike", "val": 8, "desc": "雷鸣重击 (造成 8 雷鸣伤害，并对玩家施加 2 层电击)"},
             {"id": "lightning_shield", "val": 12, "desc": "闪电护壳 (获得 12 护盾并获得闪电护体)"},
@@ -159,12 +170,57 @@ ENEMY_BOSS_CONFIG = {
             {"id": "time_reflux", "val": 0, "desc": "时空回退 (获得 20 点护盾并恢复自身 25 点生命值)"},
             {"id": "temporal_lock", "val": 5, "desc": "时间锁定 (造成 5 点心灵伤害，且迫使玩家随机丢弃 1 张手牌)"}
         ]
+    },
+    "纯粹容器": {
+        "name": "纯粹容器",
+        "type": "boss",
+        "hp": "155",
+        "actions": "2A 1BA",
+        "passive": "空洞之躯 (免疫流血与中毒，每回合开始移除 1 层负面状态；骨钉招架期间受物理攻击将反击 8 点挥砍伤害，破盾可解除招架并使其暴露轻度易伤)",
+        "intents": [
+            {"id": "triple_slash", "val": 4, "desc": "三连挥砍 (造成 4 点挥砍伤害，连续 3 次)"},
+            {"id": "shining_lunge", "val": 9, "desc": "闪耀突刺 (造成 9 点穿刺伤害)"},
+            {"id": "nail_parry", "val": 12, "desc": "骨钉招架 (获得 12 护盾并进入骨钉招架反击状态)"},
+            {"id": "soul_daggers", "val": 7, "desc": "灵魂刃幕 (对全体造成 7 点力场伤害，并使玩家下回合失去 1BA)"},
+            {"id": "desolate_dive", "val": 10, "desc": "荒芜俯冲 (造成 10 点光耀伤害，有护盾时额外削减 5 点护盾)"},
+            {"id": "vessel_guard", "val": 10, "desc": "外壳硬化 (获得 10 护盾)"},
+            {"id": "focus_channel", "val": 18, "desc": "纯白聚焦 (获得 18 护盾并凝聚圣环，破盾可打断后续治疗)"},
+            {"id": "pale_wave", "val": 8, "desc": "苍白剑气 (造成 8 点光耀伤害)"},
+            {"id": "focus_bloom", "val": 13, "desc": "聚焦圣环 (对全体造成 13 点光耀伤害，若聚焦未被打断则恢复 12 生命并获得 2 层力量)"},
+            {"id": "void_tendrils", "val": 12, "desc": "虚空触手 (造成 12 点黯蚀伤害，使玩家下回合失去 1A 并施加 1 层虚空虚弱)"},
+            {"id": "abyss_gaze", "val": 1, "desc": "空洞凝视 (对玩家施加 1 层轻度易伤)"}
+        ]
+    },
+    "伟大的克苏鲁": {
+        "name": "伟大的克苏鲁",
+        "type": "boss",
+        "hp": "150",
+        "actions": "2A 1BA",
+        "passive": "不朽星体 (受到致命伤害时化为不可名状的迷雾并在 2 回合后满血重组；可用【放逐斩】直接驱逐迷雾，或在其二次复活后通过【拉莱耶星盘】解开三幕群星封印将其彻底击败)",
+        "intents": [
+            {"id": "call_of_rlyeh", "val": 10, "desc": "拉莱耶的呼唤 (造成 10 点心灵伤害，并向抽牌堆洗入 1 张无形低语)"},
+            {"id": "star_spawn_claw", "val": 14, "desc": "巨爪碾压 (造成 14 点钝击伤害，并施加 1 层轻度钝击易伤)"},
+            {"id": "sunken_tsunami", "val": 9, "desc": "沉没海啸 (对全体造成 9 点寒冷伤害，有护盾时额外造成 4 点真实伤害)"},
+            {"id": "cosmic_regen", "val": 12, "desc": "群星再生 (获得 12 护盾并恢复 8 生命)"},
+            {"id": "madness_pulse", "val": 1, "desc": "疯狂脉动 (使玩家下回合失去 1BA 并少抽 1 张牌)"}
+        ]
+    },
+    "【迷雾】伟大的克苏鲁": {
+        "name": "【迷雾】伟大的克苏鲁",
+        "type": "boss",
+        "hp": "1",
+        "actions": "1A 0BA",
+        "passive": "星体迷雾 (免疫常规伤害，2 回合后满血重塑肉身；唯【放逐斩】或警觉号冲撞可将其彻底放逐)",
+        "intents": [
+            {"id": "mist_condense_1", "val": 5, "desc": "迷雾翻涌 (剩余 2 回合重组，对全体造成 5 点心灵伤害并获得 1 层力量)"},
+            {"id": "mist_condense_2", "val": 150, "desc": "肉身重塑 (剩余 1 回合重组，回合末满血复活为伟大的克苏鲁)"}
+        ]
     }
 }
 
 BOSS_POOLS = {
-    "early": ["远古红龙", "雷霆领主"],
-    "gate": ["腐化之心", "Icerainboww"],
+    "early": ["远古红龙", "雷霆领主", "纯粹容器"],
+    "gate": ["腐化之心", "Icerainboww", "伟大的克苏鲁"],
     "aforgomon": ["亚弗戈蒙"],
     "final": ["虚空之门·尤格-索托斯"]
 }

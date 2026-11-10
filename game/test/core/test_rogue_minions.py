@@ -1,5 +1,6 @@
 import unittest
 from game.test.core.base import *
+from game.models.state import CardState
 
 class TestRogueMinions(unittest.TestCase):
     def test_minion_reindexing(self):
@@ -115,6 +116,43 @@ class TestRogueMinions(unittest.TestCase):
         res = engine.card_player.minion_attack(run, "1", "1")
         self.assertEqual(enemy.hp, 16)
         self.assertIn("造成 4 点钝击伤害", res)
+
+    def test_minion_all_attack_with_wish_power_buff(self):
+        class DummySaveManager:
+            def save_save(self, user_id, run):
+                pass
+            def delete_save(self, user_id):
+                pass
+        mgr = DummySaveManager()
+        engine = BattleEngine(mgr)
+        router = CLIRouter(mgr, engine)
+        player = PlayerState(
+            hp=50,
+            max_hp=50,
+            shield=0,
+            gold=100,
+            stage=1,
+            hand=[CardState("archmage_wish")],
+            actions=5,
+            bonus_actions=5,
+            minions={
+                "1": MinionState("mercenary", "雇佣兵", 10, 10, 4, 1, 0)
+            }
+        )
+        enemy = EnemyState("训练假人", 999, 999, 0)
+        run = GameRun(
+            user_id="test_user",
+            node_type="battle",
+            player=player,
+            enemies=[enemy]
+        )
+        engine.play_card(run, 1, None)
+        self.assertIn("wish_power", [b.id for b in player.buffs])
+        res, term, success = router._execute_sub_action("test_user", run, ["随从", "all", "攻击", "e1"])
+        self.assertEqual(enemy.hp, 995)
+        self.assertIn("造成 4 点钝击伤害", res)
+        self.assertNotIn("❌", res)
+        self.assertFalse(term)
 
     def test_minion_defeat_non_summon_and_win(self):
         class DummySaveManager:

@@ -30,7 +30,29 @@
     "hound_intent_desc": "星光撕咬 (造成 3 力场伤害)"
   },
   "goblin_centurion": {
-    "defend": "【{name}】举起盾牌，获得 {val} 点护盾。",
-    "command": "【{name}】发出咆哮，获得 1 个额外动作点。"
+    "heavy_strike": "【{name}】发动重击。{dmg_msg}，并对你施加了 1 层【轻度挥砍易伤】！",
+    "phalanx_spear": "【{name}】挺出方阵长矛。{dmg_msg}",
+    "defend": "【{name}】举起盾牌，敌方全体获得 {val} 点护盾。",
+    "command": "【{name}】发出战吼号令，敌方全体获得 1 层力量，自身下回合额外获得 1 个动作点！",
+    "buff_astral_speed": "星界加速",
+    "buff_astral_speed_desc": "下回合开始时，获得 1 个额外动作点"
+  },
+  "the_defect": {
+    "name": "故障机器人",
+    "intent_zap_orb": "电击球 (造成 {val} 点闪电伤害)",
+    "intent_boot_sequence": "启动序列 (获得 {val} 点护盾)",
+    "intent_electrodynamics": "电动力学 (对全体造成 {val} 点闪电伤害)",
+    "intent_plasma_awakening": "等离子觉醒 (获得 {val} 点护盾并提升动作上限)",
+    "intent_plasma_beam": "等离子射线 (造成 {val} 点闪电伤害)",
+    "intent_frost_capacitor": "冰霜电容 (获得 {val} 点护盾)",
+    "intent_defragment": "碎片整理 (获得 2 层力量并净化负面状态)",
+    "zap_orb": "【{name}】射出电击球。{dmg_msg}，并使你陷入【电击】！",
+    "boot_sequence": "【{name}】完成启动序列，获得 {val} 点护盾。",
+    "electrodynamics": "【{name}】的电动力学爆发！{dmg_msg}，并对所有玩家施加 2 层【电击】！",
+    "plasma_awakening": "【{name}】激活等离子核心，获得 {val} 点护盾，动作上限永久提升！",
+    "plasma_beam": "【{name}】发射等离子射线。{dmg_msg}",
+    "frost_capacitor": "【{name}】凝结冰霜电容，获得 {val} 点护盾。",
+    "defragment": "【{name}】执行碎片整理，获得 2 层力量并净化了 1 个负面状态！",
+    "awakening_quote": "…球状闪电回路已觉醒…电动力学模块上线…"
   }
 }

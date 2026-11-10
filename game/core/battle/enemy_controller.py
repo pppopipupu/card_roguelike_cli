@@ -38,12 +38,8 @@ class EnemyTurnController:
             old_intents.append(EnemyIntentState(type=enemy.intent_ba2_type, val=enemy.intent_ba2_val, desc=enemy.intent_ba2_desc, cost_a=0, cost_ba=1))
             has_old_active = True
 
-        if has_old_active:
-            if not enemy.intents or len(enemy.intents) != len(old_intents) or any(
-                enemy.intents[i].type != old_intents[i].type or enemy.intents[i].desc != old_intents[i].desc
-                for i in range(min(len(enemy.intents), len(old_intents)))
-            ):
-                enemy.intents = old_intents
+        if has_old_active and not enemy.intents:
+            enemy.intents = old_intents
 
         from ...models.events import EnemySyncIntentsEvent
         evt = EnemySyncIntentsEvent(enemy)
@@ -122,6 +118,16 @@ class EnemyTurnController:
             enemy.intent_ba2_desc = ""
             enemy.intents = []
             template = get_enemy_template(enemy.name)
+            if hasattr(template, "on_battle_start") and not getattr(enemy, "_battle_init_done", False):
+                enemy._battle_init_done = True
+                template.on_battle_start(run, enemy, self.engine)
+            for buff in list(getattr(enemy, "buffs", [])):
+                if buff.id == "astral_speed":
+                    enemy.actions += buff.stacks
+                    enemy.buffs.remove(buff)
+                elif buff.id == "bonus_speed":
+                    enemy.bonus_actions += buff.stacks
+                    enemy.buffs.remove(buff)
             enemy.intents = template.roll_intents(run, self.engine, enemy)
             self.sync_enemy_intents(enemy)
 

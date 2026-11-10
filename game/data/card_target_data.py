@@ -16,4 +16,5 @@ SELF_TARGET_SPELLS = {
     "warrior_blood_fury",
     "wizard_prismatic_wall",
     "wizard_antimagic_field",
+    "special_rlyeh_astrolabe",
 }

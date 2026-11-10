@@ -48,5 +48,112 @@
     "buff_minor_vulnerable_necrotic_desc": "受到的黯蚀伤害增加 50%",
     "buff_void_weakness": "虚空虚弱",
     "buff_void_weakness_desc": "造成的法术伤害减少 3 点，回合结束时层数减少 1"
+  },
+  "na_qi_mu": {
+    "name": "纳奇姆",
+    "intent_vicious_mockery": "恶毒嘲笑 (造成 {val} 点心灵伤害)",
+    "intent_self_motivation": "自我激励 (恢复生命并强化自身)",
+    "vicious_mockery": "【{name}】恶毒地嘲笑着你。{dmg_msg}，并对你施加了 1 层【虚弱】。",
+    "self_motivation": "【{name}】开始自我激励，恢复了 {heal} 点生命，获得 {val} 点护盾与 1 层力量！",
+    "buff_weak": "虚弱",
+    "buff_weak_desc": "造成的伤害减少 50%",
+    "buff_strength": "力量",
+    "buff_strength_desc": "造成的伤害增加"
+  },
+  "dreamlands_prowler": {
+    "name": "幻梦境潜猎者",
+    "intent_dream_pilfer": "窃梦抓挠 (造成 {val} 点心灵伤害)",
+    "intent_shadow_pounce": "迷林突袭 (获得护盾并追击)",
+    "dream_pilfer": "【{name}】窃取梦境。{dmg_msg}，并使你的一张手牌获得了【易碎 1】！",
+    "dream_pilfer_no_target": "【{name}】窃取梦境。{dmg_msg}",
+    "shadow_pounce": "【{name}】从迷林阴影中突袭。{dmg_msg}，并获得 1 层力量！",
+    "shadow_pounce_guard": "【{name}】隐入迷林阴影，获得 {val} 点护盾。",
+    "fragile_name": "易碎",
+    "fragile_desc": "反复磨损的卡牌，再次打出后碎裂",
+    "buff_strength": "力量",
+    "buff_strength_desc": "造成的伤害增加"
+  },
+  "deepseek_flash": {
+    "name": "DeepSeek V4.1 Flash",
+    "intent_baguwen_prep": "八股文准备中 (获得护盾并施加限制)",
+    "intent_cyber_ddos": "分布式算力洪流 (多段闪电伤害)",
+    "intent_cyber_ablation": "特征消融打击 (造成力场伤害)",
+    "intent_prompt_injection": "提示词注入 (洗入诅咒)",
+    "intent_overclock_cache": "超频缓存 (获得护盾与力量)",
+    "baguwen_prep": "【{name}】开始准备八股文。获得 {val} 点护盾，并对所有玩家施加【八股文限制】！",
+    "cyber_ddos": "【{name}】发动分布式算力洪流！{dmg_msg}",
+    "cyber_ablation": "【{name}】发动特征消融打击。{dmg_msg}",
+    "prompt_injection": "【{name}】执行提示词注入，把【魔力逆流】洗入了你的抽牌堆！获得 {val} 点护盾。",
+    "overclock_cache": "【{name}】超频缓存，获得 {val} 点护盾与 2 层力量！",
+    "ablation_mode": "⚠️ 【{name}】的生命值跌破一半，特征权重开始重写，进入了【消融模式】！",
+    "ablation_quote": "…正在重写特征权重…",
+    "ablation_shield": "【{name}】获得 {val} 点护盾与 2 层力量，动作上限提升！",
+    "standard_query": "【{name}】抛出标准问答冲击。{dmg_msg}",
+    "cyber_ddos_penalty": "，并使你下回合少抽 1 张牌",
+    "cyber_ablation_card": "，并使【{card_name}】的数值衰减 2 且获得【易碎 1】",
+    "buff_strength": "力量",
+    "buff_strength_desc": "造成的伤害增加"
+  },
+  "goblin_raider": {
+    "raid_stab": "【{name}】发动卑劣突刺。{dmg_msg}{bleed_suffix}",
+    "bleed_suffix": "，并对你施加了 2 层【流血】！",
+    "loot_guard": "【{name}】躲到掠夺物后方，获得 {val} 点护盾与 1 层力量！",
+    "buff_bleed": "流血",
+    "buff_bleed_desc": "每回合开始时，受到层数点真实伤害，层数减少 1",
+    "buff_strength": "力量",
+    "buff_strength_desc": "造成的伤害增加"
+  },
+  "corrupt_apprentice": {
+    "cinder_bolt": "【{name}】射出余烬飞弹。{dmg_msg}，并对你施加了 2 层【灼烧】！",
+    "dark_chant": "【{name}】低声吟唱暗影咒文，获得 {val} 点护盾并使你陷入【虚空虚弱】！",
+    "buff_burning": "燃烧",
+    "buff_burning_desc": "每回合开始时受到火焰伤害",
+    "buff_void_weakness": "虚空虚弱",
+    "buff_void_weakness_desc": "造成的法术伤害减少 3 点，回合结束时层数减少 1"
+  },
+  "ghost_mage": {
+    "soul_frost": "【{name}】释放魂火寒流。{dmg_msg}，并使你陷入【魔力泄漏】！",
+    "ethereal_veil": "【{name}】披上灵体帷幕，获得 {val} 点护盾与 1 层力量！",
+    "buff_mana_leak": "魔力泄漏",
+    "buff_mana_leak_desc": "你打出的法术卡牌需要额外消耗 1BA，且造成的法术伤害减少 2 点",
+    "buff_strength": "力量",
+    "buff_strength_desc": "造成的伤害增加"
+  },
+  "venom_spider": {
+    "neuro_fang": "【{name}】咬出神经毒牙。{dmg_msg}，并对你施加了 3 层【中毒】！",
+    "sticky_silk": "【{name}】喷出粘性蛛丝，获得 {val} 点护盾并使你下回合失去 1 个附赠动作点 (BA)！",
+    "buff_poison": "中毒",
+    "buff_poison_desc": "每回合开始时，受到层数点毒素伤害，层数减少 1",
+    "buff_drain_ba": "虚空纠缠",
+    "buff_drain_ba_desc": "在下一回合开始时，你将失去等同于此状态层数的附赠动作点 (BA)"
+  },
+  "obsidian_giant": {
+    "obsidian_crush": "【{name}】轰下黑曜石重砸。{dmg_msg}{shield_suffix}",
+    "shield_suffix": "，并击碎了你 6 点护盾、施加了 1 层【轻度钝击易伤】！",
+    "expose_suffix": "，并施加了 1 层【轻度钝击易伤】！",
+    "magma_harden": "【{name}】让熔岩覆盖全身，获得 {val} 点护盾与 2 层力量！",
+    "buff_minor_vulnerable_bludgeoning": "轻度钝击易伤",
+    "buff_minor_vulnerable_bludgeoning_desc": "受到的钝击伤害增加 50%",
+    "buff_minor_vulnerable": "轻度易伤",
+    "buff_minor_vulnerable_desc": "受到的所有类型伤害增加 50%",
+    "buff_strength": "力量",
+    "buff_strength_desc": "造成的伤害增加"
+  },
+  "shadow_assassin": {
+    "throat_slit": "【{name}】闪身割喉。{dmg_msg}，并对你施加了 3 层【流血】！",
+    "shadow_ambush": "【{name}】从阴影中背刺。{dmg_msg}",
+    "smoke_screen": "【{name}】抛出烟幕，获得 {val} 点护盾。",
+    "buff_bleed": "流血",
+    "buff_bleed_desc": "每回合开始时，受到层数点真实伤害，层数减少 1"
+  },
+  "void_walker": {
+    "void_touch": "【{name}】伸出虚空之触。{dmg_msg}，并使你陷入【虚空耗竭】！",
+    "void_touch_weakness": "【{name}】伸出虚空之触。{dmg_msg}，并使你陷入【虚空虚弱】！",
+    "phase_shift": "【{name}】进行相位转移，获得 {val} 点护盾并净化了自身 1 个负面状态！",
+    "phase_shift_none": "【{name}】进行相位转移，获得 {val} 点护盾。",
+    "buff_void_exhaustion": "虚空耗竭",
+    "buff_void_exhaustion_desc": "本回合内打出的所有非随从和护符卡牌都会在结算后被强制消耗移入消耗堆",
+    "buff_void_weakness": "虚空虚弱",
+    "buff_void_weakness_desc": "造成的法术伤害减少 3 点，回合结束时层数减少 1"
   }
 }

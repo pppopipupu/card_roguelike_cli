@@ -325,7 +325,7 @@ class TestRogueEnemyStage(unittest.TestCase):
             run = GameRun(user_id="test_boss", node_type="battle", player=player)
             engine._init_battle_node(run, "boss")
             stages_12_bosses.add(run.enemies[0].name)
-        self.assertEqual(stages_12_bosses, {"远古红龙", "雷霆领主"})
+        self.assertEqual(stages_12_bosses, {"远古红龙", "雷霆领主", "纯粹容器"})
         
         stages_25_bosses = set()
         for _ in range(50):
@@ -333,7 +333,7 @@ class TestRogueEnemyStage(unittest.TestCase):
             run = GameRun(user_id="test_boss", node_type="battle", player=player)
             engine._init_battle_node(run, "boss")
             stages_25_bosses.add(run.enemies[0].name)
-        self.assertEqual(stages_25_bosses, {"腐化之心", "Icerainboww"})
+        self.assertEqual(stages_25_bosses, {"腐化之心", "Icerainboww", "伟大的克苏鲁"})
         
         player31 = PlayerState(hp=100, max_hp=100, shield=0, gold=100, stage=31)
         run31 = GameRun(user_id="test_boss", node_type="battle", player=player31)

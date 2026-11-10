@@ -603,5 +603,102 @@ BUFF_CONFIG = {
         "heal_amount": 2,
         "high_heal_amount": 3,
         "high_bonus_threshold": 6
+    },
+    "bonus_speed": {
+        "name": "迅捷附赠",
+        "type": "buff",
+        "desc": "下回合开始时，获得等同于层数的额外附赠动作点 (BA)"
+    },
+    "baguwen_restriction": {
+        "name": "八股文限制",
+        "type": "debuff",
+        "violation_damage": 10,
+        "desc": "每回合必须优先打出系统点名的第一张手牌，否则受到 10 点黯蚀伤害",
+        "is_debuff": True
+    },
+    "shroud_time_warp": {
+        "name": "虚境时计",
+        "type": "buff",
+        "card_limit": 12,
+        "heal_val": 12,
+        "shield_val": 15,
+        "strength_val": 2,
+        "desc": "玩家每打出 12 张牌，强制结束当前玩家回合并使虚境之影恢复 12 生命、获得 15 护盾与 2 层力量"
+    },
+    "pure_vessel_body_passive": {
+        "name": "空洞之躯",
+        "type": "buff",
+        "desc": "免疫流血与中毒，每回合开始移除自身 1 层负面状态"
+    },
+    "pure_parry_stance": {
+        "name": "骨钉招架",
+        "type": "buff",
+        "counter_damage": 8,
+        "desc": "拥有护盾期间受到物理攻击时反击造成 8 点挥砍伤害；护盾被击破时解除招架并暴露 1 层轻度易伤"
+    },
+    "pure_focus_charge": {
+        "name": "聚焦蓄能",
+        "type": "buff",
+        "heal_val": 12,
+        "strength_val": 2,
+        "desc": "正在凝聚纯白圣环，若下回合行动前护盾未被击破，释放聚焦圣环时恢复 12 生命并获得 2 层力量"
+    },
+    "dragon_scales_passive": {
+        "name": "龙威鳞甲",
+        "type": "buff",
+        "start_shield": 8,
+        "thorns_damage": 2,
+        "burn_stacks": 1,
+        "burn_turns": 2,
+        "desc": "回合开始无盾时获得 8 护盾；持盾受物理攻击时反弹 2 点火焰伤害并施加 1 层灼烧"
+    },
+    "molten_charge": {
+        "name": "熔火蓄力",
+        "type": "buff",
+        "bonus_damage": 6,
+        "desc": "正在蓄力炼狱吐息，若护盾未被击破则下回合炼狱吐息伤害 +6；若护盾被击破则失去蓄力并暴露 1 层轻度易伤"
+    },
+    "storm_field_passive": {
+        "name": "雷暴力场",
+        "type": "buff",
+        "bonus_per_orb": 2,
+        "desc": "场上每有 1 只存活雷影魔仆，雷电伤害 +2；回合开始若有护盾则对玩家施加 1 层电击"
+    },
+    "permafrost_aura_passive": {
+        "name": "极寒领域",
+        "type": "buff",
+        "card_threshold": 4,
+        "chill_damage": 2,
+        "desc": "玩家每回合打出第 4 张及之后卡牌时若带轻度寒冷易伤则受 2 点寒冷伤害；回合结束无护盾则获得 1 层轻度寒冷易伤"
+    },
+    "cthulhu_mist_immune": {
+        "name": "星体迷雾",
+        "type": "buff",
+        "desc": "化为不可名状的星体迷雾，免疫常规伤害；唯【放逐斩】或拉莱耶第三幕冲撞可将其彻底放逐"
+    },
+    "stars_misaligned": {
+        "name": "群星失位",
+        "type": "debuff",
+        "damage_multiplier": 1.5,
+        "desc": "拉莱耶星轨被逆转，受到的所有伤害提高 50%",
+        "is_debuff": True
+    },
+    "doom_furnace_passive": {
+        "name": "末日熔炉",
+        "type": "buff",
+        "desc": "每次自身失去生命值时，获得 1 层力量"
+    },
+    "soul_phylactery_passive": {
+        "name": "魂匣共鸣",
+        "type": "buff",
+        "damage_reduction": 0.3,
+        "desc": "场上有骷髅兵存活时，自身受到的伤害降低 30%"
+    },
+    "dream_eater_passive": {
+        "name": "食梦帷幕",
+        "type": "buff",
+        "shield_gain": 4,
+        "heal_gain": 3,
+        "desc": "每当玩家消耗卡牌时，获得 4 点护盾并恢复 3 点生命"
     }
 }

@@ -554,6 +554,28 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(active_exit["shell"]["status"], 0)
 
 
+    def test_web_shell_fastfetch_and_changelog(self):
+        headers = self.web_headers("web-fastfetch")
+        fetched = self.post({"command": "fastfetch", "channel": "web"}, headers).json()
+        self.assertTrue(fetched["ok"])
+        self.assertEqual(fetched["shell"]["status"], 0)
+        self.assertIn("rogue@rogue-core", fetched["text"])
+        self.assertIn("GPU: Rogue Integrated Mercury", fetched["text"])
+        self.assertIn("Packages: 412 (dpkg), 7 (vault)", fetched["text"])
+        self.assertIn("Vault: sealed", fetched["text"])
+
+        manual = self.post({"command": "man fastfetch", "channel": "web"}, headers).json()
+        self.assertIn("以模块化布局显示终端与卡牌周目摘要", manual["text"])
+
+        which = self.post({"command": "which fastfetch", "channel": "web"}, headers).json()
+        self.assertIn("/usr/bin/fastfetch", which["text"])
+
+        shell_help = self.post({"command": "help system", "channel": "web"}, headers).json()
+        self.assertIn("fastfetch", shell_help["text"])
+
+        changelog = self.post({"command": "changelog", "channel": "web"}, headers).json()
+        self.assertIn("2026-11-11", changelog["text"])
+
     def test_leaderboard_and_online_commands(self):
         high = self.post(
             {"command": "start confirm", "channel": "web", "name": "高GP"},

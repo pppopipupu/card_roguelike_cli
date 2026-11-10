@@ -557,6 +557,32 @@ NEUTRAL_CARD_SPELLS = {
         "fleeting": True,
         "max_count": 10,
         "feedback": "使用了【按钮术】，按下了命运的按钮！"
+    },
+    "neutral_banish_slash": {
+        "name": "放逐斩",
+        "color": "neutral",
+        "type": "attack",
+        "cost_a": 1,
+        "cost_ba": 0,
+        "desc": "造成 16 点力场伤害。若目标为非领主敌人，有 50% 几率将其直接放逐（被放逐的敌人不掉落金币）；若目标为【迷雾】形态的伟大的克苏鲁，直接将其放逐并获胜。",
+        "rarity": "rare",
+        "base_dmg": 16,
+        "damage_type": "force",
+        "banish_chance": 0.5,
+        "gem_slots": 1,
+        "feedback": "对【{target}】斩出【放逐斩】。"
+    },
+    "special_rlyeh_astrolabe": {
+        "name": "拉莱耶星盘",
+        "color": "neutral",
+        "type": "spell",
+        "cost_a": 0,
+        "cost_ba": 0,
+        "desc": "校准非欧几里得星轨，推进【拉莱耶的群星封印】解谜进度。保留。",
+        "rarity": "artifact",
+        "retain": True,
+        "gem_slots": 0,
+        "feedback": "转动了【拉莱耶星盘】。"
     }
 }
 

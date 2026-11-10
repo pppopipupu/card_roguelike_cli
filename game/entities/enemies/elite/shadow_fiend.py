@@ -1,5 +1,6 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
+from ..trash_talk_actions import try_trash_talk
 from ....data.enemy_data import ENEMY_CONFIG
 from ....data.locale_data import get_locale_text
 
@@ -10,8 +11,14 @@ class ShadowFiendTemplate(EnemyTemplate):
         import random
         cfg = ENEMY_CONFIG.get("暗影影魔", {})
         intents = cfg.get("intents", [])
-        chosen = random.choice(intents)
-        return [EnemyIntentState(type=chosen["id"], val=chosen["val"], desc=chosen["desc"], cost_a=1, cost_ba=0)]
+        intents_list = []
+        for _ in range(enemy.actions):
+            chosen = random.choice(intents)
+            intents_list.append(EnemyIntentState(type=chosen["id"], val=chosen["val"], desc=chosen["desc"], cost_a=1, cost_ba=0))
+        for _ in range(enemy.bonus_actions):
+            chosen = random.choice(intents)
+            intents_list.append(EnemyIntentState(type=chosen["id"], val=chosen["val"], desc=chosen["desc"], cost_a=0, cost_ba=1))
+        return intents_list
 
     def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
         if logs is None:
@@ -24,22 +31,19 @@ class ShadowFiendTemplate(EnemyTemplate):
                 cost_a=1,
                 cost_ba=0
             )
-        from ....entities.enemies.trash_talk_actions import try_trash_talk
         try_trash_talk(run, enemy, logs)
-        p = run.player
+        strength = 0
+        if getattr(enemy, "buffs", None):
+            for buff in enemy.buffs:
+                if buff.id == "strength":
+                    strength += buff.stacks
+        val = intent.val + strength
         if intent.type == "shadow_strike":
-            strength = 0
-            if getattr(enemy, "buffs", None):
-                for b in enemy.buffs:
-                    if b.id == "strength":
-                        strength += b.stacks
-            dmg = intent.val + strength
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="true")
+            engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="true")
             after_logs = run.node_data.get("battle_logs", [])
-            if len(after_logs) > before_len:
-                dmg_msg = after_logs.pop()
-                logs.append(get_locale_text("i18n_enemy_elite_c.shadow_fiend_shadow_strike_log", name=enemy.name, dmg_msg=dmg_msg))
+            dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
+            logs.append(get_locale_text("i18n_enemy_elite_c.shadow_fiend_shadow_strike_log", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "defend":
             if enemy in run.enemies:
                 engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)

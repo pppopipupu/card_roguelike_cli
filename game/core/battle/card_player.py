@@ -174,6 +174,14 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         if has_damaged and run.node_data.get("extra_turns_left", 0) > 0:
             end_turn_res = self.end_turn(run)
             res += get_locale_text("i18n_battle_core.time_stop_extra_end_log", end_turn_res=end_turn_res)
+        if run.node_data.pop("force_end_turn", False):
+            run.node_data.pop("force_end_turn_uid", None)
+            if getattr(run, "coop_id", ""):
+                from ..coop_engine import CoopEngine
+                force_end_res = CoopEngine(self.engine.save_manager, self.engine).handle_battle_turn_end(run)
+                res += "\n" + force_end_res
+            elif not self.engine.is_battle_won(run) and p.hp > 0:
+                res += "\n" + self.end_turn(run)
         for enemy in run.enemies:
             self.engine._sync_enemy_intents(enemy)
         self._reindex_minions(p)

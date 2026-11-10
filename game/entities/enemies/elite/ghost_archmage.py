@@ -10,8 +10,14 @@ class GhostArchmageTemplate(EnemyTemplate):
         import random
         cfg = ENEMY_CONFIG.get("幽灵大魔法师", {})
         intents = cfg.get("intents", [])
-        chosen = random.choice(intents)
-        return [EnemyIntentState(type=chosen["id"], val=chosen["val"], desc=chosen["desc"], cost_a=1, cost_ba=0)]
+        intents_list = []
+        for _ in range(enemy.actions):
+            chosen = random.choice(intents)
+            intents_list.append(EnemyIntentState(type=chosen["id"], val=chosen["val"], desc=chosen["desc"], cost_a=1, cost_ba=0))
+        for _ in range(enemy.bonus_actions):
+            chosen = random.choice(intents)
+            intents_list.append(EnemyIntentState(type=chosen["id"], val=chosen["val"], desc=chosen["desc"], cost_a=0, cost_ba=1))
+        return intents_list
 
     def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
         if logs is None:
@@ -24,11 +30,15 @@ class GhostArchmageTemplate(EnemyTemplate):
                 cost_a=1,
                 cost_ba=0
             )
-        p = run.player
-        import random
+        strength = 0
+        if getattr(enemy, "buffs", None):
+            for buff in enemy.buffs:
+                if buff.id == "strength":
+                    strength += buff.stacks
+        val = intent.val + strength
         if intent.type == "spell_burst":
-            self._perform_attack(run, engine, enemy, intent.val, logs)
+            self._perform_attack(run, engine, enemy, val, logs, damage_type="lightning")
         elif intent.type == "mana_drain":
-            self._perform_attack(run, engine, enemy, intent.val, logs)
+            self._perform_attack(run, engine, enemy, val, logs, damage_type="psychic")
             engine._add_buff_to(run.player, "discard_next_turn", get_locale_text("i18n_enemy_elite_b.common.discard_next_turn_name"), get_locale_text("i18n_enemy_elite_b.common.discard_next_turn_desc"), 1)
             logs.append(get_locale_text("i18n_enemy_elite_b.ghost_archmage.siphon", name=enemy.name))

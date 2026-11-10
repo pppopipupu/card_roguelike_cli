@@ -1,5 +1,5 @@
 import random
-from ...models.state import GameRun
+from ...models.state import GameRun, ensure_card_state
 from ...data.locale_data import get_locale_text
 from ...entities import ALL_CARDS, ALL_AMULETS
 from ...models.events import TurnEndEvent, TurnStartEvent, CardExhaustEvent
@@ -94,10 +94,6 @@ class CardPlayerTurnMixin:
         if advance_global:
             if run.enemies and any(e.name.startswith("腐化之心") for e in run.enemies):
                 run.node_data["heart_turn"] = run.node_data.get("heart_turn", 1) + 1
-            if run.enemies and any(e.name.startswith("Icerainboww") for e in run.enemies):
-                run.node_data["icerainboww_turn"] = run.node_data.get("icerainboww_turn", 1) + 1
-            if run.enemies and any(e.name.startswith("雷霆领主") for e in run.enemies):
-                run.node_data["thunder_lord_turn"] = run.node_data.get("thunder_lord_turn", 1) + 1
         draw_count = 6
         if run.node_data.get("draw_penalty_next_turn"):
             draw_count = max(0, draw_count - run.node_data["draw_penalty_next_turn"])
@@ -116,6 +112,27 @@ class CardPlayerTurnMixin:
             p.buffs.remove(discard_buff)
             if discarded_names:
                 self.engine._log_event(run, get_locale_text("i18n_battle_core.discard_start_turn_log", cards=', '.join(discarded_names)))
+        if any(b.id == "baguwen_restriction" for b in p.buffs):
+            required_key = run.turn_key("baguwen_required_card", p)
+            checked_key = run.turn_key("baguwen_checked", p)
+            candidates = []
+            for hand_state in p.hand:
+                state = ensure_card_state(hand_state)
+                card = ALL_CARDS.get(state)
+                if card is None:
+                    continue
+                if getattr(card, "unplayable", False):
+                    continue
+                if getattr(card, "type", "") == "curse":
+                    continue
+                candidates.append((state, card))
+            if candidates:
+                state, card = random.choice(candidates)
+                run.node_data[required_key] = {"id": state.id, "upgraded": bool(state.upgraded)}
+                self.engine._log_event(run, get_locale_text("i18n_buffs.baguwen_required_log", card_name=card.name))
+            else:
+                run.node_data.pop(required_key, None)
+            run.node_data[checked_key] = False
         run.node_data[run.turn_key("cards_played_this_turn", p)] = 0
         if getattr(run, "coop_id", ""):
             run.node_data[f"action_surge_turn_used:{run.uid_for(p)}"] = False

@@ -3,13 +3,12 @@ from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
 from ....data.locale_data import get_locale_text
 
-@register_enemy("雷影魔仆")
-class LightningOrbTemplate(EnemyTemplate):
+@register_enemy("魔仆")
+class FlameImpTemplate(EnemyTemplate):
     def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
         from ....models.state import EnemyIntentState
         import random
-        cfg = ENEMY_CONFIG.get("雷影魔仆", {})
-        intents = cfg.get("intents", [])
+        intents = ENEMY_CONFIG.get("魔仆", {}).get("intents", [])
         chosen = random.choice(intents)
         return [EnemyIntentState(type=chosen["id"], val=chosen["val"], desc=chosen["desc"], cost_a=1, cost_ba=0)]
 
@@ -28,15 +27,9 @@ class LightningOrbTemplate(EnemyTemplate):
         for b in enemy.buffs:
             if b.id == "strength":
                 strength += b.stacks
-        val = intent.val + strength
-
-        if intent.type == "lightning_strike":
+        if intent.type == "imp_claw":
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="lightning")
+            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="fire")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
-            engine._add_buff_to(run.player, "shock", get_locale_text("i18n_enemy_misc.common.shock_name"), get_locale_text("i18n_enemy_misc.common.shock_desc"), 1)
-            logs.append(get_locale_text("i18n_enemy_misc.lightning_orb.lightning_strike", name=enemy.name, dmg_msg=dmg_msg))
-        elif intent.type == "charge":
-            engine._add_buff_to(enemy, "strength", get_locale_text("i18n_enemy_misc.common.strength_name"), get_locale_text("i18n_enemy_misc.common.strength_desc"), 1)
-            logs.append(get_locale_text("i18n_enemy_misc.lightning_orb.charge", name=enemy.name))
+            logs.append(get_locale_text("i18n_enemy_misc.flame_imp.imp_claw", name=enemy.name, dmg_msg=dmg_msg))

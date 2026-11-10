@@ -453,7 +453,7 @@ class GlacierFortressBuff(BuffImpl):
 
 class WishPowerBuff(BuffImpl):
     def on_damage_calculate(self, event, buff_state, entity):
-        if entity == event.run.player and event.card.type == "spell":
+        if entity == event.run.player and event.card is not None and event.card.type == "spell":
             val = _stat(self, "wish_power", "upgraded_damage_bonus", 6) if self.upgraded else _stat(self, "wish_power", "damage_bonus", 4)
             event.modified_damage += val
 

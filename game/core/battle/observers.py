@@ -149,6 +149,7 @@ class BuffTriggerHandler:
         event_bus.subscribe(DamageTakeEvent, self.on_damage_take)
         event_bus.subscribe(HealCalculateEvent, self.on_heal_calculate)
         event_bus.subscribe(EnemySyncIntentsEvent, self.on_enemy_sync_intents)
+        event_bus.subscribe(CardExhaustEvent, self.on_card_exhaust)
 
     def _trigger_turn_buffs(self, event, entity, method_name):
         from ...entities.buffs import get_buff_impl
@@ -277,6 +278,18 @@ class BuffTriggerHandler:
                     impl = get_buff_impl(b.id, b.stacks, getattr(b, "stacks2", None))
                     if impl and hasattr(impl, "on_damage_take_defend"):
                         impl.on_damage_take_defend(event, b, enemy, self.engine)
+
+    def on_card_exhaust(self, event):
+        from ...entities.buffs import get_buff_impl
+        for b in list(event.run.player.buffs):
+            impl = get_buff_impl(b.id, b.stacks, getattr(b, "stacks2", None))
+            if impl and hasattr(impl, "on_card_exhaust"):
+                impl.on_card_exhaust(event, b, event.run.player)
+        for enemy in list(event.run.enemies):
+            for b in list(enemy.buffs):
+                impl = get_buff_impl(b.id, b.stacks, getattr(b, "stacks2", None))
+                if impl and hasattr(impl, "on_card_exhaust"):
+                    impl.on_card_exhaust(event, b, enemy)
 
 class AmuletTriggerHandler:
     def __init__(self, event_bus, engine):
@@ -451,6 +464,12 @@ class EnemyTriggerHandler:
         event_bus.subscribe(CardPlayEvent, self.on_card_play)
         event_bus.subscribe(TurnStartEvent, self.on_turn_start)
         event_bus.subscribe(TurnEndEvent, self.on_turn_end)
+        event_bus.subscribe(BattleStartEvent, self.on_battle_start)
+        event_bus.subscribe(CardPlayedEvent, self.on_card_played)
+        event_bus.subscribe(DamageTakeEvent, self.on_damage_take)
+        event_bus.subscribe(DamageCalculateEvent, self.on_damage_calculate)
+        event_bus.subscribe(CardExhaustEvent, self.on_card_exhaust)
+        event_bus.subscribe(MinionDeathEvent, self.on_minion_death)
 
     def on_enemy_before_death(self, event):
         from ...entities import get_enemy_template
@@ -461,6 +480,8 @@ class EnemyTriggerHandler:
     def on_card_play(self, event):
         from ...entities import get_enemy_template
         for enemy in list(event.run.enemies):
+            if enemy.hp <= 0:
+                continue
             template = get_enemy_template(enemy.name)
             if template and hasattr(template, "on_card_play"):
                 template.on_card_play(event, enemy, self.engine)
@@ -468,6 +489,8 @@ class EnemyTriggerHandler:
     def on_turn_start(self, event):
         from ...entities import get_enemy_template
         for enemy in list(event.run.enemies):
+            if enemy.hp <= 0:
+                continue
             template = get_enemy_template(enemy.name)
             if template and hasattr(template, "on_turn_start"):
                 template.on_turn_start(event, enemy, self.engine)
@@ -475,9 +498,66 @@ class EnemyTriggerHandler:
     def on_turn_end(self, event):
         from ...entities import get_enemy_template
         for enemy in list(event.run.enemies):
+            if enemy.hp <= 0:
+                continue
             template = get_enemy_template(enemy.name)
             if template and hasattr(template, "on_turn_end"):
                 template.on_turn_end(event, enemy, self.engine)
+
+    def on_battle_start(self, event):
+        from ...entities import get_enemy_template
+        for enemy in list(event.run.enemies):
+            if enemy.hp <= 0:
+                continue
+            template = get_enemy_template(enemy.name)
+            if template and hasattr(template, "on_battle_start") and not getattr(enemy, "_battle_init_done", False):
+                enemy._battle_init_done = True
+                template.on_battle_start(event.run, enemy, self.engine)
+
+    def on_card_played(self, event):
+        from ...entities import get_enemy_template
+        for enemy in list(event.run.enemies):
+            if enemy.hp <= 0:
+                continue
+            template = get_enemy_template(enemy.name)
+            if template and hasattr(template, "on_card_played"):
+                template.on_card_played(event, enemy, self.engine)
+
+    def on_damage_take(self, event):
+        from ...entities import get_enemy_template
+        for enemy in list(event.run.enemies):
+            if enemy.hp <= 0:
+                continue
+            template = get_enemy_template(enemy.name)
+            if template and hasattr(template, "on_damage_take"):
+                template.on_damage_take(event, enemy, self.engine)
+
+    def on_damage_calculate(self, event):
+        from ...entities import get_enemy_template
+        for enemy in list(event.run.enemies):
+            if enemy.hp <= 0:
+                continue
+            template = get_enemy_template(enemy.name)
+            if template and hasattr(template, "on_damage_calculate"):
+                template.on_damage_calculate(event, enemy, self.engine)
+
+    def on_card_exhaust(self, event):
+        from ...entities import get_enemy_template
+        for enemy in list(event.run.enemies):
+            if enemy.hp <= 0:
+                continue
+            template = get_enemy_template(enemy.name)
+            if template and hasattr(template, "on_card_exhaust"):
+                template.on_card_exhaust(event, enemy, self.engine)
+
+    def on_minion_death(self, event):
+        from ...entities import get_enemy_template
+        for enemy in list(event.run.enemies):
+            if enemy.hp <= 0:
+                continue
+            template = get_enemy_template(enemy.name)
+            if template and hasattr(template, "on_minion_death"):
+                template.on_minion_death(event, enemy, self.engine)
 
 
 

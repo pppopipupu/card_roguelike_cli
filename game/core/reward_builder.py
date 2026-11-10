@@ -67,16 +67,27 @@ def _reward_card_item(run, player, stats, include_coop):
     return {"type": "card_reward", "cards": final_cards, "taken": False, "force": False}
 
 
+def battle_gold_skipped(run):
+    if int(run.node_data.get("banished_total", 0) or 0) <= 0:
+        return False
+    enemies = getattr(run, "enemies", None) or []
+    return not any(enemy.hp > 0 for enemy in enemies)
+
+
 def build_reward_items(save_manager, run, player, difficulty, include_shared_relic, party_size):
     coop = bool(getattr(run, "coop_id", ""))
     stats = save_manager.load_stats(run.user_id)
     gold = roll_battle_gold(difficulty)
+    skip_gold = battle_gold_skipped(run)
     relic_id = ""
     if difficulty == "elite":
         relic_id = elite_relic_id(str(run.node_data.get("elite_name", "")), player, exact=not coop)
     items = []
     if coop:
-        items.append({"type": "gold", "amount": gold, "taken": False})
+        if skip_gold:
+            items.append({"type": "gold_skip", "taken": True})
+        else:
+            items.append({"type": "gold", "amount": gold, "taken": False})
         items.append(_reward_card_item(run, player, stats, True))
         potion_id = roll_potion(stats, difficulty)
         if potion_id:
@@ -89,7 +100,10 @@ def build_reward_items(save_manager, run, player, difficulty, include_shared_rel
     else:
         if relic_id:
             items.append({"type": "relic", "relic_id": relic_id, "taken": False})
-        items.append({"type": "gold", "amount": gold, "taken": False})
+        if skip_gold:
+            items.append({"type": "gold_skip", "taken": True})
+        else:
+            items.append({"type": "gold", "amount": gold, "taken": False})
         potion_id = roll_potion(stats, difficulty)
         if potion_id:
             items.append({"type": "potion", "potion_id": potion_id, "taken": False})

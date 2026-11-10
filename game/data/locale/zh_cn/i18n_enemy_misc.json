@@ -5,7 +5,9 @@
     "shock_name": "电击",
     "shock_desc": "受到的闪电和雷鸣伤害每层增加 1 点",
     "phase_transition_name": "转换阶段",
-    "phase_transition_desc": "处于转换阶段状态，免疫所有伤害"
+    "phase_transition_desc": "处于转换阶段状态，免疫所有伤害",
+    "bleed_name": "流血",
+    "bleed_desc": "每回合开始时，受到层数点真实伤害，层数减少 1"
   },
   "astral_puppy": {
     "intent_star_bite": "星光撕咬 (造成 3 力场伤害)",
@@ -54,5 +56,32 @@
     "slash": "强力挥砍 (造成 12 点挥砍伤害)",
     "block": "铁盾格挡 (获得 15 点护盾)",
     "bash": "重力盾击 (造成 20 点钝击伤害)"
+  },
+  "flame_imp": {
+    "intent_imp_claw": "火焰抓击 (造成 {val} 点火焰伤害)",
+    "imp_claw": "【{name}】伸出火焰利爪。{dmg_msg}",
+    "name": "魔仆"
+  },
+  "frenzied_hound": {
+    "intent_hound_bite": "狂暴扑咬 (造成 {val} 点穿刺伤害)",
+    "hound_bite": "【{name}】疯狂扑咬。{dmg_msg}，并施加了 1 层【流血】！",
+    "name": "狂暴猎犬"
+  },
+  "thunder_orb": {
+    "intent_lightning_strike": "闪电击 (造成 {val} 点闪电伤害)",
+    "intent_charge": "蓄能 (获得 1 层力量)",
+    "lightning_strike": "【{name}】射出闪电。{dmg_msg}，并使玩家陷入【电击】！",
+    "charge": "【{name}】开始蓄能，获得 1 层力量。",
+    "name": "雷影魔仆"
+  },
+  "skeleton_minion": {
+    "intent_bone_slash": "骨刃挥砍 (造成 {val} 点挥砍伤害)",
+    "bone_slash": "【{name}】挥下骨刃。{dmg_msg}",
+    "name": "骷髅兵"
+  },
+  "void_shade": {
+    "intent_void_strike": "虚空打击 (造成 {val} 点黯蚀伤害)",
+    "void_strike": "【{name}】对玩家进行虚空打击。{dmg_msg}",
+    "name": "虚空潜影"
   }
 }
