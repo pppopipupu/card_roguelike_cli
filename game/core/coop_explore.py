@@ -1,6 +1,6 @@
 import random
 
-from ..entities import ALL_CARDS, get_relic_name
+from ..entities import get_relic_name
 from ..data.balance_config import (
     COOP_AUTO_TARGET_CANDIDATE_COUNT,
     COOP_BUFF_STACKS_MIN,
@@ -29,32 +29,6 @@ class CoopExploreMixin:
         data = run.node_data
         if data.get("coop_done"):
             return get_locale_text("i18n_coop_explore.coop_done_waiting")
-        pending = data.get("pending_cards")
-        if pending is not None:
-            can_skip = data.get("pending_card_can_skip", True)
-            skip_idx = len(pending) + 1
-            if not can_skip and (option_idx < 1 or option_idx > len(pending)):
-                return get_locale_text("i18n_coop_explore.err_cannot_skip_reward")
-            if can_skip and (option_idx < 1 or option_idx > skip_idx):
-                return get_locale_text("err_invalid_option_idx")
-            data["pending_cards"] = None
-            data["pending_card_can_skip"] = False
-            if option_idx == skip_idx:
-                msg = get_locale_text("i18n_coop_explore.card_select_skipped")
-            else:
-                cid = pending[option_idx - 1]
-                from ..models.state import ensure_card_state
-                c_state = ensure_card_state(cid)
-                from ..models.events import CardObtainEvent
-                self.map_engine.battle_engine.event_bus.dispatch(CardObtainEvent(run, c_state))
-                p = run.player
-                p.deck.append(c_state)
-                card = ALL_CARDS.get(cid)
-                msg = get_locale_text("i18n_coop_explore.card_reward_gained", card_name=card.name if card else cid)
-            available = [item for item in data.get("items", []) if not item.get("taken")]
-            if not available:
-                return self._coop_finish(run, msg)
-            return msg
         items = data.get("items", [])
         available = [item for item in items if not item.get("taken")]
         if option_idx < 1 or option_idx > len(available):
@@ -62,17 +36,7 @@ class CoopExploreMixin:
         chosen = available[option_idx - 1]
         real_idx = items.index(chosen)
         if chosen.get("type") == "card_reward":
-            chosen["taken"] = True
-            data["pending_cards"] = list(chosen.get("cards", []))
-            data["pending_card_can_skip"] = True
-            data["pending_card_upgraded"] = False
-            cards = chosen.get("cards", [])
-            lines = [get_locale_text("i18n_coop_explore.card_reward_start")]
-            for idx, cid in enumerate(cards, 1):
-                card = ALL_CARDS.get(cid)
-                lines.append(f" [{idx}] {card.name if card else cid}")
-            lines.append(get_locale_text("i18n_coop_explore.reward_skip_option", idx=len(cards) + 1))
-            return "\n".join(lines)
+            return self._claim_single_item(run, real_idx)
         if chosen.get("type") == "shared_relic":
             chosen["taken"] = True
             rid = chosen.get("relic_id")
@@ -92,24 +56,6 @@ class CoopExploreMixin:
         data = run.node_data
         if data.get("coop_done"):
             return get_locale_text("i18n_coop_explore.coop_done_waiting")
-        pending = data.get("pending_cards")
-        if pending is not None:
-            skip_idx = len(pending) + 1
-            if option_idx < 1 or option_idx > skip_idx:
-                return get_locale_text("err_invalid_option_idx")
-            data["pending_cards"] = None
-            if option_idx == skip_idx:
-                msg = get_locale_text("i18n_coop_explore.meditate_abandoned")
-            else:
-                cid = pending[option_idx - 1]
-                from ..models.state import ensure_card_state
-                c_state = ensure_card_state(cid)
-                from ..models.events import CardObtainEvent
-                self.map_engine.battle_engine.event_bus.dispatch(CardObtainEvent(run, c_state))
-                run.player.deck.append(c_state)
-                card = ALL_CARDS.get(cid)
-                msg = get_locale_text("i18n_coop_explore.meditate_card_gained", card_name=card.name if card else cid)
-            return self._coop_finish(run, msg)
         p = run.player
         if option_idx == 1:
             heal = p.max_hp * COOP_REST_HEAL_PERCENT // COOP_PERCENT_BASE
@@ -121,13 +67,10 @@ class CoopExploreMixin:
             reward_cards = random.sample(class_cards, min(REWARD_CARD_COUNT, len(class_cards))) if class_cards else []
             from ..models.state import check_and_replace_fireball
             reward_cards = [check_and_replace_fireball(run, cid) for cid in reward_cards]
-            data["pending_cards"] = reward_cards
-            lines = [get_locale_text("i18n_coop_explore.meditate_desc")]
-            for idx, cid in enumerate(reward_cards, 1):
-                card = ALL_CARDS.get(cid)
-                lines.append(f" [{idx}] {card.name if card else cid}")
-            lines.append(get_locale_text("i18n_coop_explore.meditate_skip_option", idx=len(reward_cards) + 1))
-            return "\n".join(lines)
+            for item in data.get("items", []):
+                item["taken"] = True
+            self.start_card_select(run, reward_cards, "rest", init_event=False, title_key="i18n_explore_core.meditate_title", desc_key="i18n_explore_core.meditate_desc")
+            return get_locale_text("msg_rest_meditate")
         if option_idx == 3:
             data["upgrade_source"] = "rest"
             data["pending_upgrade"] = True

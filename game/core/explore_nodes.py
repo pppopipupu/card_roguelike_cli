@@ -8,16 +8,177 @@ from ..data.locale_data import get_locale_text
 from .deck_service import DeckService
 
 
-class _CoopEventProxy:
+class _TeamEventSaveManager:
+    def __init__(self, real):
+        self._real = real
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+    def save_save(self, *args, **kwargs):
+        return False
+
+    def save_coop_save(self, *args, **kwargs):
+        return False
+
+
+class _TeamEventBattleEngine:
+    def __init__(self, real, owner):
+        self._real = real
+        self._owner = owner
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+    def _init_battle_node(self, run, difficulty="normal"):
+        if self._owner.suppress:
+            return
+        self._owner.battle_done = True
+        return self._real._init_battle_node(run, difficulty)
+
+
+class _TeamEventExploreEngine:
+    def __init__(self, real, owner):
+        self._real = real
+        self._owner = owner
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+    def _init_shop_node(self, run):
+        if self._owner.suppress:
+            return
+        self._owner.shop_done = True
+        return self._real._init_shop_node(run)
+
+    def start_gem_insert_flow(self, run, gem_id, next_type, next_data):
+        if self._owner.suppress:
+            return ""
+        self._owner.gem_id = gem_id
+        from ..data.gem_data import GEM_CONFIG
+        return get_locale_text("i18n_explore_core.gem_gained", gem_name=GEM_CONFIG[gem_id]["name"])
+
+
+class _TeamEventProxy:
     def __init__(self, map_engine):
         self._map_engine = map_engine
-        self.finished = False
+        self.advance = False
+        self.suppress = False
+        self.battle_done = False
+        self.shop_done = False
+        self.gem_id = ""
 
     def __getattr__(self, name):
         return getattr(self._map_engine, name)
 
+    @property
+    def save_manager(self):
+        return _TeamEventSaveManager(self._map_engine.save_manager)
+
+    @property
+    def battle_engine(self):
+        return _TeamEventBattleEngine(self._map_engine.battle_engine, self)
+
+    @property
+    def explore_engine(self):
+        return _TeamEventExploreEngine(self._map_engine.explore_engine, self)
+
     def enter_next_stage(self, run):
-        self.finished = True
+        self.advance = True
+
+
+def _team_auto_flow(run, flow, gem_id):
+    from ..models.state import ensure_card_state
+    from ..entities.cards.base import ALL_CARDS
+    if flow == "UPGRADE_FLOW":
+        from ..data.card_upgrade_data import CARD_UPGRADE_CONFIG
+        for player in run.players.values():
+            for card_state in player.deck:
+                if not card_state.upgraded and card_state.id in CARD_UPGRADE_CONFIG:
+                    card_state.upgraded = True
+                    break
+        return get_locale_text("i18n_explore_core.event_team_upgrade")
+    if flow == "REMOVE_FLOW":
+        return ""
+    if run.node_type == "card_select":
+        cards = run.node_data.get("cards", [])
+        if not cards:
+            return ""
+        cid = cards[0]
+        for player in run.players.values():
+            player.deck.append(ensure_card_state(cid))
+        return get_locale_text("i18n_explore_core.event_team_card", card_name=ALL_CARDS[cid].name if cid in ALL_CARDS else cid)
+    if gem_id:
+        from ..data.gem_data import GEM_CONFIG
+        for player in run.players.values():
+            for card_state in player.deck:
+                card_obj = ALL_CARDS.get(card_state)
+                if card_obj and len(card_state.gems or []) < card_obj.get_gem_slots_count():
+                    card_state.gems = list(card_state.gems or []) + [gem_id]
+                    break
+        return get_locale_text("i18n_explore_core.event_team_gem", gem_name=GEM_CONFIG[gem_id]["name"])
+    return ""
+
+
+def _resolve_coop_event(engine, run, option_idx):
+    import copy
+    options = run.node_data.get("options", [])
+    opt = options[option_idx - 1]
+    executor = get_option_by_action(opt.get("action"))
+    coop = engine._coop(run)
+    if not executor:
+        engine.map_engine.enter_next_stage(run)
+        engine.save_manager.save_coop_save(run.user_id, run)
+        return get_locale_text("i18n_explore_core.event_leave_coop")
+    proxy = _TeamEventProxy(engine.map_engine)
+    results = []
+    first_result = ""
+    order = [uid for uid in run.party_order if uid in run.players]
+    for index, uid in enumerate(order):
+        player = run.players[uid]
+        previous, previous_user = coop._swap(run, player)
+        snapshot = None
+        saved_type = None
+        if index > 0:
+            proxy.suppress = True
+            snapshot = copy.deepcopy(run.node_data)
+            saved_type = run.node_type
+        try:
+            res = executor.execute(run, proxy)
+        finally:
+            if index > 0:
+                run.node_data = snapshot
+                run.node_type = saved_type
+            coop._restore(run, previous, previous_user)
+        if index == 0:
+            first_result = res or ""
+        if res and res not in ("UPGRADE_FLOW", "REMOVE_FLOW"):
+            results.append((player.name, res))
+    for player in run.players.values():
+        if player.hp <= 0 and not player.downed:
+            coop.mark_downed(run, player)
+    run.node_data["votes"] = {}
+    if proxy.battle_done:
+        engine.save_manager.save_coop_save(run.user_id, run)
+    elif proxy.shop_done:
+        from ..models import coop_view
+        coop_view.apply_view(run, run.user_id)
+        engine.save_manager.save_coop_save(run.user_id, run)
+    elif proxy.advance or first_result in ("UPGRADE_FLOW", "REMOVE_FLOW") or proxy.gem_id or run.node_type in ("card_select", "gem_insert"):
+        extra = _team_auto_flow(run, first_result, proxy.gem_id)
+        if extra:
+            results.append(("", extra))
+        engine.map_engine.enter_next_stage(run)
+        engine.save_manager.save_coop_save(run.user_id, run)
+    else:
+        engine.save_manager.save_coop_save(run.user_id, run)
+    lines = [get_locale_text("i18n_explore_core.event_team_result_header")]
+    for name, res in results:
+        if name:
+            lines.append(get_locale_text("i18n_explore_core.event_result_entry", name=name, result=res))
+        else:
+            lines.append(res)
+    return "\n".join(lines)
 
 
 def handle_start_ancient(engine, run, option_idx, target=None) -> str | None:
@@ -343,14 +504,7 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
         reward_cards = random.sample(class_cards, 3) if len(class_cards) >= 3 else class_cards
         from ..models.state import check_and_replace_fireball
         reward_cards = [check_and_replace_fireball(run, cid) for cid in reward_cards]
-        run.node_type = "card_select"
-        run.node_data = {
-            "title": get_locale_text("i18n_explore_core.meditate_title"),
-            "desc": get_locale_text("i18n_explore_core.meditate_desc"),
-            "cards": reward_cards,
-            "next_node_type": "rest",
-            "next_node_data": run.node_data
-        }
+        engine.start_card_select(run, reward_cards, "rest", init_event=False, title_key="i18n_explore_core.meditate_title", desc_key="i18n_explore_core.meditate_desc")
         engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("msg_rest_meditate")
     elif itype == "rest_upgrade":
@@ -361,22 +515,13 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
 
 def handle_event(engine, run, option_idx, target=None) -> str | None:
     if getattr(run, "coop_id", ""):
-        if run.node_data.get("coop_done"):
-            return get_locale_text("i18n_explore_core.coop_node_waiting")
         options = run.node_data.get("options", [])
         if option_idx < 1 or option_idx > len(options):
             return get_locale_text("err_invalid_option_idx")
-        opt = options[option_idx - 1]
-        option_executor = get_option_by_action(opt.get("action"))
-        if not option_executor:
-            return engine._coop_finish(run, get_locale_text("i18n_explore_core.event_leave_coop"))
-        proxy = _CoopEventProxy(engine.map_engine)
-        res = option_executor.execute(run, proxy)
-        if proxy.finished:
-            return engine._coop_finish(run, res)
-        engine._coop(run).persist_view(run, run.user_id)
-        engine.save_manager.save_coop_save(run.user_id, run)
-        return res
+        vote_result = engine._coop(run).vote_event_option(run, run.user_id, option_idx)
+        if vote_result is not None:
+            return vote_result
+        return _resolve_coop_event(engine, run, option_idx)
     options = run.node_data.get("options", [])
     if option_idx < 1 or option_idx > len(options):
         return get_locale_text("err_invalid_option_idx")

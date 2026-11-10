@@ -240,7 +240,7 @@ class BleedBuff(BuffImpl):
                 target = f"e{idx+1}"
             except ValueError:
                 return
-        damage = _stat(self, "bleed", "damage_amount", 4)
+        damage = buff_state.stacks * _stat(self, "bleed", "damage_per_stack", 1)
         engine._log_event(run, get_locale_text("i18n_buffs.bleed_log", entity=entity.name, damage=damage))
         engine._damage_target(run, target, damage, source="bleed", damage_type="true")
         buff_state.stacks -= 1

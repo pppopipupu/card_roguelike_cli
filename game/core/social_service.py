@@ -108,6 +108,7 @@ class SocialService(SocialTeamMixin):
             return get_locale_text("i18n_social.friend_name.invalid_char")
         stats = self._stats(uid)
         stats.player_name = text
+        stats.name_customized = True
         self.save_manager.save_stats(uid, stats)
         return get_locale_text("i18n_social.friend_name.success", name=text)
 

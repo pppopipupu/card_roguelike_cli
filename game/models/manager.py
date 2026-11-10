@@ -80,6 +80,15 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 d = json.load(f)
+            projection_feed = d.get("projection_feed", [])
+            if not isinstance(projection_feed, list):
+                projection_feed = []
+            log_history = d.get("log_history", [])
+            if not isinstance(log_history, list):
+                log_history = []
+            team_log_history = d.get("team_log_history", [])
+            if not isinstance(team_log_history, list):
+                team_log_history = []
             return UserStats(
                 total_damage=d.get("total_damage", 0),
                 total_kills=d.get("total_kills", 0),
@@ -109,6 +118,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 town_flags=d.get("town_flags", {}),
                 town_health_bonus=d.get("town_health_bonus", 0),
                 player_name=d.get("player_name", "玩家"),
+                name_customized=d.get("name_customized", False),
                 im_account=d.get("im_account", ""),
                 unlocked_new_cards=d.get("unlocked_new_cards", []),
                 last_checkin_date=d.get("last_checkin_date", ""),
@@ -119,7 +129,11 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 friend_requests_in=d.get("friend_requests_in", []),
                 friend_requests_out=d.get("friend_requests_out", []),
                 active_lobby_id=d.get("active_lobby_id", ""),
-                active_coop_id=d.get("active_coop_id", "")
+                active_coop_id=d.get("active_coop_id", ""),
+                projection_enabled=d.get("projection_enabled", True),
+                projection_feed=projection_feed,
+                log_history=log_history,
+                team_log_history=team_log_history
             )
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_stats_failed", user_id=user_id, error=exc))

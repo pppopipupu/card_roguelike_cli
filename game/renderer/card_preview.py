@@ -145,7 +145,7 @@ def _cards_played_entry_description(card, run, text) -> str:
         return text
     damage_name = cfg.get("enter_damage_name", get_locale_text("i18n_card_runtime.preview.default_damage_name"))
     damage_type = cfg.get("enter_damage_type", "effect")
-    count = run.node_data.get("cards_played_this_turn", 0)
+    count = run.node_data.get(run.turn_key("cards_played_this_turn", run.player), 0)
     hits = sum(1 for threshold in thresholds if count >= threshold)
     damage_bonus = 0
     for effect in _daily_effects(run):

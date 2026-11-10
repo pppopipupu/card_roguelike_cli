@@ -1,5 +1,29 @@
 from ..cli.base import split_by_comma_with_brackets, CommandHandler
+from ...data.balance_config import QUEUE_MAX_COMMANDS
 from ...data.locale_data import get_locale_text
+
+QUEUE_ALIASES = ("队列", "q", "queue", "qi", "queue_interrupt", "中断队列")
+
+
+def _queue_items(content: str) -> list[str]:
+    content = content.strip()
+    if content.startswith("[") and content.endswith("]"):
+        content = content[1:-1].strip()
+    return split_by_comma_with_brackets(content)
+
+
+def count_queue_commands(content: str) -> int:
+    total = 0
+    for item in _queue_items(content):
+        parts = item.split()
+        if not parts:
+            continue
+        if parts[0].lower() in QUEUE_ALIASES:
+            total += count_queue_commands(item[len(parts[0]):].strip())
+        else:
+            total += 1
+    return total
+
 
 class QueueProcessor:
     def __init__(self, save_manager, engine):
@@ -7,6 +31,9 @@ class QueueProcessor:
         self.engine = engine
 
     def execute_queue(self, router, user_id: str, run, queue_content: str, results: list[str], interrupt_on_fail: bool = False) -> bool:
+        if count_queue_commands(queue_content) > QUEUE_MAX_COMMANDS:
+            results.append(get_locale_text("i18n_cli_commands.battle_queue_limit", limit=QUEUE_MAX_COMMANDS))
+            return True
         is_top_level = not run.node_data.get("in_queue", False)
         if is_top_level:
             run.node_data["in_queue"] = True

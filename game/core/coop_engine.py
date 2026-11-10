@@ -9,6 +9,7 @@ from ..models.state import CardState, EnemyState, GameRun, PlayerState
 from ..data.balance_config import (
     COOP_HP_MULTIPLIER_DEFAULT,
     COOP_HP_MULTIPLIERS,
+    COOP_VOTE_RATIO,
     MAP_LUCKY_COIN_GOLD,
     MAP_TAX_CONTRACT_GOLD,
 )
@@ -238,6 +239,7 @@ class CoopEngine:
                     uid: run.players[uid].downed for uid in run.party_order
                 },
             }
+            run.node_data["votes"] = {}
             run.node_type = "start_ancient"
             self._attach_notices(run, carried, caller)
             self.apply_view(run, caller)
@@ -279,6 +281,7 @@ class CoopEngine:
             run.node_data["coop_node_type"] = "map_select"
         self._restore(run, previous, previous_user)
         self._attach_notices(run, carried, caller)
+        run.node_data["votes"] = {}
         self.save_manager.save_coop_save(caller, run)
 
     def start_coop(self, engine, member_ids, leader_id):
@@ -303,6 +306,8 @@ class CoopEngine:
             stats = self.save_manager.load_stats(uid)
             stats.active_coop_id = coop_id
             stats.active_lobby_id = ""
+            stats.projection_feed = []
+            stats.team_log_history = []
             run.node_data = {}
             apply_pending_blessing(run, stats)
             self.save_manager.save_stats(uid, stats)
@@ -371,14 +376,20 @@ class CoopEngine:
         claims.setdefault(relic_id, []).append(uid)
         return len(claims[relic_id])
 
-    def vote_map_node(self, run, uid, option_idx):
+    def _vote_threshold(self, run):
+        alive = self._alive_uids(run)
+        return max(1, ceil(len(alive) * COOP_VOTE_RATIO))
+
+    def _vote(self, run, uid, option_idx, recorded_key):
         if uid == run.leader_id:
             run.node_data["votes"] = {}
             return None
         votes = run.node_data.setdefault("votes", {})
         votes[uid] = option_idx
         alive = self._alive_uids(run)
-        if alive and all(votes.get(member) == option_idx for member in alive):
+        same = sum(1 for member in alive if votes.get(member) == option_idx)
+        if alive and same >= self._vote_threshold(run):
+            run.node_data["votes"] = {}
             return None
         delimiter = get_locale_text("i18n_explore_core.list_delimiter")
         summary = delimiter.join(
@@ -386,7 +397,13 @@ class CoopEngine:
             for member, index in votes.items()
             if member in run.players
         )
-        return get_locale_text("i18n_explore_core.vote_recorded", summary=summary)
+        return get_locale_text(recorded_key, summary=summary)
+
+    def vote_map_node(self, run, uid, option_idx):
+        return self._vote(run, uid, option_idx, "i18n_explore_core.vote_recorded")
+
+    def vote_event_option(self, run, uid, option_idx):
+        return self._vote(run, uid, option_idx, "i18n_explore_core.event_vote_recorded")
 
     def _reward_card_pool(self, run, player, stats):
         return DeckService.get_reward_card_pool(run, player, stats, include_coop=True)
@@ -548,8 +565,9 @@ class CoopEngine:
         alive = self._alive_uids(run)
         waiting = [u for u in alive if not ready.get(u, False)]
         if waiting:
-            names = get_locale_text("i18n_explore_core.list_delimiter").join(run.players[u].name for u in waiting)
-            count = len(alive) - len(waiting)
+            ready_uids = [u for u in alive if ready.get(u, False)]
+            names = get_locale_text("i18n_explore_core.list_delimiter").join(run.players[u].name for u in ready_uids)
+            count = len(ready_uids)
             self.save_manager.save_save(uid, run)
             logs_text = self.battle_engine._append_logs_to_res(run, "\n".join(filter(None, logs)))
             return get_locale_text(
@@ -601,7 +619,6 @@ class CoopEngine:
             return get_locale_text("i18n_explore_core.coop_wipe_joined", enemy_logs=enemy_logs, joined=joined, settle_msg=settle_msg)
         self.battle_engine._roll_enemy_intent(run)
         self.assign_enemy_targets(run)
-        run.node_data["cards_played_this_turn"] = 0
         self.save_manager.save_save(viewer_uid, run)
         result = get_locale_text(
             "i18n_explore_core.turn_all_ready",

@@ -157,74 +157,16 @@ class BuffTriggerHandler:
             if impl and hasattr(impl, method_name):
                 getattr(impl, method_name)(event, b, entity)
 
-    def _trigger_coop_turn_buffs(self, event, method_name):
-        run = event.run
-        markers = run.node_data.get("_coop_buff_ticks")
-        if not isinstance(markers, dict):
-            markers = {}
-            run.node_data["_coop_buff_ticks"] = markers
-        order = [uid for uid in run.party_order if uid in run.players]
-        order.extend(uid for uid in run.players if uid not in order)
-        if method_name == "on_turn_end":
-            turn = run.node_data.get("turn_count", 1)
-            if markers.get("turn_count") != turn:
-                markers["turn_count"] = turn
-                ticked = []
-                markers[method_name] = ticked
-            else:
-                ticked = markers.get(method_name)
-                if not isinstance(ticked, list):
-                    ticked = []
-                    markers[method_name] = ticked
-                if ticked:
-                    return
-        else:
-            positions = {uid: index for index, uid in enumerate(order)}
-            last_uid = markers.get("last_start_uid")
-            position = positions.get(run.user_id, len(order))
-            last_position = positions.get(last_uid, -1) if last_uid is not None else -1
-            if last_uid is not None and position > last_position:
-                ticked = markers.get(method_name)
-                if not isinstance(ticked, list):
-                    ticked = []
-                    markers[method_name] = ticked
-                if ticked:
-                    return
-            else:
-                ticked = []
-                markers[method_name] = ticked
-            markers["last_start_uid"] = run.user_id
-        original_player = run.player
-        original_uid = run.user_id
-        try:
-            for uid in order:
-                player = run.players[uid]
-                if player.downed or player.hp <= 0:
-                    continue
-                run.player = player
-                run.user_id = uid
-                self._trigger_turn_buffs(event, player, method_name)
-                ticked.append(uid)
-        finally:
-            run.player = original_player
-            run.user_id = original_uid
-
     def on_turn_start(self, event):
         if event.is_player:
-            if getattr(event.run, "coop_id", ""):
-                self._trigger_coop_turn_buffs(event, "on_turn_start")
-            else:
-                self._trigger_turn_buffs(event, event.run.player, "on_turn_start")
+            self._trigger_turn_buffs(event, event.run.player, "on_turn_start")
             return
         for enemy in list(event.run.enemies):
             self._trigger_turn_buffs(event, enemy, "on_turn_start")
 
     def on_turn_end(self, event):
         if event.is_player:
-            if getattr(event.run, "coop_id", ""):
-                self._trigger_coop_turn_buffs(event, "on_turn_end")
-            else:
-                self._trigger_turn_buffs(event, event.run.player, "on_turn_end")
+            self._trigger_turn_buffs(event, event.run.player, "on_turn_end")
             return
         for enemy in list(event.run.enemies):
             self._trigger_turn_buffs(event, enemy, "on_turn_end")

@@ -57,7 +57,14 @@
     "leaderboard_usage": "❌ 用法：leaderboard 或 leaderboard online",
     "mode_removed": "模式切换指令已移除，肉鸽模式固定开启。\n",
     "migration_im_only": "❌ 迁移码只能在即时通讯端通过 secrets 获取。",
-    "admin_required": "❌ 需要管理员令牌。",
+    "admin_required": "❌ 权限不足，仅管理员用户可执行该命令。",
     "default_sender_name": "玩家"
+  },
+  "adminctl": {
+    "usage": "用法：py -m server.adminctl list 或 py -m server.adminctl set <用户ID> <on/off>",
+    "list_header": "UUID | IM | WEB | 管理员",
+    "list_row": "{uuid} | {im_user_id} | {web_user_id} | {is_admin}",
+    "not_found": "❌ 未找到用户【{identity}】，请确认该用户已登录过。",
+    "updated": "✅ 已更新用户【{identity}】的管理员状态。"
   }
 }

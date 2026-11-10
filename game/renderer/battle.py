@@ -59,6 +59,26 @@ def adjust_intent_desc_with_modifiers(desc: str, strength: int, weak: int, base_
         return updated
     return replace_structured_number(desc, base_value, final_val, ("造成",))
 
+def render_ally_units(member) -> list[str]:
+    lines = []
+    for i in range(1, 7):
+        key = str(i)
+        if key in member.minions:
+            m = member.minions[key]
+            skills_desc = ""
+            if m.id in MINION_SKILLS:
+                skills_desc = t("renderer.battle.skill_prefix") + " ".join([f"({idx}){s['name']}" for idx, s in enumerate(MINION_SKILLS[m.id], 1)])
+            buff_desc = ""
+            if getattr(m, "buffs", None):
+                buff_desc = t("renderer.battle.buff_prefix") + format_buff_list(m.buffs, " ")
+            atk_val = m.atk + (1 if "whetstone" in member.relics else 0)
+            lines.append(t("renderer.battle.minion_line", slot=i, name=m.name, hp=m.hp, max_hp=m.max_hp, atk=atk_val, actions=m.actions, bonus_actions=m.bonus_actions, attack_actions=m.attack_actions, skills=skills_desc, buffs=buff_desc))
+        elif key in member.amulets:
+            a = member.amulets[key]
+            lines.append(t("renderer.battle.amulet_line", slot=i, name=a.name, countdown=a.countdown, desc=a.desc))
+    return lines
+
+
 def render_battle(run: GameRun) -> str:
     from .party import render_party_status
     p = run.player
@@ -82,24 +102,20 @@ def render_battle(run: GameRun) -> str:
         lines.append(t("renderer.battle.buff_line", name=run.player.name) + format_buff_list(p.buffs))
     lines.append("")
     lines.append(t("renderer.battle.ally_field"))
-    if not p.minions and not p.amulets:
+    if getattr(run, "coop_id", ""):
+        members = [(idx, uid, run.players[uid]) for idx, uid in enumerate(run.party_order, 1) if uid in run.players]
+        if not any(member.minions or member.amulets for _, _, member in members):
+            lines.append(t("renderer.battle.empty_field"))
+        else:
+            for idx, uid, member in members:
+                marker = t("renderer_town.party_you_marker") if uid == run.user_id else ""
+                lines.append(t("renderer.battle.ally_field_member", idx=idx, name=member.name, marker=marker))
+                unit_lines = render_ally_units(member)
+                lines.extend(unit_lines or [t("renderer.battle.empty_field_indent")])
+    elif not p.minions and not p.amulets:
         lines.append(t("renderer.battle.empty_field"))
     else:
-        for i in range(1, 7):
-            key = str(i)
-            if key in p.minions:
-                m = p.minions[key]
-                skills_desc = ""
-                if m.id in MINION_SKILLS:
-                    skills_desc = t("renderer.battle.skill_prefix") + " ".join([f"({idx}){s['name']}" for idx, s in enumerate(MINION_SKILLS[m.id], 1)])
-                buff_desc = ""
-                if getattr(m, "buffs", None):
-                    buff_desc = t("renderer.battle.buff_prefix") + format_buff_list(m.buffs, " ")
-                atk_val = m.atk + (1 if "whetstone" in p.relics else 0)
-                lines.append(t("renderer.battle.minion_line", slot=i, name=m.name, hp=m.hp, max_hp=m.max_hp, atk=atk_val, actions=m.actions, bonus_actions=m.bonus_actions, attack_actions=m.attack_actions, skills=skills_desc, buffs=buff_desc))
-            elif key in p.amulets:
-                a = p.amulets[key]
-                lines.append(t("renderer.battle.amulet_line", slot=i, name=a.name, countdown=a.countdown, desc=a.desc))
+        lines.extend(render_ally_units(p))
     lines.append("")
     lines.append(t("renderer.battle.enemy_field"))
     if not run.enemies:

@@ -1,6 +1,8 @@
 from typing import Generator
 from ...base import CommandHandler
+from ...queue_processor import count_queue_commands
 from .....renderer import GameRenderer
+from .....data.balance_config import QUEUE_MAX_COMMANDS
 from .....data.locale_data import get_locale_text
 
 class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_interrupt", "中断队列"]):
@@ -20,6 +22,9 @@ class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_i
             else:
                 yield "\n".join(results) + "\n" + GameRenderer.render_game(run)
         else:
+            if count_queue_commands(full_arg) > QUEUE_MAX_COMMANDS:
+                yield get_locale_text("i18n_cli_commands.battle_queue_limit", limit=QUEUE_MAX_COMMANDS)
+                return
             content = full_arg
             if content.startswith("[") and content.endswith("]"):
                 content = content[1:-1].strip()

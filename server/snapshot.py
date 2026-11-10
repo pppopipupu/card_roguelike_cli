@@ -325,8 +325,6 @@ def _pending_action(run: Optional[GameRun]) -> Optional[str]:
     stack = data.get("state_stack") or []
     if stack:
         return stack[-1].get("type")
-    if data.get("pending_cards") is not None:
-        return "card_reward"
     if data.get("pending_upgrade"):
         return "upgrade_card"
     if data.get("pending_remove"):

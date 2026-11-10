@@ -43,7 +43,7 @@ class EchoFormBuff(BuffImpl):
             return
         if getattr(event, "is_extra", False):
             return
-        played_count = event.run.node_data.get("cards_played_this_turn", 0)
+        played_count = event.run.node_data.get(event.run.turn_key("cards_played_this_turn", entity), 0)
         stacks = buff_state.stacks
         card_id = event.card.id
         if card_id.startswith("duel_"):
@@ -64,7 +64,7 @@ class EchoFormBuff(BuffImpl):
                     event.card.execute_tags(event.run, event.target, event.engine)
 
     def on_card_played_legacy(self, run, card, target: str, engine) -> str:
-        played_count = run.node_data.get("cards_played_this_turn", 0)
+        played_count = run.node_data.get(run.turn_key("cards_played_this_turn", run.player), 0)
         stacks = self.stacks
         card_id = card.id
         if card_id.startswith("duel_"):
@@ -596,7 +596,7 @@ class PendulumResonanceBuff(BuffImpl):
             run = event.run
             p = run.player
             if p.actions == 0 or p.bonus_actions == 0:
-                played_count = run.node_data.get("cards_played_this_turn", 0)
+                played_count = run.node_data.get(run.turn_key("cards_played_this_turn", p), 0)
                 dmg = max(_stat(self, "pendulum_resonance", "min_damage", 4), played_count * _stat(self, "pendulum_resonance", "damage_per_card", 2))
                 event.engine._damage_target(run, "p0", dmg, source=f"buff:{get_locale_text('i18n_buffs.pendulum_resonance_name')}", damage_type="true")
                 event.engine._log_event(run, get_locale_text("i18n_buffs.pendulum_resonance_shake_log", actions=p.actions, bonus_actions=p.bonus_actions, damage=dmg))

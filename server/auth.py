@@ -106,10 +106,3 @@ class AuthService:
         if not im_user_id or len(im_user_id) > 128:
             raise AuthError(get_locale_text("i18n_server_core.auth.im_user_invalid"))
         return Principal(kind="im", user_id=im_user_id)
-
-    def verify_admin(self, token: str) -> bool:
-        if not self.settings.admin_token:
-            return False
-        if not token:
-            return False
-        return hmac.compare_digest(token, self.settings.admin_token)

@@ -60,6 +60,30 @@ class ExploreEngine(CoopExploreMixin):
             ]
         }
 
+    def start_card_select(self, run: GameRun, cards: list, next_node_type: str = "", next_node_data: dict | None = None, init_event: bool = True, title_key: str = "render_card_select_title", desc_key: str = "i18n_explore_core.card_reward_desc") -> None:
+        can_skip = True
+        upgraded = False
+        if init_event:
+            from ..models.events import CardSelectInitEvent
+            init_evt = CardSelectInitEvent(run, cards)
+            self.map_engine.battle_engine.event_bus.dispatch(init_evt)
+            can_skip = init_evt.can_skip
+            upgraded = init_evt.upgraded
+        if next_node_data is None:
+            next_node_data = run.node_data
+        if getattr(run, "coop_id", ""):
+            next_node_data = strip_shared(next_node_data)
+        run.node_type = "card_select"
+        run.node_data = {
+            "title": get_locale_text(title_key),
+            "desc": get_locale_text(desc_key) if desc_key else "",
+            "cards": cards,
+            "can_skip": can_skip,
+            "force_upgraded": upgraded,
+            "next_node_type": next_node_type,
+            "next_node_data": next_node_data,
+        }
+
     def _claim_single_item(self, run: GameRun, item_idx: int) -> str:
         p = run.player
         items = run.node_data.setdefault("items", [])
@@ -119,23 +143,9 @@ class ExploreEngine(CoopExploreMixin):
             res = get_locale_text("i18n_explore_core.shared_relic_registered", relic_name=get_relic_name(rid), count=count)
         elif itype == "card_reward":
             reward_cards = item.get("cards", [])
-            from ..models.events import CardSelectInitEvent
-            init_evt = CardSelectInitEvent(run, reward_cards)
-            self.map_engine.battle_engine.event_bus.dispatch(init_evt)
             previous_node_type = run.node_type
-            previous_node_data = run.node_data
-            if getattr(run, "coop_id", ""):
-                previous_node_data = strip_shared(previous_node_data)
-            run.node_type = "card_select"
-            run.node_data = {
-                "title": get_locale_text("render_card_select_title"),
-                "desc": get_locale_text("i18n_explore_core.card_reward_desc"),
-                "cards": reward_cards,
-                "can_skip": init_evt.can_skip,
-                "force_upgraded": init_evt.upgraded,
-                "next_node_type": "treasure" if previous_node_type == "treasure" else "reward",
-                "next_node_data": previous_node_data
-            }
+            next_type = "treasure" if previous_node_type == "treasure" else "reward"
+            self.start_card_select(run, reward_cards, next_type)
             res = get_locale_text("i18n_explore_core.card_reward_started")
         
         bg = item.get("bind_group")
@@ -159,40 +169,21 @@ class ExploreEngine(CoopExploreMixin):
 
     def _init_event_node(self, run: GameRun):
         if getattr(run, "coop_id", ""):
-            views = {}
-            ready = {}
-            chosen_ids = set()
-            for uid in run.party_order:
-                player = run.players[uid]
-                previous = run.player
-                previous_user = run.user_id
-                run.player = player
-                run.user_id = uid
-                stage = player.stage
-                valid_events = [e for e in ALL_EVENTS if getattr(e, "min_stage", 2) <= stage <= getattr(e, "max_stage", MapConfig.COMMON_EVENT_MAX_STAGE)]
-                if not valid_events:
-                    valid_events = ALL_EVENTS
-                pool = [e for e in valid_events if e.id not in chosen_ids] or valid_events
-                event = random.choice(pool)
-                chosen_ids.add(event.id)
-                views[uid] = {
-                    "node_type": "event",
-                    "data": {
-                        "event_id": event.id,
-                        "description": event.description,
-                        "options": [{"text": opt.text, "action": opt.action} for opt in event.options],
-                    },
-                }
-                ready[uid] = player.downed
-                run.player = previous
-                run.user_id = previous_user
+            stage = max(player.stage for player in run.players.values())
+            valid_events = [e for e in ALL_EVENTS if getattr(e, "min_stage", 2) <= stage <= getattr(e, "max_stage", MapConfig.COMMON_EVENT_MAX_STAGE)]
+            if not valid_events:
+                valid_events = ALL_EVENTS
+            event = random.choice(valid_events)
             run.node_type = "event"
             run.node_data = {
                 "coop_node_type": "event",
-                "player_views": views,
-                "stage_ready": ready,
+                "player_views": {},
+                "stage_ready": {uid: player.downed for uid, player in run.players.items()},
+                "votes": {},
+                "event_id": event.id,
+                "description": event.description,
+                "options": [{"text": opt.text, "action": opt.action} for opt in event.options],
             }
-            self._coop(run).apply_view(run, run.user_id)
             return
         stage = run.player.stage
         valid_events = [e for e in ALL_EVENTS if getattr(e, "min_stage", 2) <= stage <= getattr(e, "max_stage", MapConfig.COMMON_EVENT_MAX_STAGE)]

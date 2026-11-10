@@ -49,11 +49,6 @@ class BattleEngine(BaseBattleEngine):
             elif len(owners) > len(logs):
                 del owners[len(logs):]
             owners.append(run.user_id)
-            history = run.node_data.setdefault("coop_battle_log_history", [])
-            prefix = f"[{run.player.name}] " if run.player else ""
-            history.append(prefix + msg)
-            if len(history) > 60:
-                del history[:-60]
         logs.append(msg)
 
     def _append_logs_to_res(self, run: GameRun, res: str) -> str:
@@ -79,6 +74,10 @@ class BattleEngine(BaseBattleEngine):
                 res = res.rstrip() + "\n" + "\n".join(logs)
         elif getattr(run, "coop_id", ""):
             run.node_data.pop("battle_log_owners", None)
+        if getattr(run, "coop_id", "") and run.user_id in run.players:
+            self.save_manager.save_coop_save(run.user_id, run)
+        else:
+            self.save_manager.save_save(run.user_id, run)
         return res
 
     def is_battle_won(self, run: GameRun) -> bool:
@@ -121,8 +120,9 @@ class BattleEngine(BaseBattleEngine):
         return self.combat_resolver.get_free_grid(p)
 
     def _register_card_played(self, run: GameRun) -> int:
-        count = run.node_data.get("cards_played_this_turn", 0) + 1
-        run.node_data["cards_played_this_turn"] = count
+        key = run.turn_key("cards_played_this_turn")
+        count = run.node_data.get(key, 0) + 1
+        run.node_data[key] = count
         from ..models.events import CardPlayedCountEvent
         self.event_bus.dispatch(CardPlayedCountEvent(run, count))
         return count
@@ -158,11 +158,9 @@ class BattleEngine(BaseBattleEngine):
             run.node_data["drain_a"] = True
             run.node_data.pop("temp_minus_1a", None)
         run.node_data = {
-            "cards_played_this_turn": 0,
             "turn_count": 1,
             "difficulty": difficulty,
             "turn_ready": {},
-            "coop_battle_log_history": [],
         }
         for uid in run.party_order:
             player = run.players[uid]
@@ -217,7 +215,7 @@ class BattleEngine(BaseBattleEngine):
         p.actions = 2
         p.bonus_actions = 1
         p.shield = 0
-        run.node_data["cards_played_this_turn"] = 0
+        run.node_data[run.turn_key("cards_played_this_turn", p)] = 0
         run.node_data["turn_count"] = 1
         selected_class = getattr(p, "selected_class", "法师")
         if selected_class == "战士":

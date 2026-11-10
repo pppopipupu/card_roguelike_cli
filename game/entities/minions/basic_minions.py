@@ -212,7 +212,7 @@ class CardsPlayedEntryDamageTemplate(MinionTemplate):
         damage = int(cfg.get("enter_damage", 0))
         if not thresholds or damage <= 0:
             return
-        count = run.node_data.get("cards_played_this_turn", 0)
+        count = run.node_data.get(run.turn_key("cards_played_this_turn", run.player), 0)
         if run.node_data.get("current_playing_card_id"):
             count += int(cfg.get("enter_current_card_bonus", getattr(self, "enter_current_card_bonus", 1)))
         if count < min(thresholds):
@@ -235,13 +235,13 @@ class CardsPlayedEntryDamageTemplate(MinionTemplate):
 
 class ShieldGuardTemplate(MinionTemplate):
     def on_minion_summon(self, run, grid, event, engine):
-        if event.minion_state.id == self.id:
+        if event.minion_state.id.rstrip("+") == self.id:
             engine._add_buff_to(event.minion_state, "ward", get_locale_text("i18n_minions.common.ward_name"), get_locale_text("i18n_minions.common.ward_desc"))
 
 
 class GateGuardTemplate(MinionTemplate):
     def on_minion_summon(self, run, grid, event, engine):
-        if event.minion_state.id == self.id:
+        if event.minion_state.id.rstrip("+") == self.id:
             engine._add_buff_to(event.minion_state, "ward", get_locale_text("i18n_minions.common.ward_name"), get_locale_text("i18n_minions.common.ward_desc_self"))
 
 

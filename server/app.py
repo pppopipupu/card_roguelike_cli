@@ -27,6 +27,7 @@ class ActionRequest(BaseModel):
     group_id: Optional[str] = None
     message_type: Optional[str] = None
     prefixes: Optional[list[str]] = Field(default=None, max_length=8)
+    projection_poll: bool = False
 
 
 def _error(status_code: int, text: str, error: str, account: Optional[dict] = None) -> JSONResponse:
@@ -89,7 +90,6 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
             "Content-Type",
             "X-Rogue-IM-Token",
             "X-Rogue-IM-User",
-            "X-Rogue-Admin-Token",
             "X-Rogue-Origin-Key",
         ],
         max_age=600,
@@ -121,7 +121,6 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 403, get_locale_text("i18n_server_core.app.channel_mismatch"), "channel_mismatch"
             )
 
-        is_admin = auth.verify_admin(request.headers.get("x-rogue-admin-token", ""))
         message_type = (payload.message_type or "").lower()
         group_chat = bool(
             payload.group
@@ -136,9 +135,9 @@ def create_app(settings: Optional[Settings] = None) -> FastAPI:
                 channel=channel,
                 display_name=payload.name or "",
                 force=payload.force,
-                is_admin=is_admin,
                 group=group_chat,
                 prefixes=tuple(payload.prefixes) if payload.prefixes else None,
+                projection_poll=payload.projection_poll,
             )
             return JSONResponse(status_code=200, content=result)
         except AuthError as exc:

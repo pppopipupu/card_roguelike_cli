@@ -9,8 +9,8 @@ BUFF_CONFIG = {
     },
     "bleed": {
         "name": "流血",
-        "desc": "每回合开始时，受到 4 点真实伤害，层数减少 1",
-        "damage_amount": 4,
+        "desc": "每回合开始时，受到层数点真实伤害，层数减少 1",
+        "damage_per_stack": 1,
         "is_debuff": True
     },
     "hell_raider": {

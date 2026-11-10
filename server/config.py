@@ -18,7 +18,6 @@ class Settings:
     supabase_jwt_audience: str
     supabase_jwt_secret: str
     im_token: str
-    admin_token: str
     origin_key: str
     allowed_origins: tuple[str, ...]
     im_prefixes: tuple[str, ...]
@@ -53,7 +52,6 @@ class Settings:
             supabase_jwt_audience=audience,
             supabase_jwt_secret=os.getenv("SUPABASE_JWT_SECRET", ""),
             im_token=os.getenv("ROGUE_IM_TOKEN", ""),
-            admin_token=os.getenv("ROGUE_ADMIN_TOKEN", ""),
             origin_key=os.getenv("ROGUE_ORIGIN_KEY", ""),
             allowed_origins=origins,
             im_prefixes=prefixes,

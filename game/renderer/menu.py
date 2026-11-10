@@ -1,5 +1,6 @@
 from ..models.state import GameRun, UserStats
 from ..cards import ALL_CARDS
+from ..data.balance_config import LOG_DEFAULT_ENTRIES, LOG_MAX_ENTRIES, QUEUE_MAX_COMMANDS
 from ..data.locale_data import t
 
 def render_menu(stats: UserStats = None) -> str:
@@ -380,6 +381,9 @@ def render_help(include_mode: bool = True) -> str:
         t("renderer_menu.help_map"),
         t("renderer_menu.help_friend"),
         t("renderer_menu.help_team"),
+        t("renderer_menu.help_projection"),
+        t("renderer_menu.help_logs", count=LOG_DEFAULT_ENTRIES, max=LOG_MAX_ENTRIES),
+        t("renderer_menu.help_logc", count=LOG_DEFAULT_ENTRIES, max=LOG_MAX_ENTRIES),
         "",
         t("renderer_menu.help_combat_section"),
         t("renderer_menu.help_play"),
@@ -390,8 +394,8 @@ def render_help(include_mode: bool = True) -> str:
         t("renderer_menu.help_special"),
         t("renderer_menu.help_end"),
         t("renderer_menu.help_fold"),
-        t("renderer_menu.help_queue"),
-        t("renderer_menu.help_queue_interrupt"),
+        t("renderer_menu.help_queue", limit=QUEUE_MAX_COMMANDS),
+        t("renderer_menu.help_queue_interrupt", limit=QUEUE_MAX_COMMANDS),
         t("renderer_menu.help_info"),
         t("renderer_menu.help_draw"),
         t("renderer_menu.help_graveyard"),

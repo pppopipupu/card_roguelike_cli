@@ -34,26 +34,29 @@ class HeadlessGameServer:
     def _sync_player_name(self, user_id: str, sender_name: str):
         stats = self.save_manager.load_stats(user_id)
         default_name = get_locale_text("i18n_cli_core.default_player_name")
-        if stats:
-            if sender_name != default_name and getattr(stats, "player_name", default_name) != sender_name:
+        if not stats:
+            return
+        current_name = getattr(stats, "player_name", default_name) or default_name
+        if not getattr(stats, "name_customized", False) and current_name == default_name:
+            if sender_name and sender_name != default_name:
                 stats.player_name = sender_name
                 self.save_manager.save_stats(user_id, stats)
+                current_name = sender_name
         run = self.save_manager.load_save(user_id)
-        if run and run.player:
-            current_name = getattr(stats, "player_name", default_name) if stats else sender_name
-            if run.player.name != current_name:
-                run.player.name = current_name
-                self.save_manager.save_save(user_id, run)
+        if run and run.player and run.player.name != current_name:
+            run.player.name = current_name
+            self.save_manager.save_save(user_id, run)
 
     def _get_current_state(self, user_id: str, run, stats) -> str:
         return resolve_game_state(run, stats)
 
-    async def handle_rogue_message(self, user_id: str, sender_name: str, message: str, shortcut_prefix: list[str] = None, enable_shortcut: bool = True, force_execute: bool = False) -> Optional[str]:
+    async def handle_rogue_message(self, user_id: str, sender_name: str, message: str, shortcut_prefix: list[str] = None, enable_shortcut: bool = True, force_execute: bool = False, projection: bool = True) -> Optional[str]:
         set_user_id(user_id)
         if shortcut_prefix is None:
             shortcut_prefix = [".rogue"]
 
-        self._sync_player_name(user_id, sender_name)
+        async with self._get_user_lock(user_id):
+            self._sync_player_name(user_id, sender_name)
         stats = self.save_manager.load_stats(user_id)
         run = self.save_manager.load_save(user_id)
 
@@ -104,7 +107,7 @@ class HeadlessGameServer:
             
             lock = self._get_user_lock(user_id)
             async with lock:
-                res_list = list(self.cli_router.handle_command(user_id, parts))
+                res_list = list(self.cli_router.handle_command(user_id, parts, project=projection))
                 if res_list:
                     return "\n".join(res_list)
                 return ""
@@ -131,7 +134,7 @@ class HeadlessGameServer:
             
             lock = self._get_user_lock(user_id)
             async with lock:
-                res_list = list(self.cli_router.handle_command(user_id, parts))
+                res_list = list(self.cli_router.handle_command(user_id, parts, project=projection))
                 if res_list:
                     return "\n".join(res_list)
                 return ""
@@ -178,7 +181,7 @@ class HeadlessGameServer:
         if is_game_cmd:
             lock = self._get_user_lock(user_id)
             async with lock:
-                res_list = list(self.cli_router.handle_command(user_id, parts))
+                res_list = list(self.cli_router.handle_command(user_id, parts, project=projection))
                 if res_list:
                     return "\n".join(res_list)
                 return ""

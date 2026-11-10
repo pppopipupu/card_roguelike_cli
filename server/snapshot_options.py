@@ -125,24 +125,6 @@ def _options_json(run: Optional[GameRun]) -> list[dict]:
     data = run.node_data or {}
     if data.get("coop_done"):
         return []
-    if data.get("pending_cards") is not None:
-        cards = data.get("pending_cards", [])
-        options = []
-        for index, cid in enumerate(cards, 1):
-            card = _card_json(CardState(id=cid, upgraded=bool(data.get("pending_card_upgraded"))))
-            options.append(
-                _option(
-                    index,
-                    "card",
-                    t("snapshot.card_label", name=card["name"]),
-                    desc=card["desc"],
-                    cost=card["cost"],
-                    card_id=cid,
-                )
-            )
-        if data.get("pending_card_can_skip", True):
-            options.append(_option(len(cards) + 1, "skip", t("snapshot.option_skip")))
-        return options
     if node_type == "map_select":
         options = []
         for index, option in enumerate(data.get("options", []), 1):

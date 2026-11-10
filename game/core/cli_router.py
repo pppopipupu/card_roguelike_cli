@@ -10,6 +10,8 @@ from .cli.base.aliases import normalize_node_alias, STATE_STACK_CANCEL_ALIASES
 from .town_engine import TownEngine
 from .checkin_service import CheckinService
 from .social_service import SocialService
+from .projection_service import ProjectionService
+from .log_service import LogService
 from ..data.locale_data import get_locale_text
 
 
@@ -25,6 +27,8 @@ class CLIRouter:
         self.town_engine = TownEngine(save_manager, engine)
         self.checkin_service = CheckinService(save_manager)
         self.social_service = SocialService(save_manager, engine)
+        self.projection_service = ProjectionService(save_manager)
+        self.log_service = LogService(save_manager)
 
     def _execute_sub_action(self, user_id: str, run, parts: list[str]) -> Tuple[str, bool, bool]:
         return self.action_router.execute_action(self, user_id, run, parts)
@@ -76,24 +80,39 @@ class CLIRouter:
             return f"{original_res}\n\n" + get_locale_text("i18n_cli_core.combat_won_banner", bonus=msg_bonus) + "\n\n" + self.town_engine.render_current_room(user_id, stats)
         return original_res
 
-    def _record_coop_action(self, user_id: str, parts: list[str]) -> None:
+    def _projection_result(self, user_id: str, result: str) -> str:
+        run = self.save_manager.load_save(user_id)
+        if run is None:
+            return result
+        rendered = GameRenderer.render_game(run)
+        if rendered:
+            if result == rendered:
+                return ""
+            suffix = "\n" + rendered
+            if result.endswith(suffix):
+                return result[:-len(suffix)].rstrip()
+        return result
+
+    def handle_command(self, user_id: str, parts: list[str], project: bool = True) -> Generator[str, None, None]:
         command = " ".join(str(part) for part in parts).strip()
+        before_run = self.save_manager.load_save(user_id) if command else None
+        kind = "battle" if before_run is not None and before_run.node_type == "battle" else "action"
+        actor_name = before_run.player.name if before_run is not None and before_run.player else ""
+        results = []
+        for res in self._handle_command_raw(user_id, parts):
+            results.append(res)
+            yield res
         if not command:
             return
-        run = self.save_manager.load_save(user_id)
-        if run is None or not getattr(run, "coop_id", ""):
+        publish = project and self.projection_service.should_publish(command)
+        record = self.log_service.should_record(command, before_run, user_id=user_id)
+        if not publish and not record:
             return
-        name = run.player.name if run.player and run.player.name else get_locale_text("i18n_cli_core.default_player_name")
-        history = run.node_data.setdefault("coop_action_history", [])
-        history.append(f"[{name}] {command}")
-        if len(history) > 60:
-            del history[:-60]
-        self.save_manager.save_coop_save(user_id, run)
-
-    def handle_command(self, user_id: str, parts: list[str]) -> Generator[str, None, None]:
-        self._record_coop_action(user_id, parts)
-        for res in self._handle_command_raw(user_id, parts):
-            yield res
+        result = self._projection_result(user_id, "\n".join(results))
+        if publish:
+            self.projection_service.publish(user_id, command, result)
+        if record:
+            self.log_service.record(user_id, command, result, kind, before_run, actor_name)
 
     def _get_current_state(self, user_id: str, run) -> str:
         stats = None

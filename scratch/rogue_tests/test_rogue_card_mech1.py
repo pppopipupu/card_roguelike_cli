@@ -1,5 +1,6 @@
 import unittest
 from scratch.rogue_tests.base import *
+from game.models.state import CardState
 
 class TestRogueCardMech1(unittest.TestCase):
     def test_card_retain_and_agile_bypass(self):
@@ -796,6 +797,76 @@ class TestRogueCardMech1(unittest.TestCase):
         self.assertEqual(len(player.hand), 12)
         self.assertEqual(len(player.discard_pile), 1)
         self.assertEqual(player.discard_pile[0], "dagger_throw")
+
+    def build_battle(self, user_id, hp=40, actions=2, bonus_actions=1):
+        import tempfile
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        plugin = MyPlugin(DummyContext(), data_dir=tmp.name)
+        player = PlayerState(
+            hp=hp,
+            max_hp=40,
+            shield=0,
+            gold=0,
+            stage=1,
+            deck=[],
+            draw_pile=[],
+            discard_pile=[],
+            exhaust_pile=[],
+            hand=[],
+            actions=actions,
+            bonus_actions=bonus_actions
+        )
+        enemy = EnemyState(name="测试敌人", hp=60, max_hp=60, shield=0)
+        run = GameRun(user_id=user_id, node_type="battle", player=player, enemies=[enemy])
+        return plugin, run, player, enemy
+
+    def test_upgraded_first_aid_grants_shield(self):
+        plugin, run, player, enemy = self.build_battle("first_aid_up", hp=20)
+        engine = plugin.engine.battle_engine
+        player.hand = [CardState("first_aid", upgraded=True)]
+        res = engine.card_player.play_card(run, 1)
+        self.assertEqual(player.hp, 25)
+        self.assertEqual(player.shield, 2)
+        self.assertIn("护盾", res)
+
+    def test_upgraded_mercenary_battlecry_hits_enemy(self):
+        plugin, run, player, enemy = self.build_battle("mercenary_up")
+        engine = plugin.engine.battle_engine
+        player.hand = [CardState("mercenary", upgraded=True)]
+        engine.card_player.play_card(run, 1)
+        self.assertLess(enemy.hp, 60)
+        self.assertEqual(player.minions["1"].id, "mercenary+")
+        self.assertFalse([c for c in player.hand if c.id == "mercenary"])
+        self.assertFalse([c for c in player.discard_pile if c.id == "mercenary"])
+        self.assertFalse([c for c in player.exhaust_pile if c.id == "mercenary"])
+
+    def test_minion_death_enters_graveyard(self):
+        plugin, run, player, enemy = self.build_battle("mercenary_grave")
+        engine = plugin.engine.battle_engine
+        player.hand = [CardState("mercenary", upgraded=True)]
+        engine.card_player.play_card(run, 1)
+        engine.combat_resolver.damage_target(run, "p1", 99, damage_type="true")
+        self.assertNotIn("1", player.minions)
+        self.assertIn("mercenary+", player.minion_graveyard)
+
+    def test_bleed_damage_scales_with_stacks(self):
+        plugin, run, player, enemy = self.build_battle("bleed_stacks")
+        engine = plugin.engine.battle_engine
+        enemy.buffs = [BuffState("bleed", "流血", 7, None, "")]
+        from game.models.events import TurnStartEvent
+        engine.event_bus.dispatch(TurnStartEvent(run, is_player=False))
+        self.assertEqual(enemy.hp, 53)
+        self.assertEqual(next(b for b in enemy.buffs if b.id == "bleed").stacks, 6)
+
+    def test_ancient_wisdom_x_cost_without_bonus_actions(self):
+        plugin, run, player, enemy = self.build_battle("ancient_wisdom_x", actions=1, bonus_actions=0)
+        engine = plugin.engine.battle_engine
+        player.hand = [CardState("ancient_wisdom")]
+        res = engine.card_player.play_card(run, 1)
+        self.assertIn("获得了 0 点护盾与 1 层古老智慧形态", res)
+        self.assertEqual(next(b for b in player.buffs if b.id == "ancient_wisdom_buff").stacks, 1)
+
 
 
 

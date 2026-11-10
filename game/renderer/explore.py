@@ -21,6 +21,18 @@ def render_event(run: GameRun) -> str:
     options = data.get("options", [])
     for idx, opt in enumerate(options, 1):
         lines.append(get_locale_text("renderer_explore.event_option", idx=idx, text=opt.get('text', '')))
+    if getattr(run, "coop_id", ""):
+        from .party import render_party_status
+        lines.append(render_party_status(run))
+        votes = data.get("votes", {})
+        if votes:
+            vote_names = []
+            for uid, vote in votes.items():
+                member = run.players.get(uid)
+                vote_names.append(f"{member.name if member else uid}→{vote}")
+            lines.append(get_locale_text("i18n_renderer_extra.event.votes_line", votes=get_locale_text("i18n_renderer_extra.event.vote_separator").join(vote_names)))
+        lines.append(get_locale_text("i18n_renderer_extra.event.coop_hint"))
+        lines.append("")
     lines.append(get_locale_text("renderer_explore.separator"))
     if p.fold_guide:
         lines.append(get_locale_text("renderer_explore.guide_folded"))
@@ -90,21 +102,6 @@ def render_rest(run: GameRun) -> str:
     data = run.node_data
     if getattr(run, "coop_id", "") and data.get("coop_done"):
         return render_waiting(run)
-    if getattr(run, "coop_id", "") and data.get("pending_cards") is not None:
-        cards = data.get("pending_cards", [])
-        lines = [
-            get_locale_text("renderer_explore.separator"),
-            get_locale_text("renderer_explore.rest_meditate_title", stage=p.stage),
-            render_party_status(run),
-            "",
-            get_locale_text("renderer_explore.rest_meditate_intro"),
-        ]
-        for idx, cid in enumerate(cards, 1):
-            card = ALL_CARDS.get(cid)
-            lines.append(get_locale_text("renderer_explore.card_option", idx=idx, name=card.name if card else cid))
-        lines.append(get_locale_text("renderer_explore.rest_meditate_skip", idx=len(cards) + 1))
-        lines.append(get_locale_text("renderer_explore.separator"))
-        return "\n".join(lines)
     relics_str = format_relic_bar(p.relics)
     lines = [
         get_locale_text("renderer_explore.separator"),
@@ -141,21 +138,6 @@ def render_reward(run: GameRun) -> str:
     data = run.node_data
     if getattr(run, "coop_id", "") and data.get("coop_done"):
         return render_waiting(run)
-    if getattr(run, "coop_id", "") and data.get("pending_cards") is not None:
-        cards = data.get("pending_cards", [])
-        lines = [
-            get_locale_text("renderer_explore.separator"),
-            get_locale_text("renderer_explore.reward_coop_title"),
-            render_party_status(run),
-            "",
-            get_locale_text("renderer_explore.reward_coop_prompt"),
-        ]
-        for idx, cid in enumerate(cards, 1):
-            card = ALL_CARDS.get(cid)
-            lines.append(get_locale_text("renderer_explore.card_option", idx=idx, name=card.name if card else cid))
-        lines.append(get_locale_text("renderer_explore.reward_skip_pick", idx=len(cards) + 1))
-        lines.append(get_locale_text("renderer_explore.separator"))
-        return "\n".join(lines)
     if data.get("no_reward"):
         lines = [
             get_locale_text("renderer_explore.separator"),

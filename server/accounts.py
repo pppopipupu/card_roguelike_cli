@@ -35,12 +35,17 @@ class AccountStore:
                 im_user_id TEXT UNIQUE,
                 web_user_id TEXT UNIQUE,
                 display_name TEXT,
+                is_admin INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL,
                 last_seen TEXT NOT NULL
             )
             """
         )
         self._conn.commit()
+        columns = {row["name"] for row in self._conn.execute("PRAGMA table_info(players)").fetchall()}
+        if "is_admin" not in columns:
+            self._conn.execute("ALTER TABLE players ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
+            self._conn.commit()
 
     def close(self) -> None:
         with self._lock:
@@ -52,6 +57,7 @@ class AccountStore:
             "im_user_id": row["im_user_id"],
             "web_user_id": row["web_user_id"],
             "display_name": row["display_name"],
+            "is_admin": bool(row["is_admin"]),
             "created_at": row["created_at"],
             "last_seen": row["last_seen"],
         }
@@ -134,6 +140,30 @@ class AccountStore:
     def touch(self, player_id: str, display_name: str = "") -> None:
         with self._lock:
             self._touch(player_id, display_name)
+
+    def set_admin(self, player_id: str, value: bool) -> bool:
+        with self._lock:
+            cursor = self._conn.execute(
+                "UPDATE players SET is_admin = ? WHERE id = ?",
+                (1 if value else 0, player_id),
+            )
+            self._conn.commit()
+            return cursor.rowcount > 0
+
+    def set_admin_by_identity(self, identity: str, value: bool) -> bool:
+        with self._lock:
+            row = self._conn.execute(
+                "SELECT id FROM players WHERE id = ? OR im_user_id = ? OR web_user_id = ? LIMIT 1",
+                (identity, identity, identity),
+            ).fetchone()
+            if row is None:
+                return False
+            self._conn.execute(
+                "UPDATE players SET is_admin = ? WHERE id = ?",
+                (1 if value else 0, row["id"]),
+            )
+            self._conn.commit()
+            return True
 
     def has_progress(self, player_id: str) -> bool:
         safe = _safe_id(player_id)

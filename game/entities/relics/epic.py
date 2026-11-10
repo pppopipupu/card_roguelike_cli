@@ -243,7 +243,7 @@ class DoomsdayCoreRelic(RelicImpl):
 
     def on_turn_end(self, event, run, engine):
         if event.is_player:
-            played_count = run.node_data.get("cards_played_this_turn", 0)
+            played_count = run.node_data.get(run.turn_key("cards_played_this_turn", run.player), 0)
             if played_count >= self.play_threshold:
                 engine._draw_cards(run.player, self.draw_count, run)
                 engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.doomsday_core.trigger"))

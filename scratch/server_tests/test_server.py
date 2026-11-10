@@ -27,7 +27,6 @@ def make_settings(root: Path) -> Settings:
         supabase_jwt_audience="authenticated",
         supabase_jwt_secret="test-secret-0123456789abcdef0123456789abcdef",
         im_token="im-secret",
-        admin_token="admin-secret",
         origin_key="",
         allowed_origins=("http://testserver",),
         im_prefixes=(".rogue", "/rogue"),
@@ -98,6 +97,60 @@ class ServerTests(unittest.TestCase):
         ).json()
         self.assertTrue(render["text"])
         self.assertEqual(render["account"]["id"], body["account"]["id"])
+
+    def test_projection_poll_returns_and_clears_feed(self):
+        self.post({"command": "uuid", "channel": "web"}, self.web_headers("web-projection"))
+        uuid = self.internal_uuid(web="web-projection")
+        stats = self.app.state.service.save_manager.load_stats(uuid)
+        stats.projection_feed = [
+            {
+                "player": "队友",
+                "command": "使用 火球术",
+                "result": "造成 12 点伤害。",
+                "text": "📡 队友投影\n[队友] 使用 火球术\n造成 12 点伤害。",
+            }
+        ]
+        self.app.state.service.save_manager.save_stats(uuid, stats)
+        polled = self.post(
+            {"command": "", "channel": "web", "projection_poll": True},
+            self.web_headers("web-projection"),
+        ).json()
+        self.assertEqual(len(polled["projections"]), 1)
+        self.assertIn("使用 火球术", polled["projections"][0]["text"])
+        empty = self.post(
+            {"command": "", "channel": "web", "projection_poll": True},
+            self.web_headers("web-projection"),
+        ).json()
+        self.assertEqual(empty["projections"], [])
+        stats = self.app.state.service.save_manager.load_stats(uuid)
+        stats.projection_feed = [
+            {"player": "队友", "command": "结束", "result": "回合结束。", "text": "📡 队友投影"}
+        ]
+        self.app.state.service.save_manager.save_stats(uuid, stats)
+        action = self.post(
+            {"command": "team", "channel": "web"},
+            self.web_headers("web-projection"),
+        ).json()
+        self.assertEqual(len(action["projections"]), 1)
+        stats = self.app.state.service.save_manager.load_stats(uuid)
+        self.assertEqual(stats.projection_feed, [])
+
+    def test_im_group_rejects_projection_command(self):
+        body = self.post(
+            {
+                "command": ".rogue projection off",
+                "channel": "im",
+                "force": True,
+                "group": True,
+            },
+            self.im_headers("im-group-projection"),
+        ).json()
+        self.assertFalse(body["ok"])
+        self.assertEqual(body["error"], "projection_group_disabled")
+        self.assertIn("群聊", body["text"])
+        uuid = self.internal_uuid(im="im-group-projection")
+        stats = self.app.state.service.save_manager.load_stats(uuid)
+        self.assertTrue(stats.projection_enabled)
 
     def test_im_non_game_message_unhandled(self):
         body = self.post(
@@ -190,19 +243,86 @@ class ServerTests(unittest.TestCase):
         self.assertIsNotNone(render["state"])
         self.assertIsNotNone(render["state"]["player"])
 
-    def test_admin_requires_token(self):
+    def _grant_admin(self, identity: str, value: bool = True) -> None:
+        self.app.state.service.accounts.set_admin_by_identity(identity, value)
+
+    def test_admin_requires_is_admin_field(self):
         denied = self.post(
             {"command": "admin accounts", "channel": "web"}, self.web_headers()
         ).json()
         self.assertFalse(denied["ok"])
         self.assertEqual(denied["error"], "admin_required")
+        self.assertFalse(denied["account"]["is_admin"])
 
-        allowed = self.post(
+        legacy = self.post(
             {"command": "admin accounts", "channel": "web"},
             {**self.web_headers(), "X-Rogue-Admin-Token": "admin-secret"},
         ).json()
+        self.assertFalse(legacy["ok"])
+        self.assertEqual(legacy["error"], "admin_required")
+
+        name_only = self.post(
+            {"command": "admin accounts", "channel": "web", "name": "pppopipupu"},
+            self.web_headers("web-user-1"),
+        ).json()
+        self.assertFalse(name_only["ok"])
+        self.assertEqual(name_only["error"], "admin_required")
+
+    def test_admin_grant_and_revoke(self):
+        self.post({"command": "uuid", "channel": "web"}, self.web_headers("web-admin"))
+        self._grant_admin("web-admin")
+
+        allowed = self.post(
+            {"command": "admin accounts", "channel": "web"}, self.web_headers("web-admin")
+        ).json()
         self.assertTrue(allowed["ok"])
         self.assertIn("UUID", allowed["text"])
+        self.assertTrue(allowed["account"]["is_admin"])
+
+        self._grant_admin("web-admin", False)
+        revoked = self.post(
+            {"command": "admin accounts", "channel": "web"}, self.web_headers("web-admin")
+        ).json()
+        self.assertFalse(revoked["ok"])
+        self.assertEqual(revoked["error"], "admin_required")
+
+    def test_admin_field_persists_in_store(self):
+        store = self.app.state.service.accounts
+        self.post({"command": "uuid", "channel": "web"}, self.web_headers("web-persist"))
+        self.assertFalse(store.get_by_web("web-persist")["is_admin"])
+        self._grant_admin("web-persist")
+        self.assertTrue(store.get_by_web("web-persist")["is_admin"])
+
+    def test_rogueadmin_requires_is_admin_field(self):
+        denied = self.post(
+            {"command": "rogueadmin boss", "channel": "web"}, self.web_headers()
+        ).json()
+        self.assertFalse(denied["ok"])
+        self.assertEqual(denied["error"], "admin_required")
+
+        self.post({"command": "uuid", "channel": "web"}, self.web_headers("web-rogueadmin"))
+        self._grant_admin("web-rogueadmin")
+        allowed = self.post(
+            {"command": "rogueadmin boss", "channel": "web"},
+            self.web_headers("web-rogueadmin"),
+        ).json()
+        self.assertTrue(allowed["ok"])
+        self.assertIn("最终BOSS", allowed["text"])
+
+    def test_im_admin_requires_is_admin_field(self):
+        denied = self.post(
+            {"command": "rogueadmin boss", "channel": "im"}, self.im_headers("im-user-1")
+        ).json()
+        self.assertFalse(denied["ok"])
+        self.assertEqual(denied["error"], "admin_required")
+
+        self.post({"command": "uuid", "channel": "im"}, self.im_headers("im-admin"))
+        self._grant_admin("im-admin")
+        allowed = self.post(
+            {"command": "rogueadmin boss", "channel": "im"}, self.im_headers("im-admin")
+        ).json()
+        self.assertTrue(allowed["ok"])
+        self.assertIn("最终BOSS", allowed["text"])
 
     def test_web_bind_fresh_account_without_force(self):
         im = self.post(

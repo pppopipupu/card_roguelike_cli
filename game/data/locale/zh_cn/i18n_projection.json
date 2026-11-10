@@ -1,0 +1,10 @@
+{
+  "message": "📡 队友投影\n[{player}] {command}\n{result}",
+  "status_on": "📡 队友投影当前已开启。",
+  "status_off": "📡 队友投影当前已关闭。",
+  "enabled": "📡 已开启队友投影，队友的操作与结果会单独发送给你。",
+  "disabled": "📡 已关闭队友投影。",
+  "usage": "❌ 用法：projection 开启 / projection 关闭 / projection 状态",
+  "group_disabled": "❌ 群聊中禁止使用 projection 命令，请在私聊中操作。",
+  "unknown": "❌ 未知的投影设置，可选：开启、关闭、状态。"
+}

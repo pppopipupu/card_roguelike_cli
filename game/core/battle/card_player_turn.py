@@ -116,7 +116,7 @@ class CardPlayerTurnMixin:
             p.buffs.remove(discard_buff)
             if discarded_names:
                 self.engine._log_event(run, get_locale_text("i18n_battle_core.discard_start_turn_log", cards=', '.join(discarded_names)))
-        run.node_data["cards_played_this_turn"] = 0
+        run.node_data[run.turn_key("cards_played_this_turn", p)] = 0
         if getattr(run, "coop_id", ""):
             run.node_data[f"action_surge_turn_used:{run.uid_for(p)}"] = False
         else:

@@ -3,6 +3,10 @@ from ...data.card_data import CARD_CONFIG
 from ...data.locale_data import get_locale_text
 from .registry import register_card
 
+
+def is_upgraded_card(card, base_id: str) -> bool:
+    return getattr(card, "id", "") == base_id and bool(getattr(card, "upgraded", False))
+
 @register_card("dagger_throw")
 @register_card("fire_bolt")
 @register_card("quick_strike")
@@ -18,7 +22,7 @@ class SpellDamageCard(Card):
         name = engine._get_target_name(run, target)
         
         is_agile = run.node_data.get("agile_triggering", False)
-        dtype = "true" if (self.id == "agile_strike+" and is_agile) else self.damage_type
+        dtype = "true" if (is_upgraded_card(self, "agile_strike") and is_agile) else self.damage_type
         
         target_enemy = None
         if target.startswith("e"):
@@ -36,16 +40,16 @@ class SpellDamageCard(Card):
             is_kill = True
             
         bonus_msg = ""
-        if self.id == "dagger_throw+" and is_kill:
+        if is_upgraded_card(self, "dagger_throw") and is_kill:
             gain_a = getattr(self, "gain_a", 1)
             run.player.actions += gain_a
             bonus_msg = get_locale_text("i18n_cards_neutral.neutral.base.spell_damage.kill_bonus")
-        elif self.id == "quick_strike+":
+        elif is_upgraded_card(self, "quick_strike"):
             ally_atk_bonus = getattr(self, "ally_atk_bonus", 1)
             for m in run.player.minions.values():
                 m.atk += ally_atk_bonus
             bonus_msg = get_locale_text("i18n_cards_neutral.neutral.base.spell_damage.quick_strike_bonus")
-        elif self.id == "agile_strike+" and is_agile:
+        elif is_upgraded_card(self, "agile_strike") and is_agile:
             draw_count = getattr(self, "draw_count", 1)
             engine._draw_cards(run.player, draw_count, run)
             bonus_msg = get_locale_text("i18n_cards_neutral.neutral.base.spell_damage.agile_strike_bonus")
@@ -68,14 +72,14 @@ class SpellHealCard(Card):
         engine._heal_target(run, target, self.heal_amount)
         
         shield_msg = ""
-        if self.id == "first_aid+":
+        if is_upgraded_card(self, "first_aid"):
             shield_amount = getattr(self, "shield_amount", 2)
             engine._gain_shield(run, "p0", shield_amount)
             shield_msg = get_locale_text("i18n_cards_neutral.neutral.base.spell_heal.shield_suffix")
             
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
-        if self.id == "first_aid+":
+        if is_upgraded_card(self, "first_aid"):
             return get_locale_text("i18n_cards_neutral.neutral.base.spell_heal.result_upgraded", target=name, heal_amount=self.heal_amount, shield_msg=shield_msg)
         if feedback_tmpl:
             return feedback_tmpl.format(target=name, heal_amount=self.heal_amount)
@@ -180,21 +184,22 @@ class SummonMinionCard(Card):
             if not boss_cfg.get("icerainboww_enabled", True):
                 return get_locale_text("i18n_cards_neutral.neutral.base.summon_minion.disabled")
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
-        grid = engine._summon_minion(run, self.id, self.name, self.minion_hp, self.minion_atk, 0)
+        minion_id = f"{self.id}+" if bool(getattr(self, "upgraded", False)) else self.id
+        grid = engine._summon_minion(run, minion_id, self.name, self.minion_hp, self.minion_atk, 0)
         if grid:
             battlecry_msg = ""
             target_name = get_locale_text("i18n_cards_neutral.neutral.base.summon_minion.none")
-            if self.id == "mercenary+":
+            if is_upgraded_card(self, "mercenary"):
                 chosen_target = target if (target and target.startswith("e")) else engine._get_first_alive_enemy(run)
                 if chosen_target:
                     engine._damage_target(run, chosen_target, self.minion_atk, source=f"p{grid}", damage_type="bludgeoning")
                     tname = engine._get_target_name(run, chosen_target)
                     battlecry_msg = get_locale_text("i18n_cards_neutral.neutral.base.summon_minion.mercenary_battlecry", target=tname, atk=self.minion_atk)
-            elif self.id == "shield_guard+":
+            elif is_upgraded_card(self, "shield_guard"):
                 shield_amount = getattr(self, "shield_amount", 8)
                 engine._gain_shield(run, "p0", shield_amount)
                 battlecry_msg = get_locale_text("i18n_cards_neutral.neutral.base.summon_minion.shield_guard_battlecry")
-            elif self.id == "minion_icerainboww+":
+            elif is_upgraded_card(self, "minion_icerainboww"):
                 shield_amount = getattr(self, "shield_amount", 8)
                 buff_stacks = getattr(self, "buff_stacks", 1)
                 engine._gain_shield(run, "p0", shield_amount)

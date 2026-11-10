@@ -4,9 +4,12 @@
 
 ## 当前状态
 
-- 核心与联机测试:157 项通过,2 项跳过。
-- 后端测试:15 项通过。
-- 联机日志按玩家隔离;`coop_log` 提供其他玩家的操作与战斗投影,群聊不返回。
+- 核心与联机测试:178 项通过,2 项跳过。
+- 后端测试:17 项通过。
+- 联机日志按玩家隔离;队友投影按操作逐条返回,私聊与网页默认开启,群聊禁用。
+- `logs` 查看个人战斗与行动日志,`logc` 查看队伍日志,默认 20 条、最多 50 条;命令队列最多 50 条指令。
+- 联机地图与事件采用同一套队伍决策:队长选择直接生效,半数及以上存活队员选择同一分支或选项时生效;事件为全队共享一个,效果作用于所有队员,触发战斗时全队一并进入。
+- 战斗日志只输出本次指令新产生的事件;联机【我方战场】按队员分段展示全队随从与护符;单回合 Buff、每回合出牌计数与流血层数按玩家各自结算。
 - 架构重构已完成战斗、联机、路由、渲染、本地化与数值配置化;`game/` 与 `server/` 全部 Python 文件不超过 650 行。
 
 ## 目录
@@ -60,7 +63,6 @@ PYTHONPATH="." .venv/Scripts/python.exe -m uvicorn server.app:create_app --facto
 | `ROGUE_DB_PATH` | 账号数据库，默认 `<ROGUE_DATA_DIR>/accounts.sqlite3` |
 | `ROGUE_PLAYER_DIR` | 每玩家 JSON 存档目录，默认 `<ROGUE_DATA_DIR>/players` |
 | `ROGUE_IM_TOKEN` | 即时通讯令牌 |
-| `ROGUE_ADMIN_TOKEN` | 管理员令牌 |
 | `ROGUE_ORIGIN_KEY` | Worker 来源校验头，可留空关闭 |
 | `SUPABASE_URL` | Supabase 项目地址 |
 | `SUPABASE_JWKS_URL` | Supabase JWKS 地址 |
@@ -69,6 +71,17 @@ PYTHONPATH="." .venv/Scripts/python.exe -m uvicorn server.app:create_app --facto
 | `SUPABASE_JWT_SECRET` | 可选，仅用于 HS256 兼容 |
 | `ROGUE_ALLOWED_ORIGINS` | CORS 白名单，逗号分隔 |
 | `ROGUE_IM_PREFIXES` | 即时通讯指令前缀，逗号分隔 |
+
+### 管理员授权
+
+管理员身份由账号数据库 `players.is_admin` 字段决定，默认 `0`；`rogueadmin`、`admin` 与 `admin accounts` 仅对该字段为 `1` 的用户开放。线上目前只为 `pppopipupu` 授权：
+
+```bash
+py -m server.adminctl set pppopipupu on
+py -m server.adminctl list
+```
+
+`set` 按 `id`、`im_user_id`、`web_user_id` 精确定位用户，不按昵称匹配；用户需先登录一次生成记录。也可直接执行 `UPDATE players SET is_admin = 1 WHERE im_user_id = 'pppopipupu';`。设为 `off` 可收回权限。
 
 ### 接口
 
@@ -85,7 +98,8 @@ Content-Type: application/json
   "group": false,
   "is_group": false,
   "group_id": "",
-  "message_type": ""
+  "message_type": "",
+  "projection_poll": false
 }
 ```
 
@@ -95,7 +109,7 @@ Content-Type: application/json
 | :--- | :--- |
 | 网页 | `Authorization: Bearer <Supabase access token>` |
 | 即时通讯 | `X-Rogue-IM-Token: <token>` + `X-Rogue-IM-User: <平台用户 ID>` |
-| 管理命令 | 额外 `X-Rogue-Admin-Token: <token>` |
+| 管理命令 | 无独立令牌，按用户数据的 `is_admin` 字段鉴权 |
 
 响应：
 
@@ -105,7 +119,14 @@ Content-Type: application/json
   "handled": true,
   "text": "渲染文本",
   "state": { "v": 1, "screen": "battle" },
-  "coop_log": ["[队友] 使用 火球术"],
+  "projections": [
+    {
+      "player": "队友",
+      "command": "使用 火球术",
+      "result": "造成 12 点伤害。",
+      "text": "📡 队友投影\n[队友] 使用 火球术\n造成 12 点伤害。"
+    }
+  ],
   "account": { "id": "P0123456789AB", "linked": false },
   "shell": {
     "user": "tester",
@@ -120,7 +141,7 @@ Content-Type: application/json
 
 `state` 只对网页通道返回。`handled=false` 表示即时通讯消息不是游戏指令,前端不应回复。`shell` 是终端提示符状态,`clear=true` 表示前端应清空屏幕。
 
-联机牌局中 `coop_log` 返回队伍其他玩家的操作与战斗记录投影;即时通讯群聊(`group`、`is_group`、`group_id` 或群聊 `message_type`)不返回该字段,私聊与网页正常返回。`account.id` 是公开展示与好友/组队使用的玩家 ID,UUID 只用于账号绑定。
+联机牌局中 `projections` 按队友的每次操作返回一条投影，包含指令与结果；队伍中默认开启，可用 `projection 开启|关闭|状态` 切换。即时通讯群聊(`group`、`is_group`、`group_id` 或群聊 `message_type`)禁用该命令且不返回投影。网页空闲时使用同一接口发送 `projection_poll=true` 拉取新投影，拉取后队列清空。`account.id` 是公开展示与好友/组队使用的玩家 ID,UUID 只用于账号绑定。
 
 ### 终端命令
 
@@ -145,7 +166,7 @@ Content-Type: application/json
 | `secrets` / `迁移码` | 即时通讯端私聊获取迁移码 UUID |
 | `绑定 <uuid>` | 网页账号关联即时通讯进度 |
 | `绑定 <uuid> force` | 放弃当前网页独立进度后关联 |
-| `admin accounts` | 导出 UUID / IM / Web 映射，需要管理员令牌 |
+| `admin accounts` | 导出 UUID / IM / Web 映射，仅管理员用户可用 |
 | `leaderboard` | 查看 GP 排行榜前 20，显示昵称、GP 与当前层数 |
 | `leaderboard online` | 查看最近 5 分钟在线玩家 |
 | `签到` / `checkin` | 每日 UTC+0 签到，领取下一局祝福并给集换卡盖章 |

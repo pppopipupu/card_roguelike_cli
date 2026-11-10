@@ -1,0 +1,12 @@
+{
+  "header": "📜 最近 {count} 条战斗与行动日志",
+  "team_header": "📜 队伍最近 {count} 条战斗与行动日志",
+  "empty": "暂无日志。",
+  "empty_team": "暂无队伍日志。",
+  "kind_battle": "战斗",
+  "kind_action": "行动",
+  "entry_header": "【{kind}】{command}",
+  "team_entry_header": "【{kind}】{player} · {command}",
+  "unknown_player": "队友",
+  "invalid_count": "日志条数必须是 {min} 到 {max} 之间的整数。"
+}

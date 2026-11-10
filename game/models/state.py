@@ -66,6 +66,7 @@ class UserStats:
     town_flags: Dict[str, Any] = field(default_factory=dict)
     town_health_bonus: int = 0
     player_name: str = "玩家"
+    name_customized: bool = False
     im_account: str = ""
     unlocked_new_cards: List[str] = field(default_factory=list)
     last_checkin_date: str = ""
@@ -77,6 +78,10 @@ class UserStats:
     friend_requests_out: List[str] = field(default_factory=list)
     active_lobby_id: str = ""
     active_coop_id: str = ""
+    projection_enabled: bool = True
+    projection_feed: List[Dict[str, Any]] = field(default_factory=list)
+    log_history: List[Dict[str, Any]] = field(default_factory=list)
+    team_log_history: List[Dict[str, Any]] = field(default_factory=list)
 
 @dataclass
 class CardState:
@@ -509,6 +514,12 @@ class GameRun:
             if candidate is player:
                 return uid
         return self.user_id
+
+    def turn_key(self, name: str, player: PlayerState = None) -> str:
+        if not self.coop_id:
+            return name
+        uid = self.uid_for(player) if player is not None else self.user_id
+        return f"{name}:{uid}"
 
     def is_coop(self) -> bool:
         return bool(self.coop_id)

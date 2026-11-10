@@ -101,8 +101,8 @@
   "help_special": "👉 sa <手牌序号> [目标] -- 释放对应手牌的特殊行动。例如：sa 1",
   "help_end": "👉 e -- 结束当前的战斗回合",
   "help_fold": "👉 f -- 切换是否折叠游戏底部的操作指南",
-  "help_queue": "👉 q <[指令1...]> -- 顺序执行命令队列（即便失败也会强行继续）。例如：q [p 1, e]",
-  "help_queue_interrupt": "👉 qi <[指令1...]> -- 顺序执行命令队列，一旦任何子指令失败则立刻中断。例如：qi [p 1, e]",
+  "help_queue": "👉 q <[指令1...]> -- 顺序执行命令队列(即便失败也会强行继续),最多 {limit} 条。例如:q [p 1, e]",
+  "help_queue_interrupt": "👉 qi <[指令1...]> -- 顺序执行命令队列,一旦任何子指令失败则立刻中断,最多 {limit} 条。例如:qi [p 1, e]",
   "help_info": "👉 i [名称] -- 查询战斗快照，或模糊查询卡牌/随从/遗物/护符/Buff/怪物信息",
   "help_draw": "👉 draw (discard/exhaust) -- 在战斗中直接查询抽牌堆、弃牌堆或消耗堆",
   "help_graveyard": "👉 mg (eg) -- 在战斗中直接查询我方随从墓地或敌方已击杀墓地",
@@ -222,5 +222,8 @@
   "npc_title": "👤 居民：{name} ({id})",
   "npc_intro_line": "介绍：{desc}",
   "npc_talk_title": "闲聊语录：",
-  "query_not_found": "❌ 未找到与该名称或 ID 匹配的随从、遗物、Buff、卡牌、怪物、主城居民或物品信息。"
+  "query_not_found": "❌ 未找到与该名称或 ID 匹配的随从、遗物、Buff、卡牌、怪物、主城居民或物品信息。",
+  "help_projection": "👉 projection (投影) -- 开启、关闭或查看队友操作投影,默认开启;群聊禁用",
+  "help_logs": "👉 logs [条数] -- 查看最近 {count} 条个人战斗与行动日志,最多 {max} 条",
+  "help_logc": "👉 logc [条数] -- 查看最近 {count} 条队伍战斗与行动日志,最多 {max} 条"
 }

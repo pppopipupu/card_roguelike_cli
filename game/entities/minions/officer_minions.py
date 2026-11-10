@@ -156,13 +156,13 @@ class AuroraEmperorJudgment(BaseMinionSkill):
 
 class SoldierTokenTemplate(MinionTemplate):
     def on_minion_summon(self, run, grid, event, engine):
-        if event.minion_state.id == self.id:
+        if event.minion_state.id.rstrip("+") == self.id:
             engine._add_buff_to(event.minion_state, "ward", get_locale_text("i18n_minions.common.ward_name"), get_locale_text("i18n_minions.common.ward_desc"))
 
 
 class CommanderPatrolCaptainTemplate(MinionTemplate):
     def on_minion_summon(self, run, grid, event, engine):
-        if event.minion_state.id == self.id:
+        if event.minion_state.id.rstrip("+") == self.id:
             is_upgraded = event.minion_state.id.endswith("+")
             tok_id = "officer_soldier_token+" if is_upgraded else "officer_soldier_token"
             tok_name = get_locale_text("i18n_minions.common.soldier_token_name_upgraded") if is_upgraded else get_locale_text("i18n_minions.common.soldier_token_name")
@@ -236,7 +236,7 @@ class RoyalGuardTemplate(MinionTemplate):
 
 class GarrisonLeaderTemplate(MinionTemplate):
     def on_minion_summon(self, run, grid, event, engine):
-        if event.minion_state.id == self.id:
+        if event.minion_state.id.rstrip("+") == self.id:
             engine._add_buff_to(event.minion_state, "ward", get_locale_text("i18n_minions.common.ward_name"), get_locale_text("i18n_minions.common.ward_desc_self"))
 
     def on_damage_take(self, run, grid, event, engine):

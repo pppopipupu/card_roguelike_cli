@@ -48,7 +48,7 @@ class FireballCard(Card):
             engine._add_buff_to(enemy, "burning", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.burning.name"), get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.burning.desc"), burn_dmg, burn_turns)
 
         bonus_msg = ""
-        if self.id == "fireball+":
+        if getattr(self, "id", "") == "fireball" and bool(getattr(self, "upgraded", False)):
             engine._add_buff_to(run.player, "fire_grow", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.fire_grow.name"), get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.fire_grow.desc"), getattr(self, "buff_stacks", 1))
             bonus_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.fireball.bonus")
             

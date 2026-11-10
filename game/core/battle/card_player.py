@@ -365,6 +365,13 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         target = play_evt.target
         if p.actions < req_a or p.bonus_actions < req_ba:
             return get_locale_text("i18n_battle_core.insufficient_actions", req_a=req_a, req_ba=req_ba, actions=p.actions, bonus_actions=p.bonus_actions)
+        chemical_bonus = 2 if "chemical_x" in p.relics else 0
+        if card.cost_a == -1:
+            real_x_a = req_a + chemical_bonus
+        if card.cost_ba == -1:
+            real_x_ba = req_ba + chemical_bonus
+        run.node_data["last_x_cost_a"] = real_x_a
+        run.node_data["last_x_cost_ba"] = real_x_ba
         p.actions -= req_a
         p.bonus_actions -= req_ba
         p.hand.pop(hand_idx - 1)

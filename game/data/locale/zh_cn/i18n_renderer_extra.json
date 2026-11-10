@@ -15,7 +15,7 @@
     "layer_line": "  {title}(第 {stage} 层):",
     "votes_line": "🗳️ 当前投票：{votes}",
     "vote_separator": "，",
-    "coop_hint": "💡 联机路线：队长选择即通过；队员全员选择同一分支也会通过。",
+    "coop_hint": "💡 联机路线：队长选择即通过；半数及以上队员选择同一分支也会通过。",
     "choose_prompt": "前方道路出现了分支，请选择你前往的下一个节点：",
     "fold_hint": "💬 提示：操作指南已折叠。输入 /rogue 折叠 可展开。",
     "route_cmd": "💬 选择路线指令：/rogue c <分支序号>",
@@ -40,6 +40,11 @@
     "bless_intro": "空气中浮现出纯净的奥术光辉。{style}的意志再次眷顾了你，向你降下丰厚的赐福礼包：",
     "bless_card_option": " [{idx}] 🎁 赐福包：【{rname}】 ➕ 传奇卡牌【{cname}】\n     效果：获得被动遗物（{rdesc}）与卡牌（{cdesc}）",
     "bless_cmd": "💬 选择赐福指令：/rogue c <赐福序号>"
+  },
+  "event": {
+    "votes_line": "🗳️ 当前投票：{votes}",
+    "vote_separator": "，",
+    "coop_hint": "💡 联机事件：队长选择即生效；半数及以上队员选择同一选项也会生效，效果作用于全队。"
   },
   "unknown_state": "未知关卡状态",
   "formatters": {

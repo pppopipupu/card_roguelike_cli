@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from game.core.headless_server import HeadlessGameServer
+from game.core.projection_service import ProjectionService, is_projection_command
 from game.data.locale_data import get_locale_text
 from game.models.manager import SaveManager
 from game.models.state import public_player_id, set_user_id
@@ -38,6 +39,7 @@ def _account_json(account: dict) -> dict:
         "web_user_id": account["web_user_id"],
         "display_name": account["display_name"],
         "linked": bool(account["im_user_id"] and account["web_user_id"]),
+        "is_admin": bool(account["is_admin"]),
     }
 
 
@@ -48,6 +50,7 @@ class RogueService:
         self.server = HeadlessGameServer(str(settings.player_dir))
         self.save_manager: SaveManager = self.server.save_manager
         self.shell = ShellService(settings.data_dir / "shell")
+        self.projection_service = ProjectionService(self.save_manager)
         self._locks: dict[str, asyncio.Lock] = {}
 
     def _lock_for(self, user_id: str) -> asyncio.Lock:
@@ -83,6 +86,7 @@ class RogueService:
             "handled": True,
             "text": text,
             "state": state,
+            "projections": [],
             "account": _account_json(account),
             "shell": self.shell.prompt_info(
                 account["uuid"], account["display_name"] or "rogue", status
@@ -135,6 +139,9 @@ class RogueService:
                 get_locale_text("i18n_server_core.service.migration_warning"),
             ]
         )
+
+    def _is_admin(self, account: dict) -> bool:
+        return bool(account["is_admin"])
 
     def _admin_accounts(self) -> str:
         rows = self.accounts.list_all()
@@ -264,9 +271,9 @@ class RogueService:
         channel: str,
         display_name: str = "",
         force: bool = False,
-        is_admin: bool = False,
         group: bool = False,
         prefixes: Optional[tuple[str, ...]] = None,
+        projection_poll: bool = False,
     ) -> dict:
         active_prefixes = prefixes or self.settings.im_prefixes
         if len(command) > self.settings.max_command_length:
@@ -294,6 +301,34 @@ class RogueService:
         normalized = _strip_prefix(command, active_prefixes)
         parts = normalized.split(maxsplit=1)
         first = parts[0].lower().lstrip("/") if parts else ""
+
+        if projection_poll:
+            projections = []
+            if not group:
+                async with self._lock_for(account["uuid"]):
+                    projections = self.projection_service.consume(account["uuid"])
+            return {
+                "ok": True,
+                "handled": False,
+                "text": "",
+                "state": None,
+                "projections": projections,
+                "account": _account_json(account),
+                "shell": self.shell.prompt_info(
+                    account["uuid"], account["display_name"] or name or "rogue"
+                ),
+            }
+
+        if group and is_projection_command(command):
+            return {
+                "ok": False,
+                "handled": True,
+                "text": get_locale_text("i18n_projection.group_disabled"),
+                "error": "projection_group_disabled",
+                "state": None,
+                "projections": [],
+                "account": _account_json(account),
+            }
 
         if first in ("leaderboard", "排行", "排行榜", "lb"):
             sub = parts[1].strip().lower() if len(parts) > 1 else ""
@@ -384,7 +419,7 @@ class RogueService:
             }
 
         if first in ("admin", "rogueadmin"):
-            if not is_admin:
+            if not self._is_admin(account):
                 return {
                     "ok": False,
                     "handled": True,
@@ -424,6 +459,7 @@ class RogueService:
                     shortcut_prefix=list(active_prefixes),
                     enable_shortcut=True,
                     force_execute=True,
+                    projection=not group,
                 )
                 handled = True
             else:
@@ -435,6 +471,7 @@ class RogueService:
                     shortcut_prefix=list(active_prefixes),
                     enable_shortcut=True,
                     force_execute=force,
+                    projection=not group,
                 )
                 handled = text is not None
             if text is None:
@@ -445,29 +482,14 @@ class RogueService:
             run = self.save_manager.load_save(account["uuid"])
             stats = self.save_manager.load_stats(account["uuid"])
             state = build_snapshot(run, stats, text) if channel == "web" else None
-            coop_log = []
-            if run is not None and getattr(run, "coop_id", "") and not (channel == "im" and group):
-                own_prefix = f"[{run.player.name}] " if run.player and run.player.name else ""
-                actions = [
-                    entry
-                    for entry in run.node_data.get("coop_action_history", [])
-                    if not own_prefix or not entry.startswith(own_prefix)
-                ][-20:]
-                battles = [
-                    entry
-                    for entry in run.node_data.get("coop_battle_log_history", [])
-                    if not own_prefix or not entry.startswith(own_prefix)
-                ][-20:]
-                coop_log = actions + battles
-            if state is not None:
-                state["coop_log"] = coop_log
+            projections = [] if group else self.projection_service.consume(account["uuid"])
 
         return {
             "ok": True,
             "handled": handled,
             "text": text,
             "state": state,
-            "coop_log": coop_log,
+            "projections": projections,
             "account": _account_json(account),
             "shell": self.shell.prompt_info(
                 account["uuid"], account["display_name"] or name or "rogue"

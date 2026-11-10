@@ -16,6 +16,7 @@
   "battle_use_missing_arg": "❌ 请提供手牌序号或卡牌名称拼音首字母，例如：/rogue 使用 1 或 /rogue 使用 ssxs",
   "battle_queue_missing_arg": "❌ 请提供队列操作，例如：/rogue 队列 [使用 1, 随从 1 技能 2, 结束]",
   "battle_queue_no_valid": "💬 队列未执行任何有效指令。",
+  "battle_queue_limit": "❌ 队列最多支持 {limit} 条命令。",
   "cafe_talk_missing_target": "❌ 请指定交互的目标，例如：talk 向导长老",
   "cafe_help": "💡 咖啡厅探索中。输入 离开 离开咖啡厅，或输入 talk <NPC名字> 进行交互。输入 看/查/look 重新观察四周。在对话中可直接输入选项数字。",
   "town_take_missing_arg": "❌ 请提供物品名字，例如：take 幸运硬币",

@@ -80,7 +80,7 @@ class BossYogSothothTemplate(EnemyTemplate):
                     exhaust_evt = CardExhaustEvent(run, c_state, "void_distortion_cancel")
                     engine.event_bus.dispatch(exhaust_evt)
                 engine._log_event(run, get_locale_text("i18n_enemy_boss.yog_log_space_disorder", card_name=card.name))
-                run.node_data["cards_played_this_turn"] = run.node_data.get("cards_played_this_turn", 0) + 1
+                run.node_data[run.turn_key("cards_played_this_turn", run.player)] = run.node_data.get(run.turn_key("cards_played_this_turn", run.player), 0) + 1
                 engine.save_manager.save_save(run.user_id, run)
 
     def on_turn_end(self, event, enemy, engine):
