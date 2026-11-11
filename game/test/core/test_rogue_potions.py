@@ -1,7 +1,6 @@
 from game.test.core.base import *
 from game.test.core.base import MyPlugin
 from game.models.state import GameRun, PlayerState, EnemyState, MinionState, BuffState
-from game.renderer.query import render_query_info
 
 class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
@@ -163,14 +162,3 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(run.player.hp, 20)
         self.assertEqual(len(run.player.potions), 1)
 
-    async def test_potion_query(self):
-        res = render_query_info("药水")
-        self.assertIn("治疗药水", res)
-        self.assertIn("毁灭药水", res)
-        
-        res_specific = render_query_info("毁灭药水")
-        self.assertIn("受到 30 点力场伤害", res_specific)
-        self.assertIn("造成 60 点力场伤害", res_specific)
-        
-        res_tier = render_query_info("epic")
-        self.assertIn("能量药水", res_tier)

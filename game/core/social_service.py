@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from ..data.account_config import RENAME_COST_GP
 from ..data.checkin_data import (
     DEFAULT_CLASS_NAME,
     DEFAULT_PLAYER_NAME,
@@ -8,7 +9,7 @@ from ..data.checkin_data import (
     PLAYER_NAME_MAX_LENGTH,
 )
 from ..data.locale_data import get_locale_text
-from ..models.state import UserStats, public_player_id
+from .player_names import PlayerNameError, parse_player_name, unique_handle
 from .social_team import SocialTeamMixin
 
 
@@ -25,9 +26,12 @@ class SocialService(SocialTeamMixin):
 
     def _profile(self, uid):
         stats = self._stats(uid)
+        handle = getattr(stats, "player_handle", "") or getattr(
+            stats, "player_name", DEFAULT_PLAYER_NAME
+        )
         return {
             "user_id": uid,
-            "player_id": public_player_id(uid),
+            "player_id": handle,
             "name": getattr(stats, "player_name", DEFAULT_PLAYER_NAME),
             "im_account": getattr(stats, "im_account", ""),
             "selected_class": getattr(stats, "selected_class", DEFAULT_CLASS_NAME),
@@ -47,9 +51,16 @@ class SocialService(SocialTeamMixin):
         return f"{base}{separator}{sub}" if sub else base
 
     def _all_profiles(self):
-        profiles = self.save_manager.list_player_profiles()
+        profiles = sorted(
+            self.save_manager.list_player_profiles(),
+            key=lambda item: (item.get("mtime", 0), item.get("user_id", "")),
+        )
+        taken = set()
         for profile in profiles:
-            profile["player_id"] = public_player_id(profile.get("user_id", ""))
+            base = profile.get("player_handle") or profile.get("name") or DEFAULT_PLAYER_NAME
+            handle = unique_handle(str(base), taken)
+            taken.add(handle)
+            profile["player_id"] = handle
         return sorted(profiles, key=lambda item: item.get("name", ""))
 
     def _find_profile(self, query):
@@ -85,6 +96,7 @@ class SocialService(SocialTeamMixin):
 
     def friend_id(self, uid):
         stats = self._stats(uid)
+        profile = self._profile(uid)
         account = getattr(stats, "im_account", "")
         account_text = (
             get_locale_text("i18n_social.friend_id.account_bound", account=account)
@@ -93,24 +105,56 @@ class SocialService(SocialTeamMixin):
         )
         return get_locale_text(
             "i18n_social.friend_id.text",
-            player_id=public_player_id(uid),
+            player_id=profile["player_id"],
             name=getattr(stats, "player_name", DEFAULT_PLAYER_NAME),
             account_text=account_text,
         )
 
     def friend_name(self, uid, name):
-        text = str(name or "").strip()
-        if not text:
-            return get_locale_text("i18n_social.friend_name.need_arg")
-        if len(text) > PLAYER_NAME_MAX_LENGTH:
-            return get_locale_text("i18n_social.friend_name.too_long", limit=PLAYER_NAME_MAX_LENGTH)
-        if any(ch in "\n\r\t" for ch in text):
+        try:
+            base = parse_player_name(name)
+        except PlayerNameError as exc:
+            if exc.reason == "empty":
+                return get_locale_text(
+                    "i18n_social.friend_name.need_arg", cost=RENAME_COST_GP
+                )
+            if exc.reason == "too_long":
+                return get_locale_text(
+                    "i18n_social.friend_name.too_long", limit=PLAYER_NAME_MAX_LENGTH
+                )
             return get_locale_text("i18n_social.friend_name.invalid_char")
         stats = self._stats(uid)
-        stats.player_name = text
+        if base == (stats.player_handle or stats.player_name):
+            return get_locale_text("i18n_social.friend_name.same", name=base)
+        if stats.gp < RENAME_COST_GP:
+            return get_locale_text(
+                "i18n_social.friend_name.insufficient_gp",
+                cost=RENAME_COST_GP,
+                gp=stats.gp,
+            )
+        taken = {
+            profile["player_id"]
+            for profile in self._all_profiles()
+            if profile.get("user_id") != uid
+        }
+        handle = unique_handle(base, taken)
+        stats.gp -= RENAME_COST_GP
+        stats.player_name = handle
+        stats.player_handle = handle
         stats.name_customized = True
         self.save_manager.save_stats(uid, stats)
-        return get_locale_text("i18n_social.friend_name.success", name=text)
+        run = self.save_manager.load_save(uid)
+        if run is not None and run.player is not None:
+            run.player.name = handle
+            if uid in getattr(run, "players", {}):
+                run.players[uid].name = handle
+            self.save_manager.save_save(uid, run)
+        return get_locale_text(
+            "i18n_social.friend_name.success",
+            name=handle,
+            cost=RENAME_COST_GP,
+            gp=stats.gp,
+        )
 
     def friend_bind(self, uid, account):
         text = str(account or "").strip()

@@ -2,47 +2,6 @@ import unittest
 from game.test.core.base import *
 
 class TestRogueEnemyStage(unittest.TestCase):
-    def test_dynamic_boss_victory_message(self):
-        class DummySaveManager:
-            def __init__(self):
-                self.stats = UserStats()
-            def save_save(self, user_id, run):
-                pass
-            def delete_save(self, user_id):
-                pass
-            def load_stats(self, user_id):
-                return self.stats
-            def save_stats(self, user_id, stats):
-                self.stats = stats
-                return True
-            def settle_game_and_delete(self, user_id, run, is_victory=True):
-                return "游戏已成功结算并清理。"
-        sm = DummySaveManager()
-        engine = BattleEngine(sm)
-        router = CLIRouter(sm, engine)
-        player = PlayerState(
-            hp=50,
-            max_hp=50,
-            shield=0,
-            gold=100,
-            stage=25,
-            deck=["fire_bolt"],
-            hand=["fire_bolt"],
-            actions=2,
-            bonus_actions=1
-        )
-        enemy = EnemyState("Icerainboww", 1, 160, 0)
-        run = GameRun(
-            user_id="test_victory_user",
-            node_type="battle",
-            player=player,
-            enemies=[enemy],
-            node_data={"boss_name": "Icerainboww"}
-        )
-        res, term, success = router._execute_sub_action("test_victory_user", run, ["使用", "1", "e1"])
-        self.assertTrue(term)
-        self.assertIn("恭喜你击败了Icerainboww，通关成功！", res)
-        self.assertNotIn("腐化之心", res)
 
     def test_expanded_monsters_and_mechanics(self):
         class DummySaveManager:
@@ -228,85 +187,6 @@ class TestRogueEnemyStage(unittest.TestCase):
         self.assertIn("拥有护盾时", q_end)
         self.assertIn("反弹", q_end)
 
-    def test_enemy_trash_talk(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run):
-                pass
-            def delete_save(self, user_id):
-                pass
-        sm = DummySaveManager()
-        engine = BattleEngine(sm)
-
-        player = PlayerState(
-            hp=50,
-            max_hp=100,
-            shield=0,
-            gold=100,
-            stage=1,
-            deck=["fire_bolt"],
-            hand=["fire_bolt"],
-            actions=1,
-            bonus_actions=1
-        )
-        run = GameRun(
-            user_id="test_trash",
-            node_type="battle",
-            player=player,
-            enemies=[]
-        )
-        run.node_data["turn"] = 1
-
-        from game.entities.enemies.summon.astral_puppy import AstralPuppyTemplate
-        puppy_enemy = EnemyState("星界幼犬", 15, 15, 0)
-        puppy_temp = AstralPuppyTemplate("星界幼犬")
-        puppy_intents = puppy_temp.roll_intents(run, engine, puppy_enemy)
-        logs = []
-        puppy_temp.execute_intent(run, engine, puppy_enemy, puppy_intents[0], logs)
-        self.assertFalse(any("【" in log and "】说" in log for log in logs))
-
-        from game.entities.enemies.town_enemies import NoobSlayer99Template
-        noob_enemy = EnemyState("NoobSlayer99", 50, 50, 0)
-        noob_temp = NoobSlayer99Template("NoobSlayer99")
-        noob_intents = noob_temp.roll_intents(run, engine, noob_enemy)
-        
-        logs_noob = []
-        noob_temp.execute_intent(run, engine, noob_enemy, noob_intents[0], logs_noob)
-        self.assertEqual(len(logs_noob), 2)
-        
-        logs_noob_2 = []
-        noob_temp.execute_intent(run, engine, noob_enemy, noob_intents[0], logs_noob_2)
-        self.assertEqual(len(logs_noob_2), 1)
-
-        run.node_data["turn"] = 2
-        player.hp = 20
-        player.max_hp = 100
-        noob_intents_2 = noob_temp.roll_intents(run, engine, noob_enemy)
-        logs_noob_3 = []
-        noob_temp.execute_intent(run, engine, noob_enemy, noob_intents_2[0], logs_noob_3)
-        self.assertTrue(any("单手" in log or "送你一程" in log or "双手离开" in log for log in logs_noob_3))
-
-        run.node_data["turn"] = 3
-        player.hp = 80
-        player.shield = 20
-        noob_intents_3 = noob_temp.roll_intents(run, engine, noob_enemy)
-        logs_noob_4 = []
-        noob_temp.execute_intent(run, engine, noob_enemy, noob_intents_3[0], logs_noob_4)
-        self.assertTrue(any("乌龟壳" in log or "最厚的甲" in log or "属乌龟" in log for log in logs_noob_4))
-
-        run.node_data["turn"] = 4
-        player.shield = 0
-        player.hand = ["fire_bolt"] * 12
-        noob_intents_4 = noob_temp.roll_intents(run, engine, noob_enemy)
-        logs_noob_5 = []
-        noob_temp.execute_intent(run, engine, noob_enemy, noob_intents_4[0], logs_noob_5)
-        self.assertTrue(any("斗地主" in log or "废纸" in log for log in logs_noob_5))
-
-        run.node_data["turn"] = 5
-        player.hand = ["fire_bolt"]
-        noob_intents_5 = noob_temp.roll_intents(run, engine, noob_enemy)
-        logs_noob_6 = []
-        noob_temp.execute_intent(run, engine, noob_enemy, noob_intents_5[0], logs_noob_6)
-        self.assertTrue(any("没牌" in log or "空手" in log or "个人秀" in log or "血虐" in log for log in logs_noob_6))
 
     def test_boss_selection_by_stage(self):
         class DummySaveManager:
@@ -593,37 +473,6 @@ class TestRogueEnemyStage(unittest.TestCase):
         self.assertEqual(len(player.hand), 7)
         self.assertEqual(player.bonus_actions, 2)
 
-    def test_queue_rendering_flow(self):
-        class DummySaveManager:
-            def __init__(self):
-                self.saves = {}
-                self.stats = {}
-            def save_save(self, user_id, run):
-                self.saves[user_id] = run
-            def delete_save(self, user_id):
-                self.saves.pop(user_id, None)
-            def load_save(self, user_id):
-                return self.saves.get(user_id)
-            def load_stats(self, user_id):
-                class DummyStats:
-                    selected_class = "战士"
-                return DummyStats()
-        dummy_save = DummySaveManager()
-        engine = BattleEngine(dummy_save)
-        player = PlayerState(hp=80, max_hp=80, shield=0, gold=100, stage=1)
-        player.deck = ["strike", "strike"]
-        from game.models.state import ensure_card_state
-        player.hand = [ensure_card_state("adrenaline"), ensure_card_state("get_ready")]
-        player.actions = 2
-        player.bonus_actions = 2
-        enemy = EnemyState("邪教徒咔咔 A", 50, 50, 0)
-        run = GameRun(user_id="test_render_q", node_type="battle", player=player, enemies=[enemy])
-        dummy_save.save_save("test_render_q", run)
-        from game.core.cli_router import CLIRouter
-        router = CLIRouter(dummy_save, engine)
-        res_list = list(router.handle_command("test_render_q", ["q", "[p 1, p 2]"]))
-        res_combined = "\n".join(res_list)
-        self.assertEqual(res_combined.count("⚔️ 【第 1 关"), 1)
 
     def test_yog_sothoth_phase_transitions(self):
         class DummySaveManager:

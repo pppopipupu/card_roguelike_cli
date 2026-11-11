@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional, Any
 from contextvars import ContextVar
 from enum import Enum
-import hashlib
 
 from ..data.locale_data import get_locale_text
 
@@ -13,12 +12,6 @@ def set_user_id(user_id: str):
 
 def get_user_id() -> str:
     return current_user_id.get()
-
-def public_player_id(user_id: str) -> str:
-    if not user_id:
-        return ""
-    digest = hashlib.sha256(user_id.encode("utf-8")).hexdigest().upper()
-    return "P" + digest[:12]
 
 class DamageType(Enum):
     ACID = "acid"
@@ -66,6 +59,7 @@ class UserStats:
     town_flags: Dict[str, Any] = field(default_factory=dict)
     town_health_bonus: int = 0
     player_name: str = "玩家"
+    player_handle: str = ""
     name_customized: bool = False
     im_account: str = ""
     unlocked_new_cards: List[str] = field(default_factory=list)

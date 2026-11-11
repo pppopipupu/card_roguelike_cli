@@ -18,6 +18,7 @@ from ..data.locale_data import get_locale_text
 class HeadlessGameServer:
     def __init__(self, data_dir: Optional[str] = None):
         self.save_manager = SaveManager(data_dir)
+        self.save_manager.ensure_player_handles()
         self.engine = GameEngine(self.save_manager)
         self.cli_router = CLIRouter(self.save_manager, self.engine)
         self.user_locks = {}
@@ -37,7 +38,11 @@ class HeadlessGameServer:
         if not stats:
             return
         current_name = getattr(stats, "player_name", default_name) or default_name
-        if not getattr(stats, "name_customized", False) and current_name == default_name:
+        if (
+            not getattr(stats, "name_customized", False)
+            and not getattr(stats, "player_handle", "")
+            and current_name == default_name
+        ):
             if sender_name and sender_name != default_name:
                 stats.player_name = sender_name
                 self.save_manager.save_stats(user_id, stats)

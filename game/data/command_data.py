@@ -50,6 +50,7 @@ COMMAND_SECTION_ORDER = {
     ),
     "social": (
         "friend",
+        "rename",
         "team",
         "logs",
         "logc",

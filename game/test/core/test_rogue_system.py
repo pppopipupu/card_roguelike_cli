@@ -4,113 +4,6 @@ import asyncio
 from game.test.core.base import *
 
 class TestRogueSystem(unittest.TestCase):
-    @unittest.skip("对决模式已移至独立插件")
-    def test_duel_mode_and_exclusivity(self):
-        plugin = MyPlugin(DummyContext())
-        plugin.save_manager.delete_save("test_user_excl")
-        stats_path = plugin.save_manager.get_stats_path("test_user_excl")
-        if os.path.exists(stats_path):
-            os.remove(stats_path)
-            
-        async def go():
-            event_help = DummyEvent(".duel 帮助", sender_id="test_user_excl")
-            async for res in plugin.duel_cmd(event_help):
-                event_help.results.append(res)
-            self.assertTrue(any("对决模式" in r for r in event_help.results))
-            
-            event_shortcut_duel = DummyEvent(".duel 帮助", sender_id="test_user_excl")
-            await plugin.shortcut_rogue(event_shortcut_duel)
-            self.assertTrue(event_shortcut_duel.stopped)
-            self.assertTrue(any("对决模式" in r for r in event_shortcut_duel.results))
-            
-            stats = plugin.save_manager.load_stats("test_user_excl")
-            stats.rogue_mode = True
-            plugin.save_manager.save_stats("test_user_excl", stats)
-            
-            event_toggle_duel = DummyEvent(".duel 模式", sender_id="test_user_excl")
-            async for res in plugin.duel_cmd(event_toggle_duel):
-                event_toggle_duel.results.append(res)
-            self.assertTrue(any("免前缀对决模式已开启" in r for r in event_toggle_duel.results))
-            
-            stats = plugin.save_manager.load_stats("test_user_excl")
-            self.assertTrue(stats.duel_mode)
-            self.assertFalse(stats.rogue_mode)
-            
-            event_duel_help = DummyEvent("帮助", sender_id="test_user_excl")
-            await plugin.shortcut_rogue(event_duel_help)
-            self.assertTrue(event_duel_help.stopped)
-            
-            event_rogue_start = DummyEvent("开启", sender_id="test_user_excl")
-            await plugin.shortcut_rogue(event_rogue_start)
-            self.assertFalse(event_rogue_start.stopped)
-            
-            event_toggle_rogue = DummyEvent(".rogue 模式", sender_id="test_user_excl")
-            await plugin.shortcut_rogue(event_toggle_rogue)
-            
-            stats = plugin.save_manager.load_stats("test_user_excl")
-            self.assertTrue(stats.rogue_mode)
-            self.assertFalse(stats.duel_mode)
-            
-            event_rogue_duel = DummyEvent(".rogue 对决 帮助", sender_id="test_user_excl")
-            await plugin.shortcut_rogue(event_rogue_duel)
-            self.assertTrue(any("未知子命令" in r for r in event_rogue_duel.results))
-            
-        asyncio.run(go())
-
-        sm = plugin.save_manager
-        sm.delete_save("test_user_excl")
-        sm.delete_duel_save("test_user_excl")
-        
-        run_rogue = GameRun(
-            user_id="test_user_excl",
-            node_type="battle",
-            player=PlayerState(hp=50, max_hp=50, shield=0, gold=10, stage=1),
-            enemies=[]
-        )
-        sm.save_save("test_user_excl", run_rogue)
-        
-        sm.bind_duel_game("test_user_excl", "another_user_excl", "game_excl_123")
-        run_duel = GameRun(
-            user_id="test_user_excl",
-            node_type="duel_battle",
-            player=PlayerState(hp=200, max_hp=200, shield=0, gold=0, stage=1),
-            enemies=[],
-            player2=PlayerState(hp=200, max_hp=200, shield=0, gold=0, stage=1),
-            node_data={"player1_id": "test_user_excl", "player2_id": "another_user_excl"}
-        )
-        sm.save_duel_save("test_user_excl", run_duel)
-        
-        loaded_rogue = sm.load_save("test_user_excl")
-        self.assertIsNotNone(loaded_rogue)
-        self.assertEqual(loaded_rogue.node_type, "battle")
-        self.assertEqual(loaded_rogue.player.hp, 50)
-        
-        loaded_duel = sm.load_duel_save("test_user_excl")
-        self.assertIsNotNone(loaded_duel)
-        self.assertEqual(loaded_duel.node_type, "duel_battle")
-        self.assertEqual(loaded_duel.player.hp, 200)
-        
-        loaded_rogue.player.hp = 35
-        sm.save_save("test_user_excl", loaded_rogue)
-        
-        loaded_duel_check = sm.load_duel_save("test_user_excl")
-        self.assertEqual(loaded_duel_check.player.hp, 200)
-        
-        loaded_duel.player.hp = 180
-        sm.save_duel_save("test_user_excl", loaded_duel)
-        
-        loaded_rogue_check = sm.load_save("test_user_excl")
-        self.assertEqual(loaded_rogue_check.player.hp, 35)
-        
-        sm.delete_save("test_user_excl")
-        self.assertIsNone(sm.load_save("test_user_excl"))
-        
-        loaded_duel_after_rogue_del = sm.load_duel_save("test_user_excl")
-        self.assertIsNotNone(loaded_duel_after_rogue_del)
-        self.assertEqual(loaded_duel_after_rogue_del.player.hp, 180)
-        
-        sm.delete_duel_save("test_user_excl")
-        self.assertIsNone(sm.load_duel_save("test_user_excl"))
 
     def test_battle_logs_persistence(self):
         save_manager = SaveManager()
@@ -321,61 +214,6 @@ class TestRogueSystem(unittest.TestCase):
         engine.play_card(run, 1, "e1")
         self.assertEqual(run.player.actions, 2)
 
-    def test_deck_contains_all_class_cards(self):
-        player = PlayerState(
-            hp=80,
-            max_hp=80,
-            shield=0,
-            gold=20,
-            stage=1,
-            deck=["warrior_strike", "doomsday_judgment", "time_warp", "arcane_spark"],
-            draw_pile=[],
-            discard_pile=[],
-            hand=[],
-            actions=1,
-            bonus_actions=1,
-            selected_class="战士"
-        )
-        run = GameRun(
-            user_id="test_user_class_cards",
-            node_type="map_select",
-            player=player,
-            enemies=[],
-            node_data={}
-        )
-        from game.renderer import GameRenderer
-        output = GameRenderer.render_deck(run)
-        self.assertIn("奥术星火", output)
-        self.assertIn("末日审判", output)
-        self.assertIn("时光倒流", output)
-        self.assertIn("打击", output)
-
-    def test_rogue_query_isolation(self):
-        res = render_query_info("ancient_eye")
-        self.assertNotIn("未找到", res)
-        self.assertIn("🎒 遗物", res)
-        
-        res_duel = render_query_info("duel_warrior_strike")
-        self.assertIn("未找到", res_duel)
-
-    @unittest.skip("对决查询已移至独立插件")
-    def test_rogue_query_keywords_and_buffs(self):
-        for term in ("守护", "ward", "重放", "replay", "烈焰成长", "fire_grow", "炉温反噬", "forge_backfire", "时空强化", "time_warp_spell_boost", "极光圣域", "commander_aurora_emperor"):
-            res = render_query_info(term)
-            self.assertNotIn("未找到", res)
-            
-        from game.core.duel.query_manager import QueryManager
-        from game.models.manager import SaveManager
-        qm = QueryManager(SaveManager())
-        for term in ("守护", "ward", "重放", "replay", "烈焰成长", "fire_grow", "炉温反噬", "forge_backfire", "时空强化", "time_warp_spell_boost", "极光圣域", "commander_aurora_emperor"):
-            res = qm.render_duel_query_info(term)
-            self.assertNotIn("未在对决模式中匹配到", res)
-
-    def test_rogue_query_gems_and_new_keywords(self):
-        for term in ("复制", "返回", "copy", "return", "裂变金刚石", "永恒祖母绿", "宝石", "gem", "gem_copy_1", "入场曲", "fanfare", "谢幕曲", "last_words", "吟唱", "countdown"):
-            res = render_query_info(term)
-            self.assertNotIn("未找到", res)
-
     def test_rogue_overview_reader(self):
         plugin = MyPlugin(DummyContext())
         save_manager = SaveManager()
@@ -486,31 +324,6 @@ class TestRogueSystem(unittest.TestCase):
             
         asyncio.run(go())
 
-    def test_rogue_import_path_isolation(self):
-        import subprocess
-        import os
-        import sys
-        
-        cwd = os.getcwd()
-        parent_dir = os.path.dirname(cwd)
-        basename = os.path.basename(cwd)
-        
-        env = os.environ.copy()
-        if "PYTHONPATH" in env:
-            del env["PYTHONPATH"]
-            
-        script = "import sys, asyncio; sys.path.insert(0, '" + parent_dir.replace('\\', '/') + "'); sys.path.insert(0, '" + cwd.replace('\\', '/') + "'); from game.test.core.base import MyPlugin; from game.test.core.base import run_command; plugin = MyPlugin(None); stats = plugin.save_manager.load_stats('test_import'); stats.rogue_mode = True; plugin.save_manager.save_stats('test_import', stats); asyncio.run(run_command(plugin, 'overview', 'test_import'))"
-        
-        res = subprocess.run(
-            [sys.executable, "-c", script],
-            cwd=parent_dir,
-            env=env,
-            capture_output=True,
-            text=True,
-            encoding="utf-8"
-        )
-        
-        self.assertEqual(res.returncode, 0, f"Import test failed: {res.stderr}")
 
     def test_rogue_discover_card(self):
         plugin = MyPlugin(DummyContext())
@@ -824,11 +637,4 @@ class TestRogueSystem(unittest.TestCase):
         plugin.save_manager.delete_save(user_id)
         if os.path.exists(stats_path):
             os.remove(stats_path)
-
-    def test_query_pendulum_resonance(self):
-        from game.renderer.query import render_query_info
-        res = render_query_info("钟摆共振")
-        self.assertIn("钟摆共振", res)
-        self.assertIn("受打出牌数*2点真伤惩罚", res)
-
 

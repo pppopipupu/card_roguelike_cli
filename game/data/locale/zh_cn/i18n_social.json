@@ -19,10 +19,12 @@
     "text": "🪪 你的玩家 ID:{player_id}\n昵称:{name}{account_text}"
   },
   "friend_name": {
-    "need_arg": "❌ 请提供新的昵称，例如：friend name 冒险者小明",
+    "need_arg": "❌ 请提供新的昵称，例如：改名 冒险者小明。改名消耗 {cost} GP。",
     "too_long": "❌ 昵称最多 {limit} 个字符。",
-    "invalid_char": "❌ 昵称不能包含换行或制表符。",
-    "success": "✅ 昵称已修改为【{name}】。"
+    "invalid_char": "❌ 昵称不能包含换行、制表符或井号。",
+    "same": "ℹ️ 当前昵称已经是【{name}】，无需改名，未消耗 GP。",
+    "insufficient_gp": "❌ 改名需要 {cost} GP，当前只有 {gp} GP。",
+    "success": "✅ 昵称已修改为【{name}】，消耗 {cost} GP，剩余 {gp} GP。"
   },
   "friend_bind": {
     "need_arg": "❌ 请提供要绑定的通讯账号，例如：friend bind QQ123456",

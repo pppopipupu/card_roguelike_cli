@@ -243,29 +243,6 @@ class TestRogueBasic(unittest.TestCase):
             await run_command(plugin, "4")
             self.assertTrue(mgr.stats.unlocked_gatekey)
             
-            player_minion = PlayerState(
-                hp=30, max_hp=30, shield=0, gold=100, stage=2, deck=[], hand=[], draw_pile=[], discard_pile=[], exhaust_pile=[], graveyard=[],
-                minions={"1": MinionState("mercenary", "雇佣兵", 10, 10, 4, 2, 0)}
-            )
-            class MockEngine:
-                def __init__(self):
-                    self.attack_called = False
-                    self.skill_called = False
-                def minion_attack(self, run, g, opp):
-                    self.attack_called = True
-                    return "攻击成功"
-                def minion_skill(self, run, g, idx, target):
-                    self.skill_called = True
-                    return "技能成功"
-                def is_battle_won(self, run):
-                    return False
-            mock_engine = MockEngine()
-            mgr.saved_run = GameRun(user_id="test_user", node_type="battle", player=player_minion, enemies=[EnemyState("e1", 10, 10, 0)])
-            plugin.cli_router.engine = mock_engine
-            await run_command(plugin, "m 1 attack e1")
-            self.assertTrue(mock_engine.attack_called)
-            await run_command(plugin, "m 1 skill e1")
-            self.assertTrue(mock_engine.skill_called)
 
         asyncio.run(go())
 

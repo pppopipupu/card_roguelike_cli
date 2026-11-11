@@ -1,9 +1,12 @@
 import json
 import os
+import re
+import sqlite3
 import subprocess
 import sys
 import time
 import unittest
+import uuid
 from dataclasses import replace
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -11,6 +14,7 @@ from tempfile import TemporaryDirectory
 import jwt
 from fastapi.testclient import TestClient
 
+from game.data.account_config import GITHUB_BIND_REWARD_GP, RENAME_COST_GP
 from server.accounts import AccountStore
 from server.app import create_app
 from server.config import Settings
@@ -60,6 +64,20 @@ class ServerTests(unittest.TestCase):
     def im_headers(self, user: str = "im-user-1") -> dict:
         return {"X-Rogue-IM-Token": "im-secret", "X-Rogue-IM-User": user}
 
+    def guest_headers(self, guest_id: str, create: bool = True) -> dict:
+        headers = {"X-Rogue-Guest-Id": guest_id}
+        if create:
+            headers["X-Rogue-Guest-Create"] = "1"
+        return headers
+
+    def guest_login(self, name: str, guest_id: str = "") -> tuple[str, dict]:
+        guest_id = guest_id or str(uuid.uuid4())
+        body = self.post(
+            {"command": "", "channel": "web", "name": name},
+            self.guest_headers(guest_id),
+        ).json()
+        return guest_id, body
+
     def post(self, payload: dict, headers: dict):
         return self.client.post("/api/v1/action", json=payload, headers=headers)
 
@@ -88,9 +106,11 @@ class ServerTests(unittest.TestCase):
         self.assertTrue(body["ok"])
         self.assertTrue(body["handled"])
         self.assertTrue(body["text"])
+        self.assertIn("已创建游客账号", body["text"])
         self.assertIsNone(body["state"])
-        self.assertEqual(body["account"]["id"][0], "P")
+        self.assertFalse(body["account"]["is_formal"])
         self.assertEqual(body["account"]["im_user_id"], "im-user-1")
+        self.assertTrue(body["account"]["id"])
 
         render = self.post(
             {"command": "", "channel": "im", "force": True}, self.im_headers()
@@ -136,6 +156,26 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(stats.projection_feed, [])
 
     def test_im_group_rejects_projection_command(self):
+        body_unreg = self.post(
+            {
+                "command": ".rogue projection off",
+                "channel": "im",
+                "force": True,
+                "group": True,
+            },
+            self.im_headers("im-group-projection"),
+        ).json()
+        self.assertFalse(body_unreg["ok"])
+        self.assertEqual(body_unreg["error"], "projection_group_disabled")
+        self.assertIn("群聊", body_unreg["text"])
+        self.assertIsNone(
+            self.app.state.service.accounts.get_by_im("im-group-projection")
+        )
+
+        self.post(
+            {"command": "start confirm", "channel": "im", "force": True},
+            self.im_headers("im-group-projection"),
+        )
         body = self.post(
             {
                 "command": ".rogue projection off",
@@ -160,6 +200,8 @@ class ServerTests(unittest.TestCase):
         self.assertTrue(body["ok"])
         self.assertFalse(body["handled"])
         self.assertEqual(body["text"], "")
+        self.assertIsNone(body["account"])
+        self.assertIsNone(self.app.state.service.accounts.get_by_im("im-user-1"))
 
     def test_web_state_and_uuid(self):
         start = self.post(
@@ -214,28 +256,61 @@ class ServerTests(unittest.TestCase):
             self.app.state.service.save_manager.load_stats(uuid).rogue_mode
         )
 
-    def test_web_bind_requires_force(self):
+    def test_bind_code_links_im(self):
+        web = self.post(
+            {"command": "", "channel": "web"}, self.web_headers("web-bind")
+        ).json()
+        code_body = self.post(
+            {"command": "绑定码", "channel": "web"}, self.web_headers("web-bind")
+        ).json()
+        match = re.search(r"绑定码：([A-Z0-9]{8})", code_body["text"])
+        self.assertIsNotNone(match)
+        code = match.group(1)
+
         im = self.post(
-            {"command": "start confirm", "channel": "im", "force": True},
+            {"command": f"start {code}", "channel": "im", "force": True},
             self.im_headers("im-bind-target"),
         ).json()
-        target_uuid = self.internal_uuid(im="im-bind-target")
+        self.assertTrue(im["ok"])
+        self.assertEqual(im["account"]["uuid"], web["account"]["uuid"])
+        self.assertEqual(im["account"]["im_user_id"], "im-bind-target")
+        self.assertEqual(im["account"]["web_user_id"], "web-bind")
+        self.assertIn("已关联网页账号", im["text"])
 
-        self.post({"command": "start confirm", "channel": "web"}, self.web_headers("web-bind"))
-        refused = self.post(
-            {"command": f"绑定 {target_uuid}", "channel": "web"},
-            self.web_headers("web-bind"),
+        reused = self.post(
+            {"command": f"start {code}", "channel": "im", "force": True},
+            self.im_headers("im-bind-other"),
         ).json()
-        self.assertIn("force", refused["text"])
-        self.assertNotEqual(refused["account"]["id"], im["account"]["id"])
+        self.assertFalse(reused["ok"])
+        self.assertEqual(reused["error"], "bind_code")
+        self.assertIsNone(self.app.state.service.accounts.get_by_im("im-bind-other"))
 
-        accepted = self.post(
-            {"command": f"绑定 {target_uuid} force", "channel": "web"},
-            self.web_headers("web-bind"),
+        bad = self.post(
+            {"command": "start ZZZZZZZZ", "channel": "im", "force": True},
+            self.im_headers("im-bind-bad"),
         ).json()
-        self.assertEqual(accepted["account"]["id"], im["account"]["id"])
-        self.assertEqual(accepted["account"]["im_user_id"], "im-bind-target")
-        self.assertEqual(accepted["account"]["web_user_id"], "web-bind")
+        self.assertFalse(bad["ok"])
+        self.assertEqual(bad["error"], "bind_code")
+
+        malformed = self.post(
+            {"command": "start 随便", "channel": "im", "force": True},
+            self.im_headers("im-bind-malformed"),
+        ).json()
+        self.assertFalse(malformed["ok"])
+        self.assertEqual(malformed["error"], "bind_code")
+        self.assertIsNone(
+            self.app.state.service.accounts.get_by_im("im-bind-malformed")
+        )
+
+        uuid_hint = self.post(
+            {"command": f"start {uuid.uuid4()}", "channel": "im", "force": True},
+            self.im_headers("im-bind-uuid"),
+        ).json()
+        self.assertFalse(uuid_hint["ok"])
+        self.assertIn("UUID 不能直接用于即时通讯登录", uuid_hint["text"])
+        self.assertIsNone(
+            self.app.state.service.accounts.get_by_im("im-bind-uuid")
+        )
 
         render = self.post(
             {"command": "", "channel": "web"}, self.web_headers("web-bind")
@@ -311,33 +386,154 @@ class ServerTests(unittest.TestCase):
 
     def test_im_admin_requires_is_admin_field(self):
         denied = self.post(
-            {"command": "rogueadmin boss", "channel": "im"}, self.im_headers("im-user-1")
+            {"command": "rogueadmin boss", "channel": "im", "force": True},
+            self.im_headers("im-user-1"),
         ).json()
         self.assertFalse(denied["ok"])
         self.assertEqual(denied["error"], "admin_required")
+        self.assertIsNone(self.app.state.service.accounts.get_by_im("im-user-1"))
 
-        self.post({"command": "uuid", "channel": "im"}, self.im_headers("im-admin"))
+        self.post(
+            {"command": "start confirm", "channel": "im", "force": True},
+            self.im_headers("im-admin"),
+        )
         self._grant_admin("im-admin")
         allowed = self.post(
-            {"command": "rogueadmin boss", "channel": "im"}, self.im_headers("im-admin")
+            {"command": "rogueadmin boss", "channel": "im", "force": True},
+            self.im_headers("im-admin"),
         ).json()
         self.assertTrue(allowed["ok"])
         self.assertIn("最终BOSS", allowed["text"])
 
-    def test_web_bind_fresh_account_without_force(self):
-        im = self.post(
-            {"command": "start confirm", "channel": "im", "force": True},
-            self.im_headers("im-fresh-target"),
-        ).json()
-        target_uuid = self.internal_uuid(im="im-fresh-target")
+    def test_guest_login_cross_device_and_duplicate_handles(self):
+        guest_id, body = self.guest_login("小明")
+        self.assertTrue(body["ok"])
+        self.assertFalse(body["account"]["is_formal"])
+        self.assertEqual(body["account"]["id"], "小明")
+        self.assertIn("游客账号", body["text"])
+        self.assertIn("UUID", body["text"])
 
-        self.post({"command": "uuid", "channel": "web"}, self.web_headers("web-fresh"))
-        bound = self.post(
-            {"command": f"绑定 {target_uuid}", "channel": "web"},
-            self.web_headers("web-fresh"),
+        same = self.post(
+            {"command": "uuid", "channel": "web"},
+            self.guest_headers(guest_id, create=False),
         ).json()
-        self.assertEqual(bound["account"]["id"], im["account"]["id"])
-        self.assertEqual(bound["account"]["web_user_id"], "web-fresh")
+        self.assertEqual(same["account"]["uuid"], guest_id)
+        self.assertEqual(same["account"]["id"], "小明")
+        self.assertIn(guest_id, same["text"])
+        self.assertIn("鉴权文件", same["text"])
+
+        _, second = self.guest_login("小明")
+        self.assertEqual(second["account"]["id"], "小明#2")
+
+        missing = self.post(
+            {"command": "", "channel": "web"},
+            self.guest_headers(str(uuid.uuid4()), create=False),
+        )
+        self.assertEqual(missing.status_code, 401)
+        self.assertEqual(missing.json()["error"], "guest_invalid")
+
+    def test_github_bind_rewards_and_formalizes_guest(self):
+        guest_id, guest = self.guest_login("游客甲")
+        account_uuid = guest["account"]["uuid"]
+        self.assertEqual(
+            self.app.state.service.save_manager.load_stats(account_uuid).gp, 0
+        )
+        headers = {
+            **self.web_headers("web-guest-bind"),
+            **self.guest_headers(guest_id, create=False),
+        }
+        bound = self.post(
+            {"command": "", "channel": "web", "name": "游客甲"}, headers
+        ).json()
+        self.assertTrue(bound["account"]["is_formal"])
+        self.assertEqual(bound["account"]["uuid"], account_uuid)
+        self.assertEqual(bound["account"]["web_user_id"], "web-guest-bind")
+        self.assertIn("1000", bound["text"])
+        self.assertIn("GitHub", bound["text"])
+        stats = self.app.state.service.save_manager.load_stats(account_uuid)
+        self.assertEqual(stats.gp, GITHUB_BIND_REWARD_GP)
+
+        again = self.post(
+            {"command": "", "channel": "web", "name": "游客甲"}, headers
+        ).json()
+        self.assertTrue(again["ok"])
+        stats = self.app.state.service.save_manager.load_stats(account_uuid)
+        self.assertEqual(stats.gp, GITHUB_BIND_REWARD_GP)
+
+    def test_rename_costs_gp_and_suffixes(self):
+        first = self.post(
+            {"command": "改名 同名", "channel": "web"},
+            self.web_headers("web-rename-a"),
+        ).json()
+        self.assertTrue(first["ok"])
+        self.assertEqual(first["account"]["id"], "同名")
+        self.assertIn("消耗 1000 GP", first["text"])
+        first_uuid = first["account"]["uuid"]
+        first_stats = self.app.state.service.save_manager.load_stats(first_uuid)
+        self.assertEqual(first_stats.gp, GITHUB_BIND_REWARD_GP - RENAME_COST_GP)
+        self.assertEqual(first_stats.player_handle, "同名")
+
+        second = self.post(
+            {"command": "friend name 同名", "channel": "web"},
+            self.web_headers("web-rename-b"),
+        ).json()
+        self.assertTrue(second["ok"])
+        self.assertEqual(second["account"]["id"], "同名#2")
+
+        same = self.post(
+            {"command": "改名 同名", "channel": "web"},
+            self.web_headers("web-rename-a"),
+        ).json()
+        self.assertTrue(same["ok"])
+        self.assertIn("无需改名", same["text"])
+        self.assertEqual(
+            self.app.state.service.save_manager.load_stats(first_uuid).gp,
+            GITHUB_BIND_REWARD_GP - RENAME_COST_GP,
+        )
+
+        refused = self.post(
+            {"command": "改名 新名字", "channel": "web"},
+            self.web_headers("web-rename-a"),
+        ).json()
+        self.assertFalse(refused["ok"])
+        self.assertIn("改名需要", refused["text"])
+
+    def test_legacy_account_duplicates_get_suffix(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            db = root / "accounts.sqlite3"
+            conn = sqlite3.connect(db)
+            conn.execute(
+                """
+                CREATE TABLE players (
+                    id TEXT PRIMARY KEY,
+                    im_user_id TEXT UNIQUE,
+                    web_user_id TEXT UNIQUE,
+                    display_name TEXT,
+                    is_admin INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    last_seen TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                "INSERT INTO players (id, im_user_id, web_user_id, display_name, is_admin, created_at, last_seen) VALUES (?, ?, ?, ?, 0, ?, ?)",
+                ("a" * 36, None, "legacy-web-a", "同名", "2026-01-01", "2026-01-01"),
+            )
+            conn.execute(
+                "INSERT INTO players (id, im_user_id, web_user_id, display_name, is_admin, created_at, last_seen) VALUES (?, ?, ?, ?, 0, ?, ?)",
+                ("b" * 36, None, "legacy-web-b", "同名", "2026-01-02", "2026-01-02"),
+            )
+            conn.commit()
+            conn.close()
+            store = AccountStore(db, root / "players")
+            try:
+                rows = store.list_all()
+                self.assertEqual([row["handle"] for row in rows], ["同名", "同名#2"])
+                self.assertTrue(all(row["is_formal"] for row in rows))
+                self.assertTrue(all(row["bind_reward_claimed"] for row in rows))
+            finally:
+                store.close()
 
     def test_origin_key_enforced(self):
         settings = replace(self.settings, origin_key="origin-secret")
@@ -363,22 +559,182 @@ class ServerTests(unittest.TestCase):
             app.state.service.accounts.close()
 
     def test_im_uuid_command(self):
+        unreg = self.post(
+            {"command": "我的ID", "channel": "im", "force": True},
+            self.im_headers("im-uuid-user"),
+        ).json()
+        self.assertTrue(unreg["ok"])
+        self.assertIsNone(unreg["account"])
+        self.assertIn("start", unreg["text"])
+        self.assertIsNone(self.app.state.service.accounts.get_by_im("im-uuid-user"))
+
+        self.post(
+            {"command": "start confirm", "channel": "im", "force": True},
+            self.im_headers("im-uuid-user"),
+        )
         body = self.post(
-            {"command": "我的ID", "channel": "im"}, self.im_headers("im-uuid-user")
+            {"command": "我的ID", "channel": "im", "force": True},
+            self.im_headers("im-uuid-user"),
         ).json()
         self.assertTrue(body["ok"])
         self.assertIn("玩家 ID", body["text"])
-        self.assertNotIn("UUID", body["text"])
+        self.assertIn("UUID", body["text"])
+        self.assertIn("鉴权文件", body["text"])
+        self.assertIn(body["account"]["uuid"], body["text"])
         self.assertIsNotNone(body["account"]["id"])
 
-    def test_im_secrets_returns_migration_uuid(self):
+    def test_im_secrets_returns_auth_uuid(self):
+        unreg = self.post(
+            {"command": "secrets", "channel": "im", "force": True},
+            self.im_headers("im-secrets-user"),
+        ).json()
+        self.assertTrue(unreg["ok"])
+        self.assertIsNone(unreg["account"])
+        self.assertIn("start", unreg["text"])
+        self.assertIsNone(self.app.state.service.accounts.get_by_im("im-secrets-user"))
+
+        self.post(
+            {"command": "start confirm", "channel": "im", "force": True},
+            self.im_headers("im-secrets-user"),
+        )
         body = self.post(
-            {"command": "secrets", "channel": "im"}, self.im_headers("im-secrets-user")
+            {"command": "secrets", "channel": "im", "force": True},
+            self.im_headers("im-secrets-user"),
         ).json()
         self.assertTrue(body["ok"])
         self.assertIn(self.internal_uuid(im="im-secrets-user"), body["text"])
-        self.assertIn("绑定", body["text"])
+        self.assertIn("鉴权文件", body["text"])
         self.assertEqual(body["account"]["im_user_id"], "im-secrets-user")
+
+    def test_group_uuid_help_is_private(self):
+        self.post(
+            {"command": "start confirm", "channel": "im", "force": True},
+            self.im_headers("im-group-secret"),
+        )
+        account_uuid = self.internal_uuid(im="im-group-secret")
+        body = self.post(
+            {
+                "command": "我的ID",
+                "channel": "im",
+                "force": True,
+                "group": True,
+            },
+            self.im_headers("im-group-secret"),
+        ).json()
+        self.assertFalse(body["ok"])
+        self.assertEqual(body["error"], "uuid_private_only")
+        self.assertNotIn(account_uuid, body["text"])
+        self.assertIsNone(body["account"])
+
+    def test_im_only_start_creates_account(self):
+        store = self.app.state.service.accounts
+        qq_id = "123456789"
+        matrix_id = "@alice:example.org"
+        shell_root = self.settings.data_dir / "shell"
+
+        chat = self.post(
+            {"command": "大家好今天玩啥", "channel": "im", "force": False, "group": True},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(chat["ok"])
+        self.assertFalse(chat["handled"])
+        self.assertIsNone(chat["account"])
+
+        poll = self.post(
+            {"command": "", "channel": "im", "projection_poll": True},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(poll["ok"])
+        self.assertFalse(poll["handled"])
+        self.assertEqual(poll["projections"], [])
+        self.assertIsNone(poll["account"])
+
+        menu = self.post(
+            {"command": "/rogue", "channel": "im", "force": True, "name": "萌新"},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(menu["ok"])
+        self.assertTrue(menu["handled"])
+        self.assertIsNone(menu["account"])
+        self.assertIn("魔法肉鸽", menu["text"])
+        self.assertIn("start", menu["text"])
+
+        help_index = self.post(
+            {"command": ".rogue help", "channel": "im", "force": False},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(help_index["handled"])
+        self.assertIn("指令一览", help_index["text"])
+
+        help_start = self.post(
+            {"command": "/rogue help start", "channel": "im", "force": True},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(help_start["handled"])
+        self.assertIn("start", help_start["text"])
+
+        tut = self.post(
+            {"command": "/rogue tutorial", "channel": "im", "force": True},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(tut["handled"])
+        self.assertTrue(tut["text"])
+
+        cl = self.post(
+            {"command": ".rogue cl", "channel": "im", "force": False},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(cl["handled"])
+        self.assertIn("更新日志", cl["text"])
+
+        lb = self.post(
+            {"command": "leaderboard", "channel": "im", "force": True},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(lb["handled"])
+        self.assertIn("排行榜", lb["text"])
+
+        need_start = self.post(
+            {"command": ".rogue achi", "channel": "im", "force": False},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(need_start["ok"])
+        self.assertTrue(need_start["handled"])
+        self.assertIsNone(need_start["account"])
+        self.assertIn("start", need_start["text"])
+
+        need_start_matrix = self.post(
+            {"command": "/rogue checkin", "channel": "im", "force": True},
+            self.im_headers(matrix_id),
+        ).json()
+        self.assertTrue(need_start_matrix["handled"])
+        self.assertIsNone(need_start_matrix["account"])
+        self.assertIn("start", need_start_matrix["text"])
+
+        self.assertIsNone(store.get_by_im(qq_id))
+        self.assertIsNone(store.get_by_im(matrix_id))
+        self.assertEqual(list(self.settings.player_dir.glob("stats_*.json")), [])
+        self.assertFalse(shell_root.exists() and any(shell_root.iterdir()))
+
+        started = self.post(
+            {"command": ".rogue start", "channel": "im", "force": False, "name": "萌新"},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(started["ok"])
+        self.assertTrue(started["handled"])
+        self.assertIsNotNone(started["account"])
+        self.assertIn("第 1 关", started["text"])
+        self.assertIsNotNone(store.get_by_im(qq_id))
+        self.assertIsNone(store.get_by_im(matrix_id))
+
+        started_matrix = self.post(
+            {"command": "/rogue 开启", "channel": "im", "force": True, "name": "矩阵用户"},
+            self.im_headers(matrix_id),
+        ).json()
+        self.assertTrue(started_matrix["ok"])
+        self.assertIsNotNone(started_matrix["account"])
+        self.assertIn("第 1 关", started_matrix["text"])
+        self.assertIsNotNone(store.get_by_im(matrix_id))
 
     def test_import_legacy_copies_saves_and_registry(self):
         with TemporaryDirectory() as temp:
@@ -553,28 +909,6 @@ class ServerTests(unittest.TestCase):
         self.assertNotIn("无法退出", active_exit["text"])
         self.assertEqual(active_exit["shell"]["status"], 0)
 
-
-    def test_web_shell_fastfetch_and_changelog(self):
-        headers = self.web_headers("web-fastfetch")
-        fetched = self.post({"command": "fastfetch", "channel": "web"}, headers).json()
-        self.assertTrue(fetched["ok"])
-        self.assertEqual(fetched["shell"]["status"], 0)
-        self.assertIn("rogue@rogue-core", fetched["text"])
-        self.assertIn("GPU: Rogue Integrated Mercury", fetched["text"])
-        self.assertIn("Packages: 412 (dpkg), 7 (vault)", fetched["text"])
-        self.assertIn("Vault: sealed", fetched["text"])
-
-        manual = self.post({"command": "man fastfetch", "channel": "web"}, headers).json()
-        self.assertIn("以模块化布局显示终端与卡牌周目摘要", manual["text"])
-
-        which = self.post({"command": "which fastfetch", "channel": "web"}, headers).json()
-        self.assertIn("/usr/bin/fastfetch", which["text"])
-
-        shell_help = self.post({"command": "help system", "channel": "web"}, headers).json()
-        self.assertIn("fastfetch", shell_help["text"])
-
-        changelog = self.post({"command": "changelog", "channel": "web"}, headers).json()
-        self.assertIn("2026-11-11", changelog["text"])
 
     def test_leaderboard_and_online_commands(self):
         high = self.post(

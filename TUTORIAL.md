@@ -92,7 +92,7 @@
   - `friend accept <ID或昵称>` / `friend reject <ID或昵称>`：接受或拒绝好友申请。
   - `friend remove <ID或昵称>`：删除好友。
   - `friend id`：查看自己的玩家 ID。
-  - `friend name <昵称>`：修改游戏昵称。
+  - `friend name <昵称>`：修改游戏昵称与可读昵称 ID，消耗 1000 GP；也可直接使用 `rename`、`改名` 或 `昵称`。
   - `friend bind <通讯账号>`：绑定即时通讯账号，供好友搜索。
   - `friend invite <好友>`：邀请好友加入自己当前的队伍。
 

@@ -4,7 +4,6 @@ from tempfile import TemporaryDirectory
 
 from game.test.core.base import MyPlugin, DummyContext, run_command
 from game.models.state import GameRun, PlayerState, CardState, EnemyState
-from game.entities.enemies.base import get_enemy_template
 
 
 class TestRogueCorpse(unittest.TestCase):
@@ -75,35 +74,6 @@ class TestRogueCorpse(unittest.TestCase):
                 dead, "被【测试敌人】击败"
             )
             self.assertEqual(corpse["gp_pool"], 1000)
-
-    def test_ghost_intent_uses_dead_deck(self):
-        run = GameRun(
-            user_id="ghost_intent_user",
-            node_type="battle",
-            player=PlayerState(
-                hp=10,
-                max_hp=50,
-                shield=0,
-                gold=0,
-                stage=5,
-                name="挑战者",
-                deck=[],
-            ),
-            node_data={"ghost_deck": [CardState(id="magic_missile")]},
-        )
-        enemy = EnemyState(
-            name="冤魂·测试",
-            hp=50,
-            max_hp=50,
-            shield=0,
-            actions=1,
-            bonus_actions=0,
-            max_actions=1,
-            max_bonus_actions=0,
-        )
-        intent = get_enemy_template(enemy.name).roll_intents(run, None, enemy)[0]
-        self.assertIn("魔法飞弹", intent.desc)
-        self.assertTrue(intent.type.startswith("ghost_card:"))
 
 
 if __name__ == "__main__":

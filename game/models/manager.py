@@ -8,6 +8,7 @@ from .state import GameRun, UserStats
 from .corpse_registry import CorpseRegistry
 from .save_codec import SaveCodecMixin
 from .settlement import SettlementMixin
+from ..core.player_names import fallback_player_name, unique_handle
 from ..data.locale_data import get_locale_text
 from ..data.starting_deck_config import LOCK_SLOT_LIMIT
 
@@ -129,6 +130,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 town_flags=d.get("town_flags", {}),
                 town_health_bonus=d.get("town_health_bonus", 0),
                 player_name=d.get("player_name", "玩家"),
+                player_handle=d.get("player_handle", ""),
                 name_customized=d.get("name_customized", False),
                 im_account=d.get("im_account", ""),
                 unlocked_new_cards=d.get("unlocked_new_cards", []),
@@ -371,6 +373,42 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return self.save_lobbies(lobbies)
         return False
 
+    def ensure_player_handles(self) -> None:
+        if not os.path.isdir(self.data_dir):
+            return
+        entries = []
+        for name in os.listdir(self.data_dir):
+            if not name.startswith("stats_") or not name.endswith(".json"):
+                continue
+            path = os.path.join(self.data_dir, name)
+            uid = name[len("stats_"):-len(".json")]
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                mtime = os.path.getmtime(path)
+            except (OSError, ValueError, json.JSONDecodeError) as exc:
+                logger.warning(get_locale_text("i18n_models.manager.read_profile_failed", user_id=uid, error=exc))
+                continue
+            if not isinstance(data, dict):
+                continue
+            entries.append((mtime, uid, path, data))
+        entries.sort(key=lambda item: (item[0], item[1]))
+        taken = set()
+        for _, uid, path, data in entries:
+            base = fallback_player_name(
+                data.get("player_handle") or data.get("player_name") or ""
+            )
+            handle = unique_handle(str(base), taken)
+            taken.add(handle)
+            if data.get("player_handle") == handle and data.get("player_name") == handle:
+                continue
+            data["player_handle"] = handle
+            data["player_name"] = handle
+            try:
+                _atomic_write_json(path, data)
+            except (OSError, ValueError, TypeError) as exc:
+                logger.warning(get_locale_text("i18n_models.manager.save_stats_failed", user_id=uid, error=exc))
+
     def list_player_profiles(self) -> List[dict]:
         profiles = []
         if not os.path.isdir(self.data_dir):
@@ -383,9 +421,12 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     data = json.load(f)
+                if not isinstance(data, dict):
+                    continue
                 profiles.append({
                     "user_id": uid,
                     "name": data.get("player_name", "玩家"),
+                    "player_handle": data.get("player_handle", ""),
                     "im_account": data.get("im_account", ""),
                     "selected_class": data.get("selected_class", "法师"),
                     "selected_subclass": data.get("selected_subclass", ""),

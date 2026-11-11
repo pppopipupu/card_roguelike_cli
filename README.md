@@ -4,8 +4,11 @@
 
 ## 当前状态
 
-- 核心与联机测试:185 项通过,2 项跳过。
-- 后端测试:21 项通过。
+- 核心与联机测试:132 项通过。
+- 后端测试:26 项通过。
+- 网页端默认使用游客登录，输入昵称即可游玩；即时通讯端新用户发送 `start` 以游客身份开始，或发送 `start <网页绑定码>` 关联已有网页账号。
+- 游客账号以 UUID 作为鉴权文件，可在其他设备恢复；绑定 GitHub 后成为正式账号并奖励 1000 GP。公开玩家 ID 使用可读昵称，重名时自动追加 `#2`、`#3` 后缀。
+- `rename` / `改名` / `昵称` 修改玩家名，消耗 1000 GP。
 - 联机日志按玩家隔离;队友投影按操作逐条返回,私聊与网页默认开启,群聊禁用。
 - `logs` 查看个人战斗与行动日志,`logc` 查看队伍日志,默认 20 条、最多 50 条;命令队列最多 50 条指令。
 - `help` 按分类列出全部指令,`help <指令|别名>` 查看单条指令的用法、别名、可用场景与示例。
@@ -86,7 +89,7 @@ py -m server.adminctl set <用户ID> on
 py -m server.adminctl list
 ```
 
-`set` 按 `id`、`im_user_id`、`web_user_id` 精确定位用户，不按昵称匹配；用户需先登录一次生成记录，具体用户 ID 可由 `adminctl list` 查看。也可直接执行 `UPDATE players SET is_admin = 1 WHERE id = '<用户ID>';`。设为 `off` 可收回权限。Linux 部署时把上述命令中的 `py` 换成虚拟环境中的 `python`。
+`set` 按 `id`、`im_user_id`、`web_user_id` 或可读 `handle` 精确定位用户；用户需先登录一次生成记录，具体用户 ID 可由 `adminctl list` 查看。也可直接执行 `UPDATE players SET is_admin = 1 WHERE id = '<用户ID>';`。设为 `off` 可收回权限。Linux 部署时把上述命令中的 `py` 换成虚拟环境中的 `python`。
 
 ### 接口
 
@@ -112,9 +115,13 @@ Content-Type: application/json
 
 | 来源 | 请求头 |
 | :--- | :--- |
-| 网页 | `Authorization: Bearer <Supabase access token>` |
+| 网页 GitHub | `Authorization: Bearer <Supabase access token>` |
+| 网页游客 | `X-Rogue-Guest-Id: <UUID>` |
+| 网页游客首次建号 | `X-Rogue-Guest-Id: <UUID>` + `X-Rogue-Guest-Create: 1` |
 | 即时通讯 | `X-Rogue-IM-Token: <token>` + `X-Rogue-IM-User: <平台用户 ID>` |
 | 管理命令 | 无独立令牌，按用户数据的 `is_admin` 字段鉴权 |
+
+游客 UUID 是账号鉴权文件，不能公开。网页同时携带 GitHub 令牌与游客 UUID 时，后端会把该游客账号绑定到 GitHub 身份并发放一次 1000 GP 奖励。
 
 响应：
 
@@ -132,7 +139,16 @@ Content-Type: application/json
       "text": "📡 队友投影\n[队友] 使用 火球术\n造成 12 点伤害。"
     }
   ],
-  "account": { "id": "P0123456789AB", "linked": false },
+  "account": {
+    "id": "小明",
+    "handle": "小明",
+    "uuid": "0f8fad5b-d9cb-469f-a165-70867728950e",
+    "display_name": "小明",
+    "linked": false,
+    "is_guest": true,
+    "is_formal": false,
+    "bind_reward_claimed": false
+  },
   "shell": {
     "user": "tester",
     "host": "rogue-core",
@@ -146,7 +162,7 @@ Content-Type: application/json
 
 `state` 只对网页通道返回。`handled=false` 表示即时通讯消息不是游戏指令,前端不应回复。`shell` 是终端提示符状态,`clear=true` 表示前端应清空屏幕。
 
-联机牌局中 `projections` 按队友的每次操作返回一条投影，包含指令与结果；队伍中默认开启，可用 `projection 开启|关闭|状态` 切换。即时通讯群聊(`group`、`is_group`、`group_id` 或群聊 `message_type`)禁用该命令且不返回投影。网页空闲时使用同一接口发送 `projection_poll=true` 拉取新投影，拉取后队列清空。`account.id` 是公开展示与好友/组队使用的玩家 ID,UUID 只用于账号绑定。
+联机牌局中 `projections` 按队友的每次操作返回一条投影，包含指令与结果；队伍中默认开启，可用 `projection 开启|关闭|状态` 切换。即时通讯群聊(`group`、`is_group`、`group_id` 或群聊 `message_type`)禁用该命令且不返回投影。网页空闲时使用同一接口发送 `projection_poll=true` 拉取新投影，拉取后队列清空。`account.id` 与 `account.handle` 是可读玩家 ID，用于好友、组队与展示；`account.uuid` 是当前账号的鉴权文件，只返回给账号本人，请勿公开。
 
 ### 终端命令
 
@@ -167,16 +183,19 @@ Content-Type: application/json
 
 | 命令 | 说明 |
 | :--- | :--- |
-| `我的ID` / `friend id` | 返回当前账号的公开玩家 ID |
-| `secrets` / `迁移码` | 即时通讯端私聊获取迁移码 UUID |
-| `绑定 <uuid>` | 网页账号关联即时通讯进度 |
-| `绑定 <uuid> force` | 放弃当前网页独立进度后关联 |
-| `admin accounts` | 导出 UUID / IM / Web 映射，仅管理员用户可用 |
-| `leaderboard` | 查看 GP 排行榜前 20，显示昵称、GP 与当前层数 |
+| `我的ID` / `uuid` / `myid` | 私聊返回当前玩家的可读 ID、账号 UUID 与绑定状态 |
+| `secrets` / `迁移码` | 私聊返回账号 UUID 并提醒该 UUID 是鉴权文件 |
+| `绑定码` / `bindcode` | 网页端生成一次性网页绑定码，供即时通讯端 `start <绑定码>` 使用 |
+| `rename` / `改名` / `昵称` | 修改玩家名并消耗 1000 GP，重名自动追加 `#2`、`#3` |
+| `friend name` | 同上，保留为好友子命令形式 |
+| `admin accounts` | 导出 UUID / 可读 ID / IM / Web 映射，仅管理员用户可用 |
+| `leaderboard` | 查看 GP 排行榜前 20，显示可读玩家 ID、GP 与当前层数 |
 | `leaderboard online` | 查看最近 5 分钟在线玩家 |
 | `签到` / `checkin` | 每日 UTC+0 签到，领取下一局祝福并给集换卡盖章 |
 | `friend` / `好友` | 好友列表、搜索、申请、接受、删除与组队邀请 |
 | `team` / `队伍` | 创建 2~4 人队伍、邀请、准备并开启联机合作牌局 |
+
+即时通讯端新用户必须发送 `start` 以游客身份开始，或发送 `start <网页绑定码>` 关联已有网页账号；其他指令在未建号前只返回帮助与绑定提示。
 
 ## 尸体与冤魂
 

@@ -9,9 +9,10 @@ from unittest.mock import patch
 from game.entities.events import ALL_EVENTS
 
 from game.test.core.base import CorePlugin, run_command
+from game.data.account_config import RENAME_COST_GP
 from game.data.gem_data import GEM_CONFIG
 from game.entities.cards.base import ALL_CARDS
-from game.models.state import CardState, GameRun, PlayerState, public_player_id
+from game.models.state import CardState, GameRun, PlayerState
 
 
 class TestRogueCoop(unittest.TestCase):
@@ -27,19 +28,31 @@ class TestRogueCoop(unittest.TestCase):
     def run_cmd(self, command, uid):
         return asyncio.run(run_command(self.plugin, command, uid))
 
+    def player_id(self, uid):
+        stats = self.plugin.save_manager.load_stats(uid)
+        return stats.player_handle or stats.player_name
+
+    def rename_player(self, uid, name):
+        stats = self.plugin.save_manager.load_stats(uid)
+        stats.gp = max(stats.gp, RENAME_COST_GP)
+        self.plugin.save_manager.save_stats(uid, stats)
+        result = self.run_cmd(f"friend name {name}", uid)
+        self.assertIn("已修改", result)
+        return self.player_id(uid)
+
     def make_friends(self, leader, others):
-        self.run_cmd(f"friend name 队长", leader)
+        self.rename_player(leader, "队长")
         for index, uid in enumerate(others, 1):
-            self.run_cmd(f"friend name 队员{index}", uid)
-            self.run_cmd(f"friend add {public_player_id(uid)}", leader)
-            self.run_cmd(f"friend accept {public_player_id(leader)}", uid)
+            self.rename_player(uid, f"队员{index}")
+            self.run_cmd(f"friend add {self.player_id(uid)}", leader)
+            self.run_cmd(f"friend accept {self.player_id(leader)}", uid)
 
     def create_team(self, leader, others):
         result = self.run_cmd("team create", leader)
         self.assertIn("已创建队伍", result)
         lobby_id = re.search(r"队伍 ([A-Z0-9]{6})", result).group(1)
         for uid in others:
-            invited = self.run_cmd(f"friend invite {public_player_id(uid)}", leader)
+            invited = self.run_cmd(f"friend invite {self.player_id(uid)}", leader)
             self.assertIn("已邀请", invited)
             joined = self.run_cmd(f"team join {lobby_id}", uid)
             self.assertIn("已加入队伍", joined)
@@ -71,28 +84,28 @@ class TestRogueCoop(unittest.TestCase):
         leader = "rules_leader"
         friends = [f"rules_friend_{index}" for index in range(5)]
         stranger = "rules_stranger"
-        self.run_cmd("friend name 队长", leader)
-        self.run_cmd("friend name 路人", stranger)
+        self.rename_player(leader, "队长")
+        self.rename_player(stranger, "路人")
         for index, uid in enumerate(friends, 1):
-            self.run_cmd(f"friend name 好友{index}", uid)
-            self.run_cmd(f"friend add {public_player_id(uid)}", leader)
-            self.run_cmd(f"friend accept {public_player_id(leader)}", uid)
+            self.rename_player(uid, f"好友{index}")
+            self.run_cmd(f"friend add {self.player_id(uid)}", leader)
+            self.run_cmd(f"friend accept {self.player_id(leader)}", uid)
         result = self.run_cmd("friend list", leader)
         self.assertIn("好友列表(5 人)", result)
         self.run_cmd("friend bind qq_rule_test", friends[0])
         searched = self.run_cmd("friend search qq_rule_test", leader)
-        self.assertIn(public_player_id(friends[0]), searched)
+        self.assertIn(self.player_id(friends[0]), searched)
         self.assertIn("好友1", searched)
         named = self.run_cmd("friend search 好友2", leader)
-        self.assertIn(public_player_id(friends[1]), named)
+        self.assertIn(self.player_id(friends[1]), named)
         result = self.run_cmd("team create", leader)
         lobby_id = re.search(r"队伍 ([A-Z0-9]{6})", result).group(1)
-        rejected = self.run_cmd(f"team invite {public_player_id(stranger)}", leader)
+        rejected = self.run_cmd(f"team invite {self.player_id(stranger)}", leader)
         self.assertIn("还不是你的好友", rejected)
         for uid in friends[:3]:
-            invited = self.run_cmd(f"team invite {public_player_id(uid)}", leader)
+            invited = self.run_cmd(f"team invite {self.player_id(uid)}", leader)
             self.assertIn("已邀请", invited)
-        overflow = self.run_cmd(f"team invite {public_player_id(friends[3])}", leader)
+        overflow = self.run_cmd(f"team invite {self.player_id(friends[3])}", leader)
         self.assertIn("最多 4 人", overflow)
         joined = self.run_cmd(f"team join {lobby_id}", friends[0])
         self.assertIn("已加入队伍", joined)
@@ -102,12 +115,12 @@ class TestRogueCoop(unittest.TestCase):
         self.assertIn("已解散", left)
         mutual_a = "mutual_a"
         mutual_b = "mutual_b"
-        self.run_cmd("friend name 互加甲", mutual_a)
-        self.run_cmd("friend name 互加乙", mutual_b)
-        self.run_cmd(f"friend add {public_player_id(mutual_b)}", mutual_a)
-        mutual = self.run_cmd(f"friend add {public_player_id(mutual_a)}", mutual_b)
+        self.rename_player(mutual_a, "互加甲")
+        self.rename_player(mutual_b, "互加乙")
+        self.run_cmd(f"friend add {self.player_id(mutual_b)}", mutual_a)
+        mutual = self.run_cmd(f"friend add {self.player_id(mutual_a)}", mutual_b)
         self.assertIn("已成为好友", mutual)
-        self.assertIn(public_player_id(mutual_b), self.run_cmd("friend list", mutual_a))
+        self.assertIn(self.player_id(mutual_b), self.run_cmd("friend list", mutual_a))
 
     def test_enemy_scaling_for_two_three_four_players(self):
         expected = {2: 1.0, 3: 1.5, 4: 2.0}

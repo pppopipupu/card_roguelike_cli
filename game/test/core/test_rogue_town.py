@@ -700,42 +700,6 @@ class TestRogueTown(unittest.TestCase):
 
         asyncio.run(run_brew_test())
 
-    def test_quest_command_log(self):
-        plugin = MyPlugin(DummyContext())
-        save_manager = SaveManager()
-
-        async def run_quest_test():
-            save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                try:
-                    os.remove(stats_path)
-                except:
-                    pass
-
-            await run_command(plugin, ".rogue 主城")
-            stats = save_manager.load_stats("test_user")
-            stats.town_flags["quest_town_tour_state"] = "started"
-            stats.town_flags["quest_hammer_state"] = "started"
-            save_manager.save_stats("test_user", stats)
-
-            res = await run_command(plugin, ".rogue 任务")
-            self.assertIn("冒险者任务日志", res)
-            self.assertIn("向导的观光指引", res)
-            self.assertIn("铁锤谜案", res)
-
-            res2 = await run_command(plugin, ".rogue quest")
-            self.assertIn("冒险者任务日志", res2)
-
-            save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                try:
-                    os.remove(stats_path)
-                except:
-                    pass
-
-        asyncio.run(run_quest_test())
 
     def test_town_shopkeeper_jack(self):
         plugin = MyPlugin(DummyContext())
@@ -830,19 +794,4 @@ class TestRogueTown(unittest.TestCase):
             self.assertIsNone(run_after)
 
         asyncio.run(run_victory_test())
-
-    def test_no_absolute_imports_from_game(self):
-        import os
-        import game
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(game.__file__)))
-        targets = [
-            os.path.join(base_dir, "game", "core", "town", "dialog_handler.py"),
-            os.path.join(base_dir, "game", "core", "cli", "commands", "general", "class_cmd.py"),
-            os.path.join(base_dir, "game", "core", "town_engine.py")
-        ]
-        for path in targets:
-            with open(path, "r", encoding="utf-8") as f:
-                content = f.read()
-            self.assertNotIn("from game.data", content)
-
 

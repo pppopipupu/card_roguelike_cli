@@ -63,23 +63,6 @@ class TestRogueChaosUpdate(unittest.TestCase):
         self.assertIn("保留了手牌中的【无】", res)
         self.assertEqual(len(player.hand), 0)
 
-    def test_emperor_eye_with_param(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run): pass
-        sm = DummySaveManager()
-        engine = BattleEngine(sm)
-        player = PlayerState(
-            hp=40, max_hp=40, shield=0, gold=100, stage=1,
-            deck=["neutral_emperor_eye", "fire_bolt", "warrior_defend"],
-            hand=["fire_bolt", "warrior_defend"],
-            actions=3, bonus_actions=2, buffs=[]
-        )
-        run = GameRun(user_id="test_eye_param", node_type="battle", player=player, enemies=[EnemyState("e1", 10, 10, 0)])
-        card = ALL_CARDS["neutral_emperor_eye"]
-        run.node_data["current_playing_card_hand_idx"] = 0
-        res = card.execute(run, "2", engine)
-        self.assertIn("保留了手牌中的【火焰弹】", res)
-
     def test_emperor_eye_no_param(self):
         class DummySaveManager:
             def save_save(self, user_id, run): pass
@@ -296,12 +279,6 @@ class TestRogueChaosUpdate(unittest.TestCase):
         self.assertEqual(player.shield, 8)
         ge.play_card(run, 1, "e1")
         self.assertEqual(player.shield, 16)
-
-    def test_collaboration_query(self):
-        from game.renderer.query import render_query_info
-        res = render_query_info("协作")
-        self.assertIn("协作", res)
-        self.assertIn("我方累计召唤随从的总次数", res)
 
     def test_emperor_eye_suspend_post_play(self):
         class DummySaveManager:

@@ -301,8 +301,15 @@
       "name": "好友",
       "usage": "friend <子命令> [参数]",
       "brief": "好友列表、搜索、申请与昵称",
-      "desc": "子命令：list 好友列表、search 搜索、add 申请、requests 待处理、accept 接受、reject 拒绝、remove 删除、id 查看公开 ID、name 修改昵称、bind 绑定账号、invite 邀请组队、team 队伍状态。",
-      "example": "friend add P1A2B3C4D5E6"
+      "desc": "子命令：list 好友列表、search 搜索、add 申请、requests 待处理、accept 接受、reject 拒绝、remove 删除、id 查看玩家 ID、name 修改昵称并消耗 1000 GP、bind 绑定通讯账号、invite 邀请组队、team 队伍状态。",
+      "example": "friend add 小明#2"
+    },
+    "rename": {
+      "name": "改名",
+      "usage": "rename <新昵称>",
+      "brief": "修改玩家名并消耗 1000 GP",
+      "desc": "修改玩家名与公开昵称 ID，消耗 1000 GP；重名时自动追加 #2、#3 等后缀。别名：改名、昵称。",
+      "example": "rename 冒险者小明"
     },
     "team": {
       "name": "队伍",
