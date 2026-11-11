@@ -268,6 +268,11 @@ ALL_MINIONS = {
         "officer_soldier_token",
         MINION_CONFIG["officer_soldier_token"]["name"],
         []
+    ),
+    "neutral_tau": MinionTemplate(
+        "neutral_tau",
+        MINION_CONFIG["neutral_tau"]["name"],
+        []
     )
 }
 

@@ -224,6 +224,10 @@ class ExploreEngine(CoopExploreMixin):
             return
         run.node_data = {"items": self._build_shop_items(run)}
 
+    def _init_life_merchant_node(self, run: GameRun):
+        from .life_merchant import init_life_merchant_node
+        init_life_merchant_node(self, run)
+
     def _build_shop_items(self, run: GameRun):
         unlocked_new = set()
         stats = None

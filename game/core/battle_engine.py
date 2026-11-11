@@ -306,6 +306,8 @@ class BattleEngine(BaseBattleEngine):
                 stats = self.save_manager.load_stats(run.user_id)
                 if stats:
                     stats.yog_sothoth_challenge_count = getattr(stats, "yog_sothoth_challenge_count", 0) + 1
+                    from .achievement_service import AchievementService
+                    AchievementService(self.save_manager).reconcile(run.user_id, stats=stats, save=False, run=run, battle_engine=self)
                     self.save_manager.save_stats(run.user_id, stats)
                     challenge_count = stats.yog_sothoth_challenge_count
                 else:

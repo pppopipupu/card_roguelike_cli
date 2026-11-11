@@ -304,7 +304,7 @@
       "result": "释放【阳炎爆】，对所有除玩家外的生物造成了 {dmg} 点光耀伤害。"
     },
     "arcane_torrent": {
-      "result": "释放了奥术洪流，对所有敌人造成了 {count} 次 {dmg} 点真实伤害。"
+      "result": "释放了奥术洪流，对所有敌人造成了 {count} 次 {true_dmg} 点真实伤害与 {force_dmg} 点力场伤害。"
     },
     "arcane_barrier": {
       "bonus": " 🛡️ 并获得 {buff_stacks} 层【{buff_name}】！",

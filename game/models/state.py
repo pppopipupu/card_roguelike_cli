@@ -82,6 +82,9 @@ class UserStats:
     projection_feed: List[Dict[str, Any]] = field(default_factory=list)
     log_history: List[Dict[str, Any]] = field(default_factory=list)
     team_log_history: List[Dict[str, Any]] = field(default_factory=list)
+    unlocked_achievements: List[str] = field(default_factory=list)
+    achievement_all_view: bool = False
+    achievement_stats: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
 class CardState:
@@ -286,6 +289,9 @@ class Card:
             self.add_tag(FragileTag("fragile", val))
         else:
             self.remove_tag("fragile")
+
+    def can_play_error(self, run: 'GameRun', target: Optional[str], engine) -> Optional[str]:
+        return None
 
     def execute(self, run: 'GameRun', target: Optional[str] = None, engine = None) -> str:
         return ""

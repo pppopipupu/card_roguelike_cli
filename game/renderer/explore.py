@@ -391,3 +391,84 @@ def render_boss_chest(run: GameRun) -> str:
         lines.append(get_locale_text("render_boss_chest_exit"))
     lines.append(get_locale_text("renderer_explore.separator"))
     return "\n".join(lines)
+
+
+def render_life_merchant(run: GameRun) -> str:
+    from .party import render_party_status, render_waiting
+    from ..core.life_merchant import calc_life_merchant_price
+    from ..data.gem_data import GEM_CONFIG
+    from ..data.potion_data import POTION_CONFIG, get_potion_desc, get_potion_name
+    from ..entities import get_relic_rarity
+
+    p = run.player
+    data = run.node_data
+    if getattr(run, "coop_id", "") and data.get("coop_done"):
+        return render_waiting(run)
+    relics_str = format_relic_bar(p.relics)
+    lines = [
+        get_locale_text("renderer_explore.separator"),
+        get_locale_text("renderer_explore.life_merchant_title", stage=p.stage),
+        get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str,
+        "",
+    ]
+    if getattr(run, "coop_id", ""):
+        lines.append(render_party_status(run))
+        lines.append(get_locale_text("renderer_explore.life_merchant_coop_note"))
+        lines.append("")
+    lines.append(get_locale_text("renderer_explore.life_merchant_intro"))
+    lines.append("")
+
+    rarity_labels = {
+        "common": get_locale_text("renderer_menu.rarity_common"),
+        "rare": get_locale_text("renderer_menu.rarity_rare"),
+        "epic": get_locale_text("renderer_menu.rarity_epic"),
+        "legendary": get_locale_text("renderer_menu.rarity_legendary"),
+        "mythic": get_locale_text("renderer_menu.rarity_mythic"),
+        "artifact": get_locale_text("renderer_menu.rarity_artifact"),
+        "curse": get_locale_text("renderer_menu.rarity_curse"),
+    }
+
+    items = data.get("items", [])
+    for idx, item in enumerate(items, 1):
+        itype = item.get("type")
+        if item.get("sold", False):
+            lines.append(get_locale_text("renderer_explore.shop_sold", idx=idx))
+            continue
+        if itype == "leave":
+            lines.append(get_locale_text("renderer_explore.life_merchant_leave", idx=idx))
+            continue
+        cost = calc_life_merchant_price(p.max_hp, item)
+        if cost < 0:
+            price_label = get_locale_text("renderer_explore.life_merchant_price_gain", gain=-cost)
+        else:
+            price_label = get_locale_text("renderer_explore.life_merchant_price_cost", cost=cost)
+        if itype == "card":
+            card = ALL_CARDS.get(item.get("card_id"))
+            if card:
+                color_ch = "⚫" if card.color == "curse" else ("🔵" if card.color == "wizard" else ("🔴" if card.color == "warrior" else "⚪"))
+                cost_str = get_card_cost_str(card)
+                rlabel = rarity_labels.get(getattr(card, "rarity", "common"), getattr(card, "rarity", ""))
+                lines.append(get_locale_text("renderer_explore.life_merchant_card", idx=idx, color=color_ch, name=card.name, rarity=rlabel, cost=cost_str, price_label=price_label, desc=card.desc))
+        elif itype == "relic":
+            rid = item.get("relic_id")
+            rlabel = rarity_labels.get(get_relic_rarity(rid), get_relic_rarity(rid))
+            lines.append(get_locale_text("renderer_explore.life_merchant_relic", idx=idx, name=get_relic_name(rid), rarity=rlabel, price_label=price_label, desc=get_relic_desc(rid)))
+        elif itype == "gem":
+            gid = item.get("gem_id")
+            g_cfg = GEM_CONFIG.get(gid, {})
+            rlabel = rarity_labels.get(g_cfg.get("rarity", "legendary"), g_cfg.get("rarity", ""))
+            lines.append(get_locale_text("renderer_explore.life_merchant_gem", idx=idx, name=g_cfg.get("name", gid), rarity=rlabel, price_label=price_label, desc=g_cfg.get("desc", "")))
+        elif itype == "potion":
+            pid = item.get("potion_id")
+            p_cfg = POTION_CONFIG.get(pid, {})
+            rlabel = rarity_labels.get(p_cfg.get("rarity", "legendary"), p_cfg.get("rarity", ""))
+            lines.append(get_locale_text("renderer_explore.life_merchant_potion", idx=idx, name=get_potion_name(pid), rarity=rlabel, price_label=price_label, desc=get_potion_desc(pid)))
+        elif itype == "life_upgrade":
+            lines.append(get_locale_text("renderer_explore.life_merchant_upgrade_service", idx=idx, count=item.get("count", 2), price_label=price_label))
+    lines.append(get_locale_text("renderer_explore.separator"))
+    if p.fold_guide:
+        lines.append(get_locale_text("renderer_explore.guide_folded"))
+    else:
+        lines.append(get_locale_text("renderer_explore.life_merchant_prompt"))
+    lines.append(get_locale_text("renderer_explore.separator"))
+    return "\n".join(lines)

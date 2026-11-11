@@ -196,7 +196,7 @@ ENEMY_BOSS_CONFIG = {
         "type": "boss",
         "hp": "150",
         "actions": "2A 1BA",
-        "passive": "不朽星体 (受到致命伤害时化为不可名状的迷雾并在 2 回合后满血重组；可用【放逐斩】直接驱逐迷雾，或在其二次复活后通过【拉莱耶星盘】解开三幕群星封印将其彻底击败)",
+        "passive": "不朽星体",
         "intents": [
             {"id": "call_of_rlyeh", "val": 10, "desc": "拉莱耶的呼唤 (造成 10 点心灵伤害，并向抽牌堆洗入 1 张无形低语)"},
             {"id": "star_spawn_claw", "val": 14, "desc": "巨爪碾压 (造成 14 点钝击伤害，并施加 1 层轻度钝击易伤)"},
@@ -210,7 +210,7 @@ ENEMY_BOSS_CONFIG = {
         "type": "boss",
         "hp": "1",
         "actions": "1A 0BA",
-        "passive": "星体迷雾 (免疫常规伤害，2 回合后满血重塑肉身；唯【放逐斩】或警觉号冲撞可将其彻底放逐)",
+        "passive": "星体迷雾",
         "intents": [
             {"id": "mist_condense_1", "val": 5, "desc": "迷雾翻涌 (剩余 2 回合重组，对全体造成 5 点心灵伤害并获得 1 层力量)"},
             {"id": "mist_condense_2", "val": 150, "desc": "肉身重塑 (剩余 1 回合重组，回合末满血复活为伟大的克苏鲁)"}

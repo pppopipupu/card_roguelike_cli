@@ -139,5 +139,6 @@
   "destruction_potion_drink_log": "🧪 你喝下了【{name}】，体内狂暴能量爆发，受到了 {damage} 点力场伤害！",
   "destruction_potion_splash_log": "🧪 投掷了【{name}】，对【{target_name}】造成了 {damage} 点力场伤害并成功将其消灭，毁灭能量发生爆裂溅射，对其他所有敌人造成了 {splash_damage} 点力场伤害！",
   "destruction_potion_throw_log": "🧪 投掷了【{name}】，对【{target_name}】造成了 {damage} 点力场伤害。",
-  "unknown_potion_log": "🧪 使用了未知药水：{potion_id}。"
+  "unknown_potion_log": "🧪 使用了未知药水：{potion_id}。",
+  "cannot_target_self": "❌ 该卡牌不能以你自己作为目标。"
 }

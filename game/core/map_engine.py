@@ -4,6 +4,8 @@ from ..models.state import GameRun, PlayerState, EnemyState, MinionState, Amulet
 from ..data.map_config import MapConfig
 from ..data.corpse_config import CorpseConfig
 from ..data.balance_config import (
+    LIFE_MERCHANT_MAX_PER_RUN,
+    LIFE_MERCHANT_STAGE_CONFIG,
     MAP_ANCIENT_OPTION_SLOTS,
     MAP_ANCIENT_RELIC_CHOICES,
     MAP_BRANCH_MAX,
@@ -162,6 +164,7 @@ class MapEngine:
                     if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
                         cards_pool.append({"type": "contract", "relic": "glacier_chill", "card": "minion_icerainboww"})
             
+            relics_pool.append({"type": "double", "relic": "trash_mountain"})
             num_relics = random.choice(MAP_ANCIENT_RELIC_CHOICES)
             selected_relics = random.sample(relics_pool, min(len(relics_pool), num_relics))
             selected_cards = random.sample(cards_pool, min(len(cards_pool), MAP_ANCIENT_OPTION_SLOTS - len(selected_relics)))
@@ -171,7 +174,6 @@ class MapEngine:
                     item["card"] = check_and_replace_fireball(run, item["card"])
             options = selected_relics + selected_cards
             random.shuffle(options)
-            options.append({"type": "double", "relic": "trash_mountain"})
             run.node_data = {"options": options, "style": style}
         elif p.stage in MapConfig.CAFE_STAGES:
             from .cafe_engine import CafeEngine
@@ -214,6 +216,7 @@ class MapEngine:
                 "shop": get_locale_text("i18n_map_cafe.node_desc_coop_shop"),
                 "rest": get_locale_text("i18n_map_cafe.node_desc_coop_rest"),
                 "treasure": get_locale_text("i18n_map_cafe.node_desc_coop_treasure"),
+                "life_merchant": get_locale_text("i18n_map_cafe.node_desc_coop_life_merchant"),
                 "boss": get_locale_text("i18n_map_cafe.node_desc_coop_boss")
             }
         else:
@@ -224,6 +227,7 @@ class MapEngine:
                 "shop": get_locale_text("i18n_map_cafe.node_desc_shop"),
                 "rest": get_locale_text("i18n_map_cafe.node_desc_rest"),
                 "treasure": get_locale_text("i18n_map_cafe.node_desc_treasure"),
+                "life_merchant": get_locale_text("i18n_map_cafe.node_desc_life_merchant"),
                 "boss": get_locale_text("i18n_map_cafe.node_desc_boss")
             }
         emoji_map = {
@@ -233,6 +237,7 @@ class MapEngine:
             "shop": get_locale_text("i18n_map_cafe.node_name_shop"),
             "rest": get_locale_text("i18n_map_cafe.node_name_rest"),
             "treasure": get_locale_text("i18n_map_cafe.node_name_treasure"),
+            "life_merchant": get_locale_text("i18n_map_cafe.node_name_life_merchant"),
             "boss": get_locale_text("i18n_map_cafe.node_name_boss")
         }
         for o in opts:
@@ -338,12 +343,18 @@ class MapEngine:
                 curr_layer[0]["next"] = [nn["id"] for nn in next_layer]
             else:
                 for i, cn in enumerate(curr_layer):
+                    center = round(i * (len(next_layer) - 1) / max(1, len(curr_layer) - 1))
                     allowed = []
-                    for offset in (-1, 0, 1):
-                        idx = i + offset
+                    for offset in (-1, 0, 1, -2, 2):
+                        idx = center + offset
                         if 0 <= idx < len(next_layer):
-                            allowed.append(next_layer[idx]["id"])
-                    cn["next"] = random.sample(allowed, min(len(allowed), random.randint(MAP_BRANCH_MIN, MAP_BRANCH_MAX)))
+                            nid = next_layer[idx]["id"]
+                            if nid not in allowed:
+                                allowed.append(nid)
+                        if len(allowed) >= 3 and abs(offset) >= 1:
+                            break
+                    branch_count = min(len(allowed), random.randint(MAP_BRANCH_MIN, MAP_BRANCH_MAX))
+                    cn["next"] = random.sample(allowed, branch_count)
                 
                 for nn in next_layer:
                     nn_id = nn["id"]
@@ -353,12 +364,40 @@ class MapEngine:
                             has_pre = True
                             break
                     if not has_pre:
-                        best_i = min(len(curr_layer)-1, int(nn_id.split("_")[1]))
+                        nn_idx = int(nn_id.split("_")[1])
+                        best_i = round(nn_idx * (len(curr_layer) - 1) / max(1, len(next_layer) - 1))
+                        best_i = max(0, min(len(curr_layer) - 1, best_i))
                         curr_layer[best_i]["next"].append(nn_id)
                         curr_layer[best_i]["next"] = list(set(curr_layer[best_i]["next"]))
-                        
+
+        self._place_life_merchant(run, nodes, start_s)
         run.map_data["nodes"] = nodes
         run.map_data["current_node_id"] = None
+
+    def _place_life_merchant(self, run: GameRun, nodes: dict, start_s: int):
+        cfg = LIFE_MERCHANT_STAGE_CONFIG.get(start_s)
+        if not cfg:
+            return
+        placed = int(run.map_data.get("life_merchant_count", 0) or 0)
+        if placed >= LIFE_MERCHANT_MAX_PER_RUN:
+            return
+        s_start, s_end, chance = cfg
+        if start_s == 27 and placed == 0:
+            chance = 1.0
+        if random.random() >= chance:
+            return
+        candidate_layers = []
+        for s in range(s_start, s_end):
+            layer = nodes.get(str(s), [])
+            non_treasure = [nd for nd in layer if nd.get("type") not in ("treasure", "boss")]
+            if non_treasure:
+                candidate_layers.append(non_treasure)
+        if not candidate_layers:
+            return
+        chosen_pool = random.choice(candidate_layers)
+        chosen_node = random.choice(chosen_pool)
+        chosen_node["type"] = "life_merchant"
+        run.map_data["life_merchant_count"] = placed + 1
 
     def choose_map_node(self, run: GameRun, option_idx: int) -> str:
         options = run.node_data.get("options", [])
@@ -439,6 +478,10 @@ class MapEngine:
             self.explore_engine._init_treasure_node(run)
             self.save_manager.save_save(run.user_id, run)
             return get_locale_text("i18n_map_cafe.choose_treasure_log", desc=chosen['desc'])
+        elif node_type == "life_merchant":
+            self.explore_engine._init_life_merchant_node(run)
+            self.save_manager.save_save(run.user_id, run)
+            return get_locale_text("i18n_map_cafe.choose_life_merchant_log", desc=chosen['desc'])
         return get_locale_text("i18n_map_cafe.err_unknown_node_type")
 
     def _init_event_node(self, run: GameRun):
@@ -520,5 +563,4 @@ class MapEngine:
                 "card": check_and_replace_fireball(run, legends_pool[i % len(legends_pool)]),
                 "relic": available_relics[i % len(available_relics)]
             })
-        options.append({"type": "double", "relic": "trash_mountain"})
         run.node_data = {"options": options, "style": style}

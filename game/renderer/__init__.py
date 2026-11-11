@@ -6,7 +6,7 @@ from .potion import render_potion_list
 from .battle import render_battle, render_detailed_battle, render_draw_pile, render_discard_pile, render_exhaust_pile, render_minion_graveyard, render_enemy_graveyard
 
 from .map import render_map_select, render_start_ancient, render_ancient
-from .explore import render_event, render_shop, render_rest, render_reward, render_treasure, render_card_select, render_boss_chest, render_corpse_reward
+from .explore import render_event, render_shop, render_rest, render_reward, render_treasure, render_card_select, render_boss_chest, render_corpse_reward, render_life_merchant
 from .query import render_query_info
 
 from .town import render_town
@@ -71,6 +71,8 @@ class GameRenderer:
             return render_event(run)
         elif nt == "shop":
             return render_shop(run)
+        elif nt == "life_merchant":
+            return render_life_merchant(run)
         elif nt == "rest":
             return render_rest(run)
         elif nt == "reward":

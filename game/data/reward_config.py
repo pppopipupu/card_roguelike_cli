@@ -44,3 +44,23 @@ NORMAL_CARD_RARITIES = ("common", "rare", "epic")
 BOSS_MYTHIC_CARDS = ["neutral_plane_shift", "neutral_omega"]
 
 BOSS_MYTHIC_RELICS = ["infinite_hourglass"]
+
+LIFE_MERCHANT_EXCLUSIVE_CARDS = ["neutral_fusion", "neutral_shou_lai", "neutral_tau"]
+
+LIFE_MERCHANT_EXCLUSIVE_RELICS = ["blood_covenant", "sanguine_crown", "immortal_pact"]
+
+LIFE_MERCHANT_MYTHIC_RELICS = ["infinite_hourglass", "sanguine_crown", "immortal_pact"]
+
+LIFE_MERCHANT_LEGENDARY_RELICS = ["ancient_sigil", "trash_mountain", "blood_covenant"]
+
+LIFE_MERCHANT_EXCLUDED_MYTHIC_CARDS = {
+    "elder_guidance",
+    "ironclad_rampart",
+    "jack_brew",
+    "merchant_collection",
+    "bard_epic",
+}
+
+LIFE_MERCHANT_LEGENDARY_GEMS = ["gem_dmg_mul_3", "gem_return_5", "gem_gain_a_1_ba_1"]
+
+LIFE_MERCHANT_POWER_POTIONS = ["destruction_potion", "iron_potion", "energy_potion"]

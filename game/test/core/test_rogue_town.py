@@ -777,16 +777,13 @@ class TestRogueTown(unittest.TestCase):
             await run_command(plugin, ".rogue talk 神秘店主")
             res_menu_2 = await run_command(plugin, ".rogue 2")
             self.assertIn("购买 【神秘物品】 (已解锁)", res_menu_2)
-            self.assertIn("【Icerainboww】 (已解锁)", res_menu_2)
-            self.assertIn("【尤格-索托斯】 (已解锁)", res_menu_2)
+            self.assertNotIn("【Icerainboww】 (已解锁)", res_menu_2)
+            self.assertNotIn("【尤格-索托斯】 (已解锁)", res_menu_2)
 
             res_buy_already = await run_command(plugin, ".rogue 5")
             self.assertIn("你已经解锁了【神秘物品】", res_buy_already)
 
-            res_buy_readonly = await run_command(plugin, ".rogue 6")
-            self.assertIn("为通关解锁内容，无需在此处购买", res_buy_readonly)
-
-            await run_command(plugin, ".rogue 8")
+            await run_command(plugin, ".rogue 6")
             await run_command(plugin, ".rogue exit")
 
             save_manager.delete_save("test_user")

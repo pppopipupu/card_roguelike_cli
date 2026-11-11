@@ -58,6 +58,7 @@ VIEW_NODES = {
     "ancient",
     "reward",
     "shop",
+    "life_merchant",
     "rest",
     "card_select",
     "treasure",

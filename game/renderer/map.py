@@ -2,6 +2,7 @@ from ..models.state import GameRun
 from ..entities import get_relic_name, get_relic_desc
 from ..cards import ALL_CARDS
 from ..data.locale_data import get_locale_text
+from ..data.map_config import MapConfig
 
 def render_map_select(run: GameRun) -> str:
     from .party import render_party_status
@@ -33,10 +34,11 @@ def render_map_select(run: GameRun) -> str:
         "shop": get_locale_text("i18n_renderer_extra.map.node_shop"),
         "rest": get_locale_text("i18n_renderer_extra.map.node_rest"),
         "treasure": get_locale_text("i18n_renderer_extra.map.node_treasure"),
+        "life_merchant": get_locale_text("i18n_renderer_extra.map.node_life_merchant"),
         "boss": get_locale_text("i18n_renderer_extra.map.node_boss"),
         "corpse": get_locale_text("i18n_renderer_extra.map.node_corpse")
     }
-    max_preview_stage = min(20, p.stage + 3)
+    max_preview_stage = min(MapConfig.FINAL_BOSS_STAGE, p.stage + 3)
     curr_layer_nodes = []
     if not curr_id:
         curr_layer_nodes = nodes_by_stage.get(p.stage, [])

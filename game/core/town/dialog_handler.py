@@ -183,9 +183,6 @@ def _market_buy_specs(town_engine, stats: UserStats) -> List[Dict[str, Any]]:
 
 
 def _shop_items(stats: UserStats) -> List[Dict[str, Any]]:
-    from ...models.manager import SaveManager
-    boss_cfg = SaveManager().load_admin_config()
-    icerainboww_enabled = boss_cfg.get("icerainboww_enabled", True)
     from ...data.shop_data import SHOP_ITEMS
     unlocked = getattr(stats, "unlocked_subclasses", [])
     has_gatekey = getattr(stats, "unlocked_gatekey", False)
@@ -196,11 +193,6 @@ def _shop_items(stats: UserStats) -> List[Dict[str, Any]]:
         {"name": "门之钥匙", "price": SHOP_ITEMS["门之钥匙"]["price"], "is_unlocked": has_gatekey, "buyable": True},
         {"name": "神秘物品", "price": SHOP_ITEMS["神秘物品"]["price"], "is_unlocked": "神秘物品" in unlocked, "buyable": True},
     ]
-    if icerainboww_enabled:
-        killed_icerainboww = getattr(stats, "killed_icerainboww", False)
-        items.append({"name": "Icerainboww" if killed_icerainboww else get_locale_text("i18n_town.shop_hidden_name"), "price": None, "is_unlocked": killed_icerainboww, "buyable": False})
-    killed_yog = getattr(stats, "yog_sothoth_kill_count", 0) > 0
-    items.append({"name": get_locale_text("i18n_town.shop_yog_name") if killed_yog else get_locale_text("i18n_town.shop_hidden_name"), "price": None, "is_unlocked": killed_yog, "buyable": False})
     return items
 
 

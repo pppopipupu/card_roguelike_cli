@@ -135,6 +135,18 @@
     "infinite_hourglass": {
       "battle_start": "⏳ [无限沙漏] 触发：时空凝固，你获得了 1 层时间停止状态。",
       "turn_start": "⏳ [无限沙漏] 触发：获得额外的 1BA。"
+    },
+    "blood_covenant": {
+      "turn_start": "🩸 [残躯圣契] 触发：额外获得 1 个附赠动作 (BA)。",
+      "battle_start": "🩸 [残躯圣契] 触发：最大生命上限不超过 {threshold}，获得 {shield} 点护盾与 {strength} 层【力量】！"
+    },
+    "sanguine_crown": {
+      "battle_start": "👑 [血冕王冠] 触发：获得了 {shield} 点初始护盾。",
+      "extra_play": "👑 [血冕王冠] 额外触发：【{name}】{feedback}"
+    },
+    "immortal_pact": {
+      "revive": "🕊️ [永生契约] 触发！免疫了本次致命伤害，生命值锁定为 1 并获得了 {shield} 点护盾！",
+      "exhaust_shield": "🕊️ [永生契约] 触发！打出了消耗或即逝牌，获得 {shield} 点护盾。"
     }
   },
   "amulets": {

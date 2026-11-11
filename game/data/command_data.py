@@ -11,6 +11,7 @@ COMMAND_SECTION_ORDER = {
         "deck",
         "bag",
         "overview",
+        "achievement",
         "stats",
         "checkin",
         "class",

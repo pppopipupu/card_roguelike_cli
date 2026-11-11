@@ -331,5 +331,15 @@ MINION_BASIC_CONFIG = {
                 "feedback": "对【{target}】造成了 {damage} 点钝击伤害并使其下回合动作点 A 减少 1。"
             }
         ]
+    },
+    "neutral_tau": {
+        "name": "Tau",
+        "no_attack_actions": True,
+        "skills": []
+    },
+    "neutral_tau+": {
+        "name": "Tau+",
+        "no_attack_actions": True,
+        "skills": []
     }
 }

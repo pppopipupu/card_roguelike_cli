@@ -102,6 +102,15 @@ class CLIRouter:
         for res in self._handle_command_raw(user_id, parts):
             results.append(res)
             yield res
+        if command:
+            from .achievement_service import AchievementService
+            ach = AchievementService(self.save_manager)
+            ach.reconcile(user_id)
+            pending = ach.pop_pending_notices(user_id)
+            if pending:
+                notice_text = ach.format_notices(pending)
+                results.append(notice_text)
+                yield notice_text
         if not command:
             return
         publish = project and self.projection_service.should_publish(command)

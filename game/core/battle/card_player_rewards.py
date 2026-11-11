@@ -6,6 +6,7 @@ from ..reward_builder import build_reward_items, roll_battle_gold, roll_potion
 from ...data.locale_data import get_locale_text
 from ...entities import get_relic_name
 from ...models.events import BattleWinEvent
+from ..achievement_service import AchievementService
 
 
 class CardPlayerRewardsMixin:
@@ -59,6 +60,14 @@ class CardPlayerRewardsMixin:
             quest_bonus = get_locale_text("i18n_battle_core.quest_maze_fight_bonus", relic=get_relic_name(got_relic))
         
         stats = self.engine.save_manager.load_stats(run.user_id)
+        if difficulty == "boss" and stats is not None:
+            ach = AchievementService(self.engine.save_manager)
+            if p.max_hp <= 1:
+                ach.record_stat(run.user_id, "one_hp_boss_kills", 1, stats=stats, save=False)
+            if p.stage == 12:
+                ach.record_stat(run.user_id, "act1_boss_kills", 1, stats=stats, save=False)
+            elif p.stage == MapConfig.AVERGOMON_STAGE:
+                ach.record_stat(run.user_id, "avergomon_kills", 1, stats=stats, save=False)
         if p.stage in (MapConfig.FINAL_BOSS_STAGE, MapConfig.GATE_BOSS_STAGE):
             roll_battle_gold(difficulty)
             roll_potion(stats, difficulty)
@@ -76,13 +85,19 @@ class CardPlayerRewardsMixin:
         if p.stage == MapConfig.FINAL_BOSS_STAGE:
             run.node_type = "victory"
             stats.yog_sothoth_kill_count = getattr(stats, "yog_sothoth_kill_count", 0) + 1
+            AchievementService(self.engine.save_manager).reconcile(run.user_id, stats=stats, save=True)
             self.engine.save_manager.save_stats(run.user_id, stats)
         elif p.stage == MapConfig.GATE_BOSS_STAGE and not has_gatekey:
             run.node_type = "victory"
             if run.node_data.get("boss_name") == "Icerainboww":
                 stats.killed_icerainboww = True
-                self.engine.save_manager.save_stats(run.user_id, stats)
+            AchievementService(self.engine.save_manager).record_stat(run.user_id, "wins", 1, stats=stats, save=True)
+            self.engine.save_manager.save_stats(run.user_id, stats)
         elif p.stage == MapConfig.GATE_BOSS_STAGE and has_gatekey:
+            if run.node_data.get("boss_name") == "Icerainboww":
+                stats.killed_icerainboww = True
+            AchievementService(self.engine.save_manager).reconcile(run.user_id, stats=stats, save=True)
+            self.engine.save_manager.save_stats(run.user_id, stats)
             run.node_type = "boss_chest"
             p_class = getattr(stats, "selected_class", "法师")
             class_mythic_cards = ["neutral_plane_shift", "neutral_omega"]
@@ -152,6 +167,9 @@ class CardPlayerRewardsMixin:
             if is_town:
                 run.node_data["is_town_combat"] = True
                 run.node_data["npc_name"] = npc_n
+            if difficulty == "boss":
+                AchievementService(self.engine.save_manager).reconcile(run.user_id, stats=stats, save=True)
+                self.engine.save_manager.save_stats(run.user_id, stats)
             self.engine.save_manager.save_save(run.user_id, run)
 
     def handle_corpse_win(self, run: GameRun):

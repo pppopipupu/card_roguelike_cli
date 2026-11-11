@@ -35,6 +35,9 @@ class SettlementMixin:
         unlock_msg = ""
         stats = self.load_stats(user_id)
         if is_victory:
+            ach_stats = getattr(stats, "achievement_stats", None)
+            if isinstance(ach_stats, dict):
+                ach_stats["wins"] = int(ach_stats.get("wins", 0) or 0) + 1
             if stage == MapConfig.FINAL_BOSS_STAGE:
                 gp_gained += 3000
                 victory_bonus = get_locale_text("i18n_models.manager.settle_bonus_final")

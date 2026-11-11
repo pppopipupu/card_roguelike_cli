@@ -32,6 +32,7 @@ def render_menu(stats: UserStats = None) -> str:
         t("renderer_menu.other_section"),
         t("renderer_menu.cmd_class"),
         t("renderer_menu.cmd_overview"),
+        t("renderer_menu.cmd_achievement"),
         t("renderer_menu.cmd_status"),
         t("renderer_menu.cmd_deck"),
         t("renderer_menu.cmd_stat"),
@@ -144,7 +145,7 @@ def get_rogue_relic_library_items() -> list:
 def render_reader_page(stats: UserStats) -> str:
     total_items = len(stats.reader_items)
     page_size = 10
-    total_pages = (total_items + page_size - 1) // page_size
+    total_pages = max(1, (total_items + page_size - 1) // page_size)
     page = max(1, min(stats.reader_page, total_pages))
     
     start_idx = (page - 1) * page_size
@@ -155,8 +156,11 @@ def render_reader_page(stats: UserStats) -> str:
         t("renderer_menu.reader_title", title=stats.reader_title, page=page, total_pages=total_pages),
         ""
     ]
-    for i in range(start_idx, end_idx):
-        lines.append(f"{i + 1}. {stats.reader_items[i]}")
+    if total_items == 0:
+        lines.append(t("renderer_menu.reader_empty"))
+    else:
+        for i in range(start_idx, end_idx):
+            lines.append(f"{i + 1}. {stats.reader_items[i]}")
         
     lines.append("")
     lines.append(t("renderer_menu.reader_prompt"))
@@ -402,30 +406,6 @@ def render_shop(stats: UserStats) -> str:
         t("renderer_menu.shop_quote_6")
     ]
     welcome_quote = random.choice(welcome_quotes)
-    
-    from ..models.manager import SaveManager
-    boss_cfg = SaveManager().load_admin_config()
-    icerainboww_enabled = boss_cfg.get("icerainboww_enabled", True)
-    
-    if not icerainboww_enabled:
-        item6_title = t("renderer_menu.shop_item6_disabled_title")
-        item6_desc = t("renderer_menu.shop_item6_disabled_desc")
-    else:
-        killed_icerainboww = getattr(stats, "killed_icerainboww", False)
-        if killed_icerainboww:
-            item6_title = t("renderer_menu.shop_item6_unlocked_title")
-            item6_desc = t("renderer_menu.shop_item6_unlocked_desc")
-        else:
-            item6_title = t("renderer_menu.shop_item6_locked_title")
-            item6_desc = t("renderer_menu.shop_item6_locked_desc")
-
-    killed_yog = getattr(stats, "yog_sothoth_kill_count", 0) > 0
-    if killed_yog:
-        item7_title = t("renderer_menu.shop_item7_unlocked_title")
-        item7_desc = t("renderer_menu.shop_item7_unlocked_desc")
-    else:
-        item7_title = t("renderer_menu.shop_item7_locked_title")
-        item7_desc = t("renderer_menu.shop_item7_locked_desc")
 
     lines = [
         t("renderer_menu.separator"),
@@ -447,10 +427,6 @@ def render_shop(stats: UserStats) -> str:
         t("renderer_menu.shop_item_desc", desc=SHOP_ITEMS['门之钥匙']['desc']),
         t("renderer_menu.shop_item5", price=SHOP_ITEMS['神秘物品']['price'], status=status_mystery),
         t("renderer_menu.shop_item_desc", desc=SHOP_ITEMS['神秘物品']['desc']),
-        item6_title,
-        item6_desc,
-        item7_title,
-        item7_desc,
         "",
         t("renderer_menu.shop_buy_section"),
         t("renderer_menu.shop_buy1"),

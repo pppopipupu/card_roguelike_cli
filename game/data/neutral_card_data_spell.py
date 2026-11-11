@@ -17,10 +17,11 @@ NEUTRAL_CARD_SPELLS = {
         "type": "spell",
         "cost_a": 0,
         "cost_ba": 1,
-        "desc": "恢复 4 点生命值。保留。",
+        "desc": "恢复 8 点生命值。保留。消耗。",
         "rarity": "common",
-        "heal_amount": 4,
+        "heal_amount": 8,
         "retain": True,
+        "exhaust": True,
         "feedback": "为【{target}】恢复了 {heal_amount} 点生命值。"
     },
     "get_ready": {
@@ -79,9 +80,9 @@ NEUTRAL_CARD_SPELLS = {
         "type": "spell",
         "cost_a": 0,
         "cost_ba": 0,
-        "desc": "造成 3 点钝击伤害。",
+        "desc": "造成 5 点钝击伤害。",
         "rarity": "common",
-        "base_dmg": 3,
+        "base_dmg": 5,
         "damage_type": "bludgeoning",
         "feedback": "对【{target}】使用【迅捷打击】。"
     },
@@ -405,8 +406,8 @@ NEUTRAL_CARD_SPELLS = {
     },
     "neutral_astral_strike": {
         "name": "星界坠击",
-        "color": "neutral",
-        "type": "attack",
+        "color": "wizard",
+        "type": "spell",
         "cost_a": 1,
         "cost_ba": 0,
         "desc": "造成 24 点力场伤害。力量对该牌伤害的加成效果乘以 4。消耗。",
@@ -560,11 +561,11 @@ NEUTRAL_CARD_SPELLS = {
     },
     "neutral_banish_slash": {
         "name": "放逐斩",
-        "color": "neutral",
-        "type": "attack",
+        "color": "warrior",
+        "type": "spell",
         "cost_a": 1,
         "cost_ba": 0,
-        "desc": "造成 16 点力场伤害。若目标为非领主敌人，有 50% 几率将其直接放逐（被放逐的敌人不掉落金币）；若目标为【迷雾】形态的伟大的克苏鲁，直接将其放逐并获胜。",
+        "desc": "造成 16 点力场伤害。若目标为非领主敌人，有 50% 几率将其直接放逐（被放逐的敌人不掉落金币）。",
         "rarity": "rare",
         "base_dmg": 16,
         "damage_type": "force",
@@ -583,6 +584,46 @@ NEUTRAL_CARD_SPELLS = {
         "retain": True,
         "gem_slots": 0,
         "feedback": "转动了【拉莱耶星盘】。"
+    },
+    "neutral_fusion": {
+        "name": "聚变",
+        "color": "neutral",
+        "type": "spell",
+        "cost_a": 0,
+        "cost_ba": 0,
+        "desc": "扣除当前最大生命上限的 15%（向上取整，最低 1 点，最大生命上限为 1 时不可使用），使你当前剩余的动作点 (A) 与附赠动作点 (BA) 翻倍。",
+        "rarity": "legendary",
+        "target_type": "self",
+        "hp_cost_ratio": 0.15,
+        "life_merchant_only": True,
+        "feedback": "引爆了生命【聚变】！"
+    },
+    "neutral_shou_lai": {
+        "name": "寿来✋😡✋",
+        "color": "neutral",
+        "type": "spell",
+        "cost_a": 0,
+        "cost_ba": 1,
+        "desc": "选中战场上任意一个除自己以外的生物（包括己方随从与队友），从目标身上吸收 6 点最大生命值（队友至少保留 1 点上限）。消耗。",
+        "rarity": "mythic",
+        "exhaust": True,
+        "target_type": "any_other",
+        "absorb_amount": 6,
+        "life_merchant_only": True,
+        "feedback": "施展了【寿来✋😡✋】！"
+    },
+    "curse_shou_hui": {
+        "name": "寿回✋😡✋",
+        "color": "neutral",
+        "type": "spell",
+        "cost_a": 0,
+        "cost_ba": 0,
+        "desc": "选中一个曾对你施放过【寿来✋😡✋】的目标，将其最大生命上限降至 5 点并使自身获得等量差值；若对方最大生命上限已低于 5 点则立即将其击杀。无合法目标时仅消耗自身。消耗。",
+        "rarity": "curse",
+        "exhaust": True,
+        "target_type": "any_other",
+        "target_hp_cap": 5,
+        "feedback": "发动了因果律反制：【寿回✋😡✋】！"
     }
 }
 

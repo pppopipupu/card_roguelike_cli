@@ -70,8 +70,8 @@ class HeadlessGameServer:
             parts = clean_str.split()
             if parts:
                 cmd = parts[0].lower()
-                if cmd in ("下一页", "n", "next", "上一页", "b", "back", "prev", "退出", "quit", "exit"):
-                    if cmd in ("退出", "quit", "exit"):
+                if cmd in ("下一页", "n", "next", "上一页", "b", "back", "prev", "退出", "quit", "exit", "q"):
+                    if cmd in ("退出", "quit", "exit", "q"):
                         stats.reader_active = False
                         self.save_manager.save_stats(user_id, stats)
                         return get_locale_text("i18n_cli_core.reader_exited")

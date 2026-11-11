@@ -68,7 +68,7 @@ class GhostEnemyTemplate(EnemyTemplate):
         if damage <= 0 and heal <= 0 and shield <= 0:
             if card.type == "minion":
                 damage = int(upgrade_cfg.get("minion_atk", base_cfg.get("minion_atk", 4)) or 4)
-            elif card.type in ("spell", "attack"):
+            elif card.type == "spell":
                 cost = int(getattr(card, "cost_a", 1) or 1)
                 damage = max(3, cost * 3 + (2 if state.upgraded else 0))
             else:

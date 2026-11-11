@@ -465,6 +465,33 @@ RELIC_CONFIG = {
         "desc": "接下来的 1 场战斗开始时获得 2 点护盾。",
         "shield_gain": 2,
         "price": 0
+    },
+    "blood_covenant": {
+        "name": "残躯圣契",
+        "rarity": "legendary",
+        "desc": "每回合开始时额外获得 1 个附赠动作 (BA)；每场战斗开始时，若最大生命上限不高于 35 点，获得 20 点护盾与 2 层【力量】。",
+        "bonus_actions": 1,
+        "max_hp_threshold": 35,
+        "shield_gain": 20,
+        "strength_gain": 2,
+        "price": 220
+    },
+    "sanguine_crown": {
+        "name": "血冕王冠",
+        "rarity": "mythic",
+        "desc": "每回合打出的第一张非衍生卡牌额外触发 1 次（不消耗动作点）；每场战斗开始时，获得等同于当前生命值 50% 的护盾（最低 15 点）。",
+        "shield_ratio": 0.5,
+        "min_shield": 15,
+        "price": 320
+    },
+    "immortal_pact": {
+        "name": "永生契约",
+        "rarity": "mythic",
+        "desc": "每场战斗一次，当你受到致命伤害时免疫本次死亡，将生命值锁定为 1 并获得 30 点护盾；每当你打出一张【消耗】或【即逝】卡牌时，获得 4 点护盾。",
+        "revive_hp": 1,
+        "revive_shield": 30,
+        "exhaust_shield": 4,
+        "price": 350
     }
 }
 

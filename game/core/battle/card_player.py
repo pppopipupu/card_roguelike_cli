@@ -298,6 +298,7 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         is_discover = base_id == "discover"
         is_emperor_eye = base_id.startswith("neutral_emperor_eye")
         is_coop_card = bool(getattr(card, "coop_only", False))
+        is_any_other = getattr(card, "target_type", "enemy") == "any_other"
         if is_coop_card:
             target = normalize_coop_target(run, card, base_id, target)
         if is_coop_card:
@@ -306,9 +307,9 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
                 return error
         if not is_discover:
             if target is None:
-                if is_emperor_eye or is_coop_card:
+                if is_emperor_eye or is_coop_card or base_id.startswith("curse_shou_hui"):
                     pass
-                elif card.type in ("spell", "attack"):
+                elif card.type == "spell":
                     if getattr(card, "target_type", "enemy") == "self":
                         target = "p0"
                     else:
@@ -324,7 +325,7 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
                         target = "e1"
                     elif target == "p":
                         target = "p0"
-                    if is_coop_card and (target.startswith("a") or target.startswith("t")):
+                    if (is_coop_card or is_any_other) and (target.lower().startswith("a") or target.lower().startswith("t")):
                         resolved = self.engine.combat_resolver.resolve_ally(run, target)
                         if not resolved:
                             return get_locale_text("i18n_battle_misc.coop_ally_not_found", target=target)
@@ -345,6 +346,9 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
                         return get_locale_text("i18n_battle_core.invalid_target")
         if card.type in ("minion", "amulet") and self.engine._get_free_grid(p) is None:
             return get_locale_text("i18n_battle_core.battlefield_full")
+        play_err = card.can_play_error(run, target, self.engine)
+        if play_err:
+            return play_err
         
         req_a = card.cost_a
         req_ba = card.cost_ba

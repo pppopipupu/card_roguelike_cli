@@ -80,7 +80,13 @@ class CardPlayerTurnMixin:
             if random.random() < 0.25:
                 p.bonus_actions += 1
                 self.engine._log_event(run, get_locale_text("i18n_battle_core.time_shift_turn_log"))
+        from ...data.minion_data import MINION_CONFIG
         for mk, mv in p.minions.items():
+            if MINION_CONFIG.get(mv.id, {}).get("no_attack_actions"):
+                mv.actions = 0
+                mv.bonus_actions = 0
+                mv.attack_actions = 0
+                continue
             mv.actions += 1
             mv.attack_actions = 1
             if mv.id == "mercenary":

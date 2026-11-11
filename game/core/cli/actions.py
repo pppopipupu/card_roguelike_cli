@@ -104,7 +104,7 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                 if run.node_type == "gem_insert":
                     res = router.engine.gem_insert_cancel(run)
                     return res, False, "❌" not in res
-                if run.node_type in ("reward", "treasure", "boss_chest", "rest", "shop"):
+                if run.node_type in ("reward", "treasure", "boss_chest", "rest", "shop", "life_merchant"):
                     items = run.node_data.get("items", [])
                     forced_items = [it for it in items if it.get("force") and not it.get("taken")]
                     if forced_items:

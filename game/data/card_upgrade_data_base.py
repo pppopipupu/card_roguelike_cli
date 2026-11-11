@@ -26,9 +26,9 @@ CARD_UPGRADE_CONFIG_BASE = {
     "first_aid": {
         "cost_a": 0,
         "cost_ba": 0,
-        "heal_amount": 5,
-        "shield_amount": 2,
-        "desc": "恢复 5 点生命值，并获得 2 点护盾。保留。"
+        "heal_amount": 10,
+        "shield_amount": 4,
+        "desc": "恢复 10 点生命值，并获得 4 点护盾。保留。消耗。"
     },
     "get_ready": {
         "cost_a": 0,
@@ -86,9 +86,9 @@ CARD_UPGRADE_CONFIG_BASE = {
         "desc": "生命 20，攻击 2。技能：重整防线（消耗 1BA，为你提供 4 点护盾），且进场时立即为你提供 6 点护盾。"
     },
     "quick_strike": {
-        "base_dmg": 5,
+        "base_dmg": 7,
         "ally_atk_bonus": 1,
-        "desc": "造成 5 点钝击伤害，且本回合我方所有在场随从的攻击力 +1。"
+        "desc": "造成 7 点钝击伤害，且本回合我方所有在场随从的攻击力 +1。"
     },
     "mana_potion": {
         "action_gain": 1,
@@ -318,9 +318,10 @@ CARD_UPGRADE_CONFIG_BASE = {
         "desc": "立即获得Y*4点护盾，且在本场战斗中获得X层古老智慧+形态：你每打出一张中立卡牌时，获得3点护盾。"
     },
     "arcane_torrent": {
-        "damage_amount": 4,
+        "damage_amount": 2,
+        "force_damage_amount": 2,
         "base_dmg": 4,
-        "desc": "对所有敌人造成多次 4 点真实伤害（穿透护盾）。若最终X不大于2，则造成X*2次伤害；若最终X大于2，则造成X*4次伤害。"
+        "desc": "对所有敌人造成多次 2 点真实伤害（穿透护盾）与 2 点力场伤害。若最终X不大于2，则造成X*2次伤害；若最终X大于2，则造成X*4次伤害。"
     },
     "arcane_barrier": {
         "coef": 9,
@@ -384,6 +385,19 @@ CARD_UPGRADE_CONFIG_BASE = {
         "base_dmg": 22,
         "banish_chance": 0.65,
         "gem_slots": 2,
-        "desc": "造成 22 点力场伤害。若目标为非领主敌人，有 65% 几率将其直接放逐（被放逐的敌人不掉落金币）；若目标为【迷雾】形态的伟大的克苏鲁，直接将其放逐并获胜。"
+        "desc": "造成 22 点力场伤害。若目标为非领主敌人，有 65% 几率将其直接放逐（被放逐的敌人不掉落金币）。"
+    },
+    "neutral_fusion": {
+        "hp_cost_ratio": 0.10,
+        "desc": "扣除当前最大生命上限的 10%（向上取整，最低 1 点，最大生命上限为 1 时不可使用），使你当前剩余的动作点 (A) 与附赠动作点 (BA) 翻倍。"
+    },
+    "neutral_shou_lai": {
+        "absorb_amount": 8,
+        "desc": "选中战场上任意一个除自己以外的生物（包括己方随从与队友），从目标身上吸收 8 点最大生命值（队友至少保留 1 点上限）。消耗。"
+    },
+    "neutral_tau": {
+        "cost_a": 1,
+        "cost_ba": 0,
+        "desc": "生命 1，攻击 0，没有 AA 点与主动技能。入场曲：触发自身所有遗物的“战斗开始时”效果一次，并无视动作点触发己方场上所有随从的 1 技能各一次。"
     },
 }

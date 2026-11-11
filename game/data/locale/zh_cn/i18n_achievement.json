@@ -1,0 +1,22 @@
+{
+  "title": "🏆 冒险成就列表 ({unlocked}/{total}) | 💰 当前 GP：{gp} | {all_view_status}",
+  "all_view_on": "全览模式：已开启",
+  "all_view_off": "全览模式：未开启（achi 全览 可花费 {price} GP 开启）",
+  "rarity_common": "普通",
+  "rarity_rare": "稀有",
+  "rarity_epic": "珍奇",
+  "rarity_legendary": "传奇",
+  "status_unlocked": "已解锁",
+  "status_locked": "未解锁",
+  "hidden_name": "？？？",
+  "hidden_desc": "隐藏成就，解锁或开启成就全览模式后查看细节。",
+  "entry_visible": "[{rarity}] {name} ({status} | 奖励: {gp} GP) - {desc}",
+  "entry_hidden": "[{rarity}] {name} ({status}) - {desc}",
+  "entry_hidden_reward": "[{rarity}] {name} ({status} | 奖励: {gp} GP) - {desc}",
+  "unlock_notice": "🏆 解锁【{rarity}】成就【{name}】！{desc}（获得 {gp} GP）",
+  "all_view_already": "✨ 你已经永久开启了成就全览模式，所有隐藏成就细节均已展示。",
+  "all_view_confirm_prompt": "🔓 开启【成就全览模式】将永久展示所有未解锁珍奇与传奇成就的具体名称、条件与 GP 奖励。\n💰 需要花费：{price} GP（当前拥有：{gp} GP）。\n👉 请发送 achi 全览 confirm（或 成就 全览 确认）完成购买。",
+  "all_view_insufficient_gp": "❌ 开启成就全览模式需要 {price} GP，你当前仅有 {gp} GP。",
+  "all_view_unlocked": "🎉 已花费 {price} GP 永久开启【成就全览模式】！所有隐藏成就详情现已揭示。",
+  "err_invalid_filter": "❌ 无效的成就筛选条件或页码。可选：页码数字、普通、稀有、珍奇、传奇、已解锁、全览。"
+}

@@ -71,5 +71,20 @@ NEUTRAL_CARD_MINIONS = {
         "instant_summon_piles": ["draw", "discard"],
         "feedback_success": "在格子 [{grid}] 召唤了【{name}】。",
         "feedback_fail": "战场已满，召唤失败。"
+    },
+    "neutral_tau": {
+        "name": "Tau",
+        "color": "neutral",
+        "type": "minion",
+        "cost_a": 2,
+        "cost_ba": 0,
+        "desc": "生命 1，攻击 0，没有 AA 点与主动技能。入场曲：触发自身所有遗物的“战斗开始时”效果一次，并无视动作点触发己方场上所有随从的 1 技能各一次。",
+        "rarity": "mythic",
+        "minion_hp": 1,
+        "minion_atk": 0,
+        "attack_actions": 0,
+        "life_merchant_only": True,
+        "feedback_success": "在格子 [{grid}] 降临了终极构造体【{name}】。",
+        "feedback_fail": "战场已满，召唤失败。"
     }
 }

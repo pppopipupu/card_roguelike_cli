@@ -301,7 +301,8 @@ class SunburstCard(Card):
 class ArcaneTorrentCard(Card):
     def execute(self, run, target, engine) -> str:
         X = run.node_data.get("last_x_cost_a", 0)
-        single_dmg = getattr(self, "damage_amount", 4 if self.upgraded else 3)
+        true_dmg = getattr(self, "damage_amount", 2 if self.upgraded else 1)
+        force_dmg = getattr(self, "force_damage_amount", 2)
         threshold = getattr(self, "threshold", 2)
         coef = getattr(self, "coef", 2)
         factor = getattr(self, "factor", 4)
@@ -309,18 +310,21 @@ class ArcaneTorrentCard(Card):
             count = X * coef
         else:
             count = X * factor
-        single_dmg = engine.get_modified_spell_damage(run, self, single_dmg)
+        true_dmg = engine.get_modified_spell_damage(run, self, true_dmg)
         for enemy in list(run.enemies):
             for _ in range(count):
                 if enemy in run.enemies:
                     curr_idx = run.enemies.index(enemy)
-                    engine._damage_target(run, f"e{curr_idx+1}", single_dmg, damage_type="true", card=self, damage_ready=True)
+                    engine._damage_target(run, f"e{curr_idx+1}", true_dmg, damage_type="true", card=self, damage_ready=True)
+                if enemy in run.enemies:
+                    curr_idx = run.enemies.index(enemy)
+                    engine._damage_target(run, f"e{curr_idx+1}", force_dmg, damage_type="force", card=self, damage_ready=True)
         from ...data.card_data import CARD_CONFIG
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
-            return feedback_tmpl.format(count=count, dmg=single_dmg)
-        return get_locale_text("i18n_cards_warrior_wizard.wizard.arcane_torrent.result", count=count, dmg=single_dmg)
+            return feedback_tmpl.format(count=count, true_dmg=true_dmg, force_dmg=force_dmg)
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.arcane_torrent.result", count=count, true_dmg=true_dmg, force_dmg=force_dmg)
 
 @register_card("arcane_barrier")
 class ArcaneBarrierCard(Card):

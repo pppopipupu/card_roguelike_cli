@@ -227,7 +227,7 @@
   "yog_log_save_erase_gold": "【{enemy_name}】施展了时空抹除，试图擦除你的存在，获得了 35 点护盾！\n⚠️ 尤格-索托斯正在读取你的存档... 试图执行 delete_save()...\n🛡️ 先古防火墙防御成功！但你仍丢失了 5 枚金币！",
   "yog_log_save_erase_hp": "【{enemy_name}】施展了时空抹除，试图擦除你的存在，获得了 35 点护盾！\n⚠️ 尤格-索托斯正在读取你的存档... 试图执行 delete_save()...\n🛡️ 先古防火墙防御成功！但时空抹除的余波导致你的生命上限被永久削减了 {hp_limit_removed} 点！",
   "yog_log_input_hijack": "【{enemy_name}】引动了指令输入劫持。{dmg_msg}，且将 2 张【无形低语】洗入了你的抽牌堆！",
-  "help_card_banish_slash": "【放逐斩】：造成力场伤害，并有几率直接放逐非领主敌人。对【迷雾】形态的伟大的克苏鲁使用时直接获胜。",
+  "help_card_banish_slash": "【放逐斩】：造成力场伤害，并有几率直接放逐非领主敌人。",
   "help_card_rlyeh_astrolabe": "【拉莱耶星盘】：0A 0BA，保留。校准非欧几里得星轨，推进【拉莱耶的群星封印】解谜进度。",
   "pure_vessel_name": "纯粹容器",
   "pure_vessel_intent_triple_slash": "三连挥砍 (造成 {val} 点挥砍伤害，连续 3 次)",

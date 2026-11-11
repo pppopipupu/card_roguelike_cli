@@ -87,6 +87,13 @@
       "desc": "默认浏览全部卡牌，overview relic 浏览全部遗物；浏览时输入 n 下一页、b 上一页，输入其他内容关闭图鉴。",
       "example": "overview relic"
     },
+    "achievement": {
+      "name": "成就列表",
+      "usage": "achi [页码|稀有度|已解锁|全览 confirm]",
+      "brief": "查看成就进度、隐藏详情全览与领取 GP",
+      "desc": "分页查看普通、稀有、珍奇与传奇成就；支持按稀有度或已解锁状态筛选，也可输入 achi 全览 确认花费 50000 GP 永久揭示全部隐藏成就细节。",
+      "example": "achi 1"
+    },
     "stats": {
       "name": "生涯统计",
       "usage": "stat",

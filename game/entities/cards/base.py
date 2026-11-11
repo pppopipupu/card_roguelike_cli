@@ -7,6 +7,7 @@ from . import legendary
 from . import curse
 from . import warrior
 from . import coop
+from . import life_merchant_cards
 
 import copy
 
@@ -65,6 +66,7 @@ NUMERIC_CARD_FIELDS = (
     "hp_threshold",
     "spell_damage_bonus",
     "damage_amount",
+    "force_damage_amount",
     "restore_amount",
     "bonus_damage",
     "gp_reward",
@@ -75,6 +77,9 @@ NUMERIC_CARD_FIELDS = (
     "draw_divisor",
     "attack_actions",
     "effect_params",
+    "hp_cost_ratio",
+    "absorb_amount",
+    "target_hp_cap",
 )
 
 GEM_DAMAGE_ADD = {
@@ -287,6 +292,7 @@ class CardRegistryDict(dict):
             inst.instant_summon_thresholds = tuple(cfg.get("instant_summon_thresholds", ()))
             inst.instant_summon_piles = tuple(cfg.get("instant_summon_piles", ()))
             inst.coop_only = cfg.get("coop_only", False)
+            inst.life_merchant_only = cfg.get("life_merchant_only", False)
             fragile_val = cfg.get("fragile", 0)
             if fragile_val > 0:
                 from ...entities.tags import FragileTag
@@ -562,6 +568,7 @@ for cid, cfg in _get_card_config().items():
     inst.instant_summon_thresholds = tuple(cfg.get("instant_summon_thresholds", ()))
     inst.instant_summon_piles = tuple(cfg.get("instant_summon_piles", ()))
     inst.coop_only = cfg.get("coop_only", False)
+    inst.life_merchant_only = cfg.get("life_merchant_only", False)
     fragile_val = cfg.get("fragile", 0)
     if fragile_val > 0:
         from ...entities.tags import FragileTag

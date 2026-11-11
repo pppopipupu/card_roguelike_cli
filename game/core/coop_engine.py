@@ -600,6 +600,12 @@ class CoopEngine:
             for uid in run.party_order:
                 stats = self.save_manager.load_stats(uid)
                 stats.yog_sothoth_kill_count = getattr(stats, "yog_sothoth_kill_count", 0) + 1
+                from .achievement_service import AchievementService
+                ach = AchievementService(self.save_manager)
+                player = run.players.get(uid)
+                if player and player.max_hp <= 1:
+                    ach.record_stat(uid, "one_hp_boss_kills", 1, stats=stats, save=False)
+                ach.reconcile(uid, stats=stats, save=False)
                 self.save_manager.save_stats(uid, stats)
             return
         if stage == MapConfig.GATE_BOSS_STAGE:
@@ -607,16 +613,44 @@ class CoopEngine:
                 getattr(self.save_manager.load_stats(uid), "unlocked_gatekey", False)
                 for uid in run.party_order
             )
+            boss_name = run.node_data.get("boss_name", "")
+            from .achievement_service import AchievementService
+            ach = AchievementService(self.save_manager)
+            for uid in run.party_order:
+                stats = self.save_manager.load_stats(uid)
+                player = run.players.get(uid)
+                if boss_name == "Icerainboww":
+                    stats.killed_icerainboww = True
+                if player and player.max_hp <= 1:
+                    ach.record_stat(uid, "one_hp_boss_kills", 1, stats=stats, save=False)
+                if not has_key:
+                    ach.record_stat(uid, "wins", 1, stats=stats, save=False)
+                ach.reconcile(uid, stats=stats, save=False)
+                self.save_manager.save_stats(uid, stats)
             if not has_key:
                 run.node_type = "victory"
                 run.node_data = {
                     "coop_node_type": "victory",
-                    "boss_name": run.node_data.get("boss_name", ""),
+                    "boss_name": boss_name,
                 }
                 self._team_notice(run, get_locale_text("i18n_explore_core.gate_boss_victory_notice"))
                 return
             self.init_coop_boss_chest(run)
             return
+        if difficulty == "boss":
+            from .achievement_service import AchievementService
+            ach = AchievementService(self.save_manager)
+            for uid in run.party_order:
+                stats = self.save_manager.load_stats(uid)
+                player = run.players.get(uid)
+                if player and player.max_hp <= 1:
+                    ach.record_stat(uid, "one_hp_boss_kills", 1, stats=stats, save=False)
+                if stage == 12:
+                    ach.record_stat(uid, "act1_boss_kills", 1, stats=stats, save=False)
+                elif stage == MapConfig.AVERGOMON_STAGE:
+                    ach.record_stat(uid, "avergomon_kills", 1, stats=stats, save=False)
+                ach.reconcile(uid, stats=stats, save=False)
+                self.save_manager.save_stats(uid, stats)
         self.init_coop_rewards(run, difficulty)
 
     def handle_battle_turn_end(self, run):

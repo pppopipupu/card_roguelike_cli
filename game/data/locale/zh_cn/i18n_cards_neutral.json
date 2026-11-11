@@ -225,9 +225,9 @@
       },
       "banish_slash": {
         "name": "放逐斩",
-        "desc": "造成 16 点力场伤害。若目标为非领主敌人，有 50% 几率将其直接放逐（被放逐的敌人不掉落金币）；若目标为【迷雾】形态的伟大的克苏鲁，直接将其放逐并获胜。",
+        "desc": "造成 16 点力场伤害。若目标为非领主敌人，有 50% 几率将其直接放逐（被放逐的敌人不掉落金币）。",
         "name_upgraded": "放逐斩+",
-        "desc_upgraded": "造成 22 点力场伤害。若目标为非领主敌人，有 65% 几率将其直接放逐（被放逐的敌人不掉落金币）；若目标为【迷雾】形态的伟大的克苏鲁，直接将其放逐并获胜。",
+        "desc_upgraded": "造成 22 点力场伤害。若目标为非领主敌人，有 65% 几率将其直接放逐（被放逐的敌人不掉落金币）。",
         "feedback": "对【{target}】斩出【放逐斩】。",
         "banish_success": "✨ 【放逐斩】撕裂了时空，【{target}】被彻底放逐，未能留下任何金币！",
         "banish_fail": "【{target}】抵抗住了放逐之力，仅受到 {dmg} 点力场伤害。",
@@ -240,6 +240,28 @@
         "feedback": "转动了【拉莱耶星盘】。",
         "no_seal": "拉莱耶的星轨尚未显形，星盘微微颤动后归于沉寂。",
         "seal_progress": "🌌 【拉莱耶星盘】校准了星轨，【拉莱耶的群星封印】推进至第 {stage} 幕。"
+      },
+      "neutral_fusion": {
+        "err_min_hp": "❌ 最大生命上限已降至 1 点，无法继续发动【聚变】。",
+        "result": "⚡ 【聚变】发动！扣除 {cost} 点最大生命上限，当前动作点翻倍为 {actions}A {bonus_actions}BA！"
+      },
+      "neutral_shou_lai": {
+        "err_self_target": "❌ 【寿来✋😡✋】不能选中你自己。",
+        "err_no_target": "❌ 未找到可以吸收生命值的有效目标。",
+        "result": "✋😡✋ 【寿来】发动！从【{target_name}】身上吸取了 {gain} 点最大生命上限（目标上限降至 {target_max_hp}，你的上限增至 {self_max_hp}）。",
+        "result_killed": "✋😡✋ 【寿来】发动！从【{target_name}】身上吸干了最后的生机，将其彻底吞噬（你的上限增至 {self_max_hp}）。"
+      },
+      "curse_shou_hui": {
+        "no_valid_target": "🌀 打出了【寿回✋😡✋】，但战场上没有任何曾对你施放过【寿来✋😡✋】的目标，因果律落空了。",
+        "err_not_source": "❌ 【{target_name}】从未对你施放过【寿来✋😡✋】，无法对其发动【寿回✋😡✋】。",
+        "result_kill": "💀 因果律反制【寿回✋😡✋】！由于【{target_name}】的最大生命上限低于 {cap} 点，该目标被直接抹杀！",
+        "result_drain": "🔄 因果律反制【寿回✋😡✋】！【{target_name}】的最大生命上限被压低至 {cap} 点，你额外夺取了 {gain} 点最大生命上限！",
+        "pulled_to_hand": "⚡ 感应到【寿来✋😡✋】的因果波动，你牌堆中的【寿回✋😡✋】立即跃入手牌！"
+      },
+      "neutral_tau": {
+        "relic_header": "🌀 【Tau】共鸣触发了 {count} 次遗物入场效果。",
+        "skill_entry": "⚡ 【Tau】无视动作点激发了【{minion}】的 1 技能【{skill}】：{effect}",
+        "result": "🤖 【Tau】已部署至格子 [{grid}]！"
       }
     },
     "special": {

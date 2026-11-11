@@ -94,6 +94,12 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             team_log_history = d.get("team_log_history", [])
             if not isinstance(team_log_history, list):
                 team_log_history = []
+            unlocked_achievements = d.get("unlocked_achievements", [])
+            if not isinstance(unlocked_achievements, list):
+                unlocked_achievements = []
+            achievement_stats = d.get("achievement_stats", {})
+            if not isinstance(achievement_stats, dict):
+                achievement_stats = {}
             return UserStats(
                 total_damage=d.get("total_damage", 0),
                 total_kills=d.get("total_kills", 0),
@@ -138,7 +144,10 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 projection_enabled=d.get("projection_enabled", True),
                 projection_feed=projection_feed,
                 log_history=log_history,
-                team_log_history=team_log_history
+                team_log_history=team_log_history,
+                unlocked_achievements=unlocked_achievements,
+                achievement_all_view=bool(d.get("achievement_all_view", False)),
+                achievement_stats=achievement_stats
             )
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_stats_failed", user_id=user_id, error=exc))

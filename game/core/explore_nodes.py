@@ -595,6 +595,11 @@ def handle_shop(engine, run, option_idx, target=None) -> str | None:
         return get_locale_text("i18n_explore_core.shop_leave_next")
 
 
+def handle_life_merchant(engine, run, option_idx, target=None) -> str | None:
+    from .life_merchant import handle_life_merchant as _handle_life_merchant
+    return _handle_life_merchant(engine, run, option_idx, target)
+
+
 NODE_HANDLERS = {
     "start_ancient": handle_start_ancient,
     "ancient": handle_ancient,
@@ -605,7 +610,8 @@ NODE_HANDLERS = {
     "card_select": handle_card_select,
     "rest": handle_rest,
     "event": handle_event,
-    "shop": handle_shop
+    "shop": handle_shop,
+    "life_merchant": handle_life_merchant
 }
 
 
