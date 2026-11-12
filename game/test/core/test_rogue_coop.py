@@ -84,7 +84,7 @@ class TestRogueCoop(unittest.TestCase):
 
     def test_friend_and_team_rules(self):
         leader = "rules_leader"
-        friends = [f"rules_friend_{index}" for index in range(5)]
+        friends = [f"rules_friend_{index}" for index in range(6)]
         stranger = "rules_stranger"
         self.rename_player(leader, "队长")
         self.rename_player(stranger, "路人")
@@ -93,7 +93,7 @@ class TestRogueCoop(unittest.TestCase):
             self.run_cmd(f"friend add {self.player_id(uid)}", leader)
             self.run_cmd(f"friend accept {self.player_id(leader)}", uid)
         result = self.run_cmd("friend list", leader)
-        self.assertIn("好友列表(5 人)", result)
+        self.assertIn("好友列表(6 人)", result)
         self.run_cmd("friend bind qq_rule_test", friends[0])
         searched = self.run_cmd("friend search qq_rule_test", leader)
         self.assertIn(self.player_id(friends[0]), searched)
@@ -104,11 +104,11 @@ class TestRogueCoop(unittest.TestCase):
         lobby_id = re.search(r"队伍 ([A-Z0-9]{6})", result).group(1)
         rejected = self.run_cmd(f"team invite {self.player_id(stranger)}", leader)
         self.assertIn("还不是你的好友", rejected)
-        for uid in friends[:3]:
+        for uid in friends[:5]:
             invited = self.run_cmd(f"team invite {self.player_id(uid)}", leader)
             self.assertIn("已邀请", invited)
-        overflow = self.run_cmd(f"team invite {self.player_id(friends[3])}", leader)
-        self.assertIn("最多 4 人", overflow)
+        overflow = self.run_cmd(f"team invite {self.player_id(friends[5])}", leader)
+        self.assertIn("最多 6 人", overflow)
         joined = self.run_cmd(f"team join {lobby_id}", friends[0])
         self.assertIn("已加入队伍", joined)
         not_ready = self.run_cmd("team start", leader)
@@ -125,7 +125,7 @@ class TestRogueCoop(unittest.TestCase):
         self.assertIn(self.player_id(mutual_b), self.run_cmd("friend list", mutual_a))
 
     def test_enemy_scaling_for_two_three_four_players(self):
-        expected = {2: 1.0, 3: 1.5, 4: 2.0}
+        expected = {2: 1.0, 3: 1.5, 4: 2.0, 5: 2.0, 6: 2.0}
         for count, multiplier in expected.items():
             with self.subTest(players=count):
                 uids = [f"scale_{count}_{index}" for index in range(count)]
@@ -174,11 +174,10 @@ class TestRogueCoop(unittest.TestCase):
         run = self.plugin.save_manager.load_save(uids[0])
         self.assertEqual(run.node_data.get("turn_count"), 2)
         self.assertFalse(any(run.node_data["turn_ready"].values()))
-        from game.core.coop_engine import CoopEngine
+        from game.core.deck_service import DeckService
         from game.entities.cards.market import is_coop_only
-        coop = CoopEngine(self.plugin.save_manager, self.plugin.engine)
         stats = self.plugin.save_manager.load_stats(uids[0])
-        pool = set(coop._reward_card_pool(run, run.players[uids[0]], stats))
+        pool = set(DeckService.get_reward_card_pool(run, run.players[uids[0]], stats, include_coop=True))
         coop_ids = {
             "coop_tactical_command",
             "coop_phalanx_bulwark",
@@ -256,26 +255,26 @@ class TestRogueCoop(unittest.TestCase):
         )
         self.run_cmd(f"c {battle_index}", uids[0])
         run = self.plugin.save_manager.load_save(uids[0])
-        from game.core.coop_engine import CoopEngine
-        coop = CoopEngine(self.plugin.save_manager, self.plugin.engine)
-        coop.mark_downed(run, run.players[uids[1]])
+        from game.core.battle.party_battle import assign_enemy_targets, is_all_downed, mark_downed, revive_downed_players
+        be = self.plugin.engine.battle_engine
+        mark_downed(be, run, run.players[uids[1]])
         self.assertTrue(run.players[uids[1]].downed)
-        self.assertFalse(coop.is_all_downed(run))
+        self.assertFalse(is_all_downed(run))
         self.assertTrue(run.node_data["turn_ready"][uids[1]])
-        self.plugin.save_manager.save_coop_save(uids[0], run)
+        self.plugin.save_manager.save_save(uids[0], run)
         downed = self.run_cmd("e", uids[1])
         self.assertIn("倒地", downed)
-        coop.assign_enemy_targets(run)
+        assign_enemy_targets(run)
         for target in run.node_data.get("enemy_targets", {}).values():
             if target != "ALL":
                 self.assertNotEqual(target, uids[1])
-        notices = coop.revive_downed_players(run)
+        notices = list(revive_downed_players(run).values())
         self.assertTrue(any(run.players[uids[1]].name in notice for notice in notices))
         self.assertEqual(run.players[uids[1]].hp, 1)
         self.assertFalse(run.players[uids[1]].downed)
-        coop.mark_downed(run, run.players[uids[0]])
-        coop.mark_downed(run, run.players[uids[1]])
-        self.assertTrue(coop.is_all_downed(run))
+        mark_downed(be, run, run.players[uids[0]])
+        mark_downed(be, run, run.players[uids[1]])
+        self.assertTrue(is_all_downed(run))
 
     def test_coop_relic_pool_contest(self):
         uids = ["relic_a", "relic_b"]
@@ -305,7 +304,7 @@ class TestRogueCoop(unittest.TestCase):
             "stage_ready": {uid: False for uid in uids},
         }
         apply_view(run, uids[0])
-        self.plugin.save_manager.save_coop_save(uids[0], run)
+        self.plugin.save_manager.save_save(uids[0], run)
 
         first = self.run_cmd("c 1", uids[0])
         self.assertIn(get_relic_name(relic_a), first)
@@ -374,13 +373,11 @@ class TestRogueCoop(unittest.TestCase):
     def test_coop_elite_relic_pool_count_and_claim(self):
         uids = ["elite_a", "elite_b", "elite_c"]
         run = self.start_coop(uids)
-        from game.core.coop_engine import CoopEngine
         from game.data.reward_config import ELITE_RELIC_MAP
-        coop = CoopEngine(self.plugin.save_manager, self.plugin.engine)
         run.node_data = {"difficulty": "elite", "elite_name": "暗影影魔"}
         before = {uid: len(run.players[uid].relics) for uid in uids}
-        coop.init_coop_rewards(run, "elite")
-        self.plugin.save_manager.save_coop_save(uids[0], run)
+        self.plugin.engine.battle_engine.card_player.init_rewards(run, "elite")
+        self.plugin.save_manager.save_save(uids[0], run)
         saved = self.plugin.save_manager.load_save(uids[0])
         pool = saved.node_data["coop_relic_pool"]
         ids = [entry["relic_id"] for entry in pool]
@@ -401,14 +398,12 @@ class TestRogueCoop(unittest.TestCase):
     def test_coop_elite_relic_pool_fills_when_owned(self):
         uids = ["fill_a", "fill_b", "fill_c"]
         run = self.start_coop(uids)
-        from game.core.coop_engine import CoopEngine
         from game.data.reward_config import ELITE_RELIC_MAP, TREASURE_RELIC_POOL
-        coop = CoopEngine(self.plugin.save_manager, self.plugin.engine)
         for uid in uids:
             run.players[uid].relics.extend(TREASURE_RELIC_POOL)
             run.players[uid].relics.append(ELITE_RELIC_MAP["暗影影魔"])
         run.node_data = {"difficulty": "elite", "elite_name": "暗影影魔"}
-        pool = coop._build_coop_relic_pool(run, "elite")
+        pool = self.plugin.engine.battle_engine.card_player.build_elite_relic_pool(run, "elite")
         ids = [entry["relic_id"] for entry in pool]
         self.assertEqual(len(pool), len(uids) + 1)
         self.assertEqual(len(set(ids)), len(ids))
@@ -426,11 +421,9 @@ class TestRogueCoop(unittest.TestCase):
         )
         self.run_cmd(f"c {battle_index}", uids[0])
         run = self.plugin.save_manager.load_save(uids[0])
-        from game.core.coop_engine import CoopEngine
-        coop = CoopEngine(self.plugin.save_manager, self.plugin.engine)
         before = {uid: run.players[uid].gold for uid in uids}
-        coop.init_coop_rewards(run, "normal")
-        self.plugin.save_manager.save_coop_save(uids[0], run)
+        self.plugin.engine.battle_engine.card_player.init_rewards(run, "normal")
+        self.plugin.save_manager.save_save(uids[0], run)
         amounts = {}
         for uid in uids:
             member_run = self.plugin.save_manager.load_save(uid)
@@ -481,7 +474,7 @@ class TestRogueCoop(unittest.TestCase):
         event = next(e for e in ALL_EVENTS if e.id == event_id)
         with patch("game.core.explore_engine.random.choice", return_value=event):
             explore._init_event_node(run)
-        self.plugin.save_manager.save_coop_save(uids[0], run)
+        self.plugin.save_manager.save_save(uids[0], run)
         return run
 
     def test_coop_event_is_shared(self):
@@ -489,7 +482,7 @@ class TestRogueCoop(unittest.TestCase):
         self.start_coop(uids)
         run = self._force_shared_event(uids, "altar")
         self.assertEqual(run.node_type, "event")
-        self.assertEqual(run.node_data.get("player_views"), {})
+        self.assertFalse(run.node_data.get("player_views"))
         loaded = [self.plugin.save_manager.load_save(uid) for uid in uids]
         self.assertEqual(len({item.node_data.get("event_id") for item in loaded}), 1)
         self.assertEqual(loaded[0].node_data.get("options"), loaded[1].node_data.get("options"))
@@ -612,7 +605,7 @@ class TestRogueCoop(unittest.TestCase):
             run.players[uids[0]].relics.append("trash_mountain")
         from game.models.coop_view import apply_view
         apply_view(run, uids[0])
-        self.plugin.save_manager.save_coop_save(uids[0], run)
+        self.plugin.save_manager.save_save(uids[0], run)
 
         opened = self.run_cmd("c 1", uids[0])
         owner = self.plugin.save_manager.load_save(uids[0])
@@ -655,7 +648,7 @@ class TestRogueCoop(unittest.TestCase):
         }
         from game.models.coop_view import apply_view
         apply_view(run, uids[0])
-        self.plugin.save_manager.save_coop_save(uids[0], run)
+        self.plugin.save_manager.save_save(uids[0], run)
         before = len(self.plugin.save_manager.load_save(uids[0]).player.deck)
 
         opened = self.run_cmd("c 2", uids[0])
@@ -715,7 +708,7 @@ class TestRogueCoop(unittest.TestCase):
         }
         from game.models.coop_view import apply_view
         apply_view(run, uids[0])
-        self.plugin.save_manager.save_coop_save(uids[0], run)
+        self.plugin.save_manager.save_save(uids[0], run)
         owner = self.plugin.save_manager.load_save(uids[0])
         self.plugin.engine.map_engine.choose_option(owner, 1)
         self.plugin.save_manager.save_save(uids[0], owner)
@@ -847,7 +840,7 @@ class TestRogueCoop(unittest.TestCase):
         }
         from game.models.coop_view import apply_view
         apply_view(run, uids[0])
-        self.plugin.save_manager.save_coop_save(uids[0], run)
+        self.plugin.save_manager.save_save(uids[0], run)
 
         opened = self.run_cmd("c 1", uids[0])
         self.assertIn("强制镶嵌", opened)
@@ -916,7 +909,7 @@ class TestRogueCoop(unittest.TestCase):
         run = self.plugin.save_manager.load_save(uid)
         run.player = run.players[uid]
         run.players[uid].hand = list(states)
-        self.plugin.save_manager.save_coop_save(uid, run)
+        self.plugin.save_manager.save_save(uid, run)
         return run
 
     def test_coop_battle_logs_not_replayed(self):
@@ -940,7 +933,7 @@ class TestRogueCoop(unittest.TestCase):
         run = self.plugin.save_manager.load_save(uids[1])
         run.player = run.players[uids[1]]
         run.players[uids[1]].buffs.append(BuffState("tactical_focus", "无法抽牌", 1, None, ""))
-        self.plugin.save_manager.save_coop_save(uids[1], run)
+        self.plugin.save_manager.save_save(uids[1], run)
         self.run_cmd("e", uids[1])
         run = self.plugin.save_manager.load_save(uids[1])
         self.assertFalse(any(b.id == "tactical_focus" for b in run.players[uids[1]].buffs))
@@ -959,7 +952,7 @@ class TestRogueCoop(unittest.TestCase):
         run.players[uids[1]].hand = [CardState(id="arcane_spark")]
         run.players[uids[1]].actions = 2
         run.players[uids[1]].bonus_actions = 1
-        self.plugin.save_manager.save_coop_save(uids[1], run)
+        self.plugin.save_manager.save_save(uids[1], run)
         res = self.run_cmd("p 1", uids[1])
         self.assertIn("[回响触发]", res)
 
@@ -991,8 +984,8 @@ class TestRogueCoop(unittest.TestCase):
         cafe_stage = MapConfig.CAFE_STAGES[0]
         for uid in uids:
             run.players[uid].stage = cafe_stage - 1
-        self.plugin.save_manager.save_coop_save(uids[0], run)
-        self.plugin.engine.map_engine.enter_next_stage(self.plugin.save_manager.load_save(uids[0]))
+        self.plugin.engine.map_engine.enter_next_stage(run)
+        self.plugin.save_manager.save_save(uids[0], run)
         run = self.plugin.save_manager.load_save(uids[0])
         self.assertEqual(run.node_type, "cafe")
         self.assertEqual(run.node_data.get("coop_node_type"), "cafe")

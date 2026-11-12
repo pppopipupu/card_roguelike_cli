@@ -31,7 +31,7 @@
 - 核心测试通过 `run_command(plugin, "command")` 模拟真实输入，禁止直接调用 `cli_router.handle_command`；后端测试通过 FastAPI TestClient 调用 `POST /api/v1/action`。
 - 禁止直接改写关卡节点、怪物血量或动作点、Buff、卡牌堆等内存状态。关卡切换与战斗结算必须由真实命令触发；高血量目标使用测试训练假人。
 - 允许的 Mock 仅限：存档 IO 桩、随机数确定化、事件监听计数桩。禁止用 Mock 替代关卡流转、战斗结算和卡牌堆演进。
-- 纯静态数值调整无需运行仿真与流程测试。
+- 纯静态数值调整（如降价、属性/概率/倍率微调）、配置字典核对、帮助/文案输出、管理调试指令及单次改动冒烟验证，均属于冒烟测试而非回归测试：应在 `scratch/` 运行一次性校验后立即删除，严禁放入 `game/test/` 回归测试集。
 - 测试目录：`game/test/core/` 覆盖核心游戏逻辑与主要交互，`game/test/server/` 覆盖后端账号、认证与接口，`game/test/check_refactor_gates.py` 是重构门禁扫描。
-- 回归测试只覆盖核心游戏逻辑与主要交互；为验证单次改动而临时编写的校验脚本放在 `scratch/`，跑通后立即删除，禁止留在 `game/test/`。
+- 回归测试只验证核心游戏逻辑、跨回合/跨节点不变量与玩家可观察行为是否因改动受损；禁止通过直接调用 `card.execute`、`event_bus.dispatch`、`router._execute_sub_action` 或断言静态配置常量/源码文本编写白盒或冒烟测试，必须通过真实命令或接口驱动完整流程。
 - 核心测试：PYTHONPATH="." PYTHONIOENCODING="utf-8" py -m unittest discover -s game/test/core -t . -p "test_*.py"；后端测试：PYTHONPATH="." PYTHONIOENCODING="utf-8" .venv/Scripts/python.exe -m unittest discover -s game/test/server -t . -p "test_*.py"；后端启动必须单 worker。

@@ -35,7 +35,7 @@ class ProjectionService:
         if not self.should_publish(command):
             return
         run = self.save_manager.load_save(actor_id)
-        if run is None or not getattr(run, "coop_id", ""):
+        if run is None or len(run.human_uids() if hasattr(run, "human_uids") else run.party_order) <= 1:
             return
         if actor_id not in getattr(run, "party_order", []):
             return
@@ -48,13 +48,13 @@ class ProjectionService:
             command=command,
             result=result,
         )
-        for uid in run.party_order:
+        for uid in (run.human_uids() if hasattr(run, "human_uids") else run.party_order):
             if uid == actor_id or uid not in run.players:
                 continue
             stats = self.save_manager.load_stats(uid)
             if not getattr(stats, "projection_enabled", True):
                 continue
-            if getattr(stats, "active_coop_id", "") != run.coop_id:
+            if run.coop_id and getattr(stats, "active_coop_id", "") != run.coop_id:
                 continue
             feed = stats.projection_feed if isinstance(stats.projection_feed, list) else []
             feed.append({

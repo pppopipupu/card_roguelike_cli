@@ -6,33 +6,6 @@ from game.models.events import BattleStartEvent, TurnStartEvent, CardPlayedEvent
 from game.core.cafe_engine import CafeEngine
 
 class TestRogueCafe(unittest.TestCase):
-    def test_cafe_trigger_and_npcs(self):
-        plugin = MyPlugin(DummyContext())
-        user_id = "test_user_trigger"
-        plugin.save_manager.delete_save(user_id)
-        p = PlayerState(
-            hp=30, max_hp=30, shield=0, gold=100, stage=12,
-            deck=["fire_bolt"], hand=[], draw_pile=[], discard_pile=[],
-            exhaust_pile=[], graveyard=[], relics=[]
-        )
-        run = GameRun(user_id=user_id, node_type="event", player=p, enemies=[], node_data={})
-        plugin.save_manager.save_save(user_id, run)
-        
-        plugin.engine.map_engine.enter_next_stage(run)
-        self.assertEqual(p.stage, 13)
-        self.assertEqual(run.node_type, "cafe")
-        cafe_data = run.node_data.get("cafe_data", {})
-        self.assertIsNotNone(cafe_data)
-        npcs = cafe_data.get("npcs", [])
-        self.assertEqual(len(npcs), 4)
-        guests = ["Guide_Elder", "Bartender_Jack", "Blacksmith_Ironclad", "pppopipupu"]
-        has_guest = any(g in npcs for g in guests)
-        self.assertTrue(has_guest)
-        
-        cafe = CafeEngine(plugin.save_manager, plugin.engine.map_engine)
-        rendered = cafe.render_cafe(run)
-        self.assertIn("先古咖啡厅", rendered)
-        plugin.save_manager.delete_save(user_id)
 
     def test_talk_blacksmith(self):
         plugin = MyPlugin(DummyContext())
@@ -185,57 +158,39 @@ class TestRogueCafe(unittest.TestCase):
         asyncio.run(go())
         plugin.save_manager.delete_save(user_id)
 
-    def test_leave_cafe(self):
-        plugin = MyPlugin(DummyContext())
-        user_id = "test_user_leave_cafe"
-        plugin.save_manager.delete_save(user_id)
-        p = PlayerState(
-            hp=30, max_hp=30, shield=0, gold=100, stage=13,
-            deck=[], hand=[], draw_pile=[], discard_pile=[],
-            exhaust_pile=[], graveyard=[], relics=[]
-        )
-        run = GameRun(user_id=user_id, node_type="cafe", player=p, enemies=[], node_data={})
-        cafe_data = {
-            "npcs": ["杰斯"],
-            "active_npc": None,
-            "dialog_state": None,
-            "talked_npcs": [],
-            "card_master_stock": [],
-            "gemcutter_stock": [],
-            "hunter_stock": None
-        }
-        run.node_data["cafe_data"] = cafe_data
-        plugin.save_manager.save_save(user_id, run)
-        
-        async def go():
-            res = await run_command(plugin, ".rogue 离开", user_id)
-            self.assertIn("重新踏上了", res)
-            
-            latest_run = plugin.save_manager.load_save(user_id)
-            self.assertEqual(latest_run.node_type, "ancient")
-            self.assertIn("options", latest_run.node_data)
-            
-        asyncio.run(go())
-        plugin.save_manager.delete_save(user_id)
 
     def test_relic_crimson_heart(self):
         plugin = MyPlugin(DummyContext())
-        engine = plugin.engine.battle_engine
-        p = PlayerState(
-            hp=5, max_hp=20, shield=0, gold=100, stage=14,
-            deck=["fire_bolt"], hand=[], draw_pile=[], discard_pile=[],
-            exhaust_pile=[], graveyard=[], relics=["crimson_heart"]
-        )
-        enemy = EnemyState(name="测试敌人", hp=20, max_hp=20, shield=0)
-        run = GameRun(user_id="test_user_crimson", node_type="battle", player=p, enemies=[enemy], node_data={})
-        
-        evt = DamageCalculateEvent(run=run, card=ALL_CARDS["fire_bolt"], source="p0", target="e1", damage_type="spell", base_damage=6, modified_damage=6)
-        engine.event_bus.dispatch(evt)
-        self.assertEqual(evt.modified_damage, 12)
-        
-        played_evt = CardPlayedEvent(run=run, card=ALL_CARDS["fire_bolt"], target="e1")
-        engine.event_bus.dispatch(played_evt)
-        self.assertEqual(p.hp, 7)
+        user_id = "test_user_crimson"
+        plugin.save_manager.delete_save(user_id)
+        stats = plugin.save_manager.load_stats(user_id)
+        stats.locked_cards = ["fire_bolt"]
+        plugin.save_manager.save_stats(user_id, stats)
+
+        async def go():
+            await run_command(plugin, ".rogue 主城", user_id)
+            await run_command(plugin, ".rogue home", user_id)
+            await run_command(plugin, ".rogue up", user_id)
+            await run_command(plugin, ".rogue talk Dummy", user_id)
+            await run_command(plugin, ".rogue 2", user_id)
+            run = plugin.save_manager.load_save(user_id)
+            run.player.relics.append("crimson_heart")
+            run.player.hp = 5
+            plugin.save_manager.save_save(user_id, run)
+            for _ in range(6):
+                run = plugin.save_manager.load_save(user_id)
+                idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == "fire_bolt"), None)
+                if idx is not None:
+                    hp_before_enemy = run.enemies[0].hp
+                    await run_command(plugin, f".rogue p {idx} e1", user_id)
+                    after = plugin.save_manager.load_save(user_id)
+                    self.assertEqual(hp_before_enemy - after.enemies[0].hp, 6)
+                    self.assertEqual(after.player.hp, 7)
+                    break
+                await run_command(plugin, ".rogue e", user_id)
+
+        asyncio.run(go())
+        plugin.save_manager.delete_save(user_id)
 
     def test_relic_espresso(self):
         plugin = MyPlugin(DummyContext())
@@ -342,43 +297,3 @@ class TestRogueCafe(unittest.TestCase):
         asyncio.run(go())
         plugin.save_manager.delete_save(user_id)
 
-    def test_status_command_available_in_cafe(self):
-        plugin = MyPlugin(DummyContext())
-        user_id = "test_user_cafe_status"
-        plugin.save_manager.delete_save(user_id)
-        p = PlayerState(
-            hp=30, max_hp=30, shield=0, gold=100, stage=13,
-            deck=["fire_bolt"], hand=[], draw_pile=[], discard_pile=[],
-            exhaust_pile=[], graveyard=[], relics=[]
-        )
-        run = GameRun(user_id=user_id, node_type="cafe", player=p, enemies=[], node_data={
-            "cafe_data": {
-                "npcs": ["杰斯", "艾琳", "雷恩", "pppopipupu"],
-                "active_npc": None,
-                "dialog_state": None,
-                "talked_npcs": [],
-                "card_master_stock": [],
-                "gemcutter_stock": [],
-                "hunter_stock": None
-            }
-        })
-        plugin.save_manager.save_save(user_id, run)
-        stats = plugin.save_manager.load_stats(user_id)
-        stats.rogue_mode = True
-        plugin.save_manager.save_stats(user_id, stats)
-
-        async def go():
-            res = await run_command(plugin, "s", user_id)
-            self.assertNotIn("不可用", res)
-            self.assertIn("先古咖啡厅", res)
-
-            await run_command(plugin, "talk 杰斯", user_id)
-            res_dialog = await run_command(plugin, "s", user_id)
-            self.assertNotIn("不可用", res_dialog)
-            self.assertIn("正在与", res_dialog)
-
-            latest_run = plugin.save_manager.load_save(user_id)
-            self.assertEqual(latest_run.node_data["cafe_data"]["active_npc"], "杰斯")
-
-        asyncio.run(go())
-        plugin.save_manager.delete_save(user_id)

@@ -2,7 +2,7 @@ from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
 
-class StatusCommand(CommandHandler, names=["状态", "status", "s"], allowed_states=["menu", "town", "explore", "battle", "dialog", "cafe"], help_key="status"):
+class StatusCommand(CommandHandler, names=["状态", "status", "r"], allowed_states=["menu", "town", "explore", "battle", "dialog", "cafe"], help_key="status"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if run:

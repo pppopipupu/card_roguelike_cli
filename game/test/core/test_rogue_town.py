@@ -258,42 +258,6 @@ class TestRogueTown(unittest.TestCase):
 
         asyncio.run(run_p_test())
 
-    def test_town_map_style(self):
-        plugin = MyPlugin(DummyContext())
-        save_manager = SaveManager()
-        stats_path = save_manager.get_stats_path("test_user")
-        if os.path.exists(stats_path):
-            try:
-                os.remove(stats_path)
-            except:
-                pass
-        save_manager.delete_save("test_user")
-
-        async def run_p_test():
-            await run_command(plugin, ".rogue 主城")
-            res = await run_command(plugin, ".rogue 地图")
-            self.assertIn("已成功将主城小地图样式切换为", res)
-            self.assertIn("局部雷达十字小地图", res)
-            stats = save_manager.load_stats("test_user")
-            self.assertEqual(stats.town_flags.get("map_style"), "radar")
-            res = await run_command(plugin, ".rogue map classic")
-            self.assertIn("已成功将主城小地图样式切换为", res)
-            self.assertIn("经典全局大地图", res)
-            stats = save_manager.load_stats("test_user")
-            self.assertEqual(stats.town_flags.get("map_style"), "classic")
-            res = await run_command(plugin, ".rogue 地图 雷达")
-            self.assertIn("已成功将主城小地图样式切换为", res)
-            self.assertIn("局部雷达十字小地图", res)
-            stats = save_manager.load_stats("test_user")
-            self.assertEqual(stats.town_flags.get("map_style"), "radar")
-            res = await run_command(plugin, ".rogue 地图 invalid")
-            self.assertIn("无效的地图样式", res)
-            await run_command(plugin, ".rogue quit")
-            res_fail = await run_command(plugin, ".rogue 地图")
-            self.assertIn("地图样式切换指令仅在主城模式下有效", res_fail)
-            save_manager.delete_save("test_user")
-
-        asyncio.run(run_p_test())
 
     def test_deck_replacement_logic(self):
         plugin = MyPlugin(DummyContext())

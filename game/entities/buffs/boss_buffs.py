@@ -165,10 +165,7 @@ class PermafrostAuraPassiveBuff(BuffImpl):
         if event.is_player:
             return
         run = event.run
-        if getattr(run, "coop_id", ""):
-            targets = list(run.players.values())
-        else:
-            targets = [run.player]
+        targets = [run.players[uid] for uid in run.party_order if uid in run.players]
         for p in targets:
             if p is None or p.hp <= 0 or getattr(p, "downed", False) or p.shield != 0:
                 continue

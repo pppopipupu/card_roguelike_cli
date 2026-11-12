@@ -115,21 +115,12 @@ class ManaPotionCard(Card):
 class MassHealingWordCard(Card):
     def execute(self, run, target, engine) -> str:
         heal_val = getattr(self, "heal_amount", 8)
-        players = list(run.players.values()) if getattr(run, "coop_id", "") else [run.player]
-        previous_player = run.player
-        previous_user = run.user_id
-        for player in players:
-            if player.hp <= 0 or player.downed:
-                continue
-            run.player = player
-            uid = run.uid_for(player)
-            if uid:
-                run.user_id = uid
-            engine._heal_target(run, "p0", heal_val)
+        from ...core.battle.party_battle import party_slots
+        for slot, _, player in party_slots(run, alive_only=True):
+            engine._heal_target(run, f"a{slot}", heal_val)
             for grid in list(player.minions.keys()):
-                engine._heal_target(run, f"p{grid}", heal_val)
-        run.player = previous_player
-        run.user_id = previous_user
+                if grid in player.minions:
+                    engine._heal_target(run, f"a{slot}m{grid}", heal_val)
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:

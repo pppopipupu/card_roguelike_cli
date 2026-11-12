@@ -6,7 +6,7 @@ from ...data.locale_data import get_locale_text
 def check_battle_outcome(router, user_id, run, res, success):
     if run.player.hp <= 0:
         settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-        if getattr(run, "coop_id", ""):
+        if len(run.human_uids()) > 1:
             return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
         return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, success
     if router.engine.is_battle_won(run):
@@ -125,13 +125,9 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                                 forced_names.append(get_locale_text("i18n_cli_core.reward_gem_name", name=get_gem_name(gid)))
                         names_str = get_locale_text("i18n_cli_core.list_separator").join(forced_names)
                         return get_locale_text("i18n_cli_core.err_must_claim_forced", names_str=names_str), False, False
-                    if getattr(run, "coop_id", ""):
-                        from ..coop_engine import CoopEngine
-                        msg = CoopEngine(router.save_manager, router.engine).finish_player_node(run, user_id, get_locale_text("i18n_cli_core.msg_leave_node"))
-                        return msg, False, True
-                    router.engine.map_engine.enter_next_stage(run)
-                    router.save_manager.save_save(run.user_id, run)
-                    return get_locale_text("i18n_cli_core.msg_leave_node"), False, True
+                    from ..party_coordinator import finish_player_node
+                    msg = finish_player_node(router.save_manager, router.engine.map_engine, run, user_id, get_locale_text("i18n_cli_core.msg_leave_node"))
+                    return msg, False, True
             if arg in ("wizard", "warrior", "wiz", "war", "法师", "战士", "选择", "时序法师", "塑能法师", "秘钥学者"):
                 return get_locale_text("i18n_cli_core.err_class_switch"), False, False
             return get_locale_text("i18n_cli_core.err_index_numeric"), False, False
@@ -143,16 +139,14 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
             success = "❌" not in res
             if run.player.hp <= 0:
                 settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                if getattr(run, "coop_id", ""):
+                if len(run.human_uids()) > 1:
                     return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
                 return get_locale_text("i18n_cli_core.death_wilderness", res=res, settle_msg=settle_msg), True, success
-            if getattr(run, "coop_id", ""):
-                router.save_manager.save_save(user_id, run)
+            router.save_manager.save_save(user_id, run)
             return res, False, success
         elif run.node_data.get("pending_remove"):
             res = router.engine.remove_card_from_deck(run, idx)
-            if getattr(run, "coop_id", ""):
-                router.save_manager.save_save(user_id, run)
+            router.save_manager.save_save(user_id, run)
             return res, False, "❌" not in res
         else:
             target = parts[2] if len(parts) > 2 else None
@@ -170,8 +164,7 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                 router.save_manager.save_save(user_id, run)
                 return get_locale_text("i18n_cli_core.msg_upgrade_flow_started"), False, True
             else:
-                if getattr(run, "coop_id", ""):
-                    router.save_manager.save_save(user_id, run)
+                router.save_manager.save_save(user_id, run)
                 return res, False, success
 
 class SpecialAction(ActionHandler, actions=["特殊", "sa"]):

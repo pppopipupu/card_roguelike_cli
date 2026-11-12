@@ -34,52 +34,49 @@ class BattleEngine(BaseBattleEngine):
         self.stat_tracking_handler = StatTrackingHandler(self.event_bus, self.save_manager)
         self.instant_summon_handler = InstantSummonHandler(self.event_bus, self)
         self.daily_blessing_handler = DailyBlessingHandler(self.event_bus, self)
+        from .mercenary import MercenaryVoiceHandler
+        self.mercenary_voice_handler = MercenaryVoiceHandler(self.event_bus, self)
 
     def _log_event(self, run: Optional[GameRun], msg: str):
         if run is None:
             return
+        owner_uid = run.user_id
+        if run.player is not None and getattr(run.player, "is_mercenary", False):
+            owner_uid = getattr(run.player, "mercenary_owner", "") or owner_uid
         logs = run.node_data.setdefault("battle_logs", [])
-        if getattr(run, "coop_id", ""):
-            owners = run.node_data.get("battle_log_owners")
-            if not isinstance(owners, list):
-                owners = []
-                run.node_data["battle_log_owners"] = owners
-            if len(owners) < len(logs):
-                owners.extend([run.user_id] * (len(logs) - len(owners)))
-            elif len(owners) > len(logs):
-                del owners[len(logs):]
-            owners.append(run.user_id)
+        owners = run.node_data.get("battle_log_owners")
+        if not isinstance(owners, list):
+            owners = []
+            run.node_data["battle_log_owners"] = owners
+        if len(owners) < len(logs):
+            owners.extend([owner_uid] * (len(logs) - len(owners)))
+        elif len(owners) > len(logs):
+            del owners[len(logs):]
+        owners.append(owner_uid)
         logs.append(msg)
-
     def _append_logs_to_res(self, run: GameRun, res: str) -> str:
         if "battle_logs" in run.node_data:
             logs = run.node_data.pop("battle_logs", [])
-            if getattr(run, "coop_id", ""):
-                owners = run.node_data.pop("battle_log_owners", [])
-                own_logs = []
-                remaining = []
-                remaining_owners = []
-                for index, msg in enumerate(logs):
-                    owner = owners[index] if index < len(owners) else run.user_id
-                    if owner == run.user_id:
-                        own_logs.append(msg)
-                    else:
-                        remaining.append(msg)
-                        remaining_owners.append(owner)
-                if remaining:
-                    run.node_data["battle_logs"] = remaining
-                    run.node_data["battle_log_owners"] = remaining_owners
-                logs = own_logs
-            if logs:
-                res = res.rstrip() + "\n" + "\n".join(logs)
-        elif getattr(run, "coop_id", ""):
-            run.node_data.pop("battle_log_owners", None)
-        if getattr(run, "coop_id", "") and run.user_id in run.players:
-            self.save_manager.save_coop_save(run.user_id, run)
+            owners = run.node_data.pop("battle_log_owners", [])
+            own_logs = []
+            remaining = []
+            remaining_owners = []
+            for index, msg in enumerate(logs):
+                owner = owners[index] if index < len(owners) else run.user_id
+                if owner == run.user_id:
+                    own_logs.append(msg)
+                else:
+                    remaining.append(msg)
+                    remaining_owners.append(owner)
+            if remaining:
+                run.node_data["battle_logs"] = remaining
+                run.node_data["battle_log_owners"] = remaining_owners
+            if own_logs:
+                res = res.rstrip() + "\n" + "\n".join(own_logs)
         else:
-            self.save_manager.save_save(run.user_id, run)
+            run.node_data.pop("battle_log_owners", None)
+        self.save_manager.save_save(run.user_id, run)
         return res
-
     def is_battle_won(self, run: GameRun) -> bool:
         if run.node_type != "battle":
             return False
@@ -132,52 +129,36 @@ class BattleEngine(BaseBattleEngine):
 
     def _init_battle_node(self, run: GameRun, difficulty: str = "normal"):
         self.current_run = run
-        if getattr(run, "coop_id", ""):
-            self._init_coop_battle(run, difficulty)
-            return
-        self._init_battle_node_solo(run, difficulty)
-
-    init_battle = _init_battle_node
-
-    def _init_battle_node_solo(self, run: GameRun, difficulty: str = "normal"):
-        self.current_run = run
-        self._init_player_battle(run, run.player, difficulty)
-        self._generate_battle_enemies(run, difficulty)
-        from ..models.events import BattleStartEvent, TurnStartEvent
-        self.event_bus.dispatch(BattleStartEvent(run))
-        evt_turn = TurnStartEvent(run, is_player=True)
-        self.event_bus.dispatch(evt_turn)
-        self._roll_enemy_intent(run)
-
-    def _init_coop_battle(self, run: GameRun, difficulty: str = "normal"):
-        self.current_run = run
-        from .coop_engine import CoopEngine
-        coop = CoopEngine(self.save_manager, self)
+        from .battle.party_battle import assign_enemy_targets, scale_party_enemies
         caller = run.user_id
         viewer = run.player
         if run.node_data.get("temp_minus_1a"):
             run.node_data["drain_a"] = True
             run.node_data.pop("temp_minus_1a", None)
-        run.node_data = {
-            "turn_count": 1,
-            "difficulty": difficulty,
-            "turn_ready": {},
-        }
+        run.node_data.pop("enemy_targets", None)
+        run.node_data.pop("coop_aggro_cursor", None)
+        run.node_data.pop("coop_hp_mult", None)
+        run.node_data["turn_count"] = 1
+        run.node_data["difficulty"] = difficulty
+        turn_ready = {}
         for uid in run.party_order:
-            player = run.players[uid]
+            player = run.players.get(uid)
+            if player is None:
+                continue
             run.player = player
             run.user_id = uid
             self._init_player_battle(run, player, difficulty)
-            run.node_data["turn_ready"][uid] = player.downed
+            turn_ready[uid] = player.downed or getattr(player, "is_mercenary", False)
+        run.node_data["turn_ready"] = turn_ready
         run.player = viewer
         run.user_id = caller
         self._generate_battle_enemies(run, difficulty)
-        coop.scale_coop_enemies(run)
-        coop.assign_enemy_targets(run)
+        scale_party_enemies(run)
+        assign_enemy_targets(run)
         from ..models.events import BattleStartEvent, TurnStartEvent
         for uid in run.party_order:
-            player = run.players[uid]
-            if player.downed or player.hp <= 0:
+            player = run.players.get(uid)
+            if player is None or player.downed or player.hp <= 0:
                 continue
             run.player = player
             run.user_id = uid
@@ -185,8 +166,8 @@ class BattleEngine(BaseBattleEngine):
         run.player = viewer
         run.user_id = caller
         for uid in run.party_order:
-            player = run.players[uid]
-            if player.downed or player.hp <= 0:
+            player = run.players.get(uid)
+            if player is None or player.downed or player.hp <= 0:
                 continue
             run.player = player
             run.user_id = uid
@@ -194,12 +175,22 @@ class BattleEngine(BaseBattleEngine):
         run.player = viewer
         run.user_id = caller
         self._roll_enemy_intent(run)
-        coop.assign_enemy_targets(run)
-        self.save_manager.save_coop_save(caller, run)
+        assign_enemy_targets(run)
+        from .mercenary import run_mercenaries_for_timing
+        from ..data.mercenary_data import MERCENARY_TIMING_BEFORE
+        merc_logs = run_mercenaries_for_timing(self, run, MERCENARY_TIMING_BEFORE)
+        if merc_logs:
+            self._log_event(run, merc_logs)
+        if self.is_battle_won(run):
+            from .battle.party_battle import is_all_downed
+            if not is_all_downed(run):
+                self.card_player.handle_battle_win(run)
+
+    init_battle = _init_battle_node
 
     def _init_player_battle(self, run: GameRun, p, difficulty: str):
-        player_uid = run.uid_for(p) if getattr(run, "coop_id", "") else run.user_id
-        if player_uid:
+        player_uid = run.uid_for(p)
+        if player_uid and not getattr(p, "is_mercenary", False) and hasattr(self.save_manager, "load_stats"):
             stats = self.save_manager.load_stats(player_uid)
             stats_class = getattr(stats, "selected_class", "")
             if stats_class:
@@ -212,7 +203,11 @@ class BattleEngine(BaseBattleEngine):
             run.node_data["drain_a"] = True
             run.node_data.pop("temp_minus_1a", None)
         p.hand.clear()
-        p.draw_pile = p.deck.copy()
+        p.draw_pile = []
+        for c in p.deck:
+            cloned = DeckService.clone_state(c)
+            cloned.exhaust_used = 0
+            p.draw_pile.append(cloned)
         import random
         random.shuffle(p.draw_pile)
         p.discard_pile.clear()
@@ -229,14 +224,8 @@ class BattleEngine(BaseBattleEngine):
         run.node_data["turn_count"] = 1
         selected_class = getattr(p, "selected_class", "法师")
         if selected_class == "战士":
-            if getattr(run, "coop_id", ""):
-                surge_uid = run.uid_for(p)
-                run.node_data[f"action_surge_uses:{surge_uid}"] = 2
-                run.node_data[f"action_surge_turn_used:{surge_uid}"] = False
-            else:
-                run.node_data["action_surge_uses"] = 2
-                run.node_data["action_surge_turn_used"] = False
-
+            run.node_data[run.turn_key("action_surge_uses", p)] = 2
+            run.node_data[run.turn_key("action_surge_turn_used", p)] = False
         if getattr(p, "subclass", "") == "时序法师":
             if random.random() < 0.25:
                 p.bonus_actions += 1
@@ -414,15 +403,8 @@ class BattleEngine(BaseBattleEngine):
 
     def _handle_battle_win(self, run: GameRun):
         self.current_run = run
-        if getattr(run, "coop_id", ""):
-            from .coop_engine import CoopEngine
-            CoopEngine(self.save_manager, self).handle_coop_battle_win(run)
-            self.save_manager.save_save(run.user_id, run)
-            StatsTracker.flush(self.save_manager, run)
-            return
         self.card_player.handle_battle_win(run)
         StatsTracker.flush(self.save_manager, run)
-
     def _roll_enemy_intent(self, run: GameRun):
         self.enemy_controller.roll_enemy_intent(run)
 
@@ -458,10 +440,13 @@ class BattleEngine(BaseBattleEngine):
             self._log_event(run, get_locale_text("i18n_battle_core.exhaust_to_pile_log", name=cname))
             self.event_bus.dispatch(CardExhaustEvent(run, cid, "emperor_eye"))
             exhausted_count += 1
+        from ..entities.cards.market import is_card_available
+        stat_uid = getattr(p, "mercenary_owner", "") if getattr(p, "is_mercenary", False) else run.user_id
+        stats = self.save_manager.load_stats(stat_uid) if stat_uid and hasattr(self.save_manager, "load_stats") else None
         card_pool = []
         for cid, card_obj in ALL_CARDS.items():
             if not cid.startswith("duel_") and not cid.startswith("curse_") and not cid.endswith("+"):
-                if not getattr(card_obj, "unplayable", False) and not getattr(card_obj, "coop_only", False):
+                if not getattr(card_obj, "unplayable", False) and not getattr(card_obj, "coop_only", False) and getattr(card_obj, "color", "") != "mercenary" and is_card_available(cid, stats):
                     card_pool.append(cid)
         drawn = []
         if card_pool and exhausted_count > 0:

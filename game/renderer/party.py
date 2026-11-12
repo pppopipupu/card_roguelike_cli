@@ -13,7 +13,7 @@ def render_party_status(run: GameRun) -> str:
         member = (getattr(run, "players", {}) or {}).get(uid)
         if member is None:
             continue
-        marker = t("renderer_town.party_you_marker") if uid == run.user_id else ""
+        marker = t("renderer_town.party_you_marker") if uid == run.user_id else (t("renderer_town.party_mercenary_marker") if getattr(member, "is_mercenary", False) else "")
         if member.downed or member.hp <= 0:
             hp_text = t("renderer_town.party_downed")
         else:

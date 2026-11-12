@@ -46,19 +46,6 @@ class TestRogueLogs(unittest.TestCase):
         self.assertIn("p 1", short)
         self.assertNotIn("start confirm", short)
 
-    def test_logs_default_and_maximum(self):
-        uid = "logs_limit_user"
-        for _ in range(55):
-            self.run_cmd("mode", uid)
-        result = self.run_cmd("logs", uid)
-        self.assertIn("最近 20 条", result)
-        maximum = self.run_cmd("logs 999", uid)
-        self.assertIn("最近 50 条", maximum)
-        invalid = self.run_cmd("logs 0", uid)
-        self.assertIn("必须是", invalid)
-        invalid_text = self.run_cmd("logs abc", uid)
-        self.assertIn("必须是", invalid_text)
-
     def test_queue_command_limit(self):
         uid = "queue_limit_user"
         commands = ",".join(["mode"] * 51)

@@ -55,10 +55,9 @@ def _alive_players(run) -> list:
 
 
 def _target_ref(run, player) -> str:
-    if getattr(run, "coop_id", ""):
-        uid = run.uid_for(player)
-        if uid in run.party_order:
-            return f"a{run.party_order.index(uid) + 1}"
+    uid = run.uid_for(player)
+    if uid in run.party_order:
+        return f"a{run.party_order.index(uid) + 1}"
     return "p0"
 
 

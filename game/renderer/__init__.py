@@ -11,21 +11,22 @@ from .query import render_query_info
 
 from .town import render_town
 from .bag import render_bag
+from .formatters import format_large_int, format_output_numbers
 
 class GameRenderer:
 
 
     @staticmethod
     def render_bag(stats: UserStats) -> str:
-        return render_bag(stats)
+        return format_output_numbers(render_bag(stats))
 
     @staticmethod
     def render_town(stats: UserStats, room_data: dict) -> str:
-        return render_town(stats, room_data)
+        return format_output_numbers(render_town(stats, room_data))
 
     @staticmethod
     def render_menu(stats: UserStats = None) -> str:
-        return render_menu(stats)
+        return format_output_numbers(render_menu(stats))
 
     @staticmethod
     def render_help_index(sections: list) -> str:
@@ -37,7 +38,7 @@ class GameRenderer:
 
     @staticmethod
     def render_potion_list(run: GameRun) -> str:
-        return render_potion_list(run)
+        return format_output_numbers(render_potion_list(run))
 
     @staticmethod
     def render_tutorial() -> str:
@@ -58,12 +59,15 @@ class GameRenderer:
 
     @staticmethod
     def render_deck(run: GameRun) -> str:
-        return render_deck(run)
+        return format_output_numbers(render_deck(run))
 
     @staticmethod
-    def render_game(run: GameRun) -> str:
+    def _render_game_raw(run: GameRun) -> str:
         if not run:
             return render_menu()
+        from ..core.mercenary import is_in_merc_dialog, render_merc_dialog
+        if is_in_merc_dialog(run, getattr(run, "user_id", "")):
+            return render_merc_dialog(run, run.user_id)
         nt = run.node_type
         if nt == "battle":
             return render_battle(run)
@@ -99,34 +103,37 @@ class GameRenderer:
         return get_locale_text("i18n_renderer_extra.unknown_state")
 
     @staticmethod
+    def render_game(run: GameRun) -> str:
+        return format_output_numbers(GameRenderer._render_game_raw(run))
+
+    @staticmethod
     def render_query_info(query_str: str, user_id: str | None = None) -> str:
-        return render_query_info(query_str, user_id)
+        return format_output_numbers(render_query_info(query_str, user_id))
 
     @staticmethod
     def render_detailed_battle(run: GameRun) -> str:
-        return render_detailed_battle(run)
+        return format_output_numbers(render_detailed_battle(run))
 
     @staticmethod
     def render_stats(stats: UserStats, include_mode: bool = True) -> str:
-        return render_stats(stats, include_mode)
-
+        return format_output_numbers(render_stats(stats, include_mode))
 
     @staticmethod
     def render_draw_pile(run: GameRun) -> str:
-        return render_draw_pile(run)
+        return format_output_numbers(render_draw_pile(run))
 
     @staticmethod
     def render_discard_pile(run: GameRun) -> str:
-        return render_discard_pile(run)
+        return format_output_numbers(render_discard_pile(run))
 
     @staticmethod
     def render_exhaust_pile(run: GameRun) -> str:
-        return render_exhaust_pile(run)
+        return format_output_numbers(render_exhaust_pile(run))
 
     @staticmethod
     def render_minion_graveyard(run: GameRun) -> str:
-        return render_minion_graveyard(run)
+        return format_output_numbers(render_minion_graveyard(run))
 
     @staticmethod
     def render_enemy_graveyard(run: GameRun) -> str:
-        return render_enemy_graveyard(run)
+        return format_output_numbers(render_enemy_graveyard(run))

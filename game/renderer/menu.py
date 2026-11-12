@@ -86,6 +86,7 @@ def get_rogue_card_library_items(user_id: str | None = None) -> list:
     neutrals = []
     blue_spells = []
     red_cards = []
+    merc_cards = []
     curses = []
     rarity_map = {
         "common": t("renderer_menu.rarity_common"),
@@ -128,11 +129,12 @@ def get_rogue_card_library_items(user_id: str | None = None) -> list:
             neutrals.append(t("renderer_menu.prefix_neutral", info=info))
         elif card.color == "warrior":
             red_cards.append(t("renderer_menu.prefix_warrior", info=info))
+        elif card.color == "mercenary":
+            merc_cards.append(t("renderer_menu.prefix_mercenary", info=info))
         else:
             blue_spells.append(t("renderer_menu.prefix_wizard", info=info))
             
-    return neutrals + blue_spells + red_cards + curses
-
+    return neutrals + blue_spells + red_cards + merc_cards + curses
 def get_rogue_relic_library_items() -> list:
     from ..data.relic_data import RELIC_CONFIG
     items = []
@@ -329,11 +331,11 @@ def render_deck(run: GameRun) -> str:
         counts[c_state] = counts.get(c_state, 0) + 1
     idx = 1
     def get_sort_key(item):
-        return (item[0].id, 1 if item[0].upgraded else 0, tuple(item[0].gems or []))
+        return (item[0].id, 1 if item[0].upgraded else 0, tuple(item[0].gems or []), item[0].exhaust_used, item[0].fleeting_used)
     for cid, count in sorted(counts.items(), key=get_sort_key):
         card = ALL_CARDS.get(cid)
         if card:
-            color_type = "⚫" if card.color == "curse" else ("🔴" if card.color == "warrior" else ("🔵" if card.color == "wizard" else "⚪"))
+            color_type = "⚫" if card.color == "curse" else ("🔴" if card.color == "warrior" else ("🔵" if card.color == "wizard" else ("🟣" if card.color == "mercenary" else "⚪")))
             rarity_map = {
                 "common": t("renderer_menu.rarity_common"),
                 "rare": t("renderer_menu.rarity_rare"),

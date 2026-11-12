@@ -35,17 +35,15 @@ class CombatResolver:
         self.engine = engine
 
     def resolve_ally(self, run: GameRun, target: Optional[str]):
-        if not run or not getattr(run, "coop_id", "") or not target:
+        if not run or not target:
             return None
         text = str(target).strip().lower()
-        if text.startswith("t"):
-            text = "a" + text[1:]
         if not text.startswith("a"):
             return None
         rest = text[1:]
         grid = None
-        if "p" in rest:
-            index_part, grid = rest.split("p", 1)
+        if "m" in rest:
+            index_part, grid = rest.split("m", 1)
             if not grid.isdigit():
                 return None
         else:
@@ -125,6 +123,13 @@ class CombatResolver:
                 return run.enemies[idx].name
         if source in ("p0", "player", "effect"):
             return get_locale_text("i18n_battle_misc.source_self")
+        if source.startswith("a"):
+            resolved = self.resolve_ally(run, source)
+            if resolved:
+                _, ally_player, ally_grid = resolved
+                if ally_grid is not None and ally_grid in ally_player.minions:
+                    return ally_player.minions[ally_grid].name
+                return ally_player.name
         if source.startswith("relic:"):
             return get_locale_text("i18n_battle_misc.source_relic")
         if source == "curse":
@@ -410,10 +415,8 @@ class CombatResolver:
                         game_run_context.node_data["death_cause"] = get_locale_text("i18n_battle_misc.death_cause_self")
                     else:
                         game_run_context.node_data["death_cause"] = get_locale_text("i18n_battle_misc.death_cause_enemy", killer=killer)
-                if getattr(game_run_context, "coop_id", ""):
-                    from ..coop_engine import CoopEngine
-                    CoopEngine(self.engine.save_manager, self.engine).mark_downed(game_run_context, p)
-            if final_dmg > 0:
+                from .party_battle import mark_downed
+                mark_downed(self.engine, game_run_context, p)
                 barrier_buff = next((b for b in p.buffs if b.id in ("prismatic_barrier", "prismatic_barrier_upgraded")), None)
                 if barrier_buff:
                     barrier_buff.stacks -= 1

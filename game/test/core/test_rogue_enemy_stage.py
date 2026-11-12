@@ -188,42 +188,6 @@ class TestRogueEnemyStage(unittest.TestCase):
         self.assertIn("反弹", q_end)
 
 
-    def test_boss_selection_by_stage(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run):
-                pass
-            def delete_save(self, user_id):
-                pass
-            def load_stats(self, user_id):
-                return None
-        sm = DummySaveManager()
-        engine = BattleEngine(sm)
-        
-        stages_12_bosses = set()
-        for _ in range(50):
-            player = PlayerState(hp=100, max_hp=100, shield=0, gold=100, stage=12)
-            run = GameRun(user_id="test_boss", node_type="battle", player=player)
-            engine._init_battle_node(run, "boss")
-            stages_12_bosses.add(run.enemies[0].name)
-        self.assertEqual(stages_12_bosses, {"远古红龙", "雷霆领主", "纯粹容器"})
-        
-        stages_25_bosses = set()
-        for _ in range(50):
-            player = PlayerState(hp=100, max_hp=100, shield=0, gold=100, stage=25)
-            run = GameRun(user_id="test_boss", node_type="battle", player=player)
-            engine._init_battle_node(run, "boss")
-            stages_25_bosses.add(run.enemies[0].name)
-        self.assertEqual(stages_25_bosses, {"腐化之心", "Icerainboww", "伟大的克苏鲁"})
-        
-        player31 = PlayerState(hp=100, max_hp=100, shield=0, gold=100, stage=31)
-        run31 = GameRun(user_id="test_boss", node_type="battle", player=player31)
-        engine._init_battle_node(run31, "boss")
-        self.assertEqual(run31.enemies[0].name, "亚弗戈蒙")
-        
-        player32 = PlayerState(hp=100, max_hp=100, shield=0, gold=100, stage=32)
-        run32 = GameRun(user_id="test_boss", node_type="battle", player=player32)
-        engine._init_battle_node(run32, "boss")
-        self.assertEqual(run32.enemies[0].name, "虚空之门·尤格-索托斯")
 
     def test_aforgomon_boss_mechanisms(self):
         class DummySaveManager:

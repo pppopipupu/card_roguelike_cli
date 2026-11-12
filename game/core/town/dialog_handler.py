@@ -117,7 +117,8 @@ def _normal_specs(npc_id: str) -> List[Dict[str, Any]]:
         specs.append(_option("knock", _npc_label("option_knock")))
     elif npc_id in ("Dummy", "NoobSlayer99", "xXx_SniperElite_xXx", "pppopipupu"):
         specs.append(_option("challenge", _npc_label("option_challenge")))
-
+    elif npc_id == "Harry_Du_Bois":
+        specs.append(_option("hire_harry", _npc_label("option_hire_harry")))
     specs.append(_option("leave", _npc_label("option_leave", _global_label("leave_default", get_locale_text("global.leave_default")))))
     return specs
 
@@ -632,5 +633,21 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         stats.gp += 2000
         save()
         return get_locale_text("global.sell_dew_success") + "\n\n" + rerender()
+
+    if action == "hire_harry":
+        from ...data.mercenary_data import MERCENARY_HARRY_HIRE_COST
+        hired = list(getattr(stats, "hired_mercenaries", []) or [])
+        if "harry_du_bois" in hired:
+            return get_locale_text("i18n_mercenary.already_hired") + "\n\n" + rerender()
+        if stats.gp < MERCENARY_HARRY_HIRE_COST:
+            return get_locale_text("global.gp_insufficient", req=MERCENARY_HARRY_HIRE_COST, owned=stats.gp)
+        stats.gp -= MERCENARY_HARRY_HIRE_COST
+        hired.append("harry_du_bois")
+        stats.hired_mercenaries = hired
+        save()
+        msg = get_locale_text("i18n_mercenary.hire_success", cost=MERCENARY_HARRY_HIRE_COST)
+        if getattr(stats, "active_coop_id", "") or getattr(stats, "active_lobby_id", ""):
+            msg += "\n" + get_locale_text("i18n_mercenary.hire_in_coop_party")
+        return msg + "\n\n" + rerender()
 
     return get_locale_text("global.invalid_option")

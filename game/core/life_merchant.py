@@ -100,7 +100,7 @@ def build_life_merchant_items(save_manager, run) -> list[dict]:
         stats,
         colors=(class_color, "neutral"),
         rarities=("mythic",),
-        allow_coop=bool(getattr(run, "coop_id", "")),
+        allow_coop=run.player_count() > 1,
         require_available=False,
     )
     killed_yog = bool(stats and getattr(stats, "yog_sothoth_kill_count", 0) > 0)
@@ -140,7 +140,7 @@ def build_life_merchant_items(save_manager, run) -> list[dict]:
             stats,
             colors=(class_color, "neutral"),
             rarities=("legendary",),
-            allow_coop=bool(getattr(run, "coop_id", "")),
+            allow_coop=run.player_count() > 1,
             require_available=False,
         )
         if legendary_pool:
@@ -193,37 +193,39 @@ def build_life_merchant_items(save_manager, run) -> list[dict]:
 
 
 def init_life_merchant_node(explore_engine, run):
+    from .party_coordinator import apply_and_scope, restore_player, swap_player
     ach = AchievementService(explore_engine.save_manager)
-    if getattr(run, "coop_id", ""):
-        views = {}
-        ready = {}
-        shop_map = {}
-        for uid in run.party_order:
-            previous = run.player
-            previous_user = run.user_id
-            run.player = run.players[uid]
-            run.user_id = uid
-            ach.record_stat(uid, "life_merchant_visits", 1)
-            items = build_life_merchant_items(explore_engine.save_manager, run)
-            views[uid] = {"node_type": "life_merchant", "data": {"items": items}}
-            shop_map[uid] = items
-            ready[uid] = run.players[uid].downed
-            run.player = previous
-            run.user_id = previous_user
-        run.node_type = "life_merchant"
-        run.node_data = {
-            "coop_node_type": "life_merchant",
-            "player_views": views,
-            "player_shops": shop_map,
-            "stage_ready": ready,
-        }
-        explore_engine._coop(run).apply_view(run, run.user_id)
-        return
-    ach.record_stat(run.user_id, "life_merchant_visits", 1)
-    run.node_data = {"items": build_life_merchant_items(explore_engine.save_manager, run)}
+    views = {}
+    ready = {}
+    shop_map = {}
+    for uid in run.party_order:
+        player = run.players.get(uid)
+        if player is None:
+            continue
+        if getattr(player, "is_mercenary", False):
+            views[uid] = {"node_type": "life_merchant", "data": {"items": [], "coop_done": True}}
+            shop_map[uid] = []
+            ready[uid] = True
+            continue
+        previous, previous_user = swap_player(run, player)
+        ach.record_stat(uid, "life_merchant_visits", 1)
+        items = build_life_merchant_items(explore_engine.save_manager, run)
+        views[uid] = {"node_type": "life_merchant", "data": {"items": items}}
+        shop_map[uid] = items
+        ready[uid] = player.downed
+        restore_player(run, previous, previous_user)
+    run.node_type = "life_merchant"
+    run.node_data = {
+        "coop_node_type": "life_merchant",
+        "player_views": views,
+        "player_shops": shop_map,
+        "stage_ready": ready,
+    }
+    apply_and_scope(run, run.user_id)
 
 
 def handle_life_merchant(explore_engine, run, option_idx: int, target=None) -> str:
+    from .party_coordinator import finish_player_node
     p = run.player
     items = run.node_data.get("items", [])
     if option_idx < 1 or option_idx > len(items):
@@ -233,12 +235,8 @@ def handle_life_merchant(explore_engine, run, option_idx: int, target=None) -> s
         return get_locale_text("i18n_explore_core.err_shop_sold_out")
     itype = item.get("type")
     if itype == "leave":
-        if getattr(run, "coop_id", ""):
-            return explore_engine._coop_finish(run, get_locale_text("i18n_explore_core.life_merchant_leave_coop"))
-        explore_engine.map_engine.enter_next_stage(run)
-        explore_engine.save_manager.save_save(run.user_id, run)
-        return get_locale_text("i18n_explore_core.life_merchant_leave_next")
-
+        msg = get_locale_text("i18n_explore_core.life_merchant_leave_coop") if run.player_count() > 1 else get_locale_text("i18n_explore_core.life_merchant_leave_next")
+        return finish_player_node(explore_engine.save_manager, explore_engine.map_engine, run, run.user_id, msg)
     if itype == "potion":
         pid = item.get("potion_id")
         if not hasattr(p, "potions") or p.potions is None:

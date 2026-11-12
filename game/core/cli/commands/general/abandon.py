@@ -9,11 +9,11 @@ class AbandonCommand(CommandHandler, names=["放弃", "abandon"], allowed_states
             yield get_locale_text("i18n_cli_general_b.err_no_active_game")
             return
         if len(parts) > 1 and parts[1] in ("确认", "confirm"):
-            if getattr(run, "coop_id", ""):
-                settle_msg = router.save_manager.settle_coop_game_and_delete(user_id, run, is_victory=False, create_corpse=False, force=True)
+            multi = run.player_count() > 1
+            settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False, create_corpse=False, force=True)
+            if multi:
                 yield get_locale_text("i18n_cli_general_b.msg_abandoned_coop", settle_msg=settle_msg)
-                return
-            settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False, create_corpse=False)
-            yield get_locale_text("i18n_cli_general_b.msg_abandoned_solo", settle_msg=settle_msg)
+            else:
+                yield get_locale_text("i18n_cli_general_b.msg_abandoned_solo", settle_msg=settle_msg)
         else:
             yield get_locale_text("i18n_cli_general_b.warn_abandon_confirm")

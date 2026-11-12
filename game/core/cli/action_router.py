@@ -55,7 +55,7 @@ class ActionRouter:
                     self.save_manager.save_save(user_id, run)
                     if run.player.hp <= 0:
                         settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                        if getattr(run, "coop_id", ""):
+                        if len(run.human_uids()) > 1:
                             return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, True
                         return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, True
                     if self.engine.is_battle_won(run):
@@ -139,6 +139,14 @@ class ActionRouter:
                             return True
                         if text.startswith("e") and text[1:].isdigit():
                             return True
+                        if text.startswith("a") and len(text) > 1:
+                            rest = text[1:]
+                            if rest.isdigit():
+                                return True
+                            if "m" in rest:
+                                left, right = rest.split("m", 1)
+                                if left.isdigit() and right.isdigit():
+                                    return True
                         return False
                     if is_valid_target_format(input_str):
                         target = input_str
@@ -150,7 +158,7 @@ class ActionRouter:
                             success = "❌" not in res
                             if run.player.hp <= 0:
                                 settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                                if getattr(run, "coop_id", ""):
+                                if len(run.human_uids()) > 1:
                                     return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
                                 return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, success
                             if self.engine.is_battle_won(run):
@@ -174,7 +182,7 @@ class ActionRouter:
                             success = "❌" not in res
                             if run.player.hp <= 0:
                                 settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                                if getattr(run, "coop_id", ""):
+                                if len(run.human_uids()) > 1:
                                     return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
                                 return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, success
                             if self.engine.is_battle_won(run):
@@ -264,7 +272,7 @@ class ActionRouter:
                 success = "❌" not in res
                 if run.player.hp <= 0:
                     settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                    if getattr(run, "coop_id", ""):
+                    if len(run.human_uids()) > 1:
                         return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
                     return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, success
                 if self.engine.is_battle_won(run):

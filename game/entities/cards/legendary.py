@@ -79,7 +79,7 @@ class ArchmageWishCard(Card):
             before_hand = list(p.hand)
             engine._draw_cards(p, draw_count, run)
             drawn = p.hand[len(before_hand):]
-            run.node_data.setdefault("temp_retain_cards", []).extend(drawn)
+            run.node_data.setdefault(run.turn_key("temp_retain_cards"), []).extend(drawn)
             return get_locale_text("i18n_cards_neutral.legendary.archmage_wish.result_upgraded")
         else:
             engine._gain_shield(run, "p0", shield_amount)
@@ -228,7 +228,9 @@ class GlacierTempestCard(Card):
             total_dmg += dmg
             feedback_parts.append(get_locale_text("i18n_cards_neutral.legendary.glacier_tempest.part", enemy_name=enemy.name, dmg=dmg))
         shield_msg = ""
-        if run.player.minions and total_dmg > 0:
+        from ...core.battle.party_battle import party_slots
+        has_ally_minion = any(player.minions for _, _, player in party_slots(run, alive_only=True))
+        if has_ally_minion and total_dmg > 0:
             shield_gain = int(total_dmg * shield_ratio)
             engine._gain_shield(run, "p0", shield_gain)
             shield_msg = get_locale_text("i18n_cards_neutral.legendary.glacier_tempest.shield_suffix", shield_gain=shield_gain)

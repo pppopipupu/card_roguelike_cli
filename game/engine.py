@@ -96,25 +96,65 @@ class GameEngine:
         self.save_manager.save_stats(user_id, stats)
         return player
 
+    def start_party_game(self, member_ids: List[str], leader_id: Optional[str] = None, shared_save: bool = False) -> Optional[GameRun]:
+        import uuid
+        from .data.balance_config import COOP_MAX_PLAYERS
+        from .core.daily_blessing import apply_pending_blessing
+        from .core.mercenary import build_mercenary_player
+        if not member_ids:
+            return None
+        if len(member_ids) > COOP_MAX_PLAYERS:
+            raise ValueError(f"Coop party exceeds COOP_MAX_PLAYERS ({COOP_MAX_PLAYERS})")
+        leader = leader_id or member_ids[0]
+        coop_id = uuid.uuid4().hex[:8] if (shared_save or len(member_ids) > 1) else ""
+        run = GameRun(
+            user_id=leader,
+            node_type="start",
+            player=None,
+            enemies=[],
+            node_data={},
+            coop_id=coop_id,
+            leader_id=leader,
+            party_order=list(member_ids),
+            players={},
+        )
+        pending_mercs = []
+        for uid in member_ids:
+            player = self._build_player_state(uid)
+            run.players[uid] = player
+            run.player = player
+            run.user_id = uid
+            stats = self.save_manager.load_stats(uid)
+            if coop_id:
+                stats.active_coop_id = coop_id
+                stats.active_lobby_id = ""
+            apply_pending_blessing(run, stats)
+            hired = list(getattr(stats, "hired_mercenaries", []) or [])
+            if hired:
+                for merc_id in hired:
+                    pending_mercs.append((uid, merc_id))
+                stats.hired_mercenaries = []
+            self.save_manager.save_stats(uid, stats)
+        for owner_uid, merc_id in pending_mercs:
+            if len(run.party_order) >= COOP_MAX_PLAYERS:
+                break
+            merc_uid = f"merc:{merc_id}:{owner_uid}"
+            suffix = 1
+            while merc_uid in run.players:
+                suffix += 1
+                merc_uid = f"merc:{merc_id}:{owner_uid}:{suffix}"
+            run.party_order.append(merc_uid)
+            run.players[merc_uid] = build_mercenary_player(merc_id, owner_uid)
+        run.player = run.players[leader]
+        run.user_id = leader
+        self.enter_next_stage(run)
+        self.save_manager.save_save(leader, run)
+        return run
     def start_new_game(self, user_id: str) -> GameRun:
         stats = self.save_manager.load_stats(user_id)
         if getattr(stats, "active_coop_id", "") or getattr(stats, "active_lobby_id", ""):
             return None
-        player = self._build_player_state(user_id)
-        stats = self.save_manager.load_stats(user_id)
-        run = GameRun(
-            user_id=user_id,
-            node_type="start",
-            player=player,
-            enemies=[],
-            node_data={}
-        )
-        from .core.daily_blessing import apply_pending_blessing
-        apply_pending_blessing(run, stats)
-        self.save_manager.save_stats(user_id, stats)
-        self.enter_next_stage(run)
-        self.save_manager.save_save(user_id, run)
-        return run
+        return self.start_party_game([user_id], user_id, shared_save=False)
 
     def enter_next_stage(self, run: GameRun):
         self.map_engine.enter_next_stage(run)

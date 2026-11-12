@@ -584,14 +584,22 @@ class StatTrackingHandler:
         event_bus.subscribe(MinionDeathEvent, self.on_minion_death)
         event_bus.subscribe(BattleWinEvent, self.on_battle_win)
 
+    @staticmethod
+    def _stat_uid(run):
+        if run is None:
+            return ""
+        player = getattr(run, "player", None)
+        if player is not None and getattr(player, "is_mercenary", False):
+            return getattr(player, "mercenary_owner", "") or ""
+        return getattr(run, "user_id", "")
+
     def on_damage_take(self, event):
         if event.target.startswith("e") and event.amount > 0:
-            StatsTracker.record_damage(event.run, event.run.user_id, event.amount)
+            StatsTracker.record_damage(event.run, self._stat_uid(event.run), event.amount)
 
     def on_minion_death(self, event):
         if event.is_enemy:
-            StatsTracker.record_kill(event.run, event.run.user_id)
+            StatsTracker.record_kill(event.run, self._stat_uid(event.run))
 
     def on_battle_win(self, event):
         StatsTracker.flush(self.save_manager, event.run)
-

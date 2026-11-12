@@ -75,7 +75,7 @@ def battle_gold_skipped(run):
 
 
 def build_reward_items(save_manager, run, player, difficulty):
-    coop = bool(getattr(run, "coop_id", ""))
+    coop = run.player_count() > 1
     stats = save_manager.load_stats(run.user_id)
     gold = roll_battle_gold(difficulty)
     skip_gold = battle_gold_skipped(run)

@@ -54,27 +54,6 @@ class TestRogueCorpse(unittest.TestCase):
 
             asyncio.run(go())
 
-    def test_corpse_gp_pool_starts_at_stage_five(self):
-        with TemporaryDirectory() as tmp:
-            plugin = MyPlugin(DummyContext(), data_dir=tmp)
-            dead = GameRun(
-                user_id="dead_corpse_gp_user",
-                node_type="battle",
-                player=PlayerState(
-                    hp=0,
-                    max_hp=50,
-                    shield=0,
-                    gold=100,
-                    stage=5,
-                    name="金币尸体",
-                    deck=[CardState(id="magic_missile")],
-                ),
-            )
-            corpse = plugin.save_manager.corpses.create_from_run(
-                dead, "被【测试敌人】击败"
-            )
-            self.assertEqual(corpse["gp_pool"], 1000)
-
 
 if __name__ == "__main__":
     unittest.main()

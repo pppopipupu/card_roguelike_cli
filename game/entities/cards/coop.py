@@ -5,63 +5,31 @@ from ...data.locale_data import get_locale_text
 from .registry import register_card
 
 
-def _current_uid(run):
-    return run.uid_for(run.player)
-
-
-def _alive_uids(run):
-    return [
-        uid
-        for uid in run.party_order
-        if uid in run.players and run.players[uid].hp > 0 and not run.players[uid].downed
-    ]
-
-
-def _target_ref(run, uid, grid=None):
-    if uid == _current_uid(run):
-        return "p0" if grid is None else f"p{grid}"
-    index = run.party_order.index(uid) + 1
-    return f"a{index}" if grid is None else f"a{index}p{grid}"
-
-
-def _resolve_ally(run, target, allow_self=False):
-    current = _current_uid(run)
-    alive = _alive_uids(run)
+def _resolve_ally(engine, run, target, allow_self=False):
+    from ...core.battle.party_battle import party_slots
+    current = run.uid_for(run.player)
     if target:
-        text = str(target).strip().lower()
-        if text.startswith("t"):
-            text = "a" + text[1:]
-        if not text.startswith("a"):
+        resolved = engine.combat_resolver.resolve_ally(run, target)
+        if not resolved:
             return None
-        rest = text[1:]
-        grid = None
-        if "p" in rest:
-            index_text, grid = rest.split("p", 1)
-            if not grid.isdigit():
-                return None
-        else:
-            index_text = rest
-        if not index_text.isdigit():
-            return None
-        index = int(index_text) - 1
-        if index < 0 or index >= len(run.party_order):
-            return None
-        uid = run.party_order[index]
-        player = run.players.get(uid)
-        if player is None or uid not in alive:
+        uid, player, grid = resolved
+        if player.hp <= 0 or player.downed:
             return None
         if uid == current and not allow_self:
             return None
         if grid is not None and grid not in player.minions:
             return None
         return uid, player, grid
-    candidates = [uid for uid in alive if uid != current]
+    alive = party_slots(run, alive_only=True)
+    candidates = [(uid, player) for _, uid, player in alive if uid != current]
     if candidates:
-        return candidates[0], run.players[candidates[0]], None
-    if allow_self and current in alive:
-        return current, run.players[current], None
+        uid, player = candidates[0]
+        return uid, player, None
+    if allow_self:
+        for _, uid, player in alive:
+            if uid == current:
+                return uid, player, None
     return None
-
 
 def _draw_for(engine, run, player, count):
     engine.card_player.draw_cards(player, count, run, ignore_focus=True)
@@ -70,7 +38,7 @@ def _draw_for(engine, run, player, count):
 @register_card("coop_tactical_command")
 class CoopTacticalCommand(Card):
     def execute(self, run, target, engine) -> str:
-        resolved = _resolve_ally(run, target)
+        resolved = _resolve_ally(engine, run, target)
         if not resolved:
             return get_locale_text("i18n_cards_neutral.coop.target_required")
         uid, player, grid = resolved
@@ -104,7 +72,7 @@ class CoopTacticalCommand(Card):
 @register_card("coop_phalanx_bulwark")
 class CoopPhalanxBulwark(Card):
     def execute(self, run, target, engine) -> str:
-        resolved = _resolve_ally(run, target, allow_self=self.upgraded)
+        resolved = _resolve_ally(engine, run, target, allow_self=self.upgraded)
         if not resolved:
             return get_locale_text("i18n_cards_neutral.coop.target_required")
         uid, player, grid = resolved
@@ -114,11 +82,12 @@ class CoopPhalanxBulwark(Card):
         shield = getattr(self, "shield_amount", 10 if self.upgraded else 8)
         buff_stacks = getattr(self, "buff_stacks", 1)
         if self.upgraded:
-            for member in _alive_uids(run):
-                resolver.gain_shield(run, _target_ref(run, member), shield)
+            from ...core.battle.party_battle import party_slots, party_target_ref
+            for slot, _, _ in party_slots(run, alive_only=True):
+                resolver.gain_shield(run, f"a{slot}", shield)
         else:
             resolver.gain_shield(run, "p0", shield)
-            resolver.gain_shield(run, _target_ref(run, uid, grid), shield)
+            resolver.gain_shield(run, party_target_ref(run, uid, grid), shield)
         resolver.add_buff_to(
             player,
             "coop_aegis",
@@ -134,7 +103,7 @@ class CoopPhalanxBulwark(Card):
 @register_card("coop_resonance_hymn")
 class CoopResonanceHymn(Card):
     def execute(self, run, target, engine) -> str:
-        resolved = _resolve_ally(run, target, allow_self=self.upgraded)
+        resolved = _resolve_ally(engine, run, target, allow_self=self.upgraded)
         if not resolved:
             return get_locale_text("i18n_cards_neutral.coop.target_required")
         uid, player, grid = resolved
@@ -142,7 +111,8 @@ class CoopResonanceHymn(Card):
         strength_stacks = getattr(self, "strength_gain", 2)
         charge_stacks = getattr(self, "buff_stacks", 1)
         if self.upgraded:
-            members = _alive_uids(run)
+            from ...core.battle.party_battle import alive_uids
+            members = alive_uids(run)
             for member in members:
                 ally = run.players[member]
                 resolver.add_buff_to(ally, "strength", get_locale_text("i18n_cards_neutral.neutral.buffs.strength.name"), get_locale_text("i18n_cards_neutral.neutral.buffs.strength.desc"), strength_stacks)
@@ -160,7 +130,7 @@ class CoopResonanceHymn(Card):
 @register_card("coop_soul_link")
 class CoopSoulLink(Card):
     def execute(self, run, target, engine) -> str:
-        resolved = _resolve_ally(run, target)
+        resolved = _resolve_ally(engine, run, target)
         if not resolved:
             return get_locale_text("i18n_cards_neutral.coop.target_required")
         uid, player, grid = resolved
@@ -176,7 +146,8 @@ class CoopSoulLink(Card):
             stacks = getattr(self, "buff_stacks", 2)
             bonus = getattr(self, "bonus_damage", 4)
             restore = getattr(self, "restore_amount", 2)
-        engine.combat_resolver.heal_target(run, _target_ref(run, uid, grid), heal)
+        from ...core.battle.party_battle import party_target_ref
+        engine.combat_resolver.heal_target(run, party_target_ref(run, uid, grid), heal)
         engine.combat_resolver.add_buff_to(
             player,
             "coop_soul_resonance",
@@ -186,7 +157,7 @@ class CoopSoulLink(Card):
         )
         for buff in player.buffs:
             if buff.id == "coop_soul_resonance":
-                buff.source_uid = _current_uid(run)
+                buff.source_uid = run.uid_for(run.player)
                 buff.stacks2 = bonus
         return get_locale_text("i18n_cards_neutral.coop.soul_link.result", player_name=player.name, heal=heal, stacks=stacks, bonus=bonus, restore=restore)
 
@@ -194,7 +165,8 @@ class CoopSoulLink(Card):
 @register_card("coop_unison_crusade")
 class CoopUnisonCrusade(Card):
     def execute(self, run, target, engine) -> str:
-        alive = _alive_uids(run)
+        from ...core.battle.party_battle import alive_uids
+        alive = alive_uids(run)
         count = max(1, len(alive))
         draw_count = getattr(self, "draw_count", 2 if self.upgraded else 1)
         gain_a = getattr(self, "gain_a", 1)

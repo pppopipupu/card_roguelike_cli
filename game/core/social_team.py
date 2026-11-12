@@ -351,9 +351,7 @@ class SocialTeamMixin:
             return get_locale_text("i18n_social.team_start.stale", names=separator.join(stale))
         if not self.engine:
             return get_locale_text("i18n_social.team_start.no_engine")
-        from .coop_engine import CoopEngine
-        coop = CoopEngine(self.save_manager, self.engine)
-        run = coop.start_coop(self.engine, members, uid)
+        run = self.engine.start_party_game(members, uid, shared_save=True)
         self.save_manager.delete_lobby(lobby.get("lobby_id"))
         notice = get_locale_text(
             "i18n_social.team_start.success",

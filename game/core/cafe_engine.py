@@ -10,33 +10,61 @@ from ..data.cafe_data import (
     CAFE_GUEST_COUNT_MIN,
     CAFE_GUESTS,
     CAFE_NORMALS,
+    CAFE_NPCS_PER_EXTRA_PLAYER,
     CAFE_TOTAL_NPCS,
     NPC_ALIASES,
     NPC_SHOW_NAMES,
 )
 from ..data.locale_data import get_locale_text
 from .cafe_dialog import CafeDialogMixin
-
+from .deck_service import DeckService
+from ..data.reward_config import NORMAL_CARD_RARITIES
 class CafeEngine(CafeDialogMixin):
     def __init__(self, save_manager, map_engine):
         self.save_manager = save_manager
         self.map_engine = map_engine
 
-    def _coop(self, run):
-        from .coop_engine import coop_for_map_engine
-        return coop_for_map_engine(self.save_manager, self.map_engine)
-
-    def _coop_waiting(self, run):
-        if getattr(run, "coop_id", "") and run.node_data.get("coop_done"):
+    def _waiting(self, run):
+        if run.node_data.get("coop_done"):
             return get_locale_text("i18n_coop_explore.coop_done_waiting")
         return ""
 
-    def init_cafe(self, run: GameRun, persist: bool = True):
-        p = run.player
+    def _view_cafe(self, run: GameRun) -> dict:
+        return run.node_data.setdefault("cafe_data", {})
 
-        num_guests = random.randint(CAFE_GUEST_COUNT_MIN, CAFE_GUEST_COUNT_MAX)
+    def _shared_cafe(self, run: GameRun) -> dict:
+        shared = run.node_data.get("coop_cafe")
+        if isinstance(shared, dict):
+            return shared
+        return self._view_cafe(run)
+    def _release_npc_lock(self, shared_cafe: dict, uid: str, npc: str = None):
+        active_by_npc = shared_cafe.get("active_by_npc")
+        if not isinstance(active_by_npc, dict):
+            return
+        if npc is not None:
+            if active_by_npc.get(npc) == uid:
+                active_by_npc.pop(npc, None)
+            return
+        for key, holder in list(active_by_npc.items()):
+            if holder == uid:
+                active_by_npc.pop(key, None)
+
+    def _npc_bounds_for_count(self, player_count: int) -> tuple[int, int, int]:
+        count = max(1, int(player_count or 1))
+        max_pool = len(CAFE_GUESTS) + len(CAFE_NORMALS)
+        total_npcs = min(max_pool, CAFE_TOTAL_NPCS + max(0, count - 1) * CAFE_NPCS_PER_EXTRA_PLAYER)
+        guest_min = max(CAFE_GUEST_COUNT_MIN, total_npcs - len(CAFE_NORMALS))
+        guest_max = min(len(CAFE_GUESTS), total_npcs, CAFE_GUEST_COUNT_MAX + max(0, count - 1))
+        guest_min = min(guest_min, guest_max)
+        return total_npcs, guest_min, guest_max
+
+    def build_cafe_state(self, run: GameRun, player_count: int = None) -> dict:
+        if player_count is None:
+            player_count = run.player_count() if run else 1
+        total_npcs, guest_min, guest_max = self._npc_bounds_for_count(player_count)
+        num_guests = random.randint(guest_min, guest_max)
         selected_guests = random.sample(CAFE_GUESTS, num_guests)
-        selected_normals = random.sample(CAFE_NORMALS, CAFE_TOTAL_NPCS - num_guests)
+        selected_normals = random.sample(CAFE_NORMALS, total_npcs - num_guests)
         selected_npcs = selected_guests + selected_normals
         random.shuffle(selected_npcs)
 
@@ -46,16 +74,17 @@ class CafeEngine(CafeDialogMixin):
             "hunter_stock": None
         }
 
-        stats = self.save_manager.load_stats(run.user_id)
-        p_class = getattr(stats, "selected_class", "法师")
-
         if "杰斯" in selected_npcs:
-            if p_class == "战士":
-                from ..data.wizard_card_data import WIZARD_CARD_CONFIG
-                pool = [k for k, v in WIZARD_CARD_CONFIG.items() if v.get("rarity") not in ("legendary", "mythic", "artifact")]
-            else:
-                from ..data.warrior_card_data import WARRIOR_CARD_CONFIG
-                pool = [k for k, v in WARRIOR_CARD_CONFIG.items() if v.get("rarity") not in ("legendary", "mythic", "artifact")]
+            pool = []
+            seen = set()
+            for uid in (run.human_uids() or [run.user_id]):
+                member_stats = self.save_manager.load_stats(uid)
+                member_class = getattr(member_stats, "selected_class", "法师")
+                other_color = "wizard" if member_class == "战士" else "warrior"
+                for cid in DeckService.eligible_card_ids(member_stats, colors=(other_color,), rarities=NORMAL_CARD_RARITIES):
+                    if cid not in seen:
+                        seen.add(cid)
+                        pool.append(cid)
             cafe_data["card_master_stock"] = random.sample(pool, min(len(pool), CAFE_CARD_MASTER_STOCK))
 
         if "艾琳" in selected_npcs:
@@ -64,28 +93,78 @@ class CafeEngine(CafeDialogMixin):
                 cafe_data["gemcutter_stock"] = random.sample(rare_gems, min(len(rare_gems), CAFE_GEMCUTTER_STOCK))
 
         if "凯尔" in selected_npcs:
-            relic_keys = [k for k, v in RELIC_CONFIG.items() if v.get("rarity") == "epic" and k not in p.relics]
+            owned_relics = {rid for member in run.players.values() for rid in member.relics}
+            relic_keys = [k for k, v in RELIC_CONFIG.items() if v.get("rarity") == "epic" and k not in owned_relics]
             if not relic_keys:
-                relic_keys = [k for k in RELIC_CONFIG.keys() if k not in p.relics]
+                relic_keys = [k for k in RELIC_CONFIG.keys() if k not in owned_relics]
             if relic_keys:
                 cafe_data["hunter_stock"] = random.choice(relic_keys)
 
+        return cafe_data
+
+    def init_cafe(self, run: GameRun, persist: bool = True, player_count: int = None):
+        from .party_coordinator import apply_and_scope
+        if player_count is None:
+            player_count = run.player_count()
+        shared_cafe = self.build_cafe_state(run, player_count=player_count)
+        shared_cafe["talked_by"] = {}
+        shared_cafe["active_by_npc"] = {}
+        views = {}
+        ready = {}
+        for uid in run.party_order:
+            player = run.players.get(uid)
+            if player is None:
+                continue
+            data = {
+                "cafe_data": {
+                    "npcs": list(shared_cafe["npcs"]),
+                    "active_npc": None,
+                    "dialog_state": None,
+                },
+                "coop_done": player.downed,
+            }
+            views[uid] = {"node_type": "cafe", "data": data}
+            ready[uid] = player.downed or getattr(player, "is_mercenary", False)
         run.node_type = "cafe"
-        run.node_data["cafe_data"] = cafe_data
+        run.node_data = {
+            "coop_node_type": "cafe",
+            "coop_cafe": shared_cafe,
+            "player_views": views,
+            "stage_ready": ready,
+        }
+        apply_and_scope(run, run.user_id)
         if persist:
             self.save_manager.save_save(run.user_id, run)
 
     def render_cafe(self, run: GameRun) -> str:
+        if run.node_data.get("coop_done"):
+            from ..renderer.party import render_waiting
+            return render_waiting(run)
         p = run.player
-        cafe_data = run.node_data.get("cafe_data", {})
-        active_npc = cafe_data.get("active_npc")
-
+        view_cafe = run.node_data.get("cafe_data", {})
+        shared_cafe = self._shared_cafe(run)
+        active_npc = view_cafe.get("active_npc")
         if active_npc is None:
             npcs_str = ""
-            for npc in cafe_data.get("npcs", []):
-                status = get_locale_text("i18n_map_cafe.cafe_status_talked") if npc in cafe_data.get("talked_npcs", []) else ""
+            talked_npcs = shared_cafe.get("talked_npcs", [])
+            talked_by = shared_cafe.get("talked_by", {})
+            active_by_npc = shared_cafe.get("active_by_npc", {})
+            stage_ready = run.node_data.get("stage_ready", {})
+            players = getattr(run, "players", {}) or {}
+            multi = run.player_count() > 1
+            for npc in shared_cafe.get("npcs", []):
+                if npc in talked_npcs:
+                    actor_uid = talked_by.get(npc)
+                    if multi and actor_uid in players:
+                        status = get_locale_text("i18n_map_cafe.cafe_status_talked_by", name=players[actor_uid].name)
+                    else:
+                        status = get_locale_text("i18n_map_cafe.cafe_status_talked")
+                elif multi and active_by_npc.get(npc) in players and not stage_ready.get(active_by_npc.get(npc), False):
+                    busy_uid = active_by_npc.get(npc)
+                    status = get_locale_text("i18n_map_cafe.cafe_status_busy", name=players[busy_uid].name)
+                else:
+                    status = ""
                 npcs_str += f"\n  - {NPC_SHOW_NAMES.get(npc, npc)}{status}"
-
             lines = [
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 get_locale_text("i18n_map_cafe.cafe_title"),
@@ -104,7 +183,7 @@ class CafeEngine(CafeDialogMixin):
             return "\n".join(lines)
 
         else:
-            dialog_state = cafe_data.get("dialog_state")
+            dialog_state = view_cafe.get("dialog_state")
             npc_name = NPC_SHOW_NAMES.get(active_npc, active_npc)
 
             lines = [
@@ -113,7 +192,7 @@ class CafeEngine(CafeDialogMixin):
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             ]
 
-            talked = active_npc in cafe_data.get("talked_npcs", [])
+            talked = active_npc in shared_cafe.get("talked_npcs", [])
             dialog_text, options = self._get_dialog_content(run, active_npc, dialog_state, talked)
 
             lines.append(dialog_text)
@@ -129,12 +208,12 @@ class CafeEngine(CafeDialogMixin):
             return "\n".join(lines)
 
     def talk_npc(self, run: GameRun, target: str) -> str:
-        waiting = self._coop_waiting(run)
+        waiting = self._waiting(run)
         if waiting:
             return waiting
-        cafe_data = run.node_data.setdefault("cafe_data", {})
-        npcs = cafe_data.get("npcs", [])
-
+        view_cafe = self._view_cafe(run)
+        shared_cafe = self._shared_cafe(run)
+        npcs = shared_cafe.get("npcs", [])
         target_lower = target.lower().strip()
         found = None
 
@@ -164,45 +243,71 @@ class CafeEngine(CafeDialogMixin):
         if not found:
             return get_locale_text("i18n_map_cafe.cafe_err_npc_not_found", target=target)
 
-        cafe_data["active_npc"] = found
-        cafe_data["dialog_state"] = "start"
+        active_by_npc = shared_cafe.setdefault("active_by_npc", {})
+        holder = active_by_npc.get(found)
+        stage_ready = run.node_data.get("stage_ready", {})
+        players = getattr(run, "players", {}) or {}
+        if holder and holder != run.user_id and holder in players and not stage_ready.get(holder, False):
+            return get_locale_text(
+                "i18n_map_cafe.cafe_err_npc_busy",
+                npc_name=NPC_SHOW_NAMES.get(found, found),
+                player_name=players[holder].name,
+            )
+        prev_npc = view_cafe.get("active_npc")
+        if prev_npc and prev_npc != found:
+            self._release_npc_lock(shared_cafe, run.user_id, prev_npc)
+        if found not in shared_cafe.get("talked_npcs", []):
+            active_by_npc[found] = run.user_id
+
+        view_cafe["active_npc"] = found
+        view_cafe["dialog_state"] = "start"
         self.save_manager.save_save(run.user_id, run)
 
         return self.render_cafe(run)
 
     def leave_npc(self, run: GameRun) -> str:
-        cafe_data = run.node_data.setdefault("cafe_data", {})
-        active_npc = cafe_data.get("active_npc")
+        view_cafe = self._view_cafe(run)
+        shared_cafe = self._shared_cafe(run)
+        active_npc = view_cafe.get("active_npc")
         if active_npc is not None:
-            talked_npcs = cafe_data.setdefault("talked_npcs", [])
-            if active_npc not in talked_npcs:
-                talked_npcs.append(active_npc)
-            cafe_data["active_npc"] = None
-            cafe_data["dialog_state"] = None
+            if run.player_count() > 1:
+                self._release_npc_lock(shared_cafe, run.user_id, active_npc)
+            else:
+                self._release_npc_lock(shared_cafe, run.user_id, active_npc)
+                talked_npcs = shared_cafe.setdefault("talked_npcs", [])
+                if active_npc not in talked_npcs:
+                    talked_npcs.append(active_npc)
+            view_cafe["active_npc"] = None
+            view_cafe["dialog_state"] = None
             self.save_manager.save_save(run.user_id, run)
             return get_locale_text("i18n_map_cafe.cafe_msg_left_npc") + "\n\n" + self.render_cafe(run)
         return get_locale_text("i18n_map_cafe.cafe_err_already_lobby")
 
     def leave_cafe(self, run: GameRun) -> str:
-        waiting = self._coop_waiting(run)
+        from .party_coordinator import finish_player_node
+        waiting = self._waiting(run)
         if waiting:
             return waiting
         msg = get_locale_text("i18n_map_cafe.cafe_msg_leave_cafe")
-        if getattr(run, "coop_id", ""):
-            return self._coop(run).finish_cafe_node(run, run.user_id, msg)
-        run.node_type = "ancient"
-        self.map_engine._init_ancient_node(run)
-        self.save_manager.save_save(run.user_id, run)
-        return msg
+        self._release_npc_lock(self._shared_cafe(run), run.user_id)
+        return finish_player_node(
+            self.save_manager,
+            self.map_engine,
+            run,
+            run.user_id,
+            msg,
+            on_all_ready=self.map_engine.enter_ancient_node,
+        )
 
     def choose_option(self, run: GameRun, idx: int) -> str:
-        waiting = self._coop_waiting(run)
+        waiting = self._waiting(run)
         if waiting:
             return waiting
-        cafe_data = run.node_data.setdefault("cafe_data", {})
-        active_npc = cafe_data.get("active_npc")
-        dialog_state = cafe_data.get("dialog_state")
-        talked = active_npc in cafe_data.get("talked_npcs", [])
+        view_cafe = self._view_cafe(run)
+        shared_cafe = self._shared_cafe(run)
+        active_npc = view_cafe.get("active_npc")
+        dialog_state = view_cafe.get("dialog_state")
+        talked = active_npc in shared_cafe.get("talked_npcs", [])
 
         if active_npc is None:
             return get_locale_text("i18n_map_cafe.cafe_err_not_in_dialog")
@@ -212,6 +317,10 @@ class CafeEngine(CafeDialogMixin):
             return get_locale_text("i18n_map_cafe.cafe_err_invalid_option")
 
         res_msg = self._execute_dialog_logic(run, active_npc, dialog_state, idx, talked)
+        if view_cafe.get("active_npc") is None:
+            self._release_npc_lock(shared_cafe, run.user_id, active_npc)
+            if active_npc in shared_cafe.get("talked_npcs", []) and not talked:
+                shared_cafe.setdefault("talked_by", {})[active_npc] = run.user_id
         self.save_manager.save_save(run.user_id, run)
 
         return res_msg

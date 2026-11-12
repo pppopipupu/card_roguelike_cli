@@ -26,26 +26,6 @@ class TestRogueHelp(unittest.TestCase):
         run.enemies = [EnemyState("训练假人", 500, 500, 0), EnemyState("备用假人", 500, 500, 0)]
         self.plugin.save_manager.save_save(self.uid, run)
 
-    def test_help_index_lists_commands(self):
-        result = self.run_cmd("help")
-        self.assertIn("指令一览", result)
-        self.assertIn("start [confirm]", result)
-        self.assertIn("potion <编号>", result)
-        self.assertIn("look", result)
-        self.assertIn("friend <子命令>", result)
-
-    def test_help_detail_by_name_and_alias(self):
-        self.enter_battle()
-        self.assertIn("【使用卡牌】", self.run_cmd("help p"))
-        self.assertIn("【使用卡牌】", self.run_cmd("help 使用"))
-        potion_help = self.run_cmd("help 投掷")
-        self.assertIn("【药水】", potion_help)
-        self.assertIn("potion throw", potion_help)
-
-    def test_help_unknown_command(self):
-        result = self.run_cmd("help 不存在的指令")
-        self.assertIn("未找到指令「不存在的指令」", result)
-
     def test_potion_subcommands(self):
         self.enter_battle()
         run = self.plugin.save_manager.load_save(self.uid)

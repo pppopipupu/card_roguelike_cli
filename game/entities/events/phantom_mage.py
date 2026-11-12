@@ -3,6 +3,7 @@ from .base import EventOption
 from ...data.event_data import EVENT_CONFIG
 from ..cards import ALL_CARDS
 from ...core.deck_service import DeckService
+from ...data.reward_config import NORMAL_CARD_RARITIES
 from ...data.locale_data import get_locale_text
 
 class ReadScrollOption(EventOption, action="read_scroll", text=get_locale_text("i18n_events_b.option_read_scroll")):
@@ -27,7 +28,8 @@ class ResonateScrollOption(EventOption, action="resonate_scroll", text=get_local
         if p.gold < resonate_gold:
             return get_locale_text("i18n_events_b.err_gold_not_enough_15")
         p.gold -= resonate_gold
-        spells = [cid for cid, c in ALL_CARDS.items() if c.type == "spell" and c.rarity not in ("legendary", "mythic", "artifact") and not cid.startswith("curse_") and not getattr(c, "coop_only", False)]
+        stats = engine.save_manager.load_stats(run.user_id) if hasattr(engine.save_manager, "load_stats") else None
+        spells = DeckService.eligible_card_ids(stats, card_types=("spell",), rarities=NORMAL_CARD_RARITIES)
         got_card = random.choice(spells) if spells else "dagger_throw"
         DeckService.add_card_to_deck(p, got_card)
         engine.enter_next_stage(run)

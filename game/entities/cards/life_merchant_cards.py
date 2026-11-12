@@ -12,7 +12,7 @@ def _resolve_any_target(run, target, engine):
     if not target or not isinstance(target, str):
         return None
     t = target.strip()
-    if t.lower().startswith(("a", "t")):
+    if t.lower().startswith("a"):
         resolved = engine.combat_resolver.resolve_ally(run, t)
         if not resolved:
             return None
@@ -96,9 +96,8 @@ def _kill_resolved_target(kind, payload, obj, run, engine):
     elif kind == "ally_player":
         _, ally_player = payload
         ally_player.hp = 0
-        if getattr(run, "coop_id", ""):
-            from ...core.coop_engine import CoopEngine
-            CoopEngine(engine.save_manager, engine).mark_downed(run, ally_player)
+        from ...core.battle.party_battle import mark_downed
+        mark_downed(engine, run, ally_player)
         return True
     return False
 
@@ -112,13 +111,12 @@ def _find_alive_shou_hui_target(run, my_key, engine):
             key = f"enemy:{idx - 1}:{enemy.name}"
             if key in sources or enemy.name in sources:
                 return f"e{idx}"
-    if getattr(run, "coop_id", ""):
-        for idx, uid in enumerate(getattr(run, "party_order", []) or [], 1):
-            player = run.players.get(uid)
-            if player is None or player.downed or player.hp <= 0:
-                continue
-            if f"player:{uid}" in sources and uid != run.uid_for(run.player):
-                return f"a{idx}"
+    for idx, uid in enumerate(getattr(run, "party_order", []) or [], 1):
+        player = run.players.get(uid)
+        if player is None or player.downed or player.hp <= 0:
+            continue
+        if f"player:{uid}" in sources and uid != run.uid_for(run.player):
+            return f"a{idx}"
     return None
 
 

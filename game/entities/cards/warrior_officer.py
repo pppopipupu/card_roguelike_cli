@@ -186,7 +186,7 @@ class CommanderValiantHeraldCard(Card):
                     run.player.hand.remove(chosen)
                     upg_state = DeckService.upgrade_state(chosen)
                     DeckService.add_card_to_hand(run.player, upg_state)
-                    run.node_data.setdefault("temp_retain_cards", []).append(upg_state)
+                    run.node_data.setdefault(run.turn_key("temp_retain_cards"), []).append(upg_state)
                     msg += get_locale_text("i18n_cards_warrior_wizard.warrior.valiant_herald.rally", rally=rally, name=cname)
                 else:
                     msg += get_locale_text("i18n_cards_warrior_wizard.warrior.valiant_herald.draw", name=cname)

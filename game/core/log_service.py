@@ -4,6 +4,7 @@ from ..data.locale_data import get_locale_text
 LOG_COMMANDS = {"logs", "日志", "logc", "团队日志", "队伍日志"}
 LOG_SKIP_COMMANDS = LOG_COMMANDS | {
     "status",
+    "r",
     "状态",
     "help",
     "帮助",
@@ -51,21 +52,10 @@ class LogService:
         if not parts:
             return False
         first = parts[0].lower()
-        if first in LOG_SKIP_COMMANDS:
-            return False
-        if first != "s":
-            return True
-        if run is not None or stats is None:
-            return False
-        if not getattr(stats, "in_town", False):
-            return False
-        flags = getattr(stats, "town_flags", {}) or {}
-        return not bool(flags.get("current_dialog"))
+        return first not in LOG_SKIP_COMMANDS
 
     def should_record(self, command: str, run=None, stats=None, user_id: str = "") -> bool:
         parts = _command_parts(command)
-        if parts and parts[0].lower() == "s" and run is None and stats is None and user_id:
-            stats = self._load_stats(user_id)
         return self._should_record_parts(parts, run, stats)
 
     def _load_stats(self, user_id: str):
@@ -101,9 +91,8 @@ class LogService:
             "coop_id": getattr(run, "coop_id", "") if run is not None else "",
         }
         self._append(stats, "log_history", entry)
-        coop_id = entry["coop_id"]
-        party_order = list(getattr(run, "party_order", []) or []) if run is not None else []
-        if coop_id and party_order:
+        party_order = list(run.human_uids()) if run is not None and hasattr(run, "human_uids") else (list(getattr(run, "party_order", []) or []) if run is not None else [])
+        if run is not None and len(party_order) > 1:
             for uid in party_order:
                 if uid == user_id:
                     member = stats

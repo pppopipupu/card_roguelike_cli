@@ -19,48 +19,42 @@ from ..data.balance_config import (
 from ..data.reward_config import TREASURE_RELIC_POOL
 from ..data.potion_data import POTION_SLOT_LIMIT
 from ..data.locale_data import get_locale_text
-from .coop_explore import CoopExploreMixin
 from .deck_service import DeckService
 from .explore_nodes import resolve_node_handler
+from .party_coordinator import apply_and_scope, begin_party_gem, end_party_gem, finish_player_node, restore_player, swap_player
 
-class ExploreEngine(CoopExploreMixin):
+class ExploreEngine:
     def __init__(self, save_manager, map_engine):
         self.save_manager = save_manager
         self.map_engine = map_engine
 
-    def _init_rest_node(self, run: GameRun):
-        if getattr(run, "coop_id", ""):
-            views = {}
-            ready = {}
-            for uid in run.party_order:
-                views[uid] = {
-                    "node_type": "rest",
-                    "data": {
-                        "items": [
-                            {"type": "rest_heal", "taken": False},
-                            {"type": "rest_meditate", "taken": False},
-                            {"type": "rest_upgrade", "taken": False},
-                            {"type": "rest_mend", "taken": False},
-                        ]
-                    },
-                }
-                ready[uid] = run.players[uid].downed
-            run.node_type = "rest"
-            run.node_data = {
-                "coop_node_type": "rest",
-                "player_views": views,
-                "stage_ready": ready,
-            }
-            self._coop(run).apply_view(run, run.user_id)
-            return
-        run.node_data = {
-            "items": [
-                {"type": "rest_heal", "taken": False},
-                {"type": "rest_meditate", "taken": False},
-                {"type": "rest_upgrade", "taken": False}
-            ]
-        }
+    def _finish_node(self, run: GameRun, prefix: str) -> str:
+        return finish_player_node(self.save_manager, self.map_engine, run, run.user_id, prefix)
 
+    def _init_rest_node(self, run: GameRun):
+        multi = run.player_count() > 1
+        base_items = [
+            {"type": "rest_heal", "taken": False},
+            {"type": "rest_meditate", "taken": False},
+            {"type": "rest_upgrade", "taken": False},
+        ]
+        if multi:
+            base_items.append({"type": "rest_mend", "taken": False})
+        views = {}
+        ready = {}
+        for uid in run.party_order:
+            player = run.players.get(uid)
+            if player is None:
+                continue
+            views[uid] = {"node_type": "rest", "data": {"items": [dict(item) for item in base_items]}}
+            ready[uid] = player.downed or getattr(player, "is_mercenary", False)
+        run.node_type = "rest"
+        run.node_data = {
+            "coop_node_type": "rest",
+            "player_views": views,
+            "stage_ready": ready,
+        }
+        apply_and_scope(run, run.user_id)
     def start_card_select(self, run: GameRun, cards: list, next_node_type: str = "", next_node_data: dict | None = None, init_event: bool = True, title_key: str = "render_card_select_title", desc_key: str = "i18n_explore_core.card_reward_desc") -> None:
         can_skip = True
         upgraded = False
@@ -72,8 +66,7 @@ class ExploreEngine(CoopExploreMixin):
             upgraded = init_evt.upgraded
         if next_node_data is None:
             next_node_data = run.node_data
-        if getattr(run, "coop_id", ""):
-            next_node_data = strip_shared(next_node_data)
+        next_node_data = strip_shared(next_node_data)
         run.node_type = "card_select"
         run.node_data = {
             "title": get_locale_text(title_key),
@@ -131,9 +124,7 @@ class ExploreEngine(CoopExploreMixin):
             res = get_locale_text("i18n_explore_core.card_gained", card_name=ALL_CARDS[cid].name if cid in ALL_CARDS else cid)
         elif itype == "gem":
             gem_id = item.get("gem_id")
-            next_node_data = run.node_data
-            if getattr(run, "coop_id", ""):
-                next_node_data = strip_shared(next_node_data)
+            next_node_data = strip_shared(run.node_data)
             self.start_gem_insert_flow(run, gem_id, run.node_type, next_node_data)
             from ..entities import get_gem_name
             res = get_locale_text("i18n_explore_core.gem_forced_insert_started", gem_name=get_gem_name(gem_id))
@@ -164,61 +155,48 @@ class ExploreEngine(CoopExploreMixin):
         return res
 
     def _init_event_node(self, run: GameRun):
-        if getattr(run, "coop_id", ""):
-            stage = max(player.stage for player in run.players.values())
-            valid_events = [e for e in ALL_EVENTS if getattr(e, "min_stage", 2) <= stage <= getattr(e, "max_stage", MapConfig.COMMON_EVENT_MAX_STAGE)]
-            if not valid_events:
-                valid_events = ALL_EVENTS
-            event = random.choice(valid_events)
-            run.node_type = "event"
-            run.node_data = {
-                "coop_node_type": "event",
-                "player_views": {},
-                "stage_ready": {uid: player.downed for uid, player in run.players.items()},
-                "votes": {},
-                "event_id": event.id,
-                "description": event.description,
-                "options": [{"text": opt.text, "action": opt.action} for opt in event.options],
-            }
-            return
-        stage = run.player.stage
+        stage = max((p.stage for p in run.players.values()), default=run.player.stage)
         valid_events = [e for e in ALL_EVENTS if getattr(e, "min_stage", 2) <= stage <= getattr(e, "max_stage", MapConfig.COMMON_EVENT_MAX_STAGE)]
         if not valid_events:
             valid_events = ALL_EVENTS
         event = random.choice(valid_events)
+        run.node_type = "event"
         run.node_data = {
+            "coop_node_type": "event",
+            "player_views": {},
+            "stage_ready": {uid: (player.downed or getattr(player, "is_mercenary", False)) for uid, player in run.players.items()},
+            "votes": {},
             "event_id": event.id,
             "description": event.description,
-            "options": [{"text": opt.text, "action": opt.action} for opt in event.options]
+            "options": [{"text": opt.text, "action": opt.action} for opt in event.options],
         }
 
     def _init_shop_node(self, run: GameRun):
-        if getattr(run, "coop_id", ""):
-            views = {}
-            ready = {}
-            shop_map = {}
-            for uid in run.party_order:
-                previous = run.player
-                previous_user = run.user_id
-                run.player = run.players[uid]
-                run.user_id = uid
-                items = self._build_shop_items(run)
-                views[uid] = {"node_type": "shop", "data": {"items": items}}
-                shop_map[uid] = items
-                ready[uid] = run.players[uid].downed
-                run.player = previous
-                run.user_id = previous_user
-            run.node_type = "shop"
-            run.node_data = {
-                "coop_node_type": "shop",
-                "player_views": views,
-                "player_shops": shop_map,
-                "stage_ready": ready,
-            }
-            self._coop(run).apply_view(run, run.user_id)
-            return
-        run.node_data = {"items": self._build_shop_items(run)}
-
+        views = {}
+        ready = {}
+        shop_map = {}
+        for uid in run.party_order:
+            player = run.players.get(uid)
+            if player is None:
+                continue
+            if getattr(player, "is_mercenary", False):
+                views[uid] = {"node_type": "shop", "data": {"items": [], "coop_done": True}}
+                shop_map[uid] = []
+                ready[uid] = True
+                continue
+            previous, previous_user = swap_player(run, player)
+            items = self._build_shop_items(run)
+            views[uid] = {"node_type": "shop", "data": {"items": items}}
+            shop_map[uid] = items
+            ready[uid] = player.downed
+            restore_player(run, previous, previous_user)
+        run.node_data = {
+            "coop_node_type": "shop",
+            "player_views": views,
+            "player_shops": shop_map,
+            "stage_ready": ready,
+        }
+        apply_and_scope(run, run.user_id)
     def _init_life_merchant_node(self, run: GameRun):
         from .life_merchant import init_life_merchant_node
         init_life_merchant_node(self, run)
@@ -228,7 +206,7 @@ class ExploreEngine(CoopExploreMixin):
         stats = None
         if hasattr(self.save_manager, "load_stats"):
             stats = self.save_manager.load_stats(run.user_id)
-        card_pool = DeckService.get_shop_card_pool(run, run.player, stats, include_coop=bool(getattr(run, "coop_id", "")))
+        card_pool = DeckService.get_shop_card_pool(run, run.player, stats, include_coop=run.player_count() > 1)
         shop_cards = random.sample(card_pool, min(3, len(card_pool)))
         from ..models.state import check_and_replace_fireball
         shop_cards = [check_and_replace_fireball(run, cid) for cid in shop_cards]
@@ -313,35 +291,28 @@ class ExploreEngine(CoopExploreMixin):
         return [{"relic_id": rid, "claimed_by": ""} for rid in pool[: len(alive)]]
 
     def _init_treasure_node(self, run: GameRun):
-        if getattr(run, "coop_id", ""):
-            views = {}
-            ready = {}
-            text = get_locale_text("i18n_explore_core.treasure_pending_remove_text")
-            for uid in run.party_order:
-                views[uid] = {
-                    "node_type": "treasure",
-                    "data": {"state": "pending_remove", "text": text},
-                }
-                ready[uid] = run.players[uid].downed
-            run.node_type = "treasure"
-            run.node_data = {
-                "coop_node_type": "treasure",
-                "player_views": views,
-                "stage_ready": ready,
-                "coop_relic_pool": self._build_treasure_relic_pool(run),
+        views = {}
+        ready = {}
+        text = get_locale_text("i18n_explore_core.treasure_pending_remove_text")
+        for uid in run.party_order:
+            player = run.players.get(uid)
+            if player is None:
+                continue
+            views[uid] = {
+                "node_type": "treasure",
+                "data": {"state": "pending_remove", "text": text},
             }
-            self._coop(run).apply_view(run, run.user_id)
-            return
+            ready[uid] = player.downed or getattr(player, "is_mercenary", False)
+        run.node_type = "treasure"
         run.node_data = {
-            "state": "pending_remove",
-            "text": get_locale_text("i18n_explore_core.treasure_pending_remove_text")
+            "coop_node_type": "treasure",
+            "player_views": views,
+            "stage_ready": ready,
+            "coop_relic_pool": self._build_treasure_relic_pool(run) if run.player_count() > 1 else [],
         }
+        apply_and_scope(run, run.user_id)
 
     def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str:
-        if getattr(run, "coop_id", "") and run.node_type == "reward":
-            return self._choose_coop_reward(run, option_idx)
-        if getattr(run, "coop_id", "") and run.node_type == "rest":
-            return self._choose_coop_rest(run, option_idx, target)
         handler = resolve_node_handler(run.node_type)
         if handler is None:
             return get_locale_text("i18n_explore_core.err_unknown_action")
@@ -368,7 +339,7 @@ class ExploreEngine(CoopExploreMixin):
         if source == "treasure":
             gold_gain = random.randint(TREASURE_GOLD_MIN, TREASURE_GOLD_MAX)
             got_relic = ""
-            if not getattr(run, "coop_id", ""):
+            if run.player_count() <= 1:
                 available_relics = [r for r in TREASURE_RELIC_POOL if r not in p.relics]
                 got_relic = random.choice(available_relics) if available_relics else ""
             
@@ -455,19 +426,11 @@ class ExploreEngine(CoopExploreMixin):
             if "items" in run.node_data:
                 for it in run.node_data["items"]:
                     it["taken"] = True
-            if getattr(run, "coop_id", ""):
-                msg = get_locale_text("msg_upgrade_success_rest", old_card_name=old_card_name, new_card_name=new_card_name)
-                return self._coop_finish(run, msg)
-            self.map_engine.enter_next_stage(run)
-            self.save_manager.save_save(run.user_id, run)
-            return get_locale_text("msg_upgrade_success_rest", old_card_name=old_card_name, new_card_name=new_card_name)
+            msg = get_locale_text("msg_upgrade_success_rest", old_card_name=old_card_name, new_card_name=new_card_name)
+            return self._finish_node(run, msg)
         elif source == "event":
             msg = get_locale_text("msg_upgrade_success_event", old_card_name=old_card_name, new_card_name=new_card_name)
-            if getattr(run, "coop_id", ""):
-                return self._coop_finish(run, msg)
-            self.map_engine.enter_next_stage(run)
-            self.save_manager.save_save(run.user_id, run)
-            return msg
+            return self._finish_node(run, msg)
         else:
             items = run.node_data.get("items", [])
             for item in items:
@@ -482,9 +445,8 @@ class ExploreEngine(CoopExploreMixin):
         from ..data.gem_data import GEM_CONFIG
         gem_name = GEM_CONFIG[gem_id]["name"]
         gem_desc = GEM_CONFIG[gem_id]["desc"]
-        previous = run.node_data if getattr(run, "coop_id", "") else None
-        if getattr(run, "coop_id", ""):
-            next_node_data = strip_shared(next_node_data)
+        previous = run.node_data
+        next_node_data = strip_shared(next_node_data)
         run.node_type = "gem_insert"
         run.node_data = {
             "pending_gem": gem_id,
@@ -492,7 +454,7 @@ class ExploreEngine(CoopExploreMixin):
             "next_node_data": next_node_data,
             "text": get_locale_text("i18n_explore_core.gem_insert_prompt", gem_name=gem_name, gem_desc=gem_desc)
         }
-        self._begin_coop_gem(run, previous)
+        begin_party_gem(run, previous)
         self.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_explore_core.gem_gained", gem_name=gem_name)
 
@@ -500,7 +462,7 @@ class ExploreEngine(CoopExploreMixin):
         gem_data = run.node_data
         next_type = gem_data["next_node_type"]
         next_data = gem_data["next_node_data"]
-        self._end_coop_gem(run, gem_data, next_type, next_data)
+        end_party_gem(run, gem_data, next_type, next_data)
         self.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_explore_core.gem_insert_cancelled")
 
@@ -538,6 +500,6 @@ class ExploreEngine(CoopExploreMixin):
         p.deck.append(new_card_state)
         next_type = gem_data["next_node_type"]
         next_data = gem_data["next_node_data"]
-        self._end_coop_gem(run, gem_data, next_type, next_data)
+        end_party_gem(run, gem_data, next_type, next_data)
         self.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_explore_core.gem_insert_success", gem_name=gem_name, card_name=card_obj.name)

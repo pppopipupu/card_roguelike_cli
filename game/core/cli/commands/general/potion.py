@@ -29,7 +29,7 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
         if not args:
             yield get_locale_text("i18n_cli_general_a.potion.drink_need_slot")
             return
-        if action != "drop" and getattr(run, "coop_id", "") and p.downed:
+        if action != "drop" and p.downed:
             yield get_locale_text("i18n_cli_general_a.potion.downed")
             return
 
@@ -94,7 +94,14 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
                 if grid != "0" and grid not in p.minions:
                     yield get_locale_text("i18n_cli_general_a.potion.no_minion", grid=grid)
                     return
-            elif getattr(run, "coop_id", "") and router.engine.battle_engine.combat_resolver.resolve_ally(run, target):
+            elif (ally_resolved := router.engine.battle_engine.combat_resolver.resolve_ally(run, target)):
+                _, ally_player, ally_grid = ally_resolved
+                if ally_player.downed or ally_player.hp <= 0:
+                    yield get_locale_text("i18n_battle_misc.coop_ally_downed", name=ally_player.name)
+                    return
+                if ally_grid is not None and ally_grid not in ally_player.minions:
+                    yield get_locale_text("i18n_battle_misc.coop_ally_minion_empty", name=ally_player.name, grid=ally_grid)
+                    return
                 is_throw = False
             else:
                 yield get_locale_text("i18n_cli_general_a.potion.invalid_target")

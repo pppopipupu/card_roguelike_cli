@@ -83,6 +83,7 @@ class UserStats:
     unlocked_achievements: List[str] = field(default_factory=list)
     achievement_all_view: bool = False
     achievement_stats: Dict[str, Any] = field(default_factory=dict)
+    hired_mercenaries: List[str] = field(default_factory=list)
 
 @dataclass
 class CardState:
@@ -94,9 +95,11 @@ class CardState:
     fragile: int = 0
     no_copy: bool = False
     power_penalty: int = 0
+    exhaust_used: int = 0
+    fleeting_used: int = 0
 
     def __hash__(self):
-        return hash((self.id, self.upgraded, tuple(self.gems), self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty))
+        return hash((self.id, self.upgraded, tuple(self.gems), self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used))
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -109,7 +112,9 @@ class CardState:
                         self.replay == temp_state.replay and 
                         self.fragile == temp_state.fragile and 
                         self.no_copy == temp_state.no_copy and
-                        self.power_penalty == getattr(temp_state, "power_penalty", 0))
+                        self.power_penalty == getattr(temp_state, "power_penalty", 0) and
+                        self.exhaust_used == getattr(temp_state, "exhaust_used", 0) and
+                        self.fleeting_used == getattr(temp_state, "fleeting_used", 0))
             except (ValueError, TypeError, KeyError):
                 return False
         if not isinstance(other, CardState):
@@ -121,7 +126,9 @@ class CardState:
                 self.replay == other.replay and 
                 self.fragile == other.fragile and 
                 self.no_copy == other.no_copy and
-                self.power_penalty == other.power_penalty)
+                self.power_penalty == other.power_penalty and
+                self.exhaust_used == other.exhaust_used and
+                self.fleeting_used == other.fleeting_used)
 
     def __lt__(self, other):
         if isinstance(other, str):
@@ -138,7 +145,7 @@ class CardState:
             return self.upgraded < other.upgraded
         if self.gems != other.gems:
             return tuple(self.gems) < tuple(other.gems)
-        return (self.return_left, self.replay, self.fragile, self.no_copy) < (other.return_left, other.replay, other.fragile, other.no_copy)
+        return (self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used) < (other.return_left, other.replay, other.fragile, other.no_copy, other.power_penalty, other.exhaust_used, other.fleeting_used)
 
 def ensure_card_state(c) -> CardState:
     if isinstance(c, CardState):
@@ -154,7 +161,9 @@ def ensure_card_state(c) -> CardState:
             replay=c.get("replay", 0),
             fragile=c.get("fragile", 0),
             no_copy=c.get("no_copy", False),
-            power_penalty=c.get("power_penalty", 0)
+            power_penalty=c.get("power_penalty", 0),
+            exhaust_used=c.get("exhaust_used", 0),
+            fleeting_used=c.get("fleeting_used", 0)
         )
     return c
 
@@ -388,6 +397,10 @@ class PlayerState:
     potions: List[str] = field(default_factory=list)
     daily_blessing_id: str = ""
     downed: bool = False
+    is_mercenary: bool = False
+    mercenary_id: str = ""
+    mercenary_owner: str = ""
+    mercenary_timing: str = "before"
 
     def __post_init__(self):
         if not hasattr(self, "potions") or self.potions is None:
@@ -400,21 +413,7 @@ class PlayerState:
         self.hand = [self._ensure_card_state(c) for c in self.hand]
 
     def _ensure_card_state(self, c) -> CardState:
-        if isinstance(c, CardState):
-            return c
-        if isinstance(c, str):
-            return _parse_old_cid(c)
-        if isinstance(c, dict):
-            return CardState(
-                id=resolve_card_id(c.get("id", "")),
-                upgraded=c.get("upgraded", False),
-                gems=c.get("gems", []),
-                return_left=c.get("return_left", 0),
-                replay=c.get("replay", 0),
-                fragile=c.get("fragile", 0),
-                no_copy=c.get("no_copy", False)
-            )
-        return c
+        return ensure_card_state(c)
 
 
 @dataclass
@@ -514,6 +513,39 @@ class GameRun:
     party_order: List[str] = field(default_factory=list)
     players: Dict[str, PlayerState] = field(default_factory=dict)
 
+    def __post_init__(self):
+        if self.player is not None:
+            if not self.players and self.user_id:
+                self.players = {self.user_id: self.player}
+            elif self.user_id and self.user_id not in self.players:
+                self.players[self.user_id] = self.player
+        if not self.party_order and self.players:
+            self.party_order = list(self.players.keys())
+        elif not self.party_order and self.user_id:
+            self.party_order = [self.user_id]
+        if not self.leader_id and self.party_order:
+            self.leader_id = self.party_order[0]
+        if self.player is None and self.players:
+            if self.user_id in self.players:
+                self.player = self.players[self.user_id]
+            elif self.party_order:
+                self.player = self.players.get(self.party_order[0])
+
+    def player_count(self) -> int:
+        if self.party_order:
+            return len(self.party_order)
+        return len(self.players) if self.players else (1 if self.player is not None else 0)
+
+    def human_uids(self) -> List[str]:
+        order = self.party_order or list(self.players.keys())
+        return [
+            uid for uid in order
+            if uid in self.players and not getattr(self.players[uid], "is_mercenary", False)
+        ]
+
+    def is_multiplayer(self) -> bool:
+        return self.player_count() > 1
+
     def uid_for(self, player: PlayerState) -> str:
         for uid, candidate in self.players.items():
             if candidate is player:
@@ -521,13 +553,13 @@ class GameRun:
         return self.user_id
 
     def turn_key(self, name: str, player: PlayerState = None) -> str:
-        if not self.coop_id:
+        if self.player_count() <= 1:
             return name
         uid = self.uid_for(player) if player is not None else self.user_id
         return f"{name}:{uid}"
 
     def is_coop(self) -> bool:
-        return bool(self.coop_id)
+        return self.is_multiplayer()
 
 def check_and_replace_fireball(run: 'GameRun', card_id: str) -> str:
     import random

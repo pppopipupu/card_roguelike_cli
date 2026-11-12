@@ -38,6 +38,7 @@ SHARED_PERSIST_KEYS = {
     "turn_ready",
     "votes",
     "coop_relic_pool",
+    "coop_cafe",
     "coop_notices",
     "coop_notices_by_uid",
     "enemy_targets",
@@ -49,6 +50,8 @@ SHARED_PERSIST_KEYS = {
     "cthulhu_revive_count",
     "cthulhu_mist_turns",
     "cthulhu_puzzle_advanced",
+    "merc_dialogs",
+    "merc_acted_round",
 }
 
 VIEW_NODES = {
@@ -67,7 +70,7 @@ VIEW_NODES = {
 
 
 def apply_view(run, uid):
-    if not run or not getattr(run, "coop_id", ""):
+    if not run or not uid:
         return run
     node_data = run.node_data if run.node_data is not None else {}
     run._coop_shared = {
@@ -95,10 +98,14 @@ def apply_view(run, uid):
 
 
 def persist_view(run, uid):
-    if not run or not getattr(run, "coop_id", ""):
+    if not run or not uid:
         return
     node_data = run.node_data if run.node_data is not None else {}
-    base_type = node_data.get("coop_node_type", "")
+    if run.node_type not in VIEW_NODES:
+        node_data.pop("coop_node_type", None)
+        node_data.pop("player_views", None)
+        run._coop_shared = {}
+        return
     shared = {}
     for key in SHARED_PERSIST_KEYS:
         if key in node_data:
@@ -107,11 +114,9 @@ def persist_view(run, uid):
         if key not in shared:
             shared[key] = value
             node_data[key] = value
+    base_type = node_data.get("coop_node_type", "")
     if base_type not in VIEW_NODES:
-        if run.node_type in VIEW_NODES:
-            base_type = run.node_type
-        else:
-            return
+        base_type = run.node_type
     node_data["coop_node_type"] = base_type
     shared["coop_node_type"] = base_type
     views = node_data.setdefault("player_views", shared.get("player_views", {}))
@@ -133,7 +138,7 @@ def strip_shared(data):
 
 
 def scope_view(run, uid):
-    if not run or not getattr(run, "coop_id", ""):
+    if not run or not uid:
         return run
     node_data = run.node_data if run.node_data is not None else {}
     notices_map = node_data.get("coop_notices_by_uid")

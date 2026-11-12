@@ -46,8 +46,10 @@ class SpellDamageCard(Card):
             bonus_msg = get_locale_text("i18n_cards_neutral.neutral.base.spell_damage.kill_bonus")
         elif is_upgraded_card(self, "quick_strike"):
             ally_atk_bonus = getattr(self, "ally_atk_bonus", 1)
-            for m in run.player.minions.values():
-                m.atk += ally_atk_bonus
+            from ...core.battle.party_battle import party_slots
+            for _, _, player in party_slots(run, alive_only=True):
+                for m in player.minions.values():
+                    m.atk += ally_atk_bonus
             bonus_msg = get_locale_text("i18n_cards_neutral.neutral.base.spell_damage.quick_strike_bonus")
         elif is_upgraded_card(self, "agile_strike") and is_agile:
             draw_count = getattr(self, "draw_count", 1)

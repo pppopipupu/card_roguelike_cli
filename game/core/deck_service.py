@@ -66,7 +66,7 @@ class DeckService:
         groups = {}
         for entry in deck:
             state = ensure_card_state(entry)
-            key = (state.id, state.upgraded, tuple(state.gems))
+            key = (state.id, state.upgraded, tuple(state.gems), state.exhaust_used, state.fleeting_used)
             if key in groups:
                 groups[key][1] += 1
             else:
@@ -129,7 +129,7 @@ class DeckService:
     @staticmethod
     def get_shop_card_pool(run, player, stats, *, include_coop=False):
         color = DeckService._class_color(player)
-        allow_coop = bool(getattr(run, "coop_id", "")) or include_coop
+        allow_coop = (run is not None and run.player_count() > 1) or include_coop
         return DeckService.eligible_card_ids(
             stats,
             colors=(color, "neutral"),

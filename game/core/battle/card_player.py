@@ -8,6 +8,7 @@ from .coop_targeting import validate_coop_target, normalize_coop_target
 from ..deck_service import DeckService
 from ...data.locale_data import get_locale_text
 from ...data.buff_data import BUFF_CONFIG
+from ...data.gem_data import GEM_CONFIG
 
 from ...entities import ALL_CARDS, ALL_MINIONS
 from ...models.events import (
@@ -36,38 +37,67 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
 
         if hasattr(card, "handle_post_play") and card.handle_post_play(run, c_state, source, self.engine):
             return
+        removed_by_fleeting = False
         if getattr(card, "fleeting", False):
+            fleeting_total = int(getattr(card, "fleeting_total", 1) or 1)
+            next_fleeting_used = int(getattr(clean_state, "fleeting_used", 0) or 0) + 1
             match_state = _clone_card_state(clean_state)
             match_state.replay = 0
             match_state.fragile = 0
             found = None
             for dc in p.deck:
-                if (dc.id == match_state.id and 
-                    dc.upgraded == match_state.upgraded and 
-                    dc.gems == match_state.gems):
+                if (dc.id == match_state.id and
+                    dc.upgraded == match_state.upgraded and
+                    dc.gems == match_state.gems and
+                    dc.fleeting_used == match_state.fleeting_used):
                     found = dc
                     break
-            if found:
-                p.deck.remove(found)
-        elif any(b.id == "void_exhaustion" for b in p.buffs):
-            p.exhaust_pile.append(clean_state)
-            self.engine._log_event(run, get_locale_text("i18n_battle_core.void_exhaust_log", name=card.name))
-            exhaust_evt = CardExhaustEvent(run, c_state, source)
-            self.engine.event_bus.dispatch(exhaust_evt)
-        elif card.type in ("minion", "amulet"):
-            if card.type == "minion":
-                self.engine._log_event(run, get_locale_text("i18n_battle_core.minion_enter_log", name=card.name))
+            if not found:
+                for dc in p.deck:
+                    if (dc.id == match_state.id and
+                        dc.upgraded == match_state.upgraded and
+                        dc.gems == match_state.gems):
+                        found = dc
+                        break
+            if next_fleeting_used >= fleeting_total:
+                if found:
+                    p.deck.remove(found)
+                self.engine._log_event(run, get_locale_text("i18n_battle_core.fleeting_remove_log", name=card.name))
+                removed_by_fleeting = True
             else:
-                self.engine._log_event(run, get_locale_text("i18n_battle_core.amulet_deploy_log", name=card.name))
-            exhaust_evt = CardExhaustEvent(run, c_state, source)
-            self.engine.event_bus.dispatch(exhaust_evt)
-        elif getattr(card, "exhaust", False):
-            p.exhaust_pile.append(clean_state)
-            self.engine._log_event(run, get_locale_text("i18n_battle_core.exhaust_card_log", name=card.name))
-            exhaust_evt = CardExhaustEvent(run, c_state, source)
-            self.engine.event_bus.dispatch(exhaust_evt)
-        else:
-            p.discard_pile.append(clean_state)
+                clean_state.fleeting_used = next_fleeting_used
+                if found:
+                    found.fleeting_used = next_fleeting_used
+                remaining = fleeting_total - next_fleeting_used
+                self.engine._log_event(run, get_locale_text("i18n_battle_core.fleeting_wear_log", name=card.name, remaining=remaining))
+        if not removed_by_fleeting:
+            if any(b.id == "void_exhaustion" for b in p.buffs):
+                p.exhaust_pile.append(clean_state)
+                self.engine._log_event(run, get_locale_text("i18n_battle_core.void_exhaust_log", name=card.name))
+                exhaust_evt = CardExhaustEvent(run, clean_state, source)
+                self.engine.event_bus.dispatch(exhaust_evt)
+            elif card.type in ("minion", "amulet"):
+                if card.type == "minion":
+                    self.engine._log_event(run, get_locale_text("i18n_battle_core.minion_enter_log", name=card.name))
+                else:
+                    self.engine._log_event(run, get_locale_text("i18n_battle_core.amulet_deploy_log", name=card.name))
+                exhaust_evt = CardExhaustEvent(run, clean_state, source)
+                self.engine.event_bus.dispatch(exhaust_evt)
+            elif getattr(card, "exhaust", False):
+                exhaust_total = int(getattr(card, "exhaust_total", 1) or 1)
+                next_exhaust_used = int(getattr(clean_state, "exhaust_used", 0) or 0) + 1
+                clean_state.exhaust_used = next_exhaust_used
+                if next_exhaust_used >= exhaust_total:
+                    p.exhaust_pile.append(clean_state)
+                    self.engine._log_event(run, get_locale_text("i18n_battle_core.exhaust_card_log", name=card.name))
+                    exhaust_evt = CardExhaustEvent(run, clean_state, source)
+                    self.engine.event_bus.dispatch(exhaust_evt)
+                else:
+                    p.discard_pile.append(clean_state)
+                    remaining = exhaust_total - next_exhaust_used
+                    self.engine._log_event(run, get_locale_text("i18n_battle_core.exhaust_wear_log", name=card.name, remaining=remaining))
+            else:
+                p.discard_pile.append(clean_state)
 
     def _finalize_card_play(self, run, p, card, c_state, target, res, source="played", register=True, allow_return=True) -> tuple[str, bool]:
         from ...models.state import ensure_card_state
@@ -111,6 +141,14 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
                     p.actions += 1
                     p.bonus_actions += 1
                     self.engine._log_event(run, get_locale_text("i18n_battle_core.gem_gain_a_ba_log"))
+                elif g == "gem_burn_gold":
+                    gp_gain = GEM_CONFIG.get("gem_burn_gold", {}).get("gp_gain", 5)
+                    uid = getattr(p, "mercenary_owner", "") if getattr(p, "is_mercenary", False) else (run.uid_for(p) or run.user_id)
+                    if uid and hasattr(self.engine, "save_manager") and self.engine.save_manager:
+                        stats = self.engine.save_manager.load_stats(uid)
+                        stats.gp = int(getattr(stats, "gp", 0) or 0) + gp_gain
+                        self.engine.save_manager.save_stats(uid, stats)
+                    self.engine._log_event(run, get_locale_text("i18n_battle_core.gem_burn_gold_log", gp=gp_gain))
                 elif g in ("gem_vuln_1", "gem_weak_2"):
                     buff_target = target
                     if not buff_target or not buff_target.startswith("e"):
@@ -177,14 +215,8 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
             res += get_locale_text("i18n_battle_core.time_stop_extra_end_log", end_turn_res=end_turn_res)
         if run.node_data.pop("force_end_turn", False):
             run.node_data.pop("force_end_turn_uid", None)
-            if getattr(run, "coop_id", ""):
-                from ..coop_engine import CoopEngine
-                force_end_res = CoopEngine(self.engine.save_manager, self.engine).handle_battle_turn_end(run)
-                res += "\n" + force_end_res
-            elif not self.engine.is_battle_won(run) and p.hp > 0:
+            if not self.engine.is_battle_won(run) and p.hp > 0:
                 res += "\n" + self.end_turn(run)
-        for enemy in run.enemies:
-            self.engine._sync_enemy_intents(enemy)
         self._reindex_minions(p)
         return res
 
@@ -291,7 +323,7 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         p = run.player
         if run.node_type != "battle":
             return get_locale_text("i18n_battle_core.not_in_battle_card")
-        if getattr(run, "coop_id", "") and p.downed:
+        if p.downed:
             return get_locale_text("i18n_battle_core.downed_cannot_play")
         if hand_idx < 1 or hand_idx > len(p.hand):
             return get_locale_text("i18n_battle_core.invalid_hand_index")
@@ -334,10 +366,17 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
                         target = "e1"
                     elif target == "p":
                         target = "p0"
-                    if (is_coop_card or is_any_other) and (target.lower().startswith("a") or target.lower().startswith("t")):
+                    if target.lower().startswith("a"):
                         resolved = self.engine.combat_resolver.resolve_ally(run, target)
-                        if not resolved:
-                            return get_locale_text("i18n_battle_misc.coop_ally_not_found", target=target)
+                        if is_coop_card or is_any_other:
+                            if not resolved:
+                                return get_locale_text("i18n_battle_misc.coop_ally_not_found", target=target)
+                        elif getattr(card, "target_type", "enemy") == "self" and resolved and resolved[0] == run.uid_for(p):
+                            if resolved[2] is not None and resolved[2] not in p.minions:
+                                return get_locale_text("i18n_battle_core.own_grid_empty", grid=resolved[2])
+                            target = "p0" if resolved[2] is None else f"p{resolved[2]}"
+                        else:
+                            return get_locale_text("i18n_battle_core.invalid_target")
                     elif target.startswith("e"):
                         try:
                             grid = int(target[1:]) - 1
@@ -447,9 +486,8 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         p = run.player
         if run.node_type != "battle":
             return get_locale_text("i18n_battle_core.not_in_battle_special")
-        if getattr(run, "coop_id", "") and p.downed:
+        if p.downed:
             return get_locale_text("i18n_battle_core.downed_cannot_act")
-        if hand_idx < 1 or hand_idx > len(p.hand):
             return get_locale_text("i18n_battle_core.invalid_hand_index")
         from ...models.state import ensure_card_state
         c_state = ensure_card_state(p.hand[hand_idx - 1])
@@ -520,9 +558,8 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         p = run.player
         if run.node_type != "battle":
             return get_locale_text("i18n_battle_core.not_in_battle_minion_attack")
-        if getattr(run, "coop_id", "") and p.downed:
+        if p.downed:
             return get_locale_text("i18n_battle_core.downed_cannot_command")
-        if my_grid not in p.minions:
             return get_locale_text("i18n_battle_core.own_grid_empty", grid=my_grid)
         m = p.minions[my_grid]
         if m.attack_actions < 1:
@@ -551,9 +588,8 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         p = run.player
         if run.node_type != "battle":
             return get_locale_text("i18n_battle_core.not_in_battle_minion_skill")
-        if getattr(run, "coop_id", "") and p.downed:
+        if p.downed:
             return get_locale_text("i18n_battle_core.downed_cannot_skill")
-        if my_grid not in p.minions:
             return get_locale_text("i18n_battle_core.own_grid_empty", grid=my_grid)
         m = p.minions[my_grid]
         if m.id not in ALL_MINIONS:

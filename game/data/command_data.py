@@ -16,6 +16,7 @@ COMMAND_SECTION_ORDER = {
         "checkin",
         "class",
         "mode",
+        "merc_talk",
         "abandon"
     ),
     "battle": (

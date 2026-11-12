@@ -262,35 +262,27 @@ class SunburstCard(Card):
         for idx in range(len(run.enemies) - 1, -1, -1):
             engine._damage_target(run, f"e{idx+1}", dmg, damage_type="radiant", card=self, damage_ready=True)
             
-        players = list(run.players.values()) if getattr(run, "coop_id", "") else [run.player]
-        previous_player = run.player
-        previous_user = run.user_id
-        for player in players:
-            if player.hp <= 0 or player.downed:
-                continue
-            run.player = player
-            uid = run.uid_for(player)
-            if uid:
-                run.user_id = uid
-            for grid in list(player.minions.keys()):
-                if grid not in player.minions:
-                    continue
-                engine._damage_target(run, f"p{grid}", dmg, damage_type="radiant", card=self, damage_ready=True)
-        run.player = previous_player
-        run.user_id = previous_user
+        from ...core.battle.party_battle import party_slots
+        caster_uid = run.uid_for(run.player)
+        caster_slot = run.party_order.index(caster_uid) + 1 if caster_uid in run.party_order else None
+        other_source = f"a{caster_slot}" if caster_slot else "p0"
+        for slot, uid, player in party_slots(run, alive_only=True):
+            src = "effect" if uid == caster_uid else other_source
+            for grid in sorted(list(player.minions.keys()), key=int, reverse=True):
+                if grid in player.minions:
+                    engine._damage_target(run, f"a{slot}m{grid}", dmg, source=src, damage_type="radiant", card=self, damage_ready=True)
+            if uid != caster_uid:
+                engine._damage_target(run, f"a{slot}", dmg, source=other_source, damage_type="radiant", card=self, damage_ready=True)
 
         bonus_msg = ""
         if self.upgraded:
             ally_atk_bonus = getattr(self, "ally_atk_bonus", 3)
-            for player in players:
-                if player.hp <= 0 or player.downed:
-                    continue
-                for grid, m_state in list(player.minions.items()):
+            for _, _, player in party_slots(run, alive_only=True):
+                for m_state in list(player.minions.values()):
                     m_state.buffs.clear()
                     m_state.atk += ally_atk_bonus
                     engine._log_event(run, get_locale_text("i18n_cards_warrior_wizard.wizard.sunburst.log", name=m_state.name, ally_atk_bonus=ally_atk_bonus))
             bonus_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.sunburst.bonus", ally_atk_bonus=ally_atk_bonus)
-            
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
@@ -366,8 +358,8 @@ class WizardPrismaticWallCard(Card):
 @register_card("wizard_antimagic_field")
 class WizardAntimagicFieldCard(Card):
     def execute(self, run, target, engine) -> str:
-        players = list(run.players.values()) if getattr(run, "coop_id", "") else [run.player]
-        for player in players:
+        from ...core.battle.party_battle import party_players
+        for player in party_players(run):
             player.buffs.clear()
             player.amulets.clear()
             for m in player.minions.values():

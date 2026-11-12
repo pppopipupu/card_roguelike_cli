@@ -2,11 +2,23 @@ import random
 
 from ..entities import ALL_CARDS, get_relic_name
 from ..entities.events import get_option_by_action
-from ..data.balance_config import REST_HEAL_RATIO, TREASURE_GOLD_MAX, TREASURE_GOLD_MIN
+from ..data.balance_config import (
+    COOP_AUTO_TARGET_CANDIDATE_COUNT,
+    COOP_BUFF_STACKS_MIN,
+    COOP_DOWNED_HP,
+    COOP_MEND_CLEANSE_STACKS,
+    COOP_PERCENT_BASE,
+    COOP_REST_HEAL_PERCENT,
+    COOP_REST_MEND_PERCENT,
+    REST_HEAL_RATIO,
+    REWARD_CARD_COUNT,
+    TREASURE_GOLD_MAX,
+    TREASURE_GOLD_MIN,
+)
 from ..data.reward_config import TREASURE_RELIC_POOL
 from ..data.locale_data import get_locale_text
 from .deck_service import DeckService
-
+from .party_coordinator import add_notice, finish_player_node, restore_player, swap_player, vote_option
 
 class _TeamEventSaveManager:
     def __init__(self, real):
@@ -18,8 +30,6 @@ class _TeamEventSaveManager:
     def save_save(self, *args, **kwargs):
         return False
 
-    def save_coop_save(self, *args, **kwargs):
-        return False
 
 
 class _TeamEventBattleEngine:
@@ -92,7 +102,7 @@ def _team_auto_flow(run, flow, gem_id):
     from ..entities.cards.base import ALL_CARDS
     if flow == "UPGRADE_FLOW":
         from ..data.card_upgrade_data import CARD_UPGRADE_CONFIG
-        for player in run.players.values():
+        for player in [run.players[u] for u in run.human_uids() if u in run.players]:
             for card_state in player.deck:
                 if not card_state.upgraded and card_state.id in CARD_UPGRADE_CONFIG:
                     card_state.upgraded = True
@@ -105,12 +115,12 @@ def _team_auto_flow(run, flow, gem_id):
         if not cards:
             return ""
         cid = cards[0]
-        for player in run.players.values():
+        for player in [run.players[u] for u in run.human_uids() if u in run.players]:
             player.deck.append(ensure_card_state(cid))
         return get_locale_text("i18n_explore_core.event_team_card", card_name=ALL_CARDS[cid].name if cid in ALL_CARDS else cid)
     if gem_id:
         from ..data.gem_data import GEM_CONFIG
-        for player in run.players.values():
+        for player in [run.players[u] for u in run.human_uids() if u in run.players]:
             for card_state in player.deck:
                 card_obj = ALL_CARDS.get(card_state)
                 if card_obj and len(card_state.gems or []) < card_obj.get_gem_slots_count():
@@ -125,18 +135,17 @@ def _resolve_coop_event(engine, run, option_idx):
     options = run.node_data.get("options", [])
     opt = options[option_idx - 1]
     executor = get_option_by_action(opt.get("action"))
-    coop = engine._coop(run)
     if not executor:
         engine.map_engine.enter_next_stage(run)
-        engine.save_manager.save_coop_save(run.user_id, run)
+        engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_explore_core.event_leave_coop")
     proxy = _TeamEventProxy(engine.map_engine)
     results = []
     first_result = ""
-    order = [uid for uid in run.party_order if uid in run.players]
+    order = [uid for uid in run.human_uids() if uid in run.players]
     for index, uid in enumerate(order):
         player = run.players[uid]
-        previous, previous_user = coop._swap(run, player)
+        previous, previous_user = swap_player(run, player)
         snapshot = None
         saved_type = None
         if index > 0:
@@ -149,29 +158,30 @@ def _resolve_coop_event(engine, run, option_idx):
             if index > 0:
                 run.node_data = snapshot
                 run.node_type = saved_type
-            coop._restore(run, previous, previous_user)
+            restore_player(run, previous, previous_user)
         if index == 0:
             first_result = res or ""
         if res and res not in ("UPGRADE_FLOW", "REMOVE_FLOW"):
             results.append((player.name, res))
+    from .battle.party_battle import mark_downed
     for player in run.players.values():
         if player.hp <= 0 and not player.downed:
-            coop.mark_downed(run, player)
+            mark_downed(engine.map_engine.battle_engine, run, player)
     run.node_data["votes"] = {}
     if proxy.battle_done:
-        engine.save_manager.save_coop_save(run.user_id, run)
+        engine.save_manager.save_save(run.user_id, run)
     elif proxy.shop_done:
         from ..models import coop_view
         coop_view.apply_view(run, run.user_id)
-        engine.save_manager.save_coop_save(run.user_id, run)
+        engine.save_manager.save_save(run.user_id, run)
     elif proxy.advance or first_result in ("UPGRADE_FLOW", "REMOVE_FLOW") or proxy.gem_id or run.node_type in ("card_select", "gem_insert"):
         extra = _team_auto_flow(run, first_result, proxy.gem_id)
         if extra:
             results.append(("", extra))
         engine.map_engine.enter_next_stage(run)
-        engine.save_manager.save_coop_save(run.user_id, run)
+        engine.save_manager.save_save(run.user_id, run)
     else:
-        engine.save_manager.save_coop_save(run.user_id, run)
+        engine.save_manager.save_save(run.user_id, run)
     lines = [get_locale_text("i18n_explore_core.event_team_result_header")]
     for name, res in results:
         if name:
@@ -183,36 +193,16 @@ def _resolve_coop_event(engine, run, option_idx):
 
 def handle_start_ancient(engine, run, option_idx, target=None) -> str | None:
     p = run.player
+    if run.node_data.get("coop_done"):
+        return get_locale_text("i18n_coop_explore.coop_done_waiting")
     options = run.node_data.get("options", [])
-    if getattr(run, "coop_id", ""):
-        if option_idx < 1 or option_idx > len(options):
-            return get_locale_text("err_invalid_option_idx")
-        chosen = options[option_idx - 1]
-        rid = chosen["relic"]
-        p.relics.append(rid)
-        if rid == "mark_of_fury":
-            p.max_hp = max(5, p.max_hp - 5)
-            p.hp = min(p.hp, p.max_hp)
-        elif rid == "vampiric_touch":
-            p.max_hp = max(5, p.max_hp - 4)
-            p.hp = min(p.hp, p.max_hp)
-        elif rid == "glacier_armor":
-            p.max_hp = max(5, p.max_hp - 6)
-            p.hp = min(p.hp, p.max_hp)
-        bonus_str = get_locale_text("i18n_explore_core.ancient_relic_bonus", relic_name=get_relic_name(rid))
-        if chosen["type"] == "contract":
-            cid = chosen["card"]
-            from ..models.state import ensure_card_state
-            p.deck.append(ensure_card_state(cid))
-            bonus_str += get_locale_text("i18n_explore_core.ancient_card_bonus", card_name=ALL_CARDS[cid].name)
-        return engine._coop_finish(run, get_locale_text("i18n_explore_core.ancient_contract_coop", bonus=bonus_str))
     if option_idx < 1 or option_idx > len(options):
         return get_locale_text("err_invalid_option_idx")
     chosen = options[option_idx - 1]
     rid = chosen["relic"]
     p.relics.append(rid)
     if rid == "mark_of_fury":
-        p.max_hp = max(5, p.max_hp - 5)
+        p.max_hp = max(5, p.max_hp - 3)
         p.hp = min(p.hp, p.max_hp)
     elif rid == "vampiric_touch":
         p.max_hp = max(5, p.max_hp - 4)
@@ -226,14 +216,13 @@ def handle_start_ancient(engine, run, option_idx, target=None) -> str | None:
         from ..models.state import ensure_card_state
         p.deck.append(ensure_card_state(cid))
         bonus_str += get_locale_text("i18n_explore_core.ancient_card_bonus", card_name=ALL_CARDS[cid].name)
-    engine.map_engine.enter_next_stage(run)
-    engine.save_manager.save_save(run.user_id, run)
-    return get_locale_text("i18n_explore_core.ancient_contract_start", bonus=bonus_str)
+    msg = get_locale_text("i18n_explore_core.ancient_contract_coop", bonus=bonus_str) if run.player_count() > 1 else get_locale_text("i18n_explore_core.ancient_contract_start", bonus=bonus_str)
+    return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
 
 
 def handle_ancient(engine, run, option_idx, target=None) -> str | None:
     p = run.player
-    if getattr(run, "coop_id", "") and run.node_data.get("coop_done"):
+    if run.node_data.get("coop_done"):
         return get_locale_text("i18n_coop_explore.coop_done_waiting")
     options = run.node_data.get("options", [])
     if option_idx < 1 or option_idx > len(options):
@@ -249,12 +238,7 @@ def handle_ancient(engine, run, option_idx, target=None) -> str | None:
     else:
         bonus_str = get_locale_text("i18n_explore_core.ancient_blessing_relic", relic_name=get_relic_name(rid))
     msg = get_locale_text("i18n_explore_core.ancient_blessing", bonus=bonus_str)
-    if getattr(run, "coop_id", ""):
-        return engine._coop_finish(run, msg)
-    engine.map_engine.enter_next_stage(run)
-    engine.save_manager.save_save(run.user_id, run)
-    return msg
-
+    return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
 
 def handle_treasure(engine, run, option_idx, target=None) -> str | None:
     p = run.player
@@ -282,7 +266,7 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
             p.gold += gold_gain
             relics_pool = TREASURE_RELIC_POOL
             got_relic = ""
-            if not getattr(run, "coop_id", ""):
+            if run.player_count() <= 1:
                 available_relics = [r for r in relics_pool if r not in p.relics]
                 got_relic = random.choice(available_relics) if available_relics else ""
             if got_relic:
@@ -290,7 +274,7 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
                 if got_relic == "red_bottle":
                     p.max_hp += 5
                     p.hp += 5
-            stats = engine.save_manager.load_stats(run.user_id)
+            stats = engine.save_manager.load_stats(run.user_id) if hasattr(engine.save_manager, "load_stats") else None
             card_pool = DeckService.get_epic_card_pool(run, p, stats)
             reward_cards = random.sample(card_pool, 3) if len(card_pool) >= 3 else card_pool
             from ..models.state import check_and_replace_fireball
@@ -333,7 +317,7 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
     else:
         pool = run.node_data.get("coop_relic_pool") or []
         if 1 <= option_idx <= len(pool):
-            return engine._claim_coop_relic(run, option_idx - 1)
+            return _claim_coop_relic(engine, run, option_idx - 1)
         option_idx -= len(pool)
         available_items = [it for it in items if not it.get("taken")]
         if option_idx < 1 or option_idx > len(available_items):
@@ -346,11 +330,7 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
             return res
         available = [it for it in items if not it.get("taken")]
         if not available:
-            if getattr(run, "coop_id", ""):
-                return engine._coop_finish(run, f"{res}\n{get_locale_text('msg_rewards_claimed_finished')}")
-            engine.map_engine.enter_next_stage(run)
-            engine.save_manager.save_save(run.user_id, run)
-            return f"{res}\n{get_locale_text('msg_rewards_claimed_finished')}"
+            return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, f"{res}\n{get_locale_text('msg_rewards_claimed_finished')}")
         engine.save_manager.save_save(run.user_id, run)
         return res
 
@@ -368,25 +348,69 @@ def handle_boss_chest(engine, run, option_idx, target=None) -> str | None:
         return res
     available = [it for it in items if not it.get("taken")]
     if not available:
-        if getattr(run, "coop_id", ""):
-            return engine._coop_finish(run, f"{res}\n{get_locale_text('msg_boss_chest_finished')}")
-        engine.map_engine.enter_next_stage(run)
-        engine.save_manager.save_save(run.user_id, run)
-        return f"{res}\n{get_locale_text('msg_boss_chest_finished')}"
+        return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, f"{res}\n{get_locale_text('msg_boss_chest_finished')}")
     engine.save_manager.save_save(run.user_id, run)
     return res
 
 
+def _claim_coop_relic(engine, run, pool_idx):
+    data = run.node_data
+    pool = data.get("coop_relic_pool") or []
+    if pool_idx < 0 or pool_idx >= len(pool):
+        return get_locale_text("i18n_coop_explore.err_invalid_reward_idx")
+    entry = pool[pool_idx]
+    rid = entry.get("relic_id")
+    if entry.get("claimed_by"):
+        claimant = run.players.get(entry["claimed_by"])
+        player_name = claimant.name if claimant else entry["claimed_by"]
+        return get_locale_text(
+            "i18n_coop_explore.relic_claimed_by_other",
+            relic_name=get_relic_name(rid),
+            player_name=player_name,
+        )
+    uid = run.user_id
+    if any(item.get("claimed_by") == uid for item in pool):
+        return get_locale_text("i18n_coop_explore.relic_limit_reached")
+    player = run.players.get(uid) or run.player
+    if rid in player.relics:
+        return get_locale_text("i18n_coop_explore.relic_already_owned", relic_name=get_relic_name(rid))
+    entry["claimed_by"] = uid
+    player.relics.append(rid)
+    if rid == "red_bottle":
+        player.max_hp += 5
+        player.hp += 5
+    notice = get_locale_text(
+        "i18n_coop_explore.relic_taken_notice",
+        player_name=player.name,
+        relic_name=get_relic_name(rid),
+    )
+    for other_uid in run.party_order:
+        if other_uid != uid:
+            add_notice(run, other_uid, notice)
+    msg = get_locale_text("i18n_coop_explore.relic_gained", relic_name=get_relic_name(rid))
+    items = data.get("items", [])
+    if not [item for item in items if not item.get("taken")]:
+        return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
+    engine.save_manager.save_save(run.user_id, run)
+    return msg
+
+
 def handle_reward(engine, run, option_idx, target=None) -> str | None:
+    if run.node_data.get("coop_done"):
+        return get_locale_text("i18n_coop_explore.coop_done_waiting")
     if run.node_data.get("no_reward"):
-        engine.map_engine.enter_next_stage(run)
-        engine.save_manager.save_save(run.user_id, run)
-        return get_locale_text("msg_escape_battle_win")
+        return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, get_locale_text("msg_escape_battle_win"))
+    pool = run.node_data.get("coop_relic_pool") or []
+    if 1 <= option_idx <= len(pool):
+        return _claim_coop_relic(engine, run, option_idx - 1)
+    local_idx = option_idx - len(pool)
     items = run.node_data.setdefault("items", [])
     available_items = [it for it in items if not it.get("taken")]
-    if option_idx < 1 or option_idx > len(available_items):
+    if local_idx < 1 or local_idx > len(available_items):
+        if pool:
+            return get_locale_text("i18n_coop_explore.err_invalid_reward_idx")
         return get_locale_text("err_invalid_option_idx")
-    chosen = available_items[option_idx - 1]
+    chosen = available_items[local_idx - 1]
     real_idx = items.index(chosen)
     res = engine._claim_single_item(run, real_idx)
     if run.node_type != "reward":
@@ -394,9 +418,7 @@ def handle_reward(engine, run, option_idx, target=None) -> str | None:
         return res
     available = [it for it in items if not it.get("taken")]
     if not available:
-        engine.map_engine.enter_next_stage(run)
-        engine.save_manager.save_save(run.user_id, run)
-        return f"{res}\n{get_locale_text('msg_rewards_claimed_finished')}"
+        return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, f"{res}\n{get_locale_text('msg_rewards_claimed_finished')}")
     engine.save_manager.save_save(run.user_id, run)
     return res
 
@@ -471,80 +493,99 @@ def handle_card_select(engine, run, option_idx, target=None) -> str | None:
         engine.save_manager.save_save(run.user_id, run)
         available = [it for it in run.node_data.setdefault("items", []) if not it.get("taken")]
         if not available:
-            if getattr(run, "coop_id", ""):
-                return engine._coop_finish(run, f"{msg}\n{get_locale_text('msg_rewards_claimed_finished')}")
-            engine.map_engine.enter_next_stage(run)
-            engine.save_manager.save_save(run.user_id, run)
-            return f"{msg}\n{get_locale_text('msg_rewards_claimed_finished')}"
+            return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, f"{msg}\n{get_locale_text('msg_rewards_claimed_finished')}")
         return msg
     else:
-        if getattr(run, "coop_id", ""):
-            return engine._coop_finish(run, msg)
-        engine.map_engine.enter_next_stage(run)
-        engine.save_manager.save_save(run.user_id, run)
-        return get_locale_text("i18n_explore_core.next_stage_suffix", msg=msg)
+        suffix = msg if run.player_count() > 1 else get_locale_text("i18n_explore_core.next_stage_suffix", msg=msg)
+        return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, suffix)
 
 
 def handle_rest(engine, run, option_idx, target=None) -> str | None:
+    if run.node_data.get("coop_done"):
+        return get_locale_text("i18n_coop_explore.coop_done_waiting")
     p = run.player
+    multi = run.player_count() > 1
     items = run.node_data.setdefault("items", [])
     if not items:
         engine._init_rest_node(run)
         items = run.node_data["items"]
-    itype = None
     if option_idx == 1:
-        itype = "rest_heal"
-    elif option_idx == 2:
-        itype = "rest_meditate"
-    elif option_idx in (3, 4):
-        itype = "rest_upgrade"
-    else:
-        return get_locale_text("err_invalid_option_idx")
-    if itype != "rest_upgrade":
         for it in items:
             it["taken"] = True
-    if itype == "rest_heal":
-        heal = int(p.max_hp * REST_HEAL_RATIO)
+        heal = (p.max_hp * COOP_REST_HEAL_PERCENT // COOP_PERCENT_BASE) if multi else int(p.max_hp * REST_HEAL_RATIO)
         p.hp = min(p.max_hp, p.hp + heal)
-        engine.map_engine.enter_next_stage(run)
-        engine.save_manager.save_save(run.user_id, run)
-        return get_locale_text("msg_rest_heal", heal=heal)
-    elif itype == "rest_meditate":
+        msg = get_locale_text("i18n_coop_explore.rest_heal", heal=heal) if multi else get_locale_text("msg_rest_heal", heal=heal)
+        return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
+    if option_idx == 2:
+        for it in items:
+            it["taken"] = True
         stats = engine.save_manager.load_stats(run.user_id)
-        class_cards = DeckService.get_class_spell_pool(p, stats)
-        reward_cards = random.sample(class_cards, 3) if len(class_cards) >= 3 else class_cards
+        class_cards = DeckService.get_class_spell_pool(p, stats, include_coop=multi)
+        reward_cards = random.sample(class_cards, min(REWARD_CARD_COUNT, len(class_cards))) if class_cards else []
         from ..models.state import check_and_replace_fireball
         reward_cards = [check_and_replace_fireball(run, cid) for cid in reward_cards]
         engine.start_card_select(run, reward_cards, "rest", init_event=False, title_key="i18n_explore_core.meditate_title", desc_key="i18n_explore_core.meditate_desc")
         engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("msg_rest_meditate")
-    elif itype == "rest_upgrade":
+    if option_idx == 3:
         run.node_data["upgrade_source"] = "rest"
+        run.node_data["pending_upgrade"] = True
         engine.save_manager.save_save(run.user_id, run)
         return "UPGRADE_FLOW"
+    if option_idx == 4 and multi:
+        current = run.uid_for(p)
+        resolved = engine.map_engine.battle_engine.combat_resolver.resolve_ally(run, target)
+        if not resolved or resolved[0] == current or resolved[2] is not None:
+            candidates = [
+                uid
+                for uid in run.party_order
+                if uid != current
+                and uid in run.players
+                and run.players[uid].hp > COOP_DOWNED_HP
+                and not run.players[uid].downed
+            ]
+            if len(candidates) != COOP_AUTO_TARGET_CANDIDATE_COUNT:
+                names = get_locale_text("i18n_coop_explore.list_delimiter").join(f"a{run.party_order.index(uid) + 1}" for uid in candidates)
+                return get_locale_text("i18n_coop_explore.mend_target_prompt", names=names)
+            resolved = (candidates[0], run.players[candidates[0]], None)
+        _, ally, _ = resolved
+        heal = ally.max_hp * COOP_REST_MEND_PERCENT // COOP_PERCENT_BASE
+        ally.hp = min(ally.max_hp, ally.hp + heal)
+        from ..entities.buffs import is_debuff
+        removed = ""
+        for buff in list(ally.buffs):
+            if is_debuff(buff.id):
+                buff.stacks -= COOP_MEND_CLEANSE_STACKS
+                removed = get_locale_text("i18n_coop_explore.mend_cleanse_suffix", buff_name=buff.name)
+                if buff.stacks <= COOP_BUFF_STACKS_MIN:
+                    ally.buffs.remove(buff)
+                break
+        msg = get_locale_text("i18n_coop_explore.mend_success", ally_name=ally.name, heal=heal, removed=removed)
+        return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
+    if option_idx == 4:
+        run.node_data["upgrade_source"] = "rest"
+        run.node_data["pending_upgrade"] = True
+        engine.save_manager.save_save(run.user_id, run)
+        return "UPGRADE_FLOW"
+    return get_locale_text("err_invalid_option_idx")
 
 
 def handle_event(engine, run, option_idx, target=None) -> str | None:
-    if getattr(run, "coop_id", ""):
-        options = run.node_data.get("options", [])
-        if option_idx < 1 or option_idx > len(options):
-            return get_locale_text("err_invalid_option_idx")
-        vote_result = engine._coop(run).vote_event_option(run, run.user_id, option_idx)
-        if vote_result is not None:
-            return vote_result
-        return _resolve_coop_event(engine, run, option_idx)
     options = run.node_data.get("options", [])
     if option_idx < 1 or option_idx > len(options):
         return get_locale_text("err_invalid_option_idx")
+    vote_result = vote_option(run, run.user_id, option_idx, "i18n_explore_core.event_vote_recorded")
+    if vote_result is not None:
+        engine.save_manager.save_save(run.user_id, run)
+        return vote_result
+    if run.player_count() > 1:
+        return _resolve_coop_event(engine, run, option_idx)
     opt = options[option_idx - 1]
     act = opt.get("action")
     option_executor = get_option_by_action(act)
     if option_executor:
         return option_executor.execute(run, engine.map_engine)
-    else:
-        engine.map_engine.enter_next_stage(run)
-        engine.save_manager.save_save(run.user_id, run)
-        return get_locale_text("i18n_explore_core.event_leave_next")
+    return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, get_locale_text("i18n_explore_core.event_leave_next"))
 
 
 def handle_shop(engine, run, option_idx, target=None) -> str | None:
@@ -594,11 +635,8 @@ def handle_shop(engine, run, option_idx, target=None) -> str | None:
         run.node_data["upgrade_source"] = "shop"
         return "UPGRADE_FLOW"
     elif itype == "leave":
-        if getattr(run, "coop_id", ""):
-            return engine._coop_finish(run, get_locale_text("i18n_explore_core.shop_leave_coop"))
-        engine.map_engine.enter_next_stage(run)
-        engine.save_manager.save_save(run.user_id, run)
-        return get_locale_text("i18n_explore_core.shop_leave_next")
+        msg = get_locale_text("i18n_explore_core.shop_leave_coop") if run.player_count() > 1 else get_locale_text("i18n_explore_core.shop_leave_next")
+        return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
 
 
 def handle_life_merchant(engine, run, option_idx, target=None) -> str | None:

@@ -56,8 +56,8 @@ def _buff_labels(folder: str, buff_id: str):
 
 
 def _living_players(run):
-    players = list(run.players.values()) if getattr(run, "coop_id", "") else [run.player]
-    return [p for p in players if getattr(p, "hp", 0) > 0]
+    players = [run.players[uid] for uid in run.party_order if uid in run.players]
+    return [p for p in players if getattr(p, "hp", 0) > 0 and not getattr(p, "downed", False)]
 
 
 def _gain_enemy_shield(run, engine, enemy, amount: int):

@@ -84,7 +84,7 @@ def render_map_select(run: GameRun) -> str:
             preview_lines.append(f"    [{idx}] {type_names.get(nd['type'], nd['type'])}{next_str}")
     lines.extend(preview_lines)
     lines.append("")
-    if getattr(run, "coop_id", ""):
+    if run.player_count() > 1:
         lines.append(render_party_status(run))
         votes = run.node_data.get("votes", {})
         if votes:
@@ -109,7 +109,7 @@ def render_map_select(run: GameRun) -> str:
 def render_start_ancient(run: GameRun) -> str:
     from .party import render_waiting
     p = run.player
-    if getattr(run, "coop_id", "") and run.node_data.get("coop_done"):
+    if run.node_data.get("coop_done"):
         return render_waiting(run)
     options = run.node_data.get("options", [])
     style = run.node_data.get("style", "default")

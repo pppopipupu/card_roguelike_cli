@@ -21,7 +21,7 @@ def render_event(run: GameRun) -> str:
     options = data.get("options", [])
     for idx, opt in enumerate(options, 1):
         lines.append(get_locale_text("renderer_explore.event_option", idx=idx, text=opt.get('text', '')))
-    if getattr(run, "coop_id", ""):
+    if run.player_count() > 1:
         from .party import render_party_status
         lines.append(render_party_status(run))
         votes = data.get("votes", {})
@@ -45,7 +45,7 @@ def render_shop(run: GameRun) -> str:
     from .party import render_party_status, render_waiting
     p = run.player
     data = run.node_data
-    if getattr(run, "coop_id", "") and data.get("coop_done"):
+    if data.get("coop_done"):
         return render_waiting(run)
     relics_str = format_relic_bar(p.relics)
     lines = [
@@ -54,7 +54,7 @@ def render_shop(run: GameRun) -> str:
         get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str,
         "",
     ]
-    if getattr(run, "coop_id", ""):
+    if run.player_count() > 1:
         lines.append(render_party_status(run))
         lines.append(get_locale_text("renderer_explore.shop_coop_note"))
         lines.append("")
@@ -100,7 +100,7 @@ def render_rest(run: GameRun) -> str:
     from .party import render_party_status, render_waiting
     p = run.player
     data = run.node_data
-    if getattr(run, "coop_id", "") and data.get("coop_done"):
+    if data.get("coop_done"):
         return render_waiting(run)
     relics_str = format_relic_bar(p.relics)
     lines = [
@@ -109,7 +109,7 @@ def render_rest(run: GameRun) -> str:
         get_locale_text("renderer_explore.status_line_hp", name=run.player.name, hp=p.hp, max_hp=p.max_hp) + relics_str,
         "",
     ]
-    if getattr(run, "coop_id", ""):
+    if run.player_count() > 1:
         lines.append(render_party_status(run))
         lines.append("")
     lines.append(get_locale_text("render_rest_desc"))
@@ -136,7 +136,7 @@ def render_reward(run: GameRun) -> str:
     from .party import render_party_status, render_waiting
     p = run.player
     data = run.node_data
-    if getattr(run, "coop_id", "") and data.get("coop_done"):
+    if data.get("coop_done"):
         return render_waiting(run)
     if data.get("no_reward"):
         lines = [
@@ -158,7 +158,7 @@ def render_reward(run: GameRun) -> str:
         get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold),
         ""
     ]
-    if getattr(run, "coop_id", ""):
+    if run.player_count() > 1:
         lines.append(render_party_status(run))
         lines.append("")
     if quest_bonus:
@@ -227,7 +227,7 @@ def render_treasure(run: GameRun) -> str:
     from .party import render_party_status, render_waiting
     p = run.player
     data = run.node_data
-    if getattr(run, "coop_id", "") and data.get("coop_done"):
+    if data.get("coop_done"):
         return render_waiting(run)
     text = data.get("text", "")
     state = data.get("state", "pending_remove")
@@ -239,7 +239,7 @@ def render_treasure(run: GameRun) -> str:
         text,
         ""
     ]
-    if getattr(run, "coop_id", ""):
+    if run.player_count() > 1:
         lines.insert(3, render_party_status(run))
         lines.insert(4, "")
     if state == "pending_remove":
@@ -424,7 +424,7 @@ def render_life_merchant(run: GameRun) -> str:
 
     p = run.player
     data = run.node_data
-    if getattr(run, "coop_id", "") and data.get("coop_done"):
+    if data.get("coop_done"):
         return render_waiting(run)
     relics_str = format_relic_bar(p.relics)
     lines = [
@@ -433,7 +433,7 @@ def render_life_merchant(run: GameRun) -> str:
         get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str,
         "",
     ]
-    if getattr(run, "coop_id", ""):
+    if run.player_count() > 1:
         lines.append(render_party_status(run))
         lines.append(get_locale_text("renderer_explore.life_merchant_coop_note"))
         lines.append("")

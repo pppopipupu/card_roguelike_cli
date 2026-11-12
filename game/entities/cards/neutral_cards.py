@@ -487,12 +487,14 @@ class NeutralButtonMagicCard(Card):
                 return get_locale_text("i18n_cards_neutral.neutral.cards.button_magic.eff25", lost_hand_count=lost_hand_count, removed_str=removed_str)
                 
             def eff14():
-                p = run.player
+                from ...core.battle.party_battle import party_slots
                 true_damage = self._effect_param("up_doom_damage", 999)
                 for idx in range(len(run.enemies) - 1, -1, -1):
                     engine._damage_target(run, f"e{idx+1}", true_damage, damage_type="true", card=self)
-                for grid in list(p.minions.keys()):
-                    engine._damage_target(run, f"p{grid}", true_damage, damage_type="true", card=self)
+                for slot, _, player in party_slots(run, alive_only=True):
+                    for grid in sorted(list(player.minions.keys()), key=int, reverse=True):
+                        if grid in player.minions:
+                            engine._damage_target(run, f"a{slot}m{grid}", true_damage, damage_type="true", card=self)
                 return get_locale_text("i18n_cards_neutral.neutral.cards.button_magic.eff26")
                 
             def eff15():

@@ -18,11 +18,11 @@ class SkillCommand(CommandHandler, names=["技能", "skill", "sk", "k"], allowed
             yield get_locale_text("i18n_cli_commands.battle_skill_usage")
             return
         p = run.player
-        if getattr(run, "coop_id", "") and p.downed:
+        if p.downed:
             yield get_locale_text("i18n_cli_commands.battle_skill_downed")
             return
-        surge_key = f"action_surge_uses:{user_id}" if getattr(run, "coop_id", "") else "action_surge_uses"
-        used_key = f"action_surge_turn_used:{user_id}" if getattr(run, "coop_id", "") else "action_surge_turn_used"
+        surge_key = run.turn_key("action_surge_uses", p)
+        used_key = run.turn_key("action_surge_turn_used", p)
         uses = run.node_data.get(surge_key, 0)
         if uses <= 0:
             yield get_locale_text("i18n_cli_commands.battle_skill_exhausted")

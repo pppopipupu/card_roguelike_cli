@@ -9,9 +9,9 @@ COOP_ALLY_CARDS = {
 
 
 def validate_coop_target(engine, run, card, base_id, target):
-    if base_id in COOP_ALLY_CARDS and not (isinstance(target, str) and target.lower().startswith(("a", "t"))):
+    if base_id in COOP_ALLY_CARDS and not (isinstance(target, str) and target.lower().startswith("a")):
         return get_locale_text("i18n_battle_misc.coop_need_ally_target")
-    if isinstance(target, str) and target.lower().startswith(("a", "t")):
+    if isinstance(target, str) and target.lower().startswith("a"):
         resolved = engine.combat_resolver.resolve_ally(run, target)
         if not resolved:
             return get_locale_text("i18n_battle_misc.coop_ally_not_found", target=target)

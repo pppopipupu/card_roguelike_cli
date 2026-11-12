@@ -3,6 +3,7 @@ from .base import EventOption
 from ...data.event_data import EVENT_CONFIG
 from ..cards import ALL_CARDS
 from ...core.deck_service import DeckService
+from ...data.reward_config import NORMAL_CARD_RARITIES
 from ...data.locale_data import get_locale_text
 
 class DrinkFountainOption(EventOption, action="drink_fountain", text=get_locale_text("i18n_events_b.option_drink_fountain")):
@@ -22,23 +23,8 @@ class CoinFountainOption(EventOption, action="coin_fountain", text=get_locale_te
         if p.gold < gold_cost:
             return get_locale_text("i18n_events_b.err_gold_not_enough_10")
         p.gold -= gold_cost
-        unlocked_new = set()
-        if hasattr(engine.save_manager, "load_stats"):
-            stats = engine.save_manager.load_stats(run.user_id)
-            if stats:
-                unlocked_new = set(getattr(stats, "unlocked_new_cards", []) or []) | set(getattr(stats, "purchased_pool", []) or [])
-        new_cards = {
-            "warrior_hell_raider", "warrior_shield_bash", "warrior_blood_fury",
-            "wizard_prismatic_wall", "wizard_antimagic_field", "wizard_time_ravage",
-            "neutral_power_word_kill", "neutral_power_word_stun", "neutral_power_word_pain",
-            "neutral_plane_shift"
-        }
-        wizards = [
-            cid for cid, c in ALL_CARDS.items()
-            if c.color == "wizard"
-            and c.rarity not in ("legendary", "mythic", "artifact")
-            and (cid not in new_cards or cid in unlocked_new)
-        ]
+        stats = engine.save_manager.load_stats(run.user_id) if hasattr(engine.save_manager, "load_stats") else None
+        wizards = DeckService.eligible_card_ids(stats, colors=("wizard",), rarities=NORMAL_CARD_RARITIES)
         sample_count = cfg.get("wizard_sample_count", 3)
         reward_cards = random.sample(wizards, sample_count) if len(wizards) >= sample_count else wizards
         run.node_type = "card_select"

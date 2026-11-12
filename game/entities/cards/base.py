@@ -8,8 +8,9 @@ from . import curse
 from . import warrior
 from . import coop
 from . import life_merchant_cards
-
+from . import mercenary_cards
 import copy
+import re
 
 from ...data.card_target_data import SELF_TARGET_SPELLS
 from ...data.locale_data import get_locale_text
@@ -80,6 +81,7 @@ NUMERIC_CARD_FIELDS = (
     "hp_cost_ratio",
     "absorb_amount",
     "target_hp_cap",
+    "gold_cost",
 )
 
 GEM_DAMAGE_ADD = {
@@ -117,6 +119,7 @@ def _gem_effect_suffixes():
     }
 
 def get_gem_numeric_modifiers(gems):
+    from ...data.gem_data import GEM_CONFIG
     dmg_add = 0
     dmg_mul = 1
     shield_add = 0
@@ -124,6 +127,11 @@ def get_gem_numeric_modifiers(gems):
     ba_sub = 0
     gain_a = 0
     gain_ba = 0
+    burn_gold_gp = 0
+    burn_gold_exhaust = False
+    sturdy_mul = 1
+    sturdy_step = GEM_CONFIG.get("gem_sturdy", {}).get("multiplier", 2)
+    burn_gold_step = GEM_CONFIG.get("gem_burn_gold", {}).get("gp_gain", 5)
     for gem in gems or ():
         dmg_add += GEM_DAMAGE_ADD.get(gem, 0)
         dmg_mul *= GEM_DAMAGE_MUL.get(gem, 1)
@@ -135,6 +143,11 @@ def get_gem_numeric_modifiers(gems):
         elif gem == "gem_gain_a_1_ba_1":
             gain_a += 1
             gain_ba += 1
+        elif gem == "gem_burn_gold":
+            burn_gold_gp += burn_gold_step
+            burn_gold_exhaust = True
+        elif gem == "gem_sturdy":
+            sturdy_mul *= sturdy_step
     return {
         "dmg_add": dmg_add,
         "dmg_mul": dmg_mul,
@@ -143,6 +156,9 @@ def get_gem_numeric_modifiers(gems):
         "ba_sub": ba_sub,
         "gain_a": gain_a,
         "gain_ba": gain_ba,
+        "burn_gold_gp": burn_gold_gp,
+        "burn_gold_exhaust": burn_gold_exhaust,
+        "sturdy_mul": sturdy_mul,
     }
 
 def replace_structured_number(text, old_value, new_value, before_markers=(), after_markers=(), trim_after_space=False):
@@ -213,6 +229,13 @@ def add_replay_marker(desc, replay):
     if updated is not None:
         return updated
     return append_card_suffix(desc, get_locale_text("i18n_card_runtime.cards.replay_marker", value=replay))
+
+def update_keyword_count_marker(desc, label, total_val, remaining_val):
+    if total_val <= 0 or not desc:
+        return desc
+    target_text = label if remaining_val <= 1 else f"{label} {remaining_val}"
+    pattern = re.compile(rf"(?:(?<=^)|(?<=[。！？，；\s])){re.escape(label)}(?:\s+\d+)?(?=$|[。！？，；\s])")
+    return pattern.sub(target_text, desc)
 
 def _get_card_config():
     from ...data.neutral_card_data import NEUTRAL_CARD_CONFIG
@@ -453,7 +476,29 @@ class CardRegistryDict(dict):
                 effect_marker = effect_suffix.rstrip("。")
                 if effect_marker not in card.desc:
                     card.desc = append_card_suffix(card.desc, effect_suffix)
+            if modifiers["burn_gold_exhaust"]:
+                if not getattr(card, "exhaust", False):
+                    card.exhaust = True
+                    card.desc = append_card_suffix(card.desc, get_locale_text("i18n_card_runtime.cards.gem_exhaust"))
+                card.desc = append_card_suffix(card.desc, get_locale_text("i18n_card_runtime.cards.gem_effect.gem_burn_gold", gp=modifiers["burn_gold_gp"]))
 
+        sturdy_mul = get_gem_numeric_modifiers(card.gems)["sturdy_mul"] if card.gems else 1
+        exhaust_total = sturdy_mul if getattr(card, "exhaust", False) else 0
+        fleeting_total = sturdy_mul if getattr(card, "fleeting", False) else 0
+        exhaust_used = int(getattr(card_state, "exhaust_used", 0) or 0)
+        fleeting_used = int(getattr(card_state, "fleeting_used", 0) or 0)
+        exhaust_remaining = max(0, exhaust_total - exhaust_used) if exhaust_total > 0 else 0
+        fleeting_remaining = max(0, fleeting_total - fleeting_used) if fleeting_total > 0 else 0
+        card.exhaust_total = exhaust_total
+        card.exhaust_remaining = exhaust_remaining
+        card.fleeting_total = fleeting_total
+        card.fleeting_remaining = fleeting_remaining
+        if exhaust_total > 1 or exhaust_used > 0:
+            card.desc = update_keyword_count_marker(card.desc, get_locale_text("i18n_card_runtime.cards.exhaust_label"), exhaust_total, exhaust_remaining)
+        if fleeting_total > 1 or fleeting_used > 0:
+            card.desc = update_keyword_count_marker(card.desc, get_locale_text("i18n_card_runtime.cards.fleeting_label"), fleeting_total, fleeting_remaining)
+
+        if card.gems:
             from ...data.gem_data import GEM_CONFIG
             gem_descs = []
             for g in card.gems:
@@ -462,7 +507,6 @@ class CardRegistryDict(dict):
             if gem_descs:
                 gem_inlay_separator = get_locale_text("i18n_card_runtime.cards.gem_inlay_separator")
                 card.desc = card.desc + get_locale_text("i18n_card_runtime.cards.gem_inlay", gems=gem_inlay_separator.join(gem_descs))
-
         if card_state.replay > 0:
             from ...entities.tags import ReplayTag
             card.add_tag(ReplayTag("replay", card_state.replay))
@@ -558,6 +602,10 @@ for cid, cfg in _get_card_config().items():
     inst.rarity = rarity
     inst.exhaust = exhaust
     inst.fleeting = fleeting
+    inst.exhaust_total = 1 if exhaust else 0
+    inst.exhaust_remaining = inst.exhaust_total
+    inst.fleeting_total = 1 if fleeting else 0
+    inst.fleeting_remaining = inst.fleeting_total
     inst.agile = agile
     inst.retain = retain
     inst.innate = cfg.get("innate", False)

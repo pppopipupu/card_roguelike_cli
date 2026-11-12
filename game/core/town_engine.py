@@ -129,13 +129,15 @@ class TownEngine:
         target_id = None
         target_lower = target_name.lower()
         entities = zh_cn.get("interactive_entities", {})
+        from ..data.mercenary_data import MERCENARY_CONFIG
         for ent_id in visible_ids:
             ent_data = entities.get(ent_id, {})
             names = [ent_id.lower(), ent_data.get("name", "").lower()]
+            if ent_id == "Harry_Du_Bois":
+                names.extend(a.lower() for a in MERCENARY_CONFIG["harry_du_bois"].get("aliases", []))
             if target_lower in names:
                 target_id = ent_id
                 break
-
         if not target_id:
             return get_locale_text("global.interact_not_found", target=target_name)
 

@@ -22,14 +22,14 @@ class CafeDialogMixin:
 
     def _get_dialog_content(self, run: GameRun, npc: str, state: str, talked: bool) -> Tuple[str, list[str]]:
         p = run.player
-        cafe_data = run.node_data.get("cafe_data", {})
+        shared_cafe = self._shared_cafe(run)
 
         if talked:
             entry = NPC_DIALOGS.get(npc, {}).get("talked", NPC_TALKED_FALLBACK)
             return entry["text"], list(entry["options"])
 
         if npc == "杰斯":
-            stock = cafe_data.get("card_master_stock", [])
+            stock = shared_cafe.get("card_master_stock", [])
             opts = []
             for cid in stock:
                 name = ALL_CARDS[cid].name if cid in ALL_CARDS else cid
@@ -39,7 +39,7 @@ class CafeDialogMixin:
             return get_locale_text("i18n_map_cafe.cafe_jace_greeting"), opts
 
         if npc == "艾琳":
-            stock = cafe_data.get("gemcutter_stock", [])
+            stock = shared_cafe.get("gemcutter_stock", [])
             opts = [
                 get_locale_text("i18n_map_cafe.cafe_opt_gem_slot")
             ]
@@ -67,10 +67,13 @@ class CafeDialogMixin:
 
     def _execute_dialog_logic(self, run: GameRun, npc: str, state: str, idx: int, talked: bool) -> str:
         p = run.player
-        cafe_data = run.node_data.setdefault("cafe_data", {})
-        talked_npcs = cafe_data.setdefault("talked_npcs", [])
+        cafe_data = self._view_cafe(run)
+        shared_cafe = self._shared_cafe(run)
+        talked_npcs = shared_cafe.setdefault("talked_npcs", [])
 
         if talked:
+            if run.player_count() > 1:
+                self._release_npc_lock(shared_cafe, run.user_id, npc)
             cafe_data["active_npc"] = None
             cafe_data["dialog_state"] = None
             return get_locale_text("i18n_map_cafe.cafe_msg_dialog_ended")
@@ -262,7 +265,7 @@ class CafeDialogMixin:
                 else:
                     return self.leave_npc(run)
         elif npc == "杰斯":
-            stock = cafe_data.get("card_master_stock", [])
+            stock = shared_cafe.get("card_master_stock", [])
             if idx <= len(stock):
                 if p.gold < CAFE_PRICES["card_master_card_cost"]:
                     return get_locale_text("i18n_map_cafe.cafe_err_gold_insufficient", cost=120)
@@ -274,7 +277,7 @@ class CafeDialogMixin:
             else:
                 return self.leave_npc(run)
         elif npc == "艾琳":
-            stock = cafe_data.get("gemcutter_stock", [])
+            stock = shared_cafe.get("gemcutter_stock", [])
             if idx == 1:
                 if p.gold < CAFE_PRICES["gemcutter_slot_cost"]:
                     return get_locale_text("i18n_map_cafe.cafe_err_gold_insufficient", cost=50)
@@ -363,7 +366,7 @@ class CafeDialogMixin:
                 if p.gold < CAFE_PRICES["hunter_buy_cost"]:
                     return get_locale_text("i18n_map_cafe.cafe_err_gold_insufficient", cost=120)
                 p.gold -= CAFE_PRICES["hunter_buy_cost"]
-                rid = cafe_data.get("hunter_stock")
+                rid = shared_cafe.get("hunter_stock")
                 if not rid:
                     rid = "heavy_armor"
                 p.relics.append(rid)

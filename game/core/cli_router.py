@@ -1,6 +1,6 @@
 from typing import Tuple, Generator
 from ..models.state import set_user_id, UserStats, GameRun
-from ..renderer import GameRenderer
+from ..renderer import GameRenderer, format_output_numbers
 from .state_resolver import resolve_game_state
 from .cli.base import ActionHandler, CommandHandler
 from .cli.action_router import ActionRouter
@@ -100,15 +100,16 @@ class CLIRouter:
         actor_name = before_run.player.name if before_run is not None and before_run.player else ""
         results = []
         for res in self._handle_command_raw(user_id, parts):
-            results.append(res)
-            yield res
+            formatted = format_output_numbers(res)
+            results.append(formatted)
+            yield formatted
         if command:
             from .achievement_service import AchievementService
             ach = AchievementService(self.save_manager)
             ach.reconcile(user_id)
             pending = ach.pop_pending_notices(user_id)
             if pending:
-                notice_text = ach.format_notices(pending)
+                notice_text = format_output_numbers(ach.format_notices(pending))
                 results.append(notice_text)
                 yield notice_text
         if not command:
@@ -170,6 +171,26 @@ class CLIRouter:
             yield get_locale_text("i18n_cli_core.unknown_subcommand")
             return
 
+        from .mercenary import handle_merc_dialog_input, is_in_merc_dialog, render_merc_dialog
+        sub = parts[0].lower()
+        if is_in_merc_dialog(run, user_id):
+            if sub in ("离开", "leave", "exit", "quit", "取消", "cancel") or parts[0].lstrip("-").isdigit():
+                res = handle_merc_dialog_input(run, user_id, " ".join(parts))
+                self.save_manager.save_save(user_id, run)
+                yield res
+                return
+            if sub in ("status", "r", "状态"):
+                yield format_output_numbers(render_merc_dialog(run, user_id))
+                return
+            dialog_handler, _ = CommandHandler.resolve(sub, curr_state)
+            if dialog_handler and sub not in ("交谈", "talk", "talk_to", "interact", "inter"):
+                res_list = list(dialog_handler.execute(self, user_id, parts))
+                yield "\n".join(res_list)
+                return
+            res = handle_merc_dialog_input(run, user_id, " ".join(parts))
+            self.save_manager.save_save(user_id, run)
+            yield res
+            return
         if run.node_data.get("state_stack"):
             res, term, success = self._execute_sub_action(user_id, run, parts)
             if is_town_combat:
@@ -177,7 +198,6 @@ class CLIRouter:
             else:
                 yield res
             return
-        sub = parts[0].lower()
         handler, exists = CommandHandler.resolve(sub, curr_state)
         if handler:
             res_list = list(handler.execute(self, user_id, parts))

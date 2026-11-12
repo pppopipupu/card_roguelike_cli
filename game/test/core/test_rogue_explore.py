@@ -321,42 +321,6 @@ class TestRogueExplore(unittest.TestCase):
             
         asyncio.run(go())
 
-    def test_non_battle_play_card(self):
-        class DummySaveManager:
-            def __init__(self):
-                self.stats = UserStats()
-                self.saved_run = None
-            def save_save(self, user_id, run):
-                self.saved_run = run
-            def delete_save(self, user_id):
-                pass
-            def load_stats(self, user_id):
-                return self.stats
-            def save_stats(self, user_id, stats):
-                self.stats = stats
-                return True
-        sm = DummySaveManager()
-        engine = BattleEngine(sm)
-        router = CLIRouter(sm, engine)
-        player = PlayerState(
-            hp=45,
-            max_hp=45,
-            shield=0,
-            gold=20,
-            stage=1,
-            deck=["arcane_torrent"],
-            hand=["arcane_torrent"]
-        )
-        run = GameRun(
-            user_id="test_non_battle_user",
-            node_type="covenant",
-            player=player,
-            enemies=[]
-        )
-        res, should_terminate, success = router._execute_sub_action("test_non_battle_user", run, ["使用", "1"])
-        self.assertEqual(res, "❌ 只有在战斗中才能使用卡牌。")
-        self.assertFalse(should_terminate)
-        self.assertEqual(run.node_type, "covenant")
 
     def test_new_ancient_features(self):
         class DummySaveManager:

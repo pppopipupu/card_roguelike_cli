@@ -94,7 +94,7 @@ def render_battle(run: GameRun) -> str:
         t("renderer.battle.title", stage=p.stage, turn=turn_count),
         t("renderer.battle.status_line", name=run.player.name, hp=p.hp, max_hp=cur_max, shield=p.shield, actions=p.actions, bonus_actions=p.bonus_actions) + relics_str + potions_str
     ]
-    if getattr(run, "coop_id", ""):
+    if run.player_count() > 1:
         lines.append(render_party_status(run))
         if p.downed or p.hp <= 0:
             lines.append(t("renderer.battle.downed"))
@@ -102,13 +102,13 @@ def render_battle(run: GameRun) -> str:
         lines.append(t("renderer.battle.buff_line", name=run.player.name) + format_buff_list(p.buffs))
     lines.append("")
     lines.append(t("renderer.battle.ally_field"))
-    if getattr(run, "coop_id", ""):
+    if run.player_count() > 1:
         members = [(idx, uid, run.players[uid]) for idx, uid in enumerate(run.party_order, 1) if uid in run.players]
         if not any(member.minions or member.amulets for _, _, member in members):
             lines.append(t("renderer.battle.empty_field"))
         else:
             for idx, uid, member in members:
-                marker = t("renderer_town.party_you_marker") if uid == run.user_id else ""
+                marker = t("renderer_town.party_you_marker") if uid == run.user_id else (t("renderer_town.party_mercenary_marker") if getattr(member, "is_mercenary", False) else "")
                 lines.append(t("renderer.battle.ally_field_member", idx=idx, name=member.name, marker=marker))
                 unit_lines = render_ally_units(member)
                 lines.extend(unit_lines or [t("renderer.battle.empty_field_indent")])
@@ -160,7 +160,7 @@ def render_battle(run: GameRun) -> str:
                 e_name = void_corrupt_text(e_name)
                 intent_str = void_corrupt_text(intent_str)
             target_label = ""
-            if getattr(run, "coop_id", ""):
+            if run.player_count() > 1:
                 target_uid = run.node_data.get("enemy_targets", {}).get(str(idx))
                 if target_uid == "ALL":
                     target_label = t("renderer.battle.target_all")

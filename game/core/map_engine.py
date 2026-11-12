@@ -31,164 +31,230 @@ class MapEngine:
         self.battle_engine = battle_engine
         self.explore_engine = ExploreEngine(save_manager, self)
 
-    def enter_next_stage(self, run: GameRun):
-        if getattr(run, "coop_id", ""):
-            from .coop_engine import CoopEngine
-            root = getattr(self.battle_engine, "game_engine", None) or self.battle_engine
-            CoopEngine(self.save_manager, root).enter_next_stage(run)
-            return
-        self._enter_next_stage_solo(run)
-
-    def _enter_next_stage_solo(self, run: GameRun):
-        p = run.player
-        p.stage += 1
-        if "espresso_relic" in p.relics:
-            p.relics.remove("espresso_relic")
-        if hasattr(self.save_manager, "load_admin_config"):
-            admin_cfg = self.save_manager.load_admin_config()
+    def _build_start_ancient_data(self, run: GameRun, icerainboww_enabled: bool) -> dict:
+        stats = self.save_manager.load_stats(run.user_id) if hasattr(self.save_manager, "load_stats") else None
+        p_class = getattr(stats, "selected_class", "法师")
+        if p_class == "战士":
+            style = random.choice(["default", "abyss"])
         else:
-            admin_cfg = {}
+            style = random.choice(["default", "abyss", "glacier"])
+        if p_class == "战士":
+            if style == "default":
+                relics_pool = [
+                    {"type": "double", "relic": "mark_of_fury"},
+                    {"type": "double", "relic": "greedy_contract"},
+                    {"type": "double", "relic": "mask_of_void"},
+                    {"type": "double", "relic": "unstable_crystal"},
+                    {"type": "double", "relic": "vampiric_touch"},
+                    {"type": "double", "relic": "ancient_page"},
+                ]
+                cards_pool = [
+                    {"type": "contract", "relic": "rust_shackle", "card": "demon_form"},
+                    {"type": "contract", "relic": "fool_oath", "card": "impervious"},
+                    {"type": "contract", "relic": "blind_spot", "card": "demon_form"},
+                    {"type": "contract", "relic": "tax_contract", "card": "impervious"},
+                ]
+                cards_pool.append({"type": "contract", "relic": "blind_spot", "card": "break_limits"})
+                cards_pool.append({"type": "contract", "relic": "blind_spot", "card": "unmined_gem"})
+                if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
+                    cards_pool.append({"type": "contract", "relic": "wither_seed", "card": "minion_icerainboww"})
+            else:
+                relics_pool = [
+                    {"type": "double", "relic": "abyss_gaze"},
+                    {"type": "double", "relic": "mark_of_fury"},
+                    {"type": "double", "relic": "greedy_contract"},
+                    {"type": "double", "relic": "abyss_contract"},
+                ]
+                cards_pool = [
+                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_collapse"},
+                    {"type": "contract", "relic": "shadow_curse", "card": "demon_contract"},
+                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_erosion"},
+                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_altar"},
+                ]
+                cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "break_limits"})
+                cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "unmined_gem"})
+                if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
+                    cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "minion_icerainboww"})
+        else:
+            if style == "default":
+                relics_pool = [
+                    {"type": "double", "relic": "mark_of_fury"},
+                    {"type": "double", "relic": "greedy_contract"},
+                    {"type": "double", "relic": "mask_of_void"},
+                    {"type": "double", "relic": "unstable_crystal"},
+                    {"type": "double", "relic": "vampiric_touch"},
+                    {"type": "double", "relic": "ancient_page"},
+                ]
+                cards_pool = [
+                    {"type": "contract", "relic": "rust_shackle", "card": "doomsday_judgment"},
+                    {"type": "contract", "relic": "fool_oath", "card": "time_warp"},
+                    {"type": "contract", "relic": "wither_seed", "card": "magic_network"},
+                    {"type": "contract", "relic": "blind_spot", "card": "meteor_swarm"},
+                    {"type": "contract", "relic": "tax_contract", "card": "archmage_wish"},
+                ]
+                cards_pool.append({"type": "contract", "relic": "blind_spot", "card": "break_limits"})
+                cards_pool.append({"type": "contract", "relic": "blind_spot", "card": "unmined_gem"})
+                if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
+                    cards_pool.append({"type": "contract", "relic": "wither_seed", "card": "minion_icerainboww"})
+            elif style == "abyss":
+                relics_pool = [
+                    {"type": "double", "relic": "abyss_gaze"},
+                    {"type": "double", "relic": "mark_of_fury"},
+                    {"type": "double", "relic": "greedy_contract"},
+                    {"type": "double", "relic": "abyss_contract"},
+                ]
+                cards_pool = [
+                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_collapse"},
+                    {"type": "contract", "relic": "shadow_curse", "card": "demon_contract"},
+                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_erosion"},
+                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_altar"},
+                ]
+                cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "break_limits"})
+                cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "unmined_gem"})
+                if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
+                    cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "minion_icerainboww"})
+            else:
+                relics_pool = [
+                    {"type": "double", "relic": "glacier_armor"},
+                    {"type": "double", "relic": "frost_blade"},
+                    {"type": "double", "relic": "glacier_core"},
+                    {"type": "double", "relic": "mark_of_fury"},
+                ]
+                cards_pool = [
+                    {"type": "contract", "relic": "glacier_chill", "card": "frost_nova"},
+                    {"type": "contract", "relic": "glacier_chill", "card": "glacier_fortress"},
+                    {"type": "contract", "relic": "glacier_chill", "card": "glacier_tempest"},
+                ]
+                cards_pool.append({"type": "contract", "relic": "glacier_chill", "card": "break_limits"})
+                cards_pool.append({"type": "contract", "relic": "glacier_chill", "card": "unmined_gem"})
+                if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
+                    cards_pool.append({"type": "contract", "relic": "glacier_chill", "card": "minion_icerainboww"})
+        relics_pool.append({"type": "double", "relic": "trash_mountain"})
+        num_relics = random.choice(MAP_ANCIENT_RELIC_CHOICES)
+        selected_relics = random.sample(relics_pool, min(len(relics_pool), num_relics))
+        selected_cards = random.sample(cards_pool, min(len(cards_pool), MAP_ANCIENT_OPTION_SLOTS - len(selected_relics)))
+        from ..models.state import check_and_replace_fireball
+        for item in selected_cards:
+            if "card" in item:
+                item["card"] = check_and_replace_fireball(run, item["card"])
+        options = selected_relics + selected_cards
+        random.shuffle(options)
+        return {"options": options, "style": style}
+
+    def enter_next_stage(self, run: GameRun):
+        from .battle.party_battle import revive_downed_players
+        from .party_coordinator import apply_and_scope, attach_notices, collect_notices, restore_player, swap_player
+        caller = run.user_id
+        leader = run.leader_id or (run.party_order[0] if run.party_order else caller)
+        leader_player = run.players.get(leader) or run.player
+        carried = collect_notices(run)
+        revived = revive_downed_players(run)
+        for uid, text in revived.items():
+            carried.setdefault(uid, []).append(text)
+        target_stage = max((run.players[u].stage for u in run.party_order if u in run.players), default=run.player.stage) + 1
+        admin_cfg = self.save_manager.load_admin_config() if hasattr(self.save_manager, "load_admin_config") else {}
         icerainboww_enabled = admin_cfg.get("icerainboww_enabled", True)
-        if p.stage > 1:
-            self.save_manager.record_stage_passed(run.user_id)
-        p.shield = 0
-        p.minions.clear()
-        p.amulets.clear()
-        p.abilities.clear()
         run.enemies.clear()
-        run.node_data.clear()
-
-        if "lucky_coin" in p.relics:
-            p.gold += MAP_LUCKY_COIN_GOLD
-        if "tax_contract" in p.relics:
-            p.gold = max(0, p.gold - MAP_TAX_CONTRACT_GOLD)
-
-        if p.stage == 1:
+        run.node_data = {}
+        for uid in run.party_order:
+            player = run.players.get(uid)
+            if player is None:
+                continue
+            player.stage = target_stage
+            player.shield = 0
+            player.minions.clear()
+            player.amulets.clear()
+            player.abilities.clear()
+            player.actions = 1
+            player.bonus_actions = 1
+            if target_stage > 1 and not getattr(player, "is_mercenary", False) and hasattr(self.save_manager, "record_stage_passed"):
+                self.save_manager.record_stage_passed(uid)
+            if "espresso_relic" in player.relics:
+                player.relics.remove("espresso_relic")
+            if "lucky_coin" in player.relics:
+                player.gold += MAP_LUCKY_COIN_GOLD
+            if "tax_contract" in player.relics:
+                player.gold = max(0, player.gold - MAP_TAX_CONTRACT_GOLD)
+        if target_stage == 1:
+            views = {}
+            ready = {}
+            for uid in run.party_order:
+                player = run.players.get(uid)
+                if player is None:
+                    continue
+                if getattr(player, "is_mercenary", False):
+                    views[uid] = {"node_type": "start_ancient", "data": {"options": [], "coop_done": True}}
+                    ready[uid] = True
+                    continue
+                previous, previous_user = swap_player(run, player)
+                views[uid] = {"node_type": "start_ancient", "data": self._build_start_ancient_data(run, icerainboww_enabled)}
+                ready[uid] = player.downed
+                restore_player(run, previous, previous_user)
             run.node_type = "start_ancient"
-            stats = self.save_manager.load_stats(run.user_id)
-            p_class = getattr(stats, "selected_class", "法师")
-            if p_class == "战士":
-                style = random.choice(["default", "abyss"])
-            else:
-                style = random.choice(["default", "abyss", "glacier"])
-
-            if p_class == "战士":
-                if style == "default":
-                    relics_pool = [
-                        {"type": "double", "relic": "mark_of_fury"},
-                        {"type": "double", "relic": "greedy_contract"},
-                        {"type": "double", "relic": "mask_of_void"},
-                        {"type": "double", "relic": "unstable_crystal"},
-                        {"type": "double", "relic": "vampiric_touch"},
-                        {"type": "double", "relic": "ancient_page"}
-                    ]
-                    cards_pool = [
-                        {"type": "contract", "relic": "rust_shackle", "card": "demon_form"},
-                        {"type": "contract", "relic": "fool_oath", "card": "impervious"},
-                        {"type": "contract", "relic": "blind_spot", "card": "demon_form"},
-                        {"type": "contract", "relic": "tax_contract", "card": "impervious"}
-                    ]
-                    cards_pool.append({"type": "contract", "relic": "blind_spot", "card": "break_limits"})
-                    cards_pool.append({"type": "contract", "relic": "blind_spot", "card": "unmined_gem"})
-                    if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
-                        cards_pool.append({"type": "contract", "relic": "wither_seed", "card": "minion_icerainboww"})
-                else:
-                    relics_pool = [
-                        {"type": "double", "relic": "abyss_gaze"},
-                        {"type": "double", "relic": "mark_of_fury"},
-                        {"type": "double", "relic": "greedy_contract"},
-                        {"type": "double", "relic": "abyss_contract"}
-                    ]
-                    cards_pool = [
-                        {"type": "contract", "relic": "shadow_curse", "card": "abyss_collapse"},
-                        {"type": "contract", "relic": "shadow_curse", "card": "demon_contract"},
-                        {"type": "contract", "relic": "shadow_curse", "card": "abyss_erosion"},
-                        {"type": "contract", "relic": "shadow_curse", "card": "abyss_altar"}
-                    ]
-                    cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "break_limits"})
-                    cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "unmined_gem"})
-                    if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
-                        cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "minion_icerainboww"})
-            else:
-                if style == "default":
-                    relics_pool = [
-                        {"type": "double", "relic": "mark_of_fury"},
-                        {"type": "double", "relic": "greedy_contract"},
-                        {"type": "double", "relic": "mask_of_void"},
-                        {"type": "double", "relic": "unstable_crystal"},
-                        {"type": "double", "relic": "vampiric_touch"},
-                        {"type": "double", "relic": "ancient_page"}
-                    ]
-                    cards_pool = [
-                        {"type": "contract", "relic": "rust_shackle", "card": "doomsday_judgment"},
-                        {"type": "contract", "relic": "fool_oath", "card": "time_warp"},
-                        {"type": "contract", "relic": "wither_seed", "card": "magic_network"},
-                        {"type": "contract", "relic": "blind_spot", "card": "meteor_swarm"},
-                        {"type": "contract", "relic": "tax_contract", "card": "archmage_wish"}
-                    ]
-                    cards_pool.append({"type": "contract", "relic": "blind_spot", "card": "break_limits"})
-                    cards_pool.append({"type": "contract", "relic": "blind_spot", "card": "unmined_gem"})
-                    if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
-                        cards_pool.append({"type": "contract", "relic": "wither_seed", "card": "minion_icerainboww"})
-                elif style == "abyss":
-                    relics_pool = [
-                        {"type": "double", "relic": "abyss_gaze"},
-                        {"type": "double", "relic": "mark_of_fury"},
-                        {"type": "double", "relic": "greedy_contract"},
-                        {"type": "double", "relic": "abyss_contract"}
-                    ]
-                    cards_pool = [
-                        {"type": "contract", "relic": "shadow_curse", "card": "abyss_collapse"},
-                        {"type": "contract", "relic": "shadow_curse", "card": "demon_contract"},
-                        {"type": "contract", "relic": "shadow_curse", "card": "abyss_erosion"},
-                        {"type": "contract", "relic": "shadow_curse", "card": "abyss_altar"}
-                    ]
-                    cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "break_limits"})
-                    cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "unmined_gem"})
-                    if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
-                        cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "minion_icerainboww"})
-                else:
-                    relics_pool = [
-                        {"type": "double", "relic": "glacier_armor"},
-                        {"type": "double", "relic": "unstable_crystal"},
-                        {"type": "double", "relic": "vampiric_touch"},
-                        {"type": "double", "relic": "glacier_core"}
-                    ]
-                    cards_pool = [
-                        {"type": "contract", "relic": "glacier_chill", "card": "frost_nova"},
-                        {"type": "contract", "relic": "glacier_chill", "card": "glacier_fortress"},
-                        {"type": "contract", "relic": "glacier_chill", "card": "glacier_tempest"}
-                    ]
-                    cards_pool.append({"type": "contract", "relic": "glacier_chill", "card": "break_limits"})
-                    cards_pool.append({"type": "contract", "relic": "glacier_chill", "card": "unmined_gem"})
-                    if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
-                        cards_pool.append({"type": "contract", "relic": "glacier_chill", "card": "minion_icerainboww"})
-            
-            relics_pool.append({"type": "double", "relic": "trash_mountain"})
-            num_relics = random.choice(MAP_ANCIENT_RELIC_CHOICES)
-            selected_relics = random.sample(relics_pool, min(len(relics_pool), num_relics))
-            selected_cards = random.sample(cards_pool, min(len(cards_pool), MAP_ANCIENT_OPTION_SLOTS - len(selected_relics)))
-            from ..models.state import check_and_replace_fireball
-            for item in selected_cards:
-                if "card" in item:
-                    item["card"] = check_and_replace_fireball(run, item["card"])
-            options = selected_relics + selected_cards
-            random.shuffle(options)
-            run.node_data = {"options": options, "style": style}
-        elif p.stage in MapConfig.CAFE_STAGES:
+            run.node_data = {
+                "coop_node_type": "start_ancient",
+                "player_views": views,
+                "stage_ready": ready,
+                "votes": {},
+            }
+            attach_notices(run, carried, caller)
+            apply_and_scope(run, caller)
+            return
+        previous, previous_user = swap_player(run, leader_player)
+        if target_stage in MapConfig.CAFE_STAGES:
             from .cafe_engine import CafeEngine
-            cafe = CafeEngine(self.save_manager, self)
-            cafe.init_cafe(run)
-        elif p.stage in MapConfig.BOSS_STAGES:
+            CafeEngine(self.save_manager, self).init_cafe(run, persist=False)
+        elif target_stage in MapConfig.BOSS_STAGES:
             run.node_type = "battle"
             self.battle_engine._init_battle_node(run, "boss")
+            run.node_data["coop_node_type"] = "battle"
         else:
-            if p.stage in MapConfig.STAGE_NETWORKS:
-                s_start, s_end = MapConfig.STAGE_NETWORKS[p.stage]
+            if target_stage in MapConfig.STAGE_NETWORKS:
+                s_start, s_end = MapConfig.STAGE_NETWORKS[target_stage]
                 self._generate_map_network(run, s_start, s_end)
             run.node_type = "map_select"
             self._build_map_options(run)
+            run.node_data["coop_node_type"] = "map_select"
+        restore_player(run, previous, previous_user)
+        attach_notices(run, carried, caller)
+        run.node_data["votes"] = {}
+        apply_and_scope(run, caller)
 
+    def enter_ancient_node(self, run: GameRun):
+        from .party_coordinator import apply_and_scope, attach_notices, collect_notices, restore_player, swap_player
+        caller = run.user_id
+        carried = collect_notices(run)
+        run.enemies.clear()
+        views = {}
+        ready = {}
+        for uid in run.party_order:
+            player = run.players.get(uid)
+            if player is None:
+                continue
+            if getattr(player, "is_mercenary", False):
+                views[uid] = {"node_type": "ancient", "data": {"options": [], "coop_done": True}}
+                ready[uid] = True
+                continue
+            previous, previous_user = swap_player(run, player)
+            self._init_ancient_node(run)
+            data = {
+                key: run.node_data[key]
+                for key in ("options", "style")
+                if key in run.node_data
+            }
+            data["coop_done"] = player.downed
+            views[uid] = {"node_type": "ancient", "data": data}
+            ready[uid] = player.downed
+            restore_player(run, previous, previous_user)
+        run.node_type = "ancient"
+        run.node_data = {
+            "coop_node_type": "ancient",
+            "player_views": views,
+            "stage_ready": ready,
+        }
+        attach_notices(run, carried, caller)
+        apply_and_scope(run, caller)
+        self.save_manager.save_save(caller, run)
     def _build_map_options(self, run: GameRun):
         p = run.player
         nodes_layer = run.map_data.get("nodes", {}).get(str(p.stage), [])
@@ -208,7 +274,7 @@ class MapEngine:
         if not opts and nodes_layer:
             opts = nodes_layer
         options_data = []
-        if getattr(run, "coop_id", ""):
+        if run.player_count() > 1:
             desc_map = {
                 "battle": get_locale_text("i18n_map_cafe.node_desc_coop_battle"),
                 "elite": get_locale_text("i18n_map_cafe.node_desc_coop_elite"),
@@ -255,7 +321,7 @@ class MapEngine:
     def sync_corpse_options(self, run: GameRun) -> bool:
         if run is None or run.node_type != "map_select":
             return False
-        if getattr(run, "coop_id", ""):
+        if run.player_count() > 1:
             return False
         data = run.node_data if run.node_data is not None else {}
         base = data.get("base_options")
@@ -403,14 +469,12 @@ class MapEngine:
         options = run.node_data.get("options", [])
         if option_idx < 1 or option_idx > len(options):
             return get_locale_text("i18n_map_cafe.err_invalid_branch_idx")
-        if getattr(run, "coop_id", ""):
-            from .coop_engine import CoopEngine
-            root = getattr(self.battle_engine, "game_engine", None) or self.battle_engine
-            coop = CoopEngine(self.save_manager, root)
-            vote_result = coop.vote_map_node(run, run.user_id, option_idx)
-            if vote_result is not None:
-                return vote_result
-            run.node_data["votes"] = {}
+        from .party_coordinator import vote_option
+        vote_result = vote_option(run, run.user_id, option_idx, "i18n_explore_core.vote_recorded")
+        if vote_result is not None:
+            self.save_manager.save_save(run.user_id, run)
+            return vote_result
+        run.node_data["votes"] = {}
         chosen = options[option_idx - 1]
         node_type = chosen["node_type"]
         node_id = chosen["node_id"]
@@ -515,7 +579,7 @@ class MapEngine:
     def _init_ancient_node(self, run: GameRun):
         p = run.player
         run.node_type = "ancient"
-        stats = self.save_manager.load_stats(run.user_id)
+        stats = self.save_manager.load_stats(run.user_id) if hasattr(self.save_manager, "load_stats") else None
         p_class = getattr(stats, "selected_class", "法师")
         if hasattr(self.save_manager, "load_admin_config"):
             admin_cfg = self.save_manager.load_admin_config()

@@ -959,5 +959,41 @@ class ServerTests(unittest.TestCase):
         self.assertIn("低GP", online["text"])
 
 
+    def test_server_output_scientific_notation_and_account_id_preservation(self):
+        self.post(
+            {"command": "start confirm", "channel": "im", "force": True, "name": "大数玩家"},
+            self.im_headers("12345678901234"),
+        )
+        uid = self.internal_uuid(im="12345678901234")
+        stats = self.app.state.service.save_manager.load_stats(uid)
+        stats.gp = 12345678901234
+        stats.total_damage = 9999999999999
+        self.app.state.service.save_manager.save_stats(uid, stats)
+
+        ranking = self.post(
+            {"command": "leaderboard", "channel": "im", "force": True},
+            self.im_headers("12345678901234"),
+        ).json()
+        self.assertIn("1.23e+13 GP", ranking["text"])
+        self.assertNotIn("12345678901234 GP", ranking["text"])
+        online = self.post(
+            {"command": "leaderboard online", "channel": "im", "force": True},
+            self.im_headers("12345678901234"),
+        ).json()
+        self.assertIn("1.23e+13 GP", online["text"])
+
+        web_stat = self.post(
+            {"command": "stats", "channel": "web"},
+            self.guest_headers(uid, create=False),
+        ).json()
+        self.assertIn("1.00e+13", web_stat["text"])
+        self.assertEqual(web_stat["state"]["stats"]["gp"], 12345678901234)
+
+        myid = self.post(
+            {"command": "我的id", "channel": "im", "force": True},
+            self.im_headers("12345678901234"),
+        ).json()
+        self.assertIn(uid, myid["text"])
+
 if __name__ == "__main__":
     unittest.main()

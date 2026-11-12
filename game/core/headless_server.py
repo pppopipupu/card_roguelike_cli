@@ -11,7 +11,7 @@ from .cli.base.aliases import (
     STATE_STACK_CANCEL_ALIASES, has_pending_node_cancel,
 )
 from ..renderer.menu import render_reader_page
-from ..renderer import GameRenderer
+from ..renderer import GameRenderer, format_output_numbers
 from ..cards import resolve_card_id, ALL_CARDS
 from ..data.locale_data import get_locale_text
 
@@ -87,13 +87,13 @@ class HeadlessGameServer:
                             return get_locale_text("i18n_cli_core.reader_last_page")
                         stats.reader_page += 1
                         self.save_manager.save_stats(user_id, stats)
-                        return render_reader_page(stats)
+                        return format_output_numbers(render_reader_page(stats))
                     elif cmd in ("上一页", "b", "back", "prev"):
                         if stats.reader_page <= 1:
                             return get_locale_text("i18n_cli_core.reader_first_page")
                         stats.reader_page -= 1
                         self.save_manager.save_stats(user_id, stats)
-                        return render_reader_page(stats)
+                        return format_output_numbers(render_reader_page(stats))
                 else:
                     stats.reader_active = False
                     self.save_manager.save_stats(user_id, stats)

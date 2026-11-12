@@ -8,13 +8,19 @@ class SaveCodecMixin:
         if not run:
             return {}
         logs = None
-        if run.node_data is not None and not getattr(run, "coop_id", ""):
-            logs = run.node_data.pop("battle_logs", None)
+        owners = None
+        if run.node_data is not None:
+            if run.player_count() <= 1:
+                logs = run.node_data.pop("battle_logs", None)
+                owners = run.node_data.pop("battle_log_owners", None)
         try:
             res = asdict(run)
         finally:
-            if logs is not None and run.node_data is not None:
-                run.node_data["battle_logs"] = logs
+            if run.node_data is not None:
+                if logs is not None:
+                    run.node_data["battle_logs"] = logs
+                if owners is not None:
+                    run.node_data["battle_log_owners"] = owners
         return res
 
     def _parse_player_state(self, p_data: dict) -> PlayerState:
@@ -95,7 +101,11 @@ class SaveCodecMixin:
             selected_class=p_data.get("selected_class", "法师"),
             potions=p_data.get("potions", []),
             daily_blessing_id=p_data.get("daily_blessing_id", ""),
-            downed=p_data.get("downed", False)
+            downed=p_data.get("downed", False),
+            is_mercenary=bool(p_data.get("is_mercenary", False)),
+            mercenary_id=p_data.get("mercenary_id", ""),
+            mercenary_owner=p_data.get("mercenary_owner", ""),
+            mercenary_timing=p_data.get("mercenary_timing", "before")
         )
 
     def from_dict(self, d: dict) -> GameRun:

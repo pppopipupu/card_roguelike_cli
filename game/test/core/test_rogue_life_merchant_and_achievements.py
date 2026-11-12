@@ -7,7 +7,6 @@ import unittest
 
 from game.core.achievement_service import AchievementService
 from game.core.battle_engine import BattleEngine
-from game.core.coop_engine import CoopEngine
 from game.core.life_merchant import calc_life_merchant_price
 from game.data.achievement_data import ACHIEVEMENT_ALL_VIEW_PRICE, ACHIEVEMENTS_CONFIG
 from game.data.map_config import MapConfig

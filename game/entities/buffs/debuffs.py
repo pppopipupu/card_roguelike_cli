@@ -298,6 +298,22 @@ class DoomBuff(BuffImpl):
             engine._damage_target(run, target, entity.hp, source="doom", damage_type="true")
 
 
+class PaleEntropyBuff(BuffImpl):
+    def on_turn_end(self, event, buff_state, entity):
+        run = event.run
+        engine = event.engine
+        if event.is_player or entity not in run.enemies:
+            return
+        idx = run.enemies.index(entity)
+        target = f"e{idx + 1}"
+        dmg = buff_state.stacks * _stat(self, "pale_entropy", "damage_per_stack", 1)
+        if dmg > 0:
+            engine._log_event(run, get_locale_text("i18n_mercenary.pale_entropy_tick", target=entity.name, dmg=dmg))
+            engine._damage_target(run, target, dmg, source="pale_entropy", damage_type="psychic")
+        buff_state.stacks -= 1
+        if buff_state.stacks <= 0 and buff_state in entity.buffs:
+            entity.buffs.remove(buff_state)
+
 for name, obj in list(globals().items()):
     if isinstance(obj, type) and issubclass(obj, BuffImpl) and obj is not BuffImpl:
         if not getattr(obj, "auto_register", True):

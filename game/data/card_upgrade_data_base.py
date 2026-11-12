@@ -1,4 +1,5 @@
 from .coop_card_data import COOP_UPGRADE_CONFIG
+from .mercenary_card_data import MERCENARY_CARD_UPGRADE_CONFIG
 
 CARD_UPGRADE_CONFIG_BASE = {
     "coop_tactical_command": COOP_UPGRADE_CONFIG["coop_tactical_command"],
@@ -6,6 +7,7 @@ CARD_UPGRADE_CONFIG_BASE = {
     "coop_resonance_hymn": COOP_UPGRADE_CONFIG["coop_resonance_hymn"],
     "coop_soul_link": COOP_UPGRADE_CONFIG["coop_soul_link"],
     "coop_unison_crusade": COOP_UPGRADE_CONFIG["coop_unison_crusade"],
+    **MERCENARY_CARD_UPGRADE_CONFIG,
     "meteor_strike": {
         "base_dmg": 40,
         "hit_count": 4,

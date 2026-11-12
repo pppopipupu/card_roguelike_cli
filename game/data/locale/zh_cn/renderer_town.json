@@ -25,6 +25,7 @@
   "rarity_epic": "珍奇",
   "party_title": "👥 队伍状态：",
   "party_you_marker": "（你）",
+  "party_mercenary_marker": "（雇佣兵）",
   "party_downed": "倒地",
   "party_grid": " 场上 a{idx}",
   "party_member_line": " a{idx}. {name}{marker}：❤️ {hp}{grid}{relics}",

@@ -700,5 +700,12 @@ BUFF_CONFIG = {
         "shield_gain": 4,
         "heal_gain": 3,
         "desc": "每当玩家消耗卡牌时，获得 4 点护盾并恢复 3 点生命"
+    },
+    "pale_entropy": {
+        "name": "灰域侵蚀",
+        "type": "debuff",
+        "desc": "回合结束时，受到层数点灵能伤害，随后层数减少 1",
+        "damage_per_stack": 1,
+        "is_debuff": True
     }
 }

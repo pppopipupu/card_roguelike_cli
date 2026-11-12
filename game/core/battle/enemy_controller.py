@@ -156,18 +156,9 @@ class EnemyTurnController:
         if decay_enemies:
             logs.append(get_locale_text("i18n_battle_core.enemy_shield_decay_line", entries="，".join(decay_enemies)))
         self.engine.event_bus.dispatch(TurnStartEvent(run, is_player=False))
-        is_coop = bool(getattr(run, "coop_id", ""))
+        from .party_battle import alive_uids, is_all_downed, pick_enemy_target
         viewer = run.player
         viewer_uid = run.user_id
-        coop = None
-
-        def coop_engine():
-            nonlocal coop
-            if coop is None:
-                from ..coop_engine import CoopEngine
-                coop = CoopEngine(self.engine.save_manager, self.engine)
-            return coop
-
         for index, enemy in enumerate(list(run.enemies), 1):
             if enemy.hp <= 0:
                 continue
@@ -194,42 +185,36 @@ class EnemyTurnController:
                 if it.type == "phase_transition":
                     logs.append(get_locale_text("i18n_battle_core.phase_transition_log", enemy=enemy.name, intent=it.desc.split(' (')[0]))
                     continue
-                if is_coop:
-                    coop_eng = coop_engine()
-                    target = coop_eng._pick_enemy_target(run, index, it, viewer_uid)
-                    if target == "ALL":
-                        targets = [(uid, run.players[uid]) for uid in coop_eng._alive_uids(run)]
-                    else:
-                        targets = [(target, run.players.get(target))]
+                target = pick_enemy_target(run, index, it, viewer_uid)
+                if target == "ALL":
+                    targets = [(uid, run.players[uid]) for uid in alive_uids(run)]
                 else:
-                    targets = [("p0", run.player)]
+                    targets = [(target, run.players.get(target))]
                 for uid, player in targets:
                     if player is None or player.downed or player.hp <= 0:
                         continue
-                    if is_coop:
-                        run.player = player
-                        run.user_id = uid
-                        run.node_data["coop_damage_target_uid"] = uid
-                        run.node_data["coop_damage_aoe"] = target == "ALL"
+                    run.player = player
+                    run.user_id = uid
+                    run.node_data["coop_damage_target_uid"] = uid
+                    run.node_data["coop_damage_aoe"] = target == "ALL"
                     run.node_data["current_acting_enemy_idx"] = run.enemies.index(enemy) if enemy in run.enemies else index - 1
                     try:
                         template.execute_intent(run, self.engine, enemy, it, logs)
                     finally:
                         run.node_data.pop("current_acting_enemy_idx", None)
-                        if is_coop:
-                            run.player = viewer
-                            run.user_id = viewer_uid
-                if is_coop and coop_engine().is_all_downed(run):
-                    logs.append(get_locale_text("i18n_battle_core.coop_all_downed_log"))
+                        run.player = viewer
+                        run.user_id = viewer_uid
+                if is_all_downed(run):
+                    if run.player_count() > 1:
+                        logs.append(get_locale_text("i18n_battle_core.coop_all_downed_log"))
                     break
-            if is_coop and coop_engine().is_all_downed(run):
+            if is_all_downed(run):
                 break
         self.engine.event_bus.dispatch(TurnEndEvent(run, is_player=False))
-        if is_coop:
-            run.node_data.pop("coop_damage_aoe", None)
-            run.node_data.pop("coop_damage_target_uid", None)
-            for player in run.players.values():
-                player.buffs[:] = [buff for buff in player.buffs if buff.id != "coop_aegis"]
+        run.node_data.pop("coop_damage_aoe", None)
+        run.node_data.pop("coop_damage_target_uid", None)
+        for player in run.players.values():
+            player.buffs[:] = [buff for buff in player.buffs if buff.id != "coop_aegis"]
         for enemy in run.enemies:
             enemy.actions = enemy.max_actions
             enemy.bonus_actions = enemy.max_bonus_actions

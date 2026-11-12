@@ -149,7 +149,8 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 team_log_history=team_log_history,
                 unlocked_achievements=unlocked_achievements,
                 achievement_all_view=bool(d.get("achievement_all_view", False)),
-                achievement_stats=achievement_stats
+                achievement_stats=achievement_stats,
+                hired_mercenaries=list(d.get("hired_mercenaries", []))
             )
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_stats_failed", user_id=user_id, error=exc))
@@ -262,7 +263,15 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 d = json.load(f)
-            return self.from_dict(d)
+            run = self.from_dict(d)
+            if run:
+                if user_id in run.players:
+                    run.player = run.players[user_id]
+                    run.user_id = user_id
+                from .coop_view import apply_view, scope_view
+                apply_view(run, user_id)
+                scope_view(run, user_id)
+            return run
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_save_failed", user_id=user_id, error=exc))
             return None
@@ -270,6 +279,12 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
     def save_save(self, user_id: str, run: GameRun) -> bool:
         if run and getattr(run, "coop_id", "") and user_id in getattr(run, "players", {}):
             return self.save_coop_save(user_id, run)
+        if run:
+            if user_id in getattr(run, "players", {}):
+                run.players[user_id] = run.player
+                run.user_id = user_id
+            from .coop_view import persist_view
+            persist_view(run, user_id)
         path = self.get_save_path(user_id)
         try:
             d = self.to_dict(run)
