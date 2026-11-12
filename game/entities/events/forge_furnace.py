@@ -35,7 +35,7 @@ class OverloadForgeOption(EventOption, action="overload_forge", text=get_locale_
                 res = get_locale_text("i18n_events_a.forge_overload_success", names=get_locale_text("i18n_events_a.names_join_and").join(upgraded_names))
         else:
             p.hp -= cfg.get("overload_hp_cost", 8)
-            DeckService.add_card_to_deck(p, ensure_card_state("curse_pain"))
+            DeckService.add_card_to_deck(p, ensure_card_state("curse_agony"))
             res = get_locale_text("i18n_events_a.forge_overload_backfire")
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)

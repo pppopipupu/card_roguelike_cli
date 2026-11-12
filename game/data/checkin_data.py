@@ -43,7 +43,7 @@ DAILY_BLESSINGS = {
     "arcane_domain": {
         "name": "奥术领域",
         "desc": "下一局每场战斗开始时获得 2 层奥术充能。",
-        "effects": [{"type": "battle_buff", "buff_id": "arcane_charge", "buff_name": "奥术充能", "buff_desc": "法术伤害 +3", "stacks": 2}]
+        "effects": [{"type": "battle_buff", "buff_id": "arcane_charge", "buff_name": "奥术充能", "buff_desc": "法术牌造成的伤害 +3", "stacks": 2}]
     },
     "flame_domain": {
         "name": "火焰领域",

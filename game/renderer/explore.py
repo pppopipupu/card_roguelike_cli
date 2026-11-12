@@ -164,10 +164,26 @@ def render_reward(run: GameRun) -> str:
     if quest_bonus:
         lines.append(quest_bonus)
         lines.append("")
+    pool = data.get("coop_relic_pool") or []
+    for idx, entry in enumerate(pool, 1):
+        rid = entry.get("relic_id")
+        claimed_by = entry.get("claimed_by")
+        if claimed_by:
+            claimant = run.players.get(claimed_by)
+            player_name = claimant.name if claimant else claimed_by
+            lines.append(get_locale_text("renderer_explore.item_relic_claimed", idx=idx, name=get_relic_name(rid), player=player_name))
+        else:
+            desc = get_relic_desc(rid)
+            if rid in run.player.relics:
+                lines.append(get_locale_text("renderer_explore.item_relic_pool_owned", idx=idx, name=get_relic_name(rid), desc=desc))
+            else:
+                lines.append(get_locale_text("renderer_explore.item_relic_pool", idx=idx, name=get_relic_name(rid), desc=desc))
+    offset = len(pool)
     items = data.get("items", [])
     available_items = [it for it in items if not it.get("taken")]
     has_forced = False
     for idx, it in enumerate(available_items, 1):
+        idx += offset
         prefix = ""
         if it.get("force"):
             prefix += get_locale_text("label_forced")
@@ -196,9 +212,6 @@ def render_reward(run: GameRun) -> str:
             from ..data.potion_data import get_potion_name, get_potion_desc
             pid = it.get("potion_id")
             lines.append(get_locale_text("renderer_explore.reward_potion", idx=idx, prefix=prefix, name=get_potion_name(pid), desc=get_potion_desc(pid)))
-        elif itype == "shared_relic":
-            rid = it.get("relic_id")
-            lines.append(get_locale_text("renderer_explore.item_shared_relic", idx=idx, prefix=prefix, name=get_relic_name(rid)))
     lines.append(get_locale_text("renderer_explore.separator"))
     if not available_items:
         lines.append(get_locale_text("render_reward_completed"))
@@ -232,10 +245,22 @@ def render_treasure(run: GameRun) -> str:
     if state == "pending_remove":
         lines.append(get_locale_text("render_treasure_sacrifice"))
     else:
+        pool = data.get("coop_relic_pool") or []
+        for idx, entry in enumerate(pool, 1):
+            rid = entry.get("relic_id")
+            claimed_by = entry.get("claimed_by")
+            if claimed_by:
+                claimant = run.players.get(claimed_by)
+                player_name = claimant.name if claimant else claimed_by
+                lines.append(get_locale_text("renderer_explore.item_relic_claimed", idx=idx, name=get_relic_name(rid), player=player_name))
+            else:
+                lines.append(get_locale_text("renderer_explore.item_relic_pool", idx=idx, name=get_relic_name(rid), desc=get_relic_desc(rid)))
+        offset = len(pool)
         items = data.get("items", [])
         available_items = [it for it in items if not it.get("taken")]
         has_forced = False
         for idx, it in enumerate(available_items, 1):
+            idx += offset
             prefix = ""
             if it.get("force"):
                 prefix += get_locale_text("label_forced")
@@ -257,9 +282,6 @@ def render_treasure(run: GameRun) -> str:
                 gid = it.get("gem_id")
                 g_cfg = GEM_CONFIG.get(gid, {})
                 lines.append(get_locale_text("renderer_explore.item_gem", idx=idx, prefix=prefix, name=g_cfg.get('name', gid), desc=g_cfg.get('desc', '')))
-            elif itype == "shared_relic":
-                rid = it.get("relic_id")
-                lines.append(get_locale_text("renderer_explore.item_shared_relic", idx=idx, prefix=prefix, name=get_relic_name(rid)))
     lines.append(get_locale_text("renderer_explore.separator"))
     if state == "pending_remove":
         lines.append(get_locale_text("render_treasure_exit_sacrifice"))

@@ -350,7 +350,7 @@ EVENT_CONFIG = {
                 "action": "overload_forge"
             },
             {
-                "text": "汲取熔炉余温 (生命上限增加 5，恢复 10 生命值，但法术伤害受余温干扰降低：获得 2层【炉温反噬】buff)",
+                "text": "汲取熔炉余温 (生命上限增加 5,恢复 10 生命值,但法术牌造成的伤害受余温干扰降低:获得 2层【炉温反噬】buff)",
                 "action": "forge_backfire"
             },
             {

@@ -1,6 +1,7 @@
 import random
 from typing import Optional
 from ...data.locale_data import get_locale_text
+from ...data.damage_type_data import is_physical_damage
 from ...models.state import GameRun, PlayerState, EnemyState, MinionState, Card, BuffState
 from ...models.events import (
     DamageCalculateEvent, DamageTakeEvent, HealEvent, MinionDeathEvent, MinionSummonEvent, ShieldGainEvent, HealCalculateEvent, EnemyBeforeDeathEvent
@@ -9,16 +10,19 @@ from ...models.events import (
 DAMAGE_TYPE_KEYS = {
     "acid": "i18n_battle_misc.damage_type_acid",
     "bludgeoning": "i18n_battle_misc.damage_type_bludgeoning",
+    "bludgeoning_magic": "i18n_battle_misc.damage_type_bludgeoning_magic",
     "cold": "i18n_battle_misc.damage_type_cold",
     "fire": "i18n_battle_misc.damage_type_fire",
     "force": "i18n_battle_misc.damage_type_force",
     "lightning": "i18n_battle_misc.damage_type_lightning",
     "necrotic": "i18n_battle_misc.damage_type_necrotic",
     "piercing": "i18n_battle_misc.damage_type_piercing",
+    "piercing_magic": "i18n_battle_misc.damage_type_piercing_magic",
     "poison": "i18n_battle_misc.damage_type_poison",
     "psychic": "i18n_battle_misc.damage_type_psychic",
     "radiant": "i18n_battle_misc.damage_type_radiant",
     "slashing": "i18n_battle_misc.damage_type_slashing",
+    "slashing_magic": "i18n_battle_misc.damage_type_slashing_magic",
     "thunder": "i18n_battle_misc.damage_type_thunder",
     "true": "i18n_battle_misc.damage_type_true",
     "attack": "i18n_battle_misc.damage_type_attack",
@@ -332,7 +336,7 @@ class CombatResolver:
                 final_dmg = final_dmg * (10 ** stacks)
         if target == "p0" and any(b.id == "antimagic_immune" for b in p.buffs):
             dtype_str = damage_type.value if hasattr(damage_type, "value") else str(damage_type)
-            if dtype_str not in {"slashing", "piercing", "bludgeoning"}:
+            if not is_physical_damage(dtype_str):
                 final_dmg = 0
         is_fatal = False
         is_true = False

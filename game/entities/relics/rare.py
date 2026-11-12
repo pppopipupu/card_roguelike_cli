@@ -1,6 +1,7 @@
 import re
 from ...data.relic_data import RELIC_CONFIG
 from ...data.locale_data import get_locale_text
+from ...data.damage_type_data import is_physical_damage, is_spell_card_damage
 from .base import RelicImpl
 from .registry import register_relic
 
@@ -35,8 +36,7 @@ class ArcaneRuneRelic(RelicImpl):
         self.spell_bonus = cfg.get("spell_bonus", 1)
 
     def on_damage_calculate(self, event, run, engine):
-        is_spell = getattr(event.card, "type", "") == "spell" if event.card is not None else event.damage_type == "spell"
-        if is_spell and event.source == "p0":
+        if is_spell_card_damage(event) and event.source == "p0":
             event.modified_damage += self.spell_bonus
 
 class ChemicalXRelic(RelicImpl):
@@ -79,7 +79,7 @@ class CenturionMailRelic(RelicImpl):
         self.damage_reduction = cfg.get("damage_reduction", 2)
 
     def on_damage_calculate(self, event, run, engine):
-        if event.target == "p0" and event.damage_type in ("slashing", "piercing", "bludgeoning"):
+        if event.target == "p0" and is_physical_damage(event.damage_type):
             event.modified_damage = max(0, event.modified_damage - self.damage_reduction)
 
 class PriestCharmRelic(RelicImpl):
@@ -145,7 +145,7 @@ class LengSpiderVenomRelic(RelicImpl):
     def on_damage_take(self, event, run, engine):
         if event.source == "p0" and event.target.startswith("e"):
             dtype = event.damage_type
-            if dtype in ("slashing", "piercing", "bludgeoning"):
+            if is_physical_damage(dtype):
                 import random
                 if random.random() < self.proc_chance:
                     try:

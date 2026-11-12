@@ -232,7 +232,7 @@
       },
       "arcane_charge": {
         "name": "奥术充能",
-        "desc": "法术伤害 +3"
+        "desc": "法术牌造成的伤害 +3"
       },
       "echo_form": {
         "name": "回响形态"
@@ -279,8 +279,8 @@
     },
     "overcharge": {
       "bonus": " ⚡ 并抽了 {draw_count} 张法术牌。",
-      "feedback": "使用了【过载充能】，获得了【奥术充能】buff（法术伤害 +3，可叠加）。",
-      "suffix": "（法术伤害 +3，可叠加）",
+      "feedback": "使用了【过载充能】，获得了【奥术充能】buff（法术牌造成的伤害 +3，可叠加）。",
+      "suffix": "（法术牌造成的伤害 +3，可叠加）",
       "stacks": "（获得了 {stacks} 层奥术充能）"
     },
     "magic_network": {

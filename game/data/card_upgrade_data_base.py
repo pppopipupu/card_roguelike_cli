@@ -196,7 +196,7 @@ CARD_UPGRADE_CONFIG_BASE = {
     "arcane_charge": {
         "cost_a": 0,
         "cost_ba": 1,
-        "desc": "本场战斗法术伤害 +4，且手牌中所有法术牌本回合伤害额外 +2。"
+        "desc": "本场战斗法术牌造成的伤害 +4,且手牌中所有法术牌本回合伤害额外 +2。"
     },
     "find_familiar": {
         "minion_hp": 8,
@@ -252,7 +252,7 @@ CARD_UPGRADE_CONFIG_BASE = {
         "bonus_action_gain": 1,
         "gain_ba": 1,
         "spell_damage_bonus": 2,
-        "desc": "洗回卡组重新抽满手牌。本回合你额外获得 1A 1BA，且本回合所有法术伤害 +2。消耗。"
+        "desc": "洗回卡组重新抽满手牌。本回合你额外获得 1A 1BA,且本回合所有法术牌造成的伤害 +2。消耗。"
     },
     "magic_network": {
         "damage_amount": 5,
@@ -270,7 +270,7 @@ CARD_UPGRADE_CONFIG_BASE = {
         "shield_amount": 15,
         "spell_damage_bonus": 6,
         "draw_count": 3,
-        "desc": "获得 15 点护盾，本场战斗中法术伤害 +6，抽 3 张牌且本回合全部获得保留。消耗。"
+        "desc": "获得 15 点护盾,本场战斗中法术牌造成的伤害 +6,抽 3 张牌且本回合全部获得保留。消耗。"
     },
     "time_stop": {
         "cost_a": 1,

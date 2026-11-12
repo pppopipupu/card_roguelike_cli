@@ -4,6 +4,7 @@ from .base import BuffImpl, is_debuff
 from .registry import register_buff
 from ...data.buff_data import BUFF_CONFIG
 from ...data.locale_data import get_locale_text
+from ...data.damage_type_data import damage_type_matches, is_physical_damage, is_spell_card_damage
 
 def _stat(instance, buff_id, name, default):
     cfg = BUFF_CONFIG.get(buff_id, {})
@@ -31,11 +32,8 @@ class SpellSurgeBuff(BuffImpl):
 
 class ArcaneChargeBuff(BuffImpl):
     def on_damage_calculate(self, event, buff_state, entity):
-        if entity == event.run.player and event.damage_type == "spell" and event.source == "p0":
+        if entity == event.run.player and is_spell_card_damage(event) and event.source == "p0":
             event.modified_damage += buff_state.stacks * _stat(self, "arcane_charge", "dmg_per_stack", 3)
-
-    def modify_spell_damage(self, run, card, damage: int, engine) -> int:
-        return damage + self.stacks * _stat(self, "arcane_charge", "dmg_per_stack", 3)
 
 class EchoFormBuff(BuffImpl):
     def on_card_played(self, event, buff_state, entity):
@@ -134,16 +132,6 @@ class MagicNetworkBuff(BuffImpl):
             if buff_state in event.run.player.buffs:
                 event.run.player.buffs.remove(buff_state)
 
-class WishPowerBuff(BuffImpl):
-    def on_damage_calculate(self, event, buff_state, entity):
-        if entity == event.run.player and event.damage_type == "spell" and event.source == "p0":
-            val = _stat(self, "wish_power", "upgraded_damage_bonus", 6) if self.upgraded else _stat(self, "wish_power", "damage_bonus", 4)
-            event.modified_damage += buff_state.stacks * val
-
-    def modify_spell_damage(self, run, card, damage: int, engine) -> int:
-        val = _stat(self, "wish_power", "upgraded_damage_bonus", 6) if self.upgraded else _stat(self, "wish_power", "damage_bonus", 4)
-        return damage + self.stacks * val
-
 class StrengthBuff(BuffImpl):
     def on_damage_calculate(self, event, buff_state, entity):
         is_owner = False
@@ -166,7 +154,7 @@ class StrengthBuff(BuffImpl):
                     card_id = card_id[5:]
                 if card_id == "neutral_astral_strike":
                     is_astral_strike = True
-            if dtype_str in ("slashing", "bludgeoning", "piercing") or is_astral_strike:
+            if is_physical_damage(dtype_str) or is_astral_strike:
                 mult = _stat(self, "strength", "default_multiplier", 1)
                 if entity == event.run.player and event.card:
                     card_id = event.card.id
@@ -208,7 +196,7 @@ class DoubleTapBuff(BuffImpl):
     def on_card_played(self, event, buff_state, entity):
         if entity == event.run.player:
             dtype = getattr(event.card, "damage_type", "spell")
-            if dtype in ("slashing", "bludgeoning", "piercing"):
+            if is_physical_damage(dtype):
                 stacks = buff_state.stacks
                 for _ in range(stacks):
                     if event.engine.is_battle_won(event.run):
@@ -234,18 +222,10 @@ class FireGrowBuff(BuffImpl):
         if entity == event.run.player and event.damage_type == "fire" and event.source == "p0":
             event.modified_damage += buff_state.stacks * _stat(self, "fire_grow", "damage_per_stack", 1)
 
-    def modify_spell_damage(self, run, card, damage: int, engine) -> int:
-        if getattr(card, "damage_type", "") == "fire":
-            return damage + self.stacks * _stat(self, "fire_grow", "damage_per_stack", 1)
-        return damage
-
 class ForgeBackfireBuff(BuffImpl):
     def on_damage_calculate(self, event, buff_state, entity):
-        if entity == event.run.player and event.damage_type == "spell" and event.source == "p0":
+        if entity == event.run.player and is_spell_card_damage(event) and event.source == "p0":
             event.modified_damage = max(0, event.modified_damage - buff_state.stacks * _stat(self, "forge_backfire", "damage_per_stack", 1))
-
-    def modify_spell_damage(self, run, card, damage: int, engine) -> int:
-        return max(0, damage - self.stacks * _stat(self, "forge_backfire", "damage_per_stack", 1))
 
     def on_turn_end(self, event, buff_state, entity):
         if entity == event.run.player:
@@ -255,11 +235,8 @@ class ForgeBackfireBuff(BuffImpl):
 
 class TimeWarpSpellBoostBuff(BuffImpl):
     def on_damage_calculate(self, event, buff_state, entity):
-        if entity == event.run.player and event.damage_type == "spell" and event.source == "p0":
+        if entity == event.run.player and is_spell_card_damage(event) and event.source == "p0":
             event.modified_damage += buff_state.stacks * _stat(self, "time_warp_spell_boost", "damage_per_stack", 2)
-
-    def modify_spell_damage(self, run, card, damage: int, engine) -> int:
-        return damage + self.stacks * _stat(self, "time_warp_spell_boost", "damage_per_stack", 2)
 
     def on_turn_end(self, event, buff_state, entity):
         if entity == event.run.player:
@@ -287,7 +264,7 @@ class ResistBuff(BuffImpl):
 
     def on_damage_calculate_defend(self, event, buff_state, entity):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
-        if dtype_str == self.damage_type and dtype_str != "true":
+        if damage_type_matches(dtype_str, self.damage_type) and dtype_str != "true":
             event.modified_damage = int(event.modified_damage * _stat(self, f"resist_{self.damage_type}", "damage_multiplier", 0.5))
 
     def on_turn_start(self, event, buff_state, entity):
@@ -305,7 +282,7 @@ class ImmuneBuff(BuffImpl):
 
     def on_damage_calculate_defend(self, event, buff_state, entity):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
-        if dtype_str == self.damage_type and dtype_str != "true":
+        if damage_type_matches(dtype_str, self.damage_type) and dtype_str != "true":
             event.modified_damage = int(event.modified_damage * _stat(self, f"immune_{self.damage_type}", "damage_multiplier", 0.0))
 
     def on_turn_start(self, event, buff_state, entity):
@@ -453,9 +430,9 @@ class GlacierFortressBuff(BuffImpl):
 
 class WishPowerBuff(BuffImpl):
     def on_damage_calculate(self, event, buff_state, entity):
-        if entity == event.run.player and event.card is not None and event.card.type == "spell":
+        if entity == event.run.player and is_spell_card_damage(event) and event.source == "p0":
             val = _stat(self, "wish_power", "upgraded_damage_bonus", 6) if self.upgraded else _stat(self, "wish_power", "damage_bonus", 4)
-            event.modified_damage += val
+            event.modified_damage += buff_state.stacks * val
 
 @register_buff("commander_aurora_emperor")
 class AuroraEmperorBuff(BuffImpl):

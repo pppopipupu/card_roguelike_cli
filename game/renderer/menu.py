@@ -59,6 +59,19 @@ def get_card_cost_str(card) -> str:
             cost_str += f"{card.cost_ba}BA "
     return cost_str.strip() or t("renderer_menu.free_cost")
 
+def append_card_subtype(type_ch: str, cid: str, ctype: str) -> str:
+    if ctype != "spell":
+        return type_ch
+    from ..data.card_subtype_data import ATTACK_SPELL_IDS, SKILL_SPELL_IDS
+    base_cid = cid.rstrip("+")
+    if base_cid in ATTACK_SPELL_IDS:
+        subtype_ch = t("renderer_menu.subtype_attack")
+    elif base_cid in SKILL_SPELL_IDS:
+        subtype_ch = t("renderer_menu.subtype_skill")
+    else:
+        return type_ch
+    return t("renderer_menu.card_type_with_subtype", type_ch=type_ch, subtype_ch=subtype_ch)
+
 def get_rogue_card_library_items(user_id: str | None = None) -> list:
     from ..cards import ALL_CARDS
     from ..models.manager import SaveManager
@@ -100,6 +113,7 @@ def get_rogue_card_library_items(user_id: str | None = None) -> list:
             type_ch = t("renderer_menu.type_ability")
         elif card.type == "minion":
             type_ch = t("renderer_menu.type_minion")
+        type_ch = append_card_subtype(type_ch, cid, card.type)
         rname = rarity_map.get(getattr(card, "rarity", "common"), t("renderer_menu.rarity_common"))
         info = t("renderer_menu.card_info", name=card.name, type_ch=type_ch, rarity=rname, cost=cost_str, desc=card.desc)
         
@@ -193,6 +207,7 @@ def render_card_library() -> str:
             type_ch = t("renderer_menu.type_ability")
         elif card.type == "minion":
             type_ch = t("renderer_menu.type_minion")
+        type_ch = append_card_subtype(type_ch, cid, card.type)
         rarity_map = {
             "common": t("renderer_menu.rarity_common"),
             "rare": t("renderer_menu.rarity_rare"),

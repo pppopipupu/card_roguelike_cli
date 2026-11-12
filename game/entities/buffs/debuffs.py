@@ -4,6 +4,7 @@ from .base import BuffImpl
 from .registry import register_buff
 from ...data.buff_data import BUFF_CONFIG
 from ...data.locale_data import get_locale_text
+from ...data.damage_type_data import damage_type_matches, is_spell_card_damage
 
 def _stat(instance, buff_id, name, default):
     cfg = BUFF_CONFIG.get(buff_id, {})
@@ -122,7 +123,7 @@ class MinorVulnerableBuff(BuffImpl):
 
     def on_damage_calculate_defend(self, event, buff_state, entity):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
-        if dtype_str == self.damage_type:
+        if damage_type_matches(dtype_str, self.damage_type):
             event.modified_damage = int(event.modified_damage * _stat(self, f"minor_vulnerable_{self.damage_type}", "damage_multiplier", 1.5))
 
     def on_turn_end(self, event, buff_state, entity):
@@ -139,7 +140,7 @@ class VulnerableBuff(BuffImpl):
 
     def on_damage_calculate_defend(self, event, buff_state, entity):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
-        if dtype_str == self.damage_type:
+        if damage_type_matches(dtype_str, self.damage_type):
             event.modified_damage = int(event.modified_damage * _stat(self, f"vulnerable_{self.damage_type}", "damage_multiplier", 2))
 
     def on_turn_end(self, event, buff_state, entity):
@@ -184,11 +185,8 @@ class BurningBuff(BuffImpl):
 
 class VoidWeaknessBuff(BuffImpl):
     def on_damage_calculate(self, event, buff_state, entity):
-        if entity == event.run.player and event.damage_type == "spell" and event.source == "p0":
+        if entity == event.run.player and is_spell_card_damage(event) and event.source == "p0":
             event.modified_damage = max(0, event.modified_damage - buff_state.stacks * _stat(self, "void_weakness", "damage_per_stack", 3))
-
-    def modify_spell_damage(self, run, card, damage: int, engine) -> int:
-        return max(0, damage - self.stacks * _stat(self, "void_weakness", "damage_per_stack", 3))
 
     def on_turn_end(self, event, buff_state, entity):
         if entity == event.run.player and event.is_player:
@@ -215,11 +213,8 @@ class ManaLeakBuff(BuffImpl):
         return cost_ba
 
     def on_damage_calculate(self, event, buff_state, entity):
-        if entity == event.run.player and event.damage_type == "spell" and event.source == "p0":
+        if entity == event.run.player and is_spell_card_damage(event) and event.source == "p0":
             event.modified_damage = max(0, event.modified_damage - buff_state.stacks * _stat(self, "mana_leak", "damage_per_stack", 2))
-
-    def modify_spell_damage(self, run, card, damage: int, engine) -> int:
-        return max(0, damage - self.stacks * _stat(self, "mana_leak", "damage_per_stack", 2))
 
     def on_turn_end(self, event, buff_state, entity):
         if entity == event.run.player and event.is_player:

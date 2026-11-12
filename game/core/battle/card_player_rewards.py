@@ -78,8 +78,6 @@ class CardPlayerRewardsMixin:
                 run,
                 p,
                 difficulty,
-                False,
-                1,
             )
         has_gatekey = getattr(stats, "unlocked_gatekey", False)
         if p.stage == MapConfig.FINAL_BOSS_STAGE:

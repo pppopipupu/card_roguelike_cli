@@ -7,7 +7,7 @@ from ..data.keyword_data import KEYWORD_CONFIG
 from ..data.gem_data import GEM_CONFIG
 from ..data.amulet_data import AMULET_CONFIG
 from ..data.potion_data import POTION_CONFIG
-from .menu import get_card_cost_str
+from .menu import get_card_cost_str, append_card_subtype
 from ..data.locale_data import get_locale_text
 
 def render_query_info(query_str: str, user_id: str | None = None) -> str:
@@ -117,7 +117,28 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
             price = cfg.get("price", 0)
             lines.append(get_locale_text("renderer_menu.gem_all_line", name=gname, rarity=grarity_ch, desc=desc, price=price))
         lines.append("")
-        
+
+    if not tier_filter:
+        from ..data.damage_type_data import DAMAGE_TYPE_QUERY_ENTRIES
+        for dtype, dtype_cfg in DAMAGE_TYPE_QUERY_ENTRIES.items():
+            dtype_name = get_locale_text(dtype_cfg["name_key"])
+            aliases = dtype_cfg.get("aliases", ())
+            if q_search == dtype.lower() or q_search == dtype_name.lower() or any(q_search == alias.lower() for alias in aliases):
+                found = True
+                lines.append(get_locale_text("renderer_menu.damage_type_title", name=dtype_name, id=dtype))
+                category_id = dtype_cfg.get("category")
+                if category_id:
+                    category_name = get_locale_text(DAMAGE_TYPE_QUERY_ENTRIES[category_id]["name_key"])
+                    lines.append(get_locale_text("renderer_menu.damage_type_category_line", category=category_name))
+                desc_key = dtype_cfg.get("desc_key")
+                if desc_key:
+                    lines.append(get_locale_text("renderer_menu.desc_line", desc=get_locale_text(desc_key)))
+                members = dtype_cfg.get("members")
+                if members:
+                    member_names = [get_locale_text(DAMAGE_TYPE_QUERY_ENTRIES[member]["name_key"]) for member in members]
+                    lines.append(get_locale_text("renderer_menu.damage_type_members_line", members="、".join(member_names)))
+                lines.append("")
+
     for rid, cfg in RELIC_CONFIG.items():
         if tier_filter and cfg.get("rarity", "common").lower() != tier_filter:
             continue
@@ -218,7 +239,7 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
                 "ability": get_locale_text("renderer_menu.type_ability"),
                 "minion": get_locale_text("renderer_menu.type_minion")
             }
-            ctype_ch = type_map.get(ctype, ctype)
+            ctype_ch = append_card_subtype(type_map.get(ctype, ctype), cid, ctype)
             rarity = cfg.get("rarity", "common")
             rname_rarity = rarity_map.get(rarity, rarity)
             from ..cards import ALL_CARDS

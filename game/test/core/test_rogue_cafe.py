@@ -341,3 +341,44 @@ class TestRogueCafe(unittest.TestCase):
             
         asyncio.run(go())
         plugin.save_manager.delete_save(user_id)
+
+    def test_status_command_available_in_cafe(self):
+        plugin = MyPlugin(DummyContext())
+        user_id = "test_user_cafe_status"
+        plugin.save_manager.delete_save(user_id)
+        p = PlayerState(
+            hp=30, max_hp=30, shield=0, gold=100, stage=13,
+            deck=["fire_bolt"], hand=[], draw_pile=[], discard_pile=[],
+            exhaust_pile=[], graveyard=[], relics=[]
+        )
+        run = GameRun(user_id=user_id, node_type="cafe", player=p, enemies=[], node_data={
+            "cafe_data": {
+                "npcs": ["杰斯", "艾琳", "雷恩", "pppopipupu"],
+                "active_npc": None,
+                "dialog_state": None,
+                "talked_npcs": [],
+                "card_master_stock": [],
+                "gemcutter_stock": [],
+                "hunter_stock": None
+            }
+        })
+        plugin.save_manager.save_save(user_id, run)
+        stats = plugin.save_manager.load_stats(user_id)
+        stats.rogue_mode = True
+        plugin.save_manager.save_stats(user_id, stats)
+
+        async def go():
+            res = await run_command(plugin, "s", user_id)
+            self.assertNotIn("不可用", res)
+            self.assertIn("先古咖啡厅", res)
+
+            await run_command(plugin, "talk 杰斯", user_id)
+            res_dialog = await run_command(plugin, "s", user_id)
+            self.assertNotIn("不可用", res_dialog)
+            self.assertIn("正在与", res_dialog)
+
+            latest_run = plugin.save_manager.load_save(user_id)
+            self.assertEqual(latest_run.node_data["cafe_data"]["active_npc"], "杰斯")
+
+        asyncio.run(go())
+        plugin.save_manager.delete_save(user_id)

@@ -143,7 +143,8 @@ class BattleEngine(BaseBattleEngine):
         self.current_run = run
         self._init_player_battle(run, run.player, difficulty)
         self._generate_battle_enemies(run, difficulty)
-        from ..models.events import TurnStartEvent
+        from ..models.events import BattleStartEvent, TurnStartEvent
+        self.event_bus.dispatch(BattleStartEvent(run))
         evt_turn = TurnStartEvent(run, is_player=True)
         self.event_bus.dispatch(evt_turn)
         self._roll_enemy_intent(run)
@@ -173,7 +174,16 @@ class BattleEngine(BaseBattleEngine):
         self._generate_battle_enemies(run, difficulty)
         coop.scale_coop_enemies(run)
         coop.assign_enemy_targets(run)
-        from ..models.events import TurnStartEvent
+        from ..models.events import BattleStartEvent, TurnStartEvent
+        for uid in run.party_order:
+            player = run.players[uid]
+            if player.downed or player.hp <= 0:
+                continue
+            run.player = player
+            run.user_id = uid
+            self.event_bus.dispatch(BattleStartEvent(run))
+        run.player = viewer
+        run.user_id = caller
         for uid in run.party_order:
             player = run.players[uid]
             if player.downed or player.hp <= 0:
@@ -226,10 +236,6 @@ class BattleEngine(BaseBattleEngine):
             else:
                 run.node_data["action_surge_uses"] = 2
                 run.node_data["action_surge_turn_used"] = False
-
-        from ..models.events import BattleStartEvent
-        evt_start = BattleStartEvent(run)
-        self.event_bus.dispatch(evt_start)
 
         if getattr(p, "subclass", "") == "时序法师":
             if random.random() < 0.25:

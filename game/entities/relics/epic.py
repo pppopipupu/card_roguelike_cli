@@ -1,6 +1,7 @@
 import re
 from ...data.relic_data import RELIC_CONFIG
 from ...data.locale_data import get_locale_text
+from ...data.damage_type_data import is_spell_card_damage
 from .base import RelicImpl
 from .registry import register_relic
 
@@ -82,8 +83,7 @@ class UnstableCrystalRelic(RelicImpl):
         self.recoil_damage = cfg.get("recoil_damage", 1)
 
     def on_damage_calculate(self, event, run, engine):
-        is_spell = getattr(event.card, "type", "") == "spell" if event.card is not None else event.damage_type == "spell"
-        if is_spell and event.source == "p0":
+        if is_spell_card_damage(event) and event.source == "p0":
             event.modified_damage += self.spell_dmg_bonus
 
     def on_turn_start(self, event, run, engine):
@@ -118,8 +118,7 @@ class MarkOfFuryRelic(RelicImpl):
         self.spell_bonus = cfg.get("spell_bonus", 2)
 
     def on_damage_calculate(self, event, run, engine):
-        is_spell = getattr(event.card, "type", "") == "spell" if event.card is not None else event.damage_type == "spell"
-        if is_spell and event.source == "p0":
+        if is_spell_card_damage(event) and event.source == "p0":
             event.modified_damage += self.spell_bonus
 
 class EnergyCoreRelic(RelicImpl):
@@ -161,7 +160,7 @@ class AbyssGazeRelic(RelicImpl):
         self.recoil_damage = cfg.get("recoil_damage", 2)
 
     def on_damage_calculate(self, event, run, engine):
-        if event.damage_type == "spell" and event.source == "p0":
+        if is_spell_card_damage(event) and event.source == "p0":
             event.modified_damage += self.spell_bonus
 
     def on_damage_take(self, event, run, engine):

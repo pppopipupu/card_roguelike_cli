@@ -29,7 +29,7 @@ BUFF_CONFIG = {
     },
     "antimagic_immune": {
         "name": "反魔法屏障",
-        "desc": "免疫本回合内除物理伤害外的所有非物理法术伤害"
+        "desc": "免疫本回合内除物理伤害外的所有魔法伤害"
     },
     "tactical_focus": {
         "name": "无法抽牌",
@@ -46,7 +46,7 @@ BUFF_CONFIG = {
     },
     "arcane_charge": {
         "name": "奥术充能",
-        "desc": "法术伤害 +3",
+        "desc": "法术牌造成的伤害 +3",
         "dmg_per_stack": 3
     },
     "echo_form": {
@@ -234,7 +234,7 @@ BUFF_CONFIG = {
     },
     "wish_power": {
         "name": "祈愿奥术",
-        "desc": "本场战斗法术伤害 +4",
+        "desc": "本场战斗法术牌造成的伤害 +4",
         "damage_bonus": 4,
         "upgraded_damage_bonus": 6
     },
@@ -399,7 +399,7 @@ BUFF_CONFIG = {
     },
     "void_weakness": {
         "name": "虚空虚弱",
-        "desc": "造成的法术伤害减少 3 点，回合结束时层数减少 1",
+        "desc": "法术牌造成的伤害减少 3 点,回合结束时层数减少 1",
         "damage_per_stack": 3,
         "is_debuff": True
     },
@@ -467,7 +467,7 @@ BUFF_CONFIG = {
     },
     "mana_leak": {
         "name": "魔力泄漏",
-        "desc": "你打出的法术卡牌需要额外消耗 1BA，且造成的法术伤害减少 2 点",
+        "desc": "你打出的法术牌需要额外消耗 1BA,且法术牌造成的伤害减少 2 点",
         "damage_per_stack": 2,
         "is_debuff": True
     },
@@ -540,13 +540,13 @@ BUFF_CONFIG = {
     },
     "forge_backfire": {
         "name": "炉温反噬",
-        "desc": "你在锻造熔炉中汲取温热力量带来的后遗症，你造成的法术伤害减少，每层减少 1 点",
+        "desc": "你在锻造熔炉中汲取温热力量带来的后遗症,你打出的法术牌造成的伤害减少,每层减少 1 点",
         "damage_per_stack": 1,
         "is_debuff": True
     },
     "time_warp_spell_boost": {
         "name": "时空强化",
-        "desc": "本回合内你造成的法术伤害增加 2 点",
+        "desc": "本回合内你打出的法术牌造成的伤害增加 2 点",
         "damage_per_stack": 2
     },
     "commander_aurora_emperor": {

@@ -4,6 +4,7 @@ from contextvars import ContextVar
 from enum import Enum
 
 from ..data.locale_data import get_locale_text
+from ..data.card_alias_data import resolve_card_id
 
 current_user_id = ContextVar("current_user_id", default="")
 
@@ -16,16 +17,19 @@ def get_user_id() -> str:
 class DamageType(Enum):
     ACID = "acid"
     BLUDGEONING = "bludgeoning"
+    BLUDGEONING_MAGIC = "bludgeoning_magic"
     COLD = "cold"
     FIRE = "fire"
     FORCE = "force"
     LIGHTNING = "lightning"
     NECROTIC = "necrotic"
     PIERCING = "piercing"
+    PIERCING_MAGIC = "piercing_magic"
     POISON = "poison"
     PSYCHIC = "psychic"
     RADIANT = "radiant"
     SLASHING = "slashing"
+    SLASHING_MAGIC = "slashing_magic"
     THUNDER = "thunder"
     TRUE = "true"
 
@@ -143,7 +147,7 @@ def ensure_card_state(c) -> CardState:
         return _parse_old_cid(c)
     if isinstance(c, dict):
         return CardState(
-            id=c.get("id", ""),
+            id=resolve_card_id(c.get("id", "")),
             upgraded=c.get("upgraded", False),
             gems=c.get("gems", []),
             return_left=c.get("return_left", 0),
@@ -167,6 +171,7 @@ def _parse_old_cid(cid: str) -> CardState:
         base_id = first_part[:-1]
     else:
         base_id = first_part
+    base_id = resolve_card_id(base_id)
     gems = []
     return_left = 0
     replay = 0
@@ -401,7 +406,7 @@ class PlayerState:
             return _parse_old_cid(c)
         if isinstance(c, dict):
             return CardState(
-                id=c.get("id", ""),
+                id=resolve_card_id(c.get("id", "")),
                 upgraded=c.get("upgraded", False),
                 gems=c.get("gems", []),
                 return_left=c.get("return_left", 0),

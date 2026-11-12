@@ -27,28 +27,64 @@ class CoopExploreMixin:
         data = run.node_data
         if data.get("coop_done"):
             return get_locale_text("i18n_coop_explore.coop_done_waiting")
+        pool = data.get("coop_relic_pool") or []
+        if 1 <= option_idx <= len(pool):
+            return self._claim_coop_relic(run, option_idx - 1)
         items = data.get("items", [])
+        local_idx = option_idx - len(pool)
         available = [item for item in items if not item.get("taken")]
-        if option_idx < 1 or option_idx > len(available):
+        if local_idx < 1 or local_idx > len(available):
             return get_locale_text("i18n_coop_explore.err_invalid_reward_idx")
-        chosen = available[option_idx - 1]
+        chosen = available[local_idx - 1]
         real_idx = items.index(chosen)
         if chosen.get("type") == "card_reward":
             return self._claim_single_item(run, real_idx)
-        if chosen.get("type") == "shared_relic":
-            chosen["taken"] = True
-            rid = chosen.get("relic_id")
-            count = self._coop(run).gain_shared_relic(run, run.user_id, rid)
-            msg = get_locale_text("i18n_coop_explore.shared_relic_registered", relic_name=get_relic_name(rid), count=count)
-            remaining = [item for item in items if not item.get("taken")]
-            if not remaining:
-                return self._coop_finish(run, msg)
-            return msg
         res = self._claim_single_item(run, real_idx)
         available = [item for item in items if not item.get("taken")]
         if not available:
             return self._coop_finish(run, res)
         return res
+
+    def _claim_coop_relic(self, run, pool_idx):
+        data = run.node_data
+        pool = data.get("coop_relic_pool") or []
+        if pool_idx < 0 or pool_idx >= len(pool):
+            return get_locale_text("i18n_coop_explore.err_invalid_reward_idx")
+        entry = pool[pool_idx]
+        rid = entry.get("relic_id")
+        if entry.get("claimed_by"):
+            claimant = run.players.get(entry["claimed_by"])
+            player_name = claimant.name if claimant else entry["claimed_by"]
+            return get_locale_text(
+                "i18n_coop_explore.relic_claimed_by_other",
+                relic_name=get_relic_name(rid),
+                player_name=player_name,
+            )
+        uid = run.user_id
+        if any(item.get("claimed_by") == uid for item in pool):
+            return get_locale_text("i18n_coop_explore.relic_limit_reached")
+        player = run.players.get(uid) or run.player
+        if rid in player.relics:
+            return get_locale_text("i18n_coop_explore.relic_already_owned", relic_name=get_relic_name(rid))
+        entry["claimed_by"] = uid
+        player.relics.append(rid)
+        if rid == "red_bottle":
+            player.max_hp += 5
+            player.hp += 5
+        notice = get_locale_text(
+            "i18n_coop_explore.relic_taken_notice",
+            player_name=player.name,
+            relic_name=get_relic_name(rid),
+        )
+        coop = self._coop(run)
+        for other_uid in run.party_order:
+            if other_uid != uid:
+                coop._notice(run, other_uid, notice)
+        msg = get_locale_text("i18n_coop_explore.relic_gained", relic_name=get_relic_name(rid))
+        items = data.get("items", [])
+        if not [item for item in items if not item.get("taken")]:
+            return self._coop_finish(run, msg)
+        return msg
 
     def _choose_coop_rest(self, run, option_idx, target):
         data = run.node_data

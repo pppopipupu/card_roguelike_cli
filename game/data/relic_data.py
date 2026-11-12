@@ -45,7 +45,7 @@ RELIC_CONFIG = {
     "mark_of_fury": {
         "name": "狂暴之印",
         "rarity": "epic",
-        "desc": "玩家使用的法术造成的伤害增加 2 点，但玩家的最大生命值上限永久减少 5 点。",
+        "desc": "玩家打出的法术牌造成的伤害增加 2 点,但玩家的最大生命值上限永久减少 5 点。",
         "spell_bonus": 2,
         "max_hp_cost": 5,
         "price": 100
@@ -126,14 +126,14 @@ RELIC_CONFIG = {
     "arcane_rune": {
         "name": "奥术符文",
         "rarity": "rare",
-        "desc": "玩家使用的法术造成的伤害增加 1 点。",
+        "desc": "玩家打出的法术牌造成的伤害增加 1 点。",
         "spell_bonus": 1,
         "price": 70
     },
     "unstable_crystal": {
         "name": "不稳定水晶",
         "rarity": "epic",
-        "desc": "玩家使用的法术伤害增加 1 点，且每回合开始时额外获得 1BA；但每当玩家使用法术牌时，玩家受到 1 点伤害。",
+        "desc": "玩家打出的法术牌造成的伤害增加 1 点,且每回合开始时额外获得 1BA;但每当玩家打出法术牌时,玩家受到 1 点伤害。",
         "spell_dmg_bonus": 1,
         "turn_ba_bonus": 1,
         "recoil_damage": 1,
@@ -227,7 +227,7 @@ RELIC_CONFIG = {
     "abyss_gaze": {
         "name": "深渊凝视",
         "rarity": "epic",
-        "desc": "玩家使用的法术造成的伤害增加 4 点，但每当玩家受到伤害时，额外受到 2 点真实伤害。",
+        "desc": "玩家打出的法术牌造成的伤害增加 4 点,但每当玩家受到伤害时,额外受到 2 点真实伤害。",
         "spell_bonus": 4,
         "recoil_damage": 2,
         "price": 100

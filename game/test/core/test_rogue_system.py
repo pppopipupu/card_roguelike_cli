@@ -638,3 +638,46 @@ class TestRogueSystem(unittest.TestCase):
         if os.path.exists(stats_path):
             os.remove(stats_path)
 
+    def test_damage_type_query_and_spell_bonus(self):
+        from game.models.events import DamageCalculateEvent
+        from game.entities.cards.base import ALL_CARDS
+        from game.data.damage_type_data import damage_type_matches, is_magic_damage, is_physical_damage
+
+        plugin = MyPlugin(DummyContext())
+        user_id = "test_user_damage_taxonomy"
+        plugin.save_manager.delete_save(user_id)
+
+        async def go():
+            physical = await run_command(plugin, ".rogue 查询 物理伤害", user_id)
+            magic = await run_command(plugin, ".rogue 查询 魔法伤害", user_id)
+            variant = await run_command(plugin, ".rogue 查询 挥砍(魔法)", user_id)
+            self.assertIn("物理伤害", physical)
+            self.assertIn("挥砍", physical)
+            self.assertIn("穿刺", physical)
+            self.assertIn("钝击", physical)
+            self.assertIn("魔法伤害", magic)
+            self.assertIn("火焰", magic)
+            self.assertIn("挥砍", magic)
+            self.assertIn("挥砍", variant)
+            self.assertIn("魔法伤害", variant)
+            self.assertIn("类别", variant)
+
+        asyncio.run(go())
+        self.assertTrue(is_physical_damage("slashing"))
+        self.assertTrue(is_magic_damage("slashing_magic"))
+        self.assertTrue(is_magic_damage("true"))
+        self.assertTrue(damage_type_matches("slashing_magic", "slashing"))
+
+        player = PlayerState(hp=30, max_hp=30, shield=0, gold=0, stage=1, deck=[], hand=[], draw_pile=[], discard_pile=[], exhaust_pile=[], graveyard=[], relics=[])
+        enemy = EnemyState(name="测试敌人", hp=100, max_hp=100, shield=0)
+        run = GameRun(user_id=user_id, node_type="battle", player=player, enemies=[enemy], node_data={})
+        engine = plugin.engine.battle_engine
+        engine._add_buff_to(player, "arcane_charge", "奥术充能", "", 1)
+        spell_evt = DamageCalculateEvent(run=run, card=ALL_CARDS["fire_bolt"], source="p0", target="e1", damage_type="fire", base_damage=6, modified_damage=6)
+        engine.event_bus.dispatch(spell_evt)
+        self.assertEqual(spell_evt.modified_damage, 9)
+        non_spell_evt = DamageCalculateEvent(run=run, card=ALL_CARDS["find_familiar"], source="p0", target="e1", damage_type="fire", base_damage=6, modified_damage=6)
+        engine.event_bus.dispatch(non_spell_evt)
+        self.assertEqual(non_spell_evt.modified_damage, 6)
+        plugin.save_manager.delete_save(user_id)
+

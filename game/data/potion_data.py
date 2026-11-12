@@ -111,7 +111,7 @@ POTION_CONFIG = {
         "rarity": "epic",
         "buff_stacks": 2,
         "draw_count": 4,
-        "drink_desc": "获得 2 层【奥术充能】（法术伤害 +6），抽 4 张牌。",
+        "drink_desc": "获得 2 层【奥术充能】（法术牌造成的伤害 +6），抽 4 张牌。",
         "throw_desc": "我方随从或玩家获得 2 层【奥术充能】，你抽 4 张牌。"
     },
     "destruction_potion": {

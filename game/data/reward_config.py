@@ -41,6 +41,10 @@ SHOP_CARD_EXCLUDED_RARITIES = ("legendary", "mythic", "artifact")
 
 NORMAL_CARD_RARITIES = ("common", "rare", "epic")
 
+COOP_ELITE_RANDOM_RELIC_RARITIES = ("common", "rare", "epic")
+
+COOP_ELITE_RANDOM_RELICS_PER_PLAYER = 1
+
 BOSS_MYTHIC_CARDS = ["neutral_plane_shift", "neutral_omega"]
 
 BOSS_MYTHIC_RELICS = ["infinite_hourglass"]

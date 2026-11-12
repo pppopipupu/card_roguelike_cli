@@ -277,28 +277,58 @@ class TestRogueCoop(unittest.TestCase):
         coop.mark_downed(run, run.players[uids[1]])
         self.assertTrue(coop.is_all_downed(run))
 
-    def test_shared_relic_coin_toss(self):
+    def test_coop_relic_pool_contest(self):
         uids = ["relic_a", "relic_b"]
         run = self.start_coop(uids)
-        from game.core.coop_engine import CoopEngine
         from game.entities import get_relic_name
-        coop = CoopEngine(self.plugin.save_manager, self.plugin.engine)
-        relic_id = next(
-            rid
-            for rid in ("ancient_eye", "dragon_blood", "energy_core")
-            if all(rid not in run.players[uid].relics for uid in uids)
+        from game.models.coop_view import apply_view
+        relic_a, relic_b = "ancient_eye", "dragon_blood"
+        pool = [
+            {"relic_id": relic_a, "claimed_by": ""},
+            {"relic_id": relic_b, "claimed_by": ""},
+        ]
+        views = {
+            uid: {
+                "node_type": "reward",
+                "data": {
+                    "items": [{"type": "gold", "amount": 1, "taken": False}],
+                    "coop_done": False,
+                },
+            }
+            for uid in uids
+        }
+        run.node_type = "reward"
+        run.node_data = {
+            "coop_node_type": "reward",
+            "coop_relic_pool": pool,
+            "player_views": views,
+            "stage_ready": {uid: False for uid in uids},
+        }
+        apply_view(run, uids[0])
+        self.plugin.save_manager.save_coop_save(uids[0], run)
+
+        first = self.run_cmd("c 1", uids[0])
+        self.assertIn(get_relic_name(relic_a), first)
+        owner = self.plugin.save_manager.load_save(uids[0])
+        self.assertEqual(owner.node_data["coop_relic_pool"][0]["claimed_by"], uids[0])
+
+        blocked = self.run_cmd("c 2", uids[0])
+        self.assertIn("最多只能选择一件遗物", blocked)
+
+        taken = self.run_cmd("c 1", uids[1])
+        self.assertIn("夺走", taken)
+        self.assertEqual(
+            self.plugin.save_manager.load_save(uids[1]).node_data["coop_relic_pool"][0]["claimed_by"],
+            uids[0],
         )
-        before_gold = {uid: run.players[uid].gold for uid in uids}
-        coop.gain_shared_relic(run, uids[0], relic_id)
-        coop.gain_shared_relic(run, uids[1], relic_id)
-        random.seed(7)
-        notices = coop.resolve_relic_claims(run)
-        winners = [uid for uid in uids if relic_id in run.players[uid].relics]
-        self.assertEqual(len(winners), len(uids))
-        for uid in uids:
-            self.assertEqual(run.players[uid].gold, before_gold[uid])
-        self.assertIn(get_relic_name(relic_id), "\n".join(notices))
-        self.assertEqual(run.node_data.get("relic_claims"), {})
+
+        second = self.run_cmd("c 2", uids[1])
+        self.assertIn(get_relic_name(relic_b), second)
+        teammate = self.plugin.save_manager.load_save(uids[1])
+        self.assertEqual(teammate.node_data["coop_relic_pool"][1]["claimed_by"], uids[1])
+
+        self.assertIn(relic_a, self.plugin.save_manager.load_save(uids[0]).players[uids[0]].relics)
+        self.assertIn(relic_b, self.plugin.save_manager.load_save(uids[1]).players[uids[1]].relics)
 
     def test_map_vote_and_coop_abandon(self):
         uids = ["vote_a", "vote_b"]
@@ -340,6 +370,50 @@ class TestRogueCoop(unittest.TestCase):
         self.assertNotIn("路线意向", result)
         run = self.plugin.save_manager.load_save(uids[0])
         self.assertNotEqual(run.node_type, "map_select")
+
+    def test_coop_elite_relic_pool_count_and_claim(self):
+        uids = ["elite_a", "elite_b", "elite_c"]
+        run = self.start_coop(uids)
+        from game.core.coop_engine import CoopEngine
+        from game.data.reward_config import ELITE_RELIC_MAP
+        coop = CoopEngine(self.plugin.save_manager, self.plugin.engine)
+        run.node_data = {"difficulty": "elite", "elite_name": "暗影影魔"}
+        before = {uid: len(run.players[uid].relics) for uid in uids}
+        coop.init_coop_rewards(run, "elite")
+        self.plugin.save_manager.save_coop_save(uids[0], run)
+        saved = self.plugin.save_manager.load_save(uids[0])
+        pool = saved.node_data["coop_relic_pool"]
+        ids = [entry["relic_id"] for entry in pool]
+        self.assertEqual(len(pool), len(uids) + 1)
+        self.assertEqual(len(set(ids)), len(ids))
+        self.assertEqual(ids[0], ELITE_RELIC_MAP["暗影影魔"])
+        for index, uid in enumerate(uids, 1):
+            claimed = self.run_cmd(f"c {index}", uid)
+            self.assertIn("获得了遗物", claimed)
+        after = self.plugin.save_manager.load_save(uids[0])
+        claims = [entry.get("claimed_by") for entry in after.node_data["coop_relic_pool"]]
+        self.assertEqual(claims[: len(uids)], uids)
+        self.assertEqual(claims[len(uids)], "")
+        for uid in uids:
+            member = self.plugin.save_manager.load_save(uid)
+            self.assertEqual(len(member.players[uid].relics), before[uid] + 1)
+
+    def test_coop_elite_relic_pool_fills_when_owned(self):
+        uids = ["fill_a", "fill_b", "fill_c"]
+        run = self.start_coop(uids)
+        from game.core.coop_engine import CoopEngine
+        from game.data.reward_config import ELITE_RELIC_MAP, TREASURE_RELIC_POOL
+        coop = CoopEngine(self.plugin.save_manager, self.plugin.engine)
+        for uid in uids:
+            run.players[uid].relics.extend(TREASURE_RELIC_POOL)
+            run.players[uid].relics.append(ELITE_RELIC_MAP["暗影影魔"])
+        run.node_data = {"difficulty": "elite", "elite_name": "暗影影魔"}
+        pool = coop._build_coop_relic_pool(run, "elite")
+        ids = [entry["relic_id"] for entry in pool]
+        self.assertEqual(len(pool), len(uids) + 1)
+        self.assertEqual(len(set(ids)), len(ids))
+        self.assertNotIn(ELITE_RELIC_MAP["暗影影魔"], ids)
+        self.assertFalse(set(ids) & set(TREASURE_RELIC_POOL))
 
     def test_independent_battle_rewards(self):
         uids = ["reward_a", "reward_b"]

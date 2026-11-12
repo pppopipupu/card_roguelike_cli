@@ -1,6 +1,7 @@
 from typing import Optional
 from ...data.amulet_data import AMULET_CONFIG
 from ...data.locale_data import get_locale_text
+from ...data.damage_type_data import is_physical_damage
 from ...core.deck_service import DeckService, UPGRADE_SUFFIX
 
 class AmuletTemplate:
@@ -328,7 +329,7 @@ class BladeRegimentBannerAmulet(AmuletTemplate):
 
     def on_damage_calculate(self, run, grid, event, engine):
         if event.source.startswith("p"):
-            if event.damage_type in ("slashing", "bludgeoning", "piercing"):
+            if is_physical_damage(event.damage_type):
                 av = run.player.amulets.get(grid)
                 is_upgraded = av.id.endswith(UPGRADE_SUFFIX) if av else False
                 val = self.upgraded_physical_damage_bonus if is_upgraded else self.physical_damage_bonus

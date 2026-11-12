@@ -3,6 +3,7 @@ from ..data.checkin_data import DAILY_BLESSINGS
 from ..data.minion_data import MINION_CONFIG
 from ..data.locale_data import get_locale_text
 from ..data.buff_data import BUFF_CONFIG
+from ..data.damage_type_data import is_physical_damage
 from ..entities.cards.base import get_gem_numeric_modifiers, replace_structured_number
 
 
@@ -63,7 +64,7 @@ def _int_value(card, *names) -> int:
 def _card_damage_bonus(card, run) -> int:
     bonus = 0
     damage_type = getattr(card, "damage_type", "effect")
-    physical = damage_type in ("slashing", "bludgeoning", "piercing")
+    physical = is_physical_damage(damage_type)
     card_id = getattr(card, "id", "")
     for marker in (":replay:", ":fragile:"):
         card_id = card_id.split(marker)[0]
@@ -81,10 +82,10 @@ def _card_damage_bonus(card, run) -> int:
         for buff in run.player.buffs:
             if buff.id == "strength":
                 bonus += buff.stacks * multiplier
-    if damage_type == "spell":
+    if getattr(card, "type", "") == "spell":
         for buff in run.player.buffs:
             if buff.id == "arcane_charge":
-                bonus += buff.stacks * 3
+                bonus += buff.stacks * BUFF_CONFIG.get("arcane_charge", {}).get("dmg_per_stack", 3)
     if damage_type == "fire":
         for buff in run.player.buffs:
             if buff.id == "fire_grow":

@@ -7,6 +7,7 @@ from .card_player_turn import CardPlayerTurnMixin
 from .coop_targeting import validate_coop_target, normalize_coop_target
 from ..deck_service import DeckService
 from ...data.locale_data import get_locale_text
+from ...data.buff_data import BUFF_CONFIG
 
 from ...entities import ALL_CARDS, ALL_MINIONS
 from ...models.events import (
@@ -193,6 +194,9 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
                 self.engine._log_event(run, get_locale_text("i18n_battle_core.cannot_draw_log"))
             return
         max_hand = 9 if "mask_of_void" in p.relics else 12
+        hell_raider_cfg = BUFF_CONFIG.get("hell_raider", {})
+        chain_limit = hell_raider_cfg.get("chain_depth", 5)
+        upgraded_draw_count = hell_raider_cfg.get("upgraded_draw_count", 1)
         drawn_cards = []
         reshuffled = False
         hand_full_logged = False
@@ -208,9 +212,10 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
                 is_hell_raider = any(b.id == "hell_raider" for b in p.buffs)
                 is_hell_raider_upg = any(b.id == "hell_raider_upgraded" for b in p.buffs)
                 if run is not None and (is_hell_raider or is_hell_raider_upg):
+                    chain = getattr(run, "_hell_raider_chain", 0)
                     card_obj = ALL_CARDS.get(cid)
                     cost_a_limit = 2 if is_hell_raider_upg else 1
-                    if card_obj and getattr(card_obj, "cost_a", 0) <= cost_a_limit and getattr(card_obj, "cost_ba", 0) == 0:
+                    if chain < chain_limit and card_obj and getattr(card_obj, "cost_a", 0) <= cost_a_limit and getattr(card_obj, "cost_ba", 0) == 0:
                         buff_prefix = get_locale_text("i18n_battle_core.hell_raider_upgraded_name") if is_hell_raider_upg else get_locale_text("i18n_battle_core.hell_raider_name")
                         self.engine._log_event(run, get_locale_text("i18n_battle_core.hell_raider_auto_play_log", buff_prefix=buff_prefix, cost_a=getattr(card_obj, 'cost_a', 0), name=card_obj.name))
                         target = "p0"
@@ -220,12 +225,16 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
                             target = self.engine._get_free_grid(run.player)
                             if not target:
                                 target = "p1"
-                        res_action = self.engine._execute_card_effect(run, card_obj, target)
-                        res_action, _ = self._finalize_card_play(run, p, card_obj, cid, target, res_action, source="hell_raider", register=False)
-                        self.engine._log_event(run, get_locale_text("i18n_battle_core.hell_raider_feedback_log", feedback=res_action))
-                        if is_hell_raider_upg and depth < 5:
-                            self.engine._log_event(run, get_locale_text("i18n_battle_core.hell_raider_extra_draw_log"))
-                            self.draw_cards(p, 1, run, depth=depth+1)
+                        run._hell_raider_chain = chain + 1
+                        try:
+                            res_action = self.engine._execute_card_effect(run, card_obj, target)
+                            res_action, _ = self._finalize_card_play(run, p, card_obj, cid, target, res_action, source="hell_raider", register=False)
+                            self.engine._log_event(run, get_locale_text("i18n_battle_core.hell_raider_feedback_log", feedback=res_action))
+                            if is_hell_raider_upg and depth < chain_limit:
+                                self.engine._log_event(run, get_locale_text("i18n_battle_core.hell_raider_extra_draw_log"))
+                                self.draw_cards(p, upgraded_draw_count, run, depth=depth+1)
+                        finally:
+                            run._hell_raider_chain = chain
                         continue
                 if len(p.hand) < max_hand:
                     p.hand.append(cid)

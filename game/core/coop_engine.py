@@ -13,10 +13,16 @@ from ..data.balance_config import (
     MAP_LUCKY_COIN_GOLD,
     MAP_TAX_CONTRACT_GOLD,
 )
-from ..data.reward_config import BOSS_MYTHIC_CARDS, BOSS_MYTHIC_RELICS
+from ..data.relic_data import RELIC_CONFIG
+from ..data.reward_config import (
+    BOSS_MYTHIC_CARDS,
+    BOSS_MYTHIC_RELICS,
+    COOP_ELITE_RANDOM_RELIC_RARITIES,
+    COOP_ELITE_RANDOM_RELICS_PER_PLAYER,
+)
 from ..data.locale_data import get_locale_text
 from .deck_service import DeckService
-from .reward_builder import base_enemy_name, build_reward_items
+from .reward_builder import base_enemy_name, build_reward_items, elite_relic_id
 
 
 AOE_INTENT_TYPES = {
@@ -395,7 +401,7 @@ class CoopEngine:
                 run.node_data[key] = value
         alive = [u for u in run.party_order if u in run.players]
         if all(ready.get(u, False) or run.players[u].downed for u in alive):
-            notices = self.resolve_relic_claims(run)
+            notices = []
             player_names = get_locale_text("i18n_explore_core.list_delimiter").join(run.players[u].name for u in alive)
             advance = on_all_ready or self.enter_next_stage
             advance(run)
@@ -417,32 +423,6 @@ class CoopEngine:
 
     def finish_cafe_node(self, run, uid, prefix=""):
         return self._finish_notice(run, uid, prefix, on_all_ready=self.enter_ancient_node)
-
-    def resolve_relic_claims(self, run):
-        claims = run.node_data.get("relic_claims", {})
-        produced = {}
-        for relic_id, claimants in list(claims.items()):
-            unique = []
-            for uid in claimants:
-                if uid in run.players and uid not in unique:
-                    unique.append(uid)
-            from ..entities import get_relic_name
-            relic_name = get_relic_name(relic_id)
-            for uid in unique:
-                player = run.players[uid]
-                if relic_id in player.relics:
-                    continue
-                player.relics.append(relic_id)
-                text = get_locale_text("i18n_explore_core.shared_relic_notice", player_name=player.name, relic_name=relic_name)
-                self._notice(run, uid, text)
-                produced.setdefault(uid, []).append(text)
-        run.node_data["relic_claims"] = {}
-        return produced.get(run.user_id, [])
-
-    def gain_shared_relic(self, run, uid, relic_id):
-        claims = run.node_data.setdefault("relic_claims", {})
-        claims.setdefault(relic_id, []).append(uid)
-        return len(claims[relic_id])
 
     def _vote_threshold(self, run):
         alive = self._alive_uids(run)
@@ -487,8 +467,6 @@ class CoopEngine:
             run,
             player,
             difficulty,
-            True,
-            len(run.party_order),
         )
         evt = RewardGenerateEvent(run, items)
         if self.battle_engine and hasattr(self.battle_engine, "event_bus"):
@@ -535,6 +513,7 @@ class CoopEngine:
         views = {}
         rewards = {}
         stage_ready = {}
+        relic_pool = self._build_coop_relic_pool(run, difficulty)
         for uid in run.party_order:
             items, note = self._make_reward_items(run, uid, difficulty)
             rewards[uid] = items
@@ -551,9 +530,52 @@ class CoopEngine:
             "coop_node_type": "reward",
             "player_views": views,
             "player_rewards": rewards,
+            "coop_relic_pool": relic_pool,
             "stage_ready": stage_ready,
         }
         self.apply_view(run, run.user_id)
+
+    def _build_coop_relic_pool(self, run, difficulty):
+        if difficulty != "elite":
+            return []
+        alive = [
+            uid
+            for uid in run.party_order
+            if not run.players[uid].downed and run.players[uid].hp > 0
+        ]
+        if not alive:
+            return []
+        elite_name = str(run.node_data.get("elite_name", ""))
+        pool = []
+        for uid in alive:
+            rid = elite_relic_id(elite_name, run.players[uid], exact=False)
+            if rid:
+                pool.append(rid)
+                break
+        target = len(alive) * COOP_ELITE_RANDOM_RELICS_PER_PLAYER + 1
+        owned = set()
+        for uid in run.party_order:
+            owned.update(run.players[uid].relics)
+        eligible = [
+            rid
+            for rid, cfg in RELIC_CONFIG.items()
+            if cfg.get("rarity") in COOP_ELITE_RANDOM_RELIC_RARITIES
+            and cfg.get("price", 0) > 0
+            and rid not in pool
+        ]
+        candidates = [rid for rid in eligible if rid not in owned]
+        random.shuffle(candidates)
+        pool.extend(candidates[: target - len(pool)])
+        if len(pool) < target:
+            fallback = [
+                rid
+                for rid in eligible
+                if rid not in pool
+                and not all(rid in run.players[uid].relics for uid in alive)
+            ]
+            random.shuffle(fallback)
+            pool.extend(fallback[: target - len(pool)])
+        return [{"relic_id": rid, "claimed_by": ""} for rid in pool[:target]]
 
     def init_coop_boss_chest(self, run):
         views = {}

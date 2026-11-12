@@ -137,11 +137,6 @@ class ExploreEngine(CoopExploreMixin):
             self.start_gem_insert_flow(run, gem_id, run.node_type, next_node_data)
             from ..entities import get_gem_name
             res = get_locale_text("i18n_explore_core.gem_forced_insert_started", gem_name=get_gem_name(gem_id))
-        elif itype == "shared_relic":
-            rid = item.get("relic_id")
-            uid = run.uid_for(p)
-            count = self._coop(run).gain_shared_relic(run, uid, rid)
-            res = get_locale_text("i18n_explore_core.shared_relic_registered", relic_name=get_relic_name(rid), count=count)
         elif itype == "card_reward":
             reward_cards = item.get("cards", [])
             previous_node_type = run.node_type
@@ -302,6 +297,21 @@ class ExploreEngine(CoopExploreMixin):
         })
         return items
 
+    def _build_treasure_relic_pool(self, run):
+        alive = [
+            uid
+            for uid in run.party_order
+            if not run.players[uid].downed and run.players[uid].hp > 0
+        ]
+        if not alive:
+            return []
+        owned = set()
+        for uid in run.party_order:
+            owned.update(run.players[uid].relics)
+        pool = [rid for rid in TREASURE_RELIC_POOL if rid not in owned]
+        random.shuffle(pool)
+        return [{"relic_id": rid, "claimed_by": ""} for rid in pool[: len(alive)]]
+
     def _init_treasure_node(self, run: GameRun):
         if getattr(run, "coop_id", ""):
             views = {}
@@ -318,7 +328,7 @@ class ExploreEngine(CoopExploreMixin):
                 "coop_node_type": "treasure",
                 "player_views": views,
                 "stage_ready": ready,
-                "coop_shared_relic": random.choice(TREASURE_RELIC_POOL),
+                "coop_relic_pool": self._build_treasure_relic_pool(run),
             }
             self._coop(run).apply_view(run, run.user_id)
             return
@@ -350,15 +360,17 @@ class ExploreEngine(CoopExploreMixin):
         if deck_idx < 1 or deck_idx > len(sorted_items):
             return get_locale_text("err_invalid_option_idx")
         c_state = sorted_items[deck_idx - 1][0]
-        removed_name = ALL_CARDS[c_state].name
+        card_obj = ALL_CARDS.get(c_state)
+        removed_name = card_obj.name if card_obj else get_locale_text("i18n_battle_core.unknown_card")
         p.deck.remove(c_state)
         
         source = run.node_data.get("remove_source", "shop")
         if source == "treasure":
             gold_gain = random.randint(TREASURE_GOLD_MIN, TREASURE_GOLD_MAX)
-            relics_pool = TREASURE_RELIC_POOL
-            available_relics = [r for r in relics_pool if r not in p.relics]
-            got_relic = random.choice(available_relics) if available_relics else ""
+            got_relic = ""
+            if not getattr(run, "coop_id", ""):
+                available_relics = [r for r in TREASURE_RELIC_POOL if r not in p.relics]
+                got_relic = random.choice(available_relics) if available_relics else ""
             
             stats = self.save_manager.load_stats(run.user_id)
             card_pool = DeckService.get_epic_card_pool(run, p, stats)
@@ -376,20 +388,17 @@ class ExploreEngine(CoopExploreMixin):
             ]
             if got_relic:
                 items.append({"type": "relic", "relic_id": got_relic, "taken": False})
-            if getattr(run, "coop_id", ""):
-                shared_rid = run.node_data.get("coop_shared_relic")
-                if shared_rid:
-                    items.append({"type": "shared_relic", "relic_id": shared_rid, "taken": False})
                 
             from ..models.events import RewardGenerateEvent
             evt = RewardGenerateEvent(run, items)
             self.map_engine.battle_engine.event_bus.dispatch(evt)
             
-            run.node_data = {
+            run.node_data.update({
                 "state": "opened",
                 "items": items,
+                "pending_remove": False,
                 "text": get_locale_text("i18n_explore_core.treasure_opened_text", removed_name=removed_name)
-            }
+            })
             self.save_manager.save_save(run.user_id, run)
             return get_locale_text("msg_sacrifice_success", removed_name=removed_name)
         else:
@@ -474,6 +483,8 @@ class ExploreEngine(CoopExploreMixin):
         gem_name = GEM_CONFIG[gem_id]["name"]
         gem_desc = GEM_CONFIG[gem_id]["desc"]
         previous = run.node_data if getattr(run, "coop_id", "") else None
+        if getattr(run, "coop_id", ""):
+            next_node_data = strip_shared(next_node_data)
         run.node_type = "gem_insert"
         run.node_data = {
             "pending_gem": gem_id,

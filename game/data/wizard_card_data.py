@@ -170,9 +170,9 @@ WIZARD_CARD_CONFIG = {
         "type": "ability",
         "cost_a": 1,
         "cost_ba": 0,
-        "desc": "本场战斗法术伤害 +3。",
+        "desc": "本场战斗法术牌造成的伤害 +3。",
         "rarity": "epic",
-        "feedback": "使用了【{name}】，获得了【奥术充能】buff（法术伤害 +3，可叠加）。"
+        "feedback": "使用了【{name}】,获得了【奥术充能】buff(法术牌造成的伤害 +3,可叠加)。"
     },
     "find_familiar": {
         "name": "召唤魔宠",
@@ -255,11 +255,11 @@ WIZARD_CARD_CONFIG = {
         "type": "ability",
         "cost_a": 0,
         "cost_ba": 0,
-        "desc": "本场战斗法术伤害 +3（即获得 1 层奥术充能 buff）。消耗。",
+        "desc": "本场战斗法术牌造成的伤害 +3(即获得 1 层奥术充能 buff)。消耗。",
         "rarity": "rare",
         "exhaust": True,
         "buff_stacks": 1,
-        "feedback": "使用了【过载充能】，获得了【奥术充能】buff（法术伤害 +3，可叠加）。"
+        "feedback": "使用了【过载充能】,获得了【奥术充能】buff(法术牌造成的伤害 +3,可叠加)。"
     },
     "doomsday_judgment": {
         "name": "末日审判",
@@ -320,13 +320,13 @@ WIZARD_CARD_CONFIG = {
         "type": "spell",
         "cost_a": 1,
         "cost_ba": 1,
-        "desc": "获得 10 点护盾，本场战斗中法术伤害 +4，并抽 2 张牌。消耗。",
+        "desc": "获得 10 点护盾,本场战斗中法术牌造成的伤害 +4,并抽 2 张牌。消耗。",
         "rarity": "legendary",
         "exhaust": True,
         "shield_amount": 10,
         "spell_damage_bonus": 4,
         "draw_count": 2,
-        "feedback": "完成了大法师的祈愿！获得了 10 点护盾，【祈愿奥术】法术伤害 +4，并抽了 2 张牌。"
+        "feedback": "完成了大法师的祈愿!获得了 10 点护盾,【祈愿奥术】法术牌造成的伤害 +4,并抽了 2 张牌。"
     },
     "time_stop": {
         "name": "时间停止",

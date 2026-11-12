@@ -41,7 +41,7 @@
   "forge_overload_backfire": "💥 糟糕！熔炉突然发生能量逆流！熔炉的狂暴能量反噬了你（受到 8 点伤害，且1张【苦恼】卡牌已加入卡组）。",
   "forge_backfire_text": "汲取熔炉余温",
   "forge_backfire_buff_name": "炉温反噬",
-  "forge_backfire_buff_desc": "造成的法术伤害-1",
+  "forge_backfire_buff_desc": "法术牌造成的伤害 -1",
   "forge_backfire_result": "🍀 你坐在熔炉旁，缓缓引导并吸取其余温。你感到肉体在温暖的奥能下得到了升华（生命上限+5，生命回复了 10 点），但同时体内充斥着紊乱的余温热量，法术释放受到了干扰（获得了 2 层【炉温反噬】buff）。已前往下一关。",
   "forge_shatter_text": "强行破坏熔炉",
   "forge_shatter_relic_suffix": "与遗物【{relic_name}】",

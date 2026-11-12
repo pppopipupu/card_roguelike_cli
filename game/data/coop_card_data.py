@@ -36,7 +36,7 @@ COOP_CARD_CONFIG = {
         "buff_stacks": 1,
         "rarity": "rare",
         "coop_only": True,
-        "desc": "为指定队友付与 2 层【力量】与 1 层【奥术充能】（法术伤害 +3）。"
+        "desc": "为指定队友付与 2 层【力量】与 1 层【奥术充能】(法术牌造成的伤害 +3)。"
     },
     "coop_soul_link": {
         "name": "灵魂链接",

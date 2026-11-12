@@ -281,8 +281,10 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
             gold_gain = random.randint(TREASURE_GOLD_MIN, TREASURE_GOLD_MAX)
             p.gold += gold_gain
             relics_pool = TREASURE_RELIC_POOL
-            available_relics = [r for r in relics_pool if r not in p.relics]
-            got_relic = random.choice(available_relics) if available_relics else ""
+            got_relic = ""
+            if not getattr(run, "coop_id", ""):
+                available_relics = [r for r in relics_pool if r not in p.relics]
+                got_relic = random.choice(available_relics) if available_relics else ""
             if got_relic:
                 p.relics.append(got_relic)
                 if got_relic == "red_bottle":
@@ -329,6 +331,10 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
             engine.save_manager.save_save(run.user_id, run)
             return get_locale_text("msg_sacrifice_started")
     else:
+        pool = run.node_data.get("coop_relic_pool") or []
+        if 1 <= option_idx <= len(pool):
+            return engine._claim_coop_relic(run, option_idx - 1)
+        option_idx -= len(pool)
         available_items = [it for it in items if not it.get("taken")]
         if option_idx < 1 or option_idx > len(available_items):
             return get_locale_text("err_invalid_option_idx")

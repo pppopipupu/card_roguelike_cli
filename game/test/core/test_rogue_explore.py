@@ -532,11 +532,10 @@ class TestRogueExplore(unittest.TestCase):
         self.assertEqual(player.bonus_actions, 0, f"Bonus actions not zero! Result: {res2}")
         self.assertEqual(run.node_data.get("last_x_cost_ba"), 4)
         self.assertEqual(player.actions, 3)
-        enemy_test = EnemyState("测试敌人", 10, 10, 0, actions=2, max_actions=2)
-        run.enemies = [enemy_test]
         player.relics = ["ancient_compass"]
-        engine._init_battle_node(run)
-        self.assertEqual(enemy_test.actions, 1)
+        run.node_data = {"ghost_name": "测试假人", "ghost_max_hp": 10}
+        engine._init_battle_node(run, "ghost")
+        self.assertEqual(run.enemies[0].actions, 0)
         run.node_type = "battle"
         player.stage = 25
         sm.stats.unlocked_gatekey = False

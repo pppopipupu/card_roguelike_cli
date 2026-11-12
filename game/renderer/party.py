@@ -1,5 +1,6 @@
 from ..data.locale_data import t
 from ..models.state import GameRun
+from .formatters import format_relic_bar
 
 
 def render_party_status(run: GameRun) -> str:
@@ -18,13 +19,15 @@ def render_party_status(run: GameRun) -> str:
         else:
             hp_text = f"{member.hp}/{member.max_hp}"
         grid_text = t("renderer_town.party_grid", idx=idx)
+        relics_text = format_relic_bar(getattr(member, "relics", []))
         lines.append(t(
             "renderer_town.party_member_line",
             idx=idx,
             name=member.name,
             marker=marker,
             hp=hp_text,
-            grid=grid_text
+            grid=grid_text,
+            relics=relics_text
         ))
     return "\n".join(lines)
 

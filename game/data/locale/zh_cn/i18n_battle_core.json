@@ -107,7 +107,7 @@
   "buff_iron_will_name": "钢铁意志",
   "buff_iron_will_desc": "最大生命上限增加 10 并回复 10 生命",
   "buff_arcane_charge_name": "奥术充能",
-  "buff_arcane_charge_desc": "法术伤害 +3",
+  "buff_arcane_charge_desc": "法术牌造成的伤害 +3",
   "throw_hit_log": "💥 {target_name}被你投掷的【{name}】击中了！",
   "healing_potion_log": "🧪 使用了【{name}】，对【{target_name}】回复了 {heal} 点生命值。",
   "shield_potion_log": "🧪 使用了【{name}】，对【{target_name}】施加了 {shield} 点护盾。",

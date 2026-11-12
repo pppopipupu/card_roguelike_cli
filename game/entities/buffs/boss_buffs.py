@@ -2,8 +2,7 @@ from .base import BuffImpl, is_debuff
 from .registry import register_buff
 from ...data.buff_data import BUFF_CONFIG
 from ...data.locale_data import get_locale_text
-
-PHYSICAL_DAMAGE_TYPES = ("bludgeoning", "piercing", "slashing")
+from ...data.damage_type_data import PHYSICAL_DAMAGE_TYPES
 
 
 def _stat(instance, buff_id, name, default):

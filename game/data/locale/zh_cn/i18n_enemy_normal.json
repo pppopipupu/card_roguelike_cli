@@ -47,7 +47,7 @@
     "buff_minor_vulnerable_necrotic": "轻度黯蚀易伤",
     "buff_minor_vulnerable_necrotic_desc": "受到的黯蚀伤害增加 50%",
     "buff_void_weakness": "虚空虚弱",
-    "buff_void_weakness_desc": "造成的法术伤害减少 3 点，回合结束时层数减少 1"
+    "buff_void_weakness_desc": "法术牌造成的伤害减少 3 点，回合结束时层数减少 1"
   },
   "na_qi_mu": {
     "name": "纳奇姆",
@@ -109,13 +109,13 @@
     "buff_burning": "燃烧",
     "buff_burning_desc": "每回合开始时受到火焰伤害",
     "buff_void_weakness": "虚空虚弱",
-    "buff_void_weakness_desc": "造成的法术伤害减少 3 点，回合结束时层数减少 1"
+    "buff_void_weakness_desc": "法术牌造成的伤害减少 3 点，回合结束时层数减少 1"
   },
   "ghost_mage": {
     "soul_frost": "【{name}】释放魂火寒流。{dmg_msg}，并使你陷入【魔力泄漏】！",
     "ethereal_veil": "【{name}】披上灵体帷幕，获得 {val} 点护盾与 1 层力量！",
     "buff_mana_leak": "魔力泄漏",
-    "buff_mana_leak_desc": "你打出的法术卡牌需要额外消耗 1BA，且造成的法术伤害减少 2 点",
+    "buff_mana_leak_desc": "你打出的法术牌需要额外消耗 1BA,且法术牌造成的伤害减少 2 点",
     "buff_strength": "力量",
     "buff_strength_desc": "造成的伤害增加"
   },
@@ -154,6 +154,6 @@
     "buff_void_exhaustion": "虚空耗竭",
     "buff_void_exhaustion_desc": "本回合内打出的所有非随从和护符卡牌都会在结算后被强制消耗移入消耗堆",
     "buff_void_weakness": "虚空虚弱",
-    "buff_void_weakness_desc": "造成的法术伤害减少 3 点，回合结束时层数减少 1"
+    "buff_void_weakness_desc": "法术牌造成的伤害减少 3 点，回合结束时层数减少 1"
   }
 }

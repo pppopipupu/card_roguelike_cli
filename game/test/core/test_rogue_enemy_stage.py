@@ -397,6 +397,23 @@ class TestRogueEnemyStage(unittest.TestCase):
         engine.event_bus.dispatch(evt_end)
         self.assertEqual(migo.hp, 15)
 
+    def test_battle_start_relic_hits_generated_enemies(self):
+        class DummySaveManager:
+            def save_save(self, user_id, run):
+                pass
+            def delete_save(self, user_id):
+                pass
+            def load_stats(self, user_id):
+                return None
+        sm = DummySaveManager()
+        engine = BattleEngine(sm)
+        player = PlayerState(hp=80, max_hp=80, shield=0, gold=100, stage=1, relics=["migo_lightning_gun"])
+        run = GameRun(user_id="test_migo_real", node_type="battle", player=player)
+        run.node_data = {"ghost_name": "测试假人", "ghost_max_hp": 60}
+        engine._init_battle_node(run, "ghost")
+        self.assertEqual(len(run.enemies), 1)
+        self.assertEqual(run.enemies[0].hp, 55)
+
     def test_mindflayer_brain_modification(self):
         class DummySaveManager:
             def save_save(self, user_id, run):

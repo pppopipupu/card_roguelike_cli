@@ -27,6 +27,6 @@
   "party_you_marker": "（你）",
   "party_downed": "倒地",
   "party_grid": " 场上 a{idx}",
-  "party_member_line": " a{idx}. {name}{marker}：❤️ {hp}{grid}",
+  "party_member_line": " a{idx}. {name}{marker}：❤️ {hp}{grid}{relics}",
   "party_waiting": "⏳ 你已结束本节点行动，正在等待其他队友完成。"
 }
