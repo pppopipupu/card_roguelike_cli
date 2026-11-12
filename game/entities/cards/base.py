@@ -242,11 +242,13 @@ def _get_card_config():
     from ...data.wizard_card_data import WIZARD_CARD_CONFIG
     from ...data.warrior_card_data import WARRIOR_CARD_CONFIG
     from ...data.coop_card_data import COOP_CARD_CONFIG
+    from ...data.mercenary_card_data import MERCENARY_CARD_CONFIG
     cfg = {}
     cfg.update(NEUTRAL_CARD_CONFIG)
     cfg.update(WIZARD_CARD_CONFIG)
     cfg.update(WARRIOR_CARD_CONFIG)
     cfg.update(COOP_CARD_CONFIG)
+    cfg.update(MERCENARY_CARD_CONFIG)
     return cfg
 
 class CardRegistryDict(dict):

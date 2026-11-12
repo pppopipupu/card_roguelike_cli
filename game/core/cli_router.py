@@ -42,6 +42,7 @@ class CLIRouter:
             stats = self.save_manager.load_stats(user_id)
             stats.in_town = True
             stats.town_pos = "range"
+            self.town_engine.record_visited_room(stats)
             self.save_manager.save_stats(user_id, stats)
             return original_res + "\n\n" + get_locale_text("i18n_cli_core.combat_quit") + "\n\n" + self.town_engine.render_current_room(user_id, stats)
         p = latest_run.player

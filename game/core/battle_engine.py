@@ -55,6 +55,9 @@ class BattleEngine(BaseBattleEngine):
         owners.append(owner_uid)
         logs.append(msg)
     def _append_logs_to_res(self, run: GameRun, res: str) -> str:
+        effective_uid = run.user_id
+        if run.player is not None and getattr(run.player, "is_mercenary", False):
+            effective_uid = getattr(run.player, "mercenary_owner", "") or effective_uid
         if "battle_logs" in run.node_data:
             logs = run.node_data.pop("battle_logs", [])
             owners = run.node_data.pop("battle_log_owners", [])
@@ -62,8 +65,8 @@ class BattleEngine(BaseBattleEngine):
             remaining = []
             remaining_owners = []
             for index, msg in enumerate(logs):
-                owner = owners[index] if index < len(owners) else run.user_id
-                if owner == run.user_id:
+                owner = owners[index] if index < len(owners) else effective_uid
+                if owner == effective_uid:
                     own_logs.append(msg)
                 else:
                     remaining.append(msg)
@@ -75,7 +78,7 @@ class BattleEngine(BaseBattleEngine):
                 res = res.rstrip() + "\n" + "\n".join(own_logs)
         else:
             run.node_data.pop("battle_log_owners", None)
-        self.save_manager.save_save(run.user_id, run)
+        self.save_manager.save_save(effective_uid, run)
         return res
     def is_battle_won(self, run: GameRun) -> bool:
         if run.node_type != "battle":

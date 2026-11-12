@@ -11,8 +11,14 @@ class TownHomeCommand(CommandHandler, names=["回城", "home"], allowed_states=[
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         stats = router.save_manager.load_stats(user_id)
         stats.town_pos = "square"
+        router.town_engine.record_visited_room(stats, "square")
         router.save_manager.save_stats(user_id, stats)
         yield router.town_engine.render_current_room(user_id, stats)
+
+class TownTeleportCommand(CommandHandler, names=["传送", "tp", "teleport"], allowed_states=["town"], help_key="town_tp"):
+    def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
+        query = " ".join(parts[1:]).strip() if len(parts) > 1 else ""
+        yield router.town_engine.teleport(user_id, query)
 
 class TownExitCommand(CommandHandler, names=["退出", "quit", "exit"], allowed_states=["town"], help_key="town_exit"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:

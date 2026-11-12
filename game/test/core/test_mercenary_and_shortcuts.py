@@ -103,8 +103,14 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
 
         dialog_res = self.run_cmd("talk", uid)
         self.assertIn("雇佣兵交互", dialog_res)
+        self.assertNotIn("pale_", dialog_res)
+        self.assertNotIn("thought_", dialog_res)
+        self.assertIn("横渡灰域", dialog_res)
         chat_res = self.run_cmd("1", uid)
         self.assertIn("哈里·杜博阿", chat_res)
+        self.assertNotIn("['", chat_res)
+        self.assertNotIn('["', chat_res)
+        self.assertNotIn("', '", chat_res)
         timing_res = self.run_cmd("3", uid)
         self.assertIn("回合最开始出牌", timing_res)
         leave_res = self.run_cmd("4", uid)
@@ -157,7 +163,7 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
         self.run_cmd("start confirm", uid)
         self.run_cmd("c 1", uid)
 
-        for _ in range(60):
+        for _ in range(300):
             run = self.plugin.save_manager.load_save(uid)
             if not run:
                 break
@@ -175,11 +181,12 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
                 if pool:
                     self.run_cmd("c 1", uid)
                 else:
-                    self.run_cmd("c 1", uid)
+                    self.run_cmd("离开", uid)
             elif run.node_type == "card_select":
-                self.run_cmd("skip", uid)
-            elif run.node_type in ("event", "rest", "treasure", "shop", "ancient"):
-                self.run_cmd("c 1", uid)
+                cards = run.node_data.get("cards") or []
+                self.run_cmd(f"c {len(cards) + 1}", uid)
+            elif run.node_type in ("shop", "treasure"):
+                self.run_cmd("离开", uid)
             else:
                 self.run_cmd("c 1", uid)
 
@@ -231,6 +238,59 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
         self.assertIn("进入第 2 回合", res2)
         after_turn = self.plugin.save_manager.load_save(uids[0])
         self.assertEqual(after_turn.node_data.get("turn_count"), 2)
+
+    def test_mercenary_plays_cards_cycles_hand_and_resolves_interactions(self):
+        uid = "harry_battle_ai_user"
+        self._hire_harry(uid, gp=100)
+        stats = self.plugin.save_manager.load_stats(uid)
+        stats.locked_cards = ["fleeting_spark", "neutral_emperor_eye", "discover"]
+        self.plugin.save_manager.save_stats(uid, stats)
+
+        self.run_cmd("start confirm", uid)
+        self.run_cmd("c 1", uid)
+
+        for target_name in ("飞逝火花", "帝王之眼", "发掘"):
+            self.run_cmd("talk 哈里", uid)
+            pick_self = self.run_cmd("2", uid)
+            match = re.search(rf"\[(\d+)\]\s*{re.escape(target_name)}", pick_self)
+            if match:
+                self.run_cmd(match.group(1), uid)
+                self.run_cmd("1", uid)
+            else:
+                self.run_cmd("0", uid)
+            self.run_cmd("4", uid)
+
+        run = self.plugin.save_manager.load_save(uid)
+        options = run.node_data.get("options", [])
+        battle_idx = next(i + 1 for i, opt in enumerate(options) if opt.get("node_type") in ("battle", "elite"))
+        self.run_cmd(f"c {battle_idx}", uid)
+
+        played_seen = False
+        for turn_i in range(4):
+            run = self.plugin.save_manager.load_save(uid)
+            if not run or run.node_type != "battle":
+                break
+            if turn_i == 2:
+                self.run_cmd("talk 哈里", uid)
+                self.run_cmd("3", uid)
+                self.run_cmd("4", uid)
+            res = self.run_cmd("e", uid)
+            if "打出【" in res:
+                played_seen = True
+            self.assertNotIn("没有出牌", res if "打出【" in res else "")
+            after = self.plugin.save_manager.load_save(uid)
+            if after and after.node_type == "battle":
+                self.assertFalse(after.node_data.get("state_stack"))
+                self.assertFalse(after.node_data.get("pending_discard"))
+                merc_uid = [u for u in after.party_order if u != uid][0]
+                merc = after.players[merc_uid]
+                if merc.hp > 0 and not merc.downed:
+                    self.assertLessEqual(len(merc.hand), 8)
+
+        self.assertTrue(played_seen)
+        for fname in os.listdir(self.tmp.name):
+            self.assertFalse(fname.startswith("save_merc"))
+            self.assertFalse(fname.startswith("stats_merc"))
 
 
 if __name__ == "__main__":

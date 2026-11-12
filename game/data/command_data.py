@@ -37,6 +37,7 @@ COMMAND_SECTION_ORDER = {
     "town": (
         "town",
         "town_move",
+        "town_tp",
         "town_home",
         "town_exit",
         "map_style",

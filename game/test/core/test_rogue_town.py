@@ -759,3 +759,58 @@ class TestRogueTown(unittest.TestCase):
 
         asyncio.run(run_victory_test())
 
+    def test_town_teleport_visited_and_pinyin_match(self):
+        plugin = MyPlugin(DummyContext())
+        save_manager = SaveManager()
+
+        async def run_tp_test():
+            uid = "test_tp_user"
+            save_manager.delete_save(uid)
+            stats_path = save_manager.get_stats_path(uid)
+            if os.path.exists(stats_path):
+                try:
+                    os.remove(stats_path)
+                except OSError:
+                    pass
+
+            await run_command(plugin, ".rogue 主城", sender_id=uid)
+            list_res = await run_command(plugin, ".rogue tp", sender_id=uid)
+            self.assertIn("中心广场", list_res.splitlines()[0])
+            self.assertNotIn("铁匠铺", list_res.splitlines()[0])
+
+            unvisited_res = await run_command(plugin, ".rogue tp tjp", sender_id=uid)
+            self.assertIn("尚未到达过", unvisited_res)
+            self.assertIn("铁匠铺", unvisited_res)
+            self.assertEqual(save_manager.load_stats(uid).town_pos, "square")
+
+            key_res = await run_command(plugin, ".rogue tp square", sender_id=uid)
+            self.assertIn("未找到", key_res)
+
+            await run_command(plugin, ".rogue s", sender_id=uid)
+            await run_command(plugin, ".rogue a", sender_id=uid)
+            self.assertEqual(save_manager.load_stats(uid).town_pos, "blacksmith")
+            await run_command(plugin, ".rogue home", sender_id=uid)
+            self.assertEqual(save_manager.load_stats(uid).town_pos, "square")
+
+            tp_tjp = await run_command(plugin, ".rogue tp tjp", sender_id=uid)
+            self.assertIn("已传送至【铁匠铺】", tp_tjp)
+            self.assertEqual(save_manager.load_stats(uid).town_pos, "blacksmith")
+
+            tp_gc = await run_command(plugin, ".rogue tp gc", sender_id=uid)
+            self.assertIn("已传送至【中心广场】", tp_gc)
+            self.assertEqual(save_manager.load_stats(uid).town_pos, "square")
+
+            tp_mc = await run_command(plugin, ".rogue tp mc", sender_id=uid)
+            self.assertIn("已传送至【卡牌大卖场】", tp_mc)
+            self.assertEqual(save_manager.load_stats(uid).town_pos, "market")
+
+            tp_cn = await run_command(plugin, ".rogue 传送 铁匠", sender_id=uid)
+            self.assertIn("已传送至【铁匠铺】", tp_cn)
+            self.assertEqual(save_manager.load_stats(uid).town_pos, "blacksmith")
+
+            await run_command(plugin, ".rogue 退出", sender_id=uid)
+            outside_res = await run_command(plugin, ".rogue tp 中心广场", sender_id=uid)
+            self.assertIn("不可用", outside_res)
+
+        asyncio.run(run_tp_test())
+

@@ -244,6 +244,22 @@ class CardPlayerTurnMixin:
             if multi:
                 return get_locale_text("i18n_explore_core.coop_wipe_enemy_log", enemy_logs=enemy_actions, settle_msg=settle_msg)
             return get_locale_text("i18n_battle_core.adventure_defeat", enemy_actions=enemy_actions, settle_msg=settle_msg)
+        from ..mercenary import end_unended_mercenary_phases
+        end_unended_mercenary_phases(self.engine, run)
+        if self.engine.is_battle_won(run):
+            if is_all_downed(run):
+                if multi:
+                    run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
+                settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
+                if multi:
+                    return get_locale_text("i18n_explore_core.coop_wipe_enemy_log", enemy_logs=enemy_actions, settle_msg=settle_msg)
+                return get_locale_text("i18n_battle_core.adventure_defeat", enemy_actions=enemy_actions, settle_msg=settle_msg)
+            self.handle_battle_win(run)
+            self._reindex_minions(viewer)
+            self.engine.save_manager.save_save(viewer_uid, run)
+            if multi:
+                return self.engine._append_logs_to_res(run, get_locale_text("i18n_explore_core.battle_victory_log", enemy_logs=enemy_actions))
+            return self.engine._append_logs_to_res(run, f"{enemy_actions}\n{get_locale_text('i18n_battle_core.battle_victory_emoji')}")
         turn_logs = []
         first_alive = True
         for member in run.party_order:

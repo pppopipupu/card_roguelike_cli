@@ -27,5 +27,9 @@
   "town_map_style_desc_radar": "局部雷达十字小地图",
   "town_map_style_switched": "✨ 已成功将主城小地图样式切换为：【{style_desc}】！\n\n",
   "town_game_in_progress": "❌ 游戏进行中，无法前往主城。请先通关或通过 放弃 结束当前游戏。",
-  "town_exit_success": "👋 你已退出主城，回到主菜单。"
+  "town_exit_success": "👋 你已退出主城，回到主菜单。",
+  "town_tp_usage": "📍 可传送的已到达地点：{visited}\n💡 用法：tp <地点名|拼音首字母>，例如：tp 铁匠铺 或 tp tjp",
+  "town_tp_success": "✨ 已传送至【{name}】！",
+  "town_tp_unvisited": "❌ 你尚未到达过【{name}】，无法传送。请先步行前往探索一次。",
+  "town_tp_not_found": "❌ 未找到匹配的已到达地点【{query}】。\n📍 当前可传送地点：{visited}"
 }

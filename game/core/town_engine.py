@@ -37,10 +37,38 @@ class TownEngine:
         except Exception:
             return {"id": room_id, "name_key": room_id, "exits": {}, "npcs": [], "items": [], "interactive": {}}
 
+    def record_visited_room(self, stats: UserStats, room_id: Optional[str] = None) -> bool:
+        target = room_id or getattr(stats, "town_pos", "") or "square"
+        flags = stats.town_flags if isinstance(stats.town_flags, dict) else {}
+        stats.town_flags = flags
+        visited = flags.get("visited_rooms")
+        changed = False
+        if not isinstance(visited, list):
+            visited = []
+            changed = True
+        tour_visited = flags.get("quest_town_tour_visited")
+        if isinstance(tour_visited, list):
+            for rid in tour_visited:
+                if rid and rid not in visited:
+                    visited.append(rid)
+                    changed = True
+        if target and target not in visited:
+            visited.append(target)
+            changed = True
+        flags["visited_rooms"] = visited
+        return changed
+
+    def get_visited_rooms(self, stats: UserStats) -> List[str]:
+        self.record_visited_room(stats)
+        return list(stats.town_flags.get("visited_rooms", []))
+
     def render_current_room(self, user_id: str, stats: UserStats) -> str:
         zh_cn = self._load_zh_cn()
+        dirty = self.record_visited_room(stats)
         if stats.town_pos == "market":
             self._get_market_shelf(stats)
+            dirty = True
+        if dirty:
             self.save_manager.save_stats(user_id, stats)
 
         active_dialog = stats.town_flags.get("current_dialog")
@@ -89,15 +117,16 @@ class TownEngine:
         if dir_key not in exits:
             return get_locale_text("global.move_no_way", exits=', '.join(exits.keys()).upper())
 
+        self.record_visited_room(stats, stats.town_pos)
         target_room = exits[dir_key]
         stats.town_pos = target_room
+        self.record_visited_room(stats, target_room)
 
         quest_state = stats.town_flags.get("quest_town_tour_state", "unstarted")
         if quest_state == "started":
             visited = stats.town_flags.setdefault("quest_town_tour_visited", [])
             if target_room not in visited:
                 visited.append(target_room)
-
         if random.random() < 0.5:
             wandering_npcs = ["Gamer_Boy", "Crypto_Whale", "Lost_Bard", "Town_Guard", "Naughty_Child"]
             wandering_rooms = ["square", "fountain", "shop", "tavern", "alley"]
@@ -109,6 +138,47 @@ class TownEngine:
         target_room_data = self._load_room_data(target_room)
         from ..renderer.town import render_town
         return render_town(stats, target_room_data)
+
+    def teleport(self, user_id: str, target_query: str) -> str:
+        from .cli.base import find_entry_by_query
+        stats = self.save_manager.load_stats(user_id)
+        dirty = self.record_visited_room(stats)
+        visited = list(stats.town_flags.get("visited_rooms", []))
+        zh_cn = self._load_zh_cn()
+        rooms_loc = zh_cn.get("rooms", {})
+        sep = get_locale_text("renderer_town.list_separator")
+        visited_entries = [(rid, rooms_loc.get(rid, {}).get("name", rid)) for rid in visited if rid in rooms_loc]
+        visited_names = sep.join(name for _, name in visited_entries)
+        query = str(target_query or "").strip()
+        if not query:
+            if dirty:
+                self.save_manager.save_stats(user_id, stats)
+            return get_locale_text("i18n_cli_commands.town_tp_usage", visited=visited_names)
+        target_room = find_entry_by_query(visited_entries, query)
+        if not target_room:
+            if dirty:
+                self.save_manager.save_stats(user_id, stats)
+            unvisited_entries = [
+                (rid, info.get("name", rid))
+                for rid, info in rooms_loc.items()
+                if rid not in visited and isinstance(info, dict)
+            ]
+            unvisited_room = find_entry_by_query(unvisited_entries, query)
+            if unvisited_room:
+                unvisited_name = rooms_loc.get(unvisited_room, {}).get("name", unvisited_room)
+                return get_locale_text("i18n_cli_commands.town_tp_unvisited", name=unvisited_name)
+            return get_locale_text("i18n_cli_commands.town_tp_not_found", query=query, visited=visited_names)
+        stats.town_pos = target_room
+        self.record_visited_room(stats, target_room)
+        quest_state = stats.town_flags.get("quest_town_tour_state", "unstarted")
+        if quest_state == "started":
+            tour_visited = stats.town_flags.setdefault("quest_town_tour_visited", [])
+            if target_room not in tour_visited:
+                tour_visited.append(target_room)
+        self.save_manager.save_stats(user_id, stats)
+        target_name = rooms_loc.get(target_room, {}).get("name", target_room)
+        rendered = self.render_current_room(user_id, stats)
+        return get_locale_text("i18n_cli_commands.town_tp_success", name=target_name) + "\n\n" + rendered
 
     def talk_npc(self, user_id: str, target_name: str) -> str:
         stats = self.save_manager.load_stats(user_id)

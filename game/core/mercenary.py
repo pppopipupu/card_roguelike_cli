@@ -1,7 +1,7 @@
 import random
 from typing import Optional
 
-from ..data.locale_data import get_locale_text
+from ..data.locale_data import get_locale_raw, get_locale_text
 from ..data.mercenary_data import (
     HARRY_MAX_VOICES_PER_TURN,
     HARRY_SKILL_IDS,
@@ -102,9 +102,26 @@ def find_mercenary_uid(run: Optional[GameRun], query: str = "", owner_uid: str =
 
 
 def _pick_card_target(run: GameRun, merc_uid: str, card_obj) -> Optional[str]:
+    from .battle.coop_targeting import COOP_ALLY_CARDS
     from .battle.party_battle import party_slots, party_target_ref
 
+    base_id = getattr(card_obj, "id", "")
     target_type = getattr(card_obj, "target_type", "enemy")
+    if base_id == "discover" or base_id.startswith("neutral_emperor_eye"):
+        return None
+    if base_id in COOP_ALLY_CARDS:
+        allow_self = bool(getattr(card_obj, "upgraded", False)) and base_id in (
+            "coop_resonance_hymn",
+            "coop_phalanx_bulwark",
+        )
+        slots = party_slots(run, alive_only=True)
+        if not allow_self:
+            slots = [(s, u, p) for s, u, p in slots if u != merc_uid]
+        if not slots:
+            return None
+        slots.sort(key=lambda item: (item[1] == merc_uid, item[1] != getattr(run.players.get(merc_uid), "mercenary_owner", ""), item[2].hp / max(1, item[2].max_hp)))
+        _, chosen_uid, _ = slots[0]
+        return party_target_ref(run, chosen_uid)
     if target_type in ("none", "self", "all_enemies", "random_enemy"):
         return None
     if target_type in ("ally", "ally_or_self", "any_other"):
@@ -123,11 +140,62 @@ def _pick_card_target(run: GameRun, merc_uid: str, card_obj) -> Optional[str]:
     return f"e{alive_enemies[0][0]}"
 
 
-def _pick_playable_card(run: GameRun, merc_uid: str, merc: PlayerState) -> Optional[tuple[int, Optional[str]]]:
+def _score_card_obj(merc: PlayerState, card_obj) -> int:
+    if card_obj is None:
+        return -1000
+    if getattr(card_obj, "type", "") == "curse" or getattr(card_obj, "unplayable", False):
+        return -500
+    score = 10
+    if getattr(card_obj, "action_gain", 0) > 0 or getattr(card_obj, "bonus_action_gain", 0) > 0:
+        score += 30
+    if getattr(card_obj, "draw_count", 0) > 0:
+        score += 18
+    if getattr(card_obj, "heal_amount", 0) > 0 and merc.hp * 100 < merc.max_hp * 75:
+        score += 25
+    if getattr(card_obj, "shield_amount", 0) > 0 and merc.shield < 12:
+        score += 16
+    if getattr(card_obj, "base_dmg", 0) > 0:
+        score += 20 + int(getattr(card_obj, "base_dmg", 0))
+    if getattr(card_obj, "buff_stacks", 0) > 0:
+        score += 8
+    if getattr(card_obj, "type", "") in ("minion", "amulet"):
+        score += 14
+    return score
+
+
+def _pick_discard_index(merc: PlayerState) -> int:
+    best_idx = 0
+    best_priority = (999, 999)
+    for idx, raw_c in enumerate(merc.hand):
+        state = ensure_card_state(raw_c)
+        card_obj = ALL_CARDS.get(state)
+        if card_obj and getattr(card_obj, "agile", False):
+            prio = (0, -_score_card_obj(merc, card_obj))
+        elif card_obj is None or getattr(card_obj, "type", "") == "curse" or getattr(card_obj, "unplayable", False):
+            prio = (1, 0)
+        else:
+            prio = (2, _score_card_obj(merc, card_obj))
+        if prio < best_priority:
+            best_priority = prio
+            best_idx = idx
+    return best_idx
+
+
+def _pick_playable_card(
+    battle_engine,
+    run: GameRun,
+    merc_uid: str,
+    merc: PlayerState,
+    skip_obj_ids: Optional[set[int]] = None,
+) -> Optional[tuple[int, Optional[str]]]:
+    from .battle.coop_targeting import COOP_ALLY_CARDS
+
     best_idx = None
     best_target = None
     best_score = -999
     for idx, c_state in enumerate(merc.hand, 1):
+        if skip_obj_ids and id(c_state) in skip_obj_ids:
+            continue
         state = ensure_card_state(c_state)
         card_obj = ALL_CARDS.get(state)
         if card_obj is None or getattr(card_obj, "unplayable", False):
@@ -136,26 +204,26 @@ def _pick_playable_card(run: GameRun, merc_uid: str, merc: PlayerState) -> Optio
             continue
         cost_a = getattr(card_obj, "cost_a", 0)
         cost_ba = getattr(card_obj, "cost_ba", 0)
-        if merc.actions < cost_a or merc.bonus_actions < cost_ba:
+        req_a = merc.actions if cost_a == -1 else cost_a
+        req_ba = merc.bonus_actions if cost_ba == -1 else cost_ba
+        if merc.actions < req_a or merc.bonus_actions < req_ba:
+            continue
+        if cost_a == -1 and cost_ba == -1 and req_a <= 0 and req_ba <= 0:
+            continue
+        if cost_a == -1 and cost_ba == 0 and req_a <= 0:
+            continue
+        if cost_ba == -1 and cost_a == 0 and req_ba <= 0:
             continue
         if getattr(card_obj, "self_hp_cost", 0) >= merc.hp:
             continue
-        score = 10
-        if getattr(card_obj, "action_gain", 0) > 0 or getattr(card_obj, "bonus_action_gain", 0) > 0:
-            score += 30
-        if getattr(card_obj, "draw_count", 0) > 0:
-            score += 18
-        if getattr(card_obj, "heal_amount", 0) > 0 and merc.hp * 100 < merc.max_hp * 75:
-            score += 25
-        if getattr(card_obj, "shield_amount", 0) > 0 and merc.shield < 12:
-            score += 16
-        if getattr(card_obj, "base_dmg", 0) > 0:
-            score += 20 + int(getattr(card_obj, "base_dmg", 0))
-        if getattr(card_obj, "buff_stacks", 0) > 0:
-            score += 8
-        target = _pick_card_target(run, merc_uid, card_obj)
-        if getattr(card_obj, "target_type", "enemy") in ("ally", "ally_or_self", "any_other") and target is None:
+        if getattr(card_obj, "type", "") in ("minion", "amulet") and battle_engine._get_free_grid(merc) is None:
             continue
+        target = _pick_card_target(run, merc_uid, card_obj)
+        if (getattr(card_obj, "target_type", "enemy") in ("ally", "ally_or_self", "any_other") or card_obj.id in COOP_ALLY_CARDS) and target is None:
+            continue
+        if card_obj.can_play_error(run, target, battle_engine):
+            continue
+        score = _score_card_obj(merc, card_obj)
         if score > best_score:
             best_score = score
             best_idx = idx
@@ -163,6 +231,125 @@ def _pick_playable_card(run: GameRun, merc_uid: str, merc: PlayerState) -> Optio
     if best_idx is None:
         return None
     return best_idx, best_target
+
+
+def _resolve_merc_interactions(battle_engine, run: GameRun, merc_uid: str, merc: PlayerState, initial_stack_len: int) -> list[str]:
+    extra_notes = []
+    for _ in range(16):
+        did_work = False
+        if run.node_data.pop("pending_discard", None):
+            run.node_data.pop("pending_discard_source", None)
+            if merc.hand:
+                d_idx = _pick_discard_index(merc)
+                cid = merc.hand.pop(d_idx)
+                d_obj = ALL_CARDS.get(ensure_card_state(cid))
+                d_res = battle_engine._discard_card(run, cid)
+                extra_notes.append(get_locale_text("i18n_cli_core.discard_result", card_name=d_obj.name if d_obj else ensure_card_state(cid).id))
+                if d_res:
+                    extra_notes.append(d_res)
+                did_work = True
+        state_stack = run.node_data.get("state_stack", [])
+        if len(state_stack) <= initial_stack_len:
+            if not did_work:
+                break
+            continue
+        top = state_stack.pop()
+        stype = top.get("type")
+        if stype == "force_discard":
+            req_count = int(top.get("required_count", 1) or 1)
+            already_cnt = len(top.get("discarded", []))
+            need = max(0, req_count - already_cnt)
+            for _ in range(need):
+                if not merc.hand:
+                    break
+                d_idx = _pick_discard_index(merc)
+                cid = merc.hand.pop(d_idx)
+                d_obj = ALL_CARDS.get(ensure_card_state(cid))
+                d_res = battle_engine._discard_card(run, cid)
+                extra_notes.append(get_locale_text("i18n_cli_core.discard_result", card_name=d_obj.name if d_obj else ensure_card_state(cid).id))
+                if d_res:
+                    extra_notes.append(d_res)
+            battle_engine.resolve_suspended_card(run)
+        elif stype == "discover_selection":
+            req_count = int(top.get("count", 1) or 1)
+            already = list(top.get("selected", []))
+            need = max(0, req_count - len(already))
+            picked_names = []
+            for _ in range(need):
+                valid_exhaust = [c for c in merc.exhaust_pile if ensure_card_state(c).id != "discover"]
+                if not valid_exhaust:
+                    break
+                best_c = max(valid_exhaust, key=lambda c: _score_card_obj(merc, ALL_CARDS.get(ensure_card_state(c))))
+                merc.exhaust_pile.remove(best_c)
+                DeckService.add_card_to_hand(merc, best_c)
+                b_obj = ALL_CARDS.get(ensure_card_state(best_c))
+                picked_names.append(b_obj.name if b_obj else ensure_card_state(best_c).id)
+            battle_engine.resolve_suspended_card(run)
+            if picked_names:
+                sep = get_locale_text("i18n_cli_core.list_separator")
+                extra_notes.append(get_locale_text("i18n_cli_core.discover_complete", selected_cards_str=sep.join(picked_names)))
+        elif stype == "overload_star_select":
+            upgraded = bool(top.get("upgraded", False))
+            if merc.hand:
+                keep_idx = max(range(len(merc.hand)), key=lambda i: _score_card_obj(merc, ALL_CARDS.get(ensure_card_state(merc.hand[i]))))
+            else:
+                keep_idx = -1
+            emp_res = battle_engine.execute_emperor_eye_resolve(run, keep_idx, upgraded)
+            if emp_res:
+                extra_notes.append(emp_res)
+        elif stype == "cthulhu_puzzle_choice":
+            stage = int(top.get("stage", run.node_data.get("cthulhu_seal_stage", 1)) or 1)
+            option = 2 if stage == 2 else 1
+            from ..entities.enemies.boss.cthulhu_boss import resolve_cthulhu_puzzle
+            puz_res = resolve_cthulhu_puzzle(run, battle_engine, option, merc)
+            battle_engine.resolve_suspended_card(run)
+            if puz_res:
+                extra_notes.append(puz_res)
+        elif stype == "awaiting_target":
+            action_info = top.get("action")
+            if action_info == "play_card":
+                h_idx = top.get("hand_idx")
+                if isinstance(h_idx, int) and 1 <= h_idx <= len(merc.hand):
+                    c_obj = ALL_CARDS.get(ensure_card_state(merc.hand[h_idx - 1]))
+                    t = _pick_card_target(run, merc_uid, c_obj) if c_obj else None
+                    if t:
+                        t_res = battle_engine.card_player.play_card(run, h_idx, t)
+                        if t_res and not t_res.startswith("[FAIL]") and not t_res.startswith("❌"):
+                            extra_notes.append(t_res)
+                            continue
+            battle_engine.rollback_suspended_card(run)
+        else:
+            battle_engine.rollback_suspended_card(run)
+    return [n for n in extra_notes if n]
+
+
+def end_mercenary_phase(battle_engine, run: GameRun, merc_uid: str) -> str:
+    merc = run.players.get(merc_uid)
+    if not is_mercenary(merc) or merc.hp <= 0 or merc.downed:
+        return ""
+    turn_count = int(run.node_data.get("turn_count", 1) or 1)
+    ended = run.node_data.setdefault("merc_ended_round", {})
+    round_key = f"{turn_count}:{merc_uid}"
+    if ended.get(round_key):
+        return ""
+    ended[round_key] = True
+    previous, previous_user = swap_player(run, merc)
+    try:
+        return battle_engine.card_player._end_player_phase(run, merc)
+    finally:
+        restore_player(run, previous, previous_user)
+
+
+def end_unended_mercenary_phases(battle_engine, run: GameRun) -> list[str]:
+    outputs = []
+    for uid in list(run.party_order):
+        player = run.players.get(uid)
+        if not is_mercenary(player) or player.hp <= 0 or player.downed:
+            continue
+        out = end_mercenary_phase(battle_engine, run, uid)
+        if out:
+            outputs.append(out)
+    return outputs
 
 
 def run_mercenary_turn(battle_engine, run: GameRun, merc_uid: str) -> str:
@@ -182,22 +369,28 @@ def run_mercenary_turn(battle_engine, run: GameRun, merc_uid: str) -> str:
     previous, previous_user = swap_player(run, merc)
     logs = [get_locale_text("i18n_mercenary.ai_turn_banner", name=merc.name, slot=slot)]
     acted_any = False
+    skip_obj_ids: set[int] = set()
     try:
-        for _ in range(16):
+        for _ in range(24):
             if merc.hp <= 0 or merc.downed or battle_engine.is_battle_won(run):
                 break
-            choice = _pick_playable_card(run, merc_uid, merc)
+            choice = _pick_playable_card(battle_engine, run, merc_uid, merc, skip_obj_ids)
             if choice is None:
                 break
             card_idx, target = choice
-            c_state = ensure_card_state(merc.hand[card_idx - 1])
+            raw_entry = merc.hand[card_idx - 1]
+            c_state = ensure_card_state(raw_entry)
             card_obj = ALL_CARDS.get(c_state)
             card_name = card_obj.name if card_obj else c_state.id
+            initial_stack_len = len(run.node_data.get("state_stack", []))
             res = battle_engine.card_player.play_card(run, card_idx, target)
             if not res or res.startswith("[FAIL]") or res.startswith("❌"):
-                break
+                skip_obj_ids.add(id(merc.hand[card_idx - 1]) if card_idx - 1 < len(merc.hand) else id(raw_entry))
+                continue
             acted_any = True
-            logs.append(get_locale_text("i18n_mercenary.ai_play_card", card=card_name, result=res))
+            extra_notes = _resolve_merc_interactions(battle_engine, run, merc_uid, merc, initial_stack_len)
+            combined_res = "\n".join([res, *extra_notes]).strip() if extra_notes else res
+            logs.append(get_locale_text("i18n_mercenary.ai_play_card", card=card_name, result=combined_res))
         for grid, minion in list(merc.minions.items()):
             if battle_engine.is_battle_won(run):
                 break
@@ -209,6 +402,8 @@ def run_mercenary_turn(battle_engine, run: GameRun, merc_uid: str) -> str:
                     logs.append(get_locale_text("i18n_mercenary.ai_minion_attack", minion=minion.name, result=m_res))
     finally:
         restore_player(run, previous, previous_user)
+    if not battle_engine.is_battle_won(run) and merc.hp > 0 and not merc.downed:
+        end_mercenary_phase(battle_engine, run, merc_uid)
     if not acted_any:
         logs.append(get_locale_text("i18n_mercenary.ai_no_action"))
     return "\n".join(logs)
@@ -226,8 +421,6 @@ def run_mercenaries_for_timing(battle_engine, run: GameRun, timing: str) -> str:
         if out:
             outputs.append(out)
     return "\n".join(outputs)
-
-
 def _group_deck_cards(deck: list) -> list[tuple[CardState, int]]:
     counts = {}
     for c in deck:
@@ -370,8 +563,11 @@ def handle_merc_dialog_input(run: GameRun, owner_uid: str, raw_text: str) -> str
     entry["last_msg"] = ""
     if state == "main":
         if idx == 1:
-            chats = get_locale_text("i18n_mercenary.harry_chats")
-            entry["last_msg"] = random.choice(chats) if isinstance(chats, list) and chats else str(chats)
+            chats = get_locale_raw("i18n_mercenary.harry_chats", [])
+            if isinstance(chats, list) and chats:
+                entry["last_msg"] = random.choice(chats)
+            else:
+                entry["last_msg"] = get_locale_text("i18n_mercenary.harry_chats")
             return render_merc_dialog(run, owner_uid)
         if idx == 2:
             if not player.deck or not merc.deck:

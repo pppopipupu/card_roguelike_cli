@@ -54,7 +54,7 @@
   "combat_won_first": "🎉 你首次战胜了【{name}】！获得了 {gp} GP 奖励！",
   "combat_won_repeat": "🎉 战胜了【{name}】！非首次战胜，无额外 GP 奖励。",
   "combat_won_banner": "🎉 战斗胜利！{bonus}",
-  "town_help_prompt": "🔮 主城探索中。输入 退出/exit 回到主菜单，或输入 W/A/S/D 进行移动。输入 交互/talk <目标> 开启互动。",
+  "town_help_prompt": "🔮 主城探索中。输入 退出/exit 回到主菜单，输入 W/A/S/D 移动，或输入 传送/tp <地点> 快速传送。输入 交互/talk <目标> 开启互动。",
   "npc_training_dummy": "训练假人",
   "err_command_unavailable": "❌ 指令【{cmd}】在当前状态下不可用。",
   "unknown_subcommand": "🔮 未知子命令。输入 /rogue 帮助 或 /rogue help 获取帮助。",

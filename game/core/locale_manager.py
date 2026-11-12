@@ -76,6 +76,19 @@ class LocaleManager:
         return str(current)
 
     @classmethod
+    def get_raw(cls, key: str, default: Any = None) -> Any:
+        if not cls._loaded:
+            cls.load_locale(cls._current_lang)
+
+        current: Any = cls._data
+        for part in key.split("."):
+            if isinstance(current, dict) and part in current:
+                current = current[part]
+            else:
+                return default
+        return current
+
+    @classmethod
     def get_all_translations(cls) -> Dict[str, Any]:
         if not cls._loaded:
             cls.load_locale(cls._current_lang)

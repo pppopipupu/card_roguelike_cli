@@ -105,6 +105,36 @@ def greedy_initial_match(query: str, pattern: list) -> bool:
     return False
 
 
+def prefix_initial_match(query: str, pattern: list) -> bool:
+    if not query or not pattern or len(query) > len(pattern):
+        return False
+    return all(query[idx] in pattern[idx] for idx in range(len(query)))
+
+
+def find_entry_by_query(entries: list[tuple[str, str]], query: str) -> Optional[str]:
+    raw = str(query or "").strip()
+    if not raw:
+        return None
+    for entry_id, name in entries:
+        if name == raw:
+            return entry_id
+    if not raw.isascii():
+        for entry_id, name in entries:
+            if raw in name:
+                return entry_id
+    normalized = normalize_initial_query(raw)
+    if not normalized:
+        return None
+    patterns = [(entry_id, name_initial_pattern(name)) for entry_id, name in entries]
+    for entry_id, pattern in patterns:
+        if prefix_initial_match(normalized, pattern):
+            return entry_id
+    for entry_id, pattern in patterns:
+        if greedy_initial_match(normalized, pattern):
+            return entry_id
+    return None
+
+
 def find_hand_index_by_initials(hand: list, query: str) -> Optional[int]:
     normalized = normalize_initial_query(query)
     if not normalized:

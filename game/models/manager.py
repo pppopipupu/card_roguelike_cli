@@ -277,22 +277,46 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return None
 
     def save_save(self, user_id: str, run: GameRun) -> bool:
-        if run and getattr(run, "coop_id", "") and user_id in getattr(run, "players", {}):
-            return self.save_coop_save(user_id, run)
+        if not user_id:
+            return False
+        save_uid = user_id
+        prev_player = None
+        prev_user_id = None
+        swapped_for_save = False
         if run:
-            if user_id in getattr(run, "players", {}):
-                run.players[user_id] = run.player
-                run.user_id = user_id
-            from .coop_view import persist_view
-            persist_view(run, user_id)
-        path = self.get_save_path(user_id)
+            players = getattr(run, "players", {}) or {}
+            target_p = players.get(user_id)
+            if target_p is not None and getattr(target_p, "is_mercenary", False):
+                owner_uid = getattr(target_p, "mercenary_owner", "")
+                if owner_uid:
+                    save_uid = owner_uid
+            if save_uid in players:
+                if run.player is players[save_uid]:
+                    players[save_uid] = run.player
+                    run.user_id = save_uid
+                else:
+                    prev_player = run.player
+                    prev_user_id = run.user_id
+                    run.player = players[save_uid]
+                    run.user_id = save_uid
+                    swapped_for_save = True
         try:
+            if run and getattr(run, "coop_id", "") and save_uid in getattr(run, "players", {}):
+                return self.save_coop_save(save_uid, run)
+            if run:
+                from .coop_view import persist_view
+                persist_view(run, save_uid)
+            path = self.get_save_path(save_uid)
             d = self.to_dict(run)
             _atomic_write_json(path, d)
             return True
         except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
-            logger.warning(get_locale_text("i18n_models.manager.save_save_failed", user_id=user_id, error=exc))
+            logger.warning(get_locale_text("i18n_models.manager.save_save_failed", user_id=save_uid, error=exc))
             return False
+        finally:
+            if swapped_for_save and run:
+                run.player = prev_player
+                run.user_id = prev_user_id
 
     def delete_save(self, user_id: str) -> bool:
         stats = self.load_stats(user_id)

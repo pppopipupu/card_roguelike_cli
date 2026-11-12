@@ -10,5 +10,6 @@ class TownCommand(CommandHandler, names=["主城", "town"], allowed_states=["men
             return
         stats = router.save_manager.load_stats(user_id)
         stats.in_town = True
+        router.town_engine.record_visited_room(stats)
         router.save_manager.save_stats(user_id, stats)
         yield router.town_engine.render_current_room(user_id, stats)
