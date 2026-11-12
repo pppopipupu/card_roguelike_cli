@@ -40,10 +40,10 @@ class TestRogueCoop(unittest.TestCase):
         self.assertIn("已修改", result)
         return self.player_id(uid)
 
-    def make_friends(self, leader, others):
-        self.rename_player(leader, "队长")
+    def make_friends(self, leader, others, suffix=""):
+        self.rename_player(leader, f"队长{suffix}")
         for index, uid in enumerate(others, 1):
-            self.rename_player(uid, f"队员{index}")
+            self.rename_player(uid, f"队员{index}{suffix}")
             self.run_cmd(f"friend add {self.player_id(uid)}", leader)
             self.run_cmd(f"friend accept {self.player_id(leader)}", uid)
 
@@ -59,8 +59,10 @@ class TestRogueCoop(unittest.TestCase):
         return lobby_id
 
     def start_coop(self, uids):
+        self._coop_run_index = getattr(self, "_coop_run_index", 0) + 1
+        suffix = "" if self._coop_run_index == 1 else f"_{self._coop_run_index}"
         leader = uids[0]
-        self.make_friends(leader, uids[1:])
+        self.make_friends(leader, uids[1:], suffix)
         self.create_team(leader, uids[1:])
         for uid in uids[1:]:
             ready = self.run_cmd("team ready", uid)

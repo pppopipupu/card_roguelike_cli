@@ -23,6 +23,7 @@
     "too_long": "❌ 昵称最多 {limit} 个字符。",
     "invalid_char": "❌ 昵称不能包含换行、制表符或井号。",
     "same": "ℹ️ 当前昵称已经是【{name}】，无需改名，未消耗 GP。",
+    "taken": "❌ 昵称【{name}】已被占用，请更换昵称；未消耗 GP。",
     "insufficient_gp": "❌ 改名需要 {cost} GP，当前只有 {gp} GP。",
     "success": "✅ 昵称已修改为【{name}】，消耗 {cost} GP，剩余 {gp} GP。"
   },

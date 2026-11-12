@@ -137,7 +137,9 @@ class SocialService(SocialTeamMixin):
             for profile in self._all_profiles()
             if profile.get("user_id") != uid
         }
-        handle = unique_handle(base, taken)
+        if base in taken:
+            return get_locale_text("i18n_social.friend_name.taken", name=base)
+        handle = base
         stats.gp -= RENAME_COST_GP
         stats.player_name = handle
         stats.player_handle = handle

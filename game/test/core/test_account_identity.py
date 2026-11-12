@@ -25,7 +25,7 @@ class TestAccountIdentity(unittest.TestCase):
         stats.gp = amount
         self.plugin.save_manager.save_stats(uid, stats)
 
-    def test_rename_costs_gp_and_suffixes_duplicates(self):
+    def test_rename_costs_gp_and_rejects_duplicates(self):
         first = "rename_first"
         second = "rename_second"
         self.grant_gp(first, RENAME_COST_GP)
@@ -38,11 +38,12 @@ class TestAccountIdentity(unittest.TestCase):
         self.assertEqual(first_stats.gp, 0)
         self.assertEqual(first_stats.player_handle, "同名")
 
+        second_before = self.plugin.save_manager.load_stats(second)
         second_result = self.run_cmd("friend name 同名", second)
-        self.assertIn("同名#2", second_result)
+        self.assertIn("已被占用", second_result)
         second_stats = self.plugin.save_manager.load_stats(second)
-        self.assertEqual(second_stats.gp, 0)
-        self.assertEqual(second_stats.player_handle, "同名#2")
+        self.assertEqual(second_stats.gp, RENAME_COST_GP)
+        self.assertEqual(second_stats.player_handle, second_before.player_handle)
 
         refused = self.run_cmd("rename 另一个名字", first)
         self.assertIn("改名需要", refused)

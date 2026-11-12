@@ -460,7 +460,7 @@ class ServerTests(unittest.TestCase):
         stats = self.app.state.service.save_manager.load_stats(account_uuid)
         self.assertEqual(stats.gp, GITHUB_BIND_REWARD_GP)
 
-    def test_rename_costs_gp_and_suffixes(self):
+    def test_rename_costs_gp_and_rejects_duplicates(self):
         first = self.post(
             {"command": "改名 同名", "channel": "web"},
             self.web_headers("web-rename-a"),
@@ -473,12 +473,25 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(first_stats.gp, GITHUB_BIND_REWARD_GP - RENAME_COST_GP)
         self.assertEqual(first_stats.player_handle, "同名")
 
+        second_account = self.post(
+            {"command": "uuid", "channel": "web"},
+            self.web_headers("web-rename-b"),
+        ).json()["account"]
+        second_before = self.app.state.service.save_manager.load_stats(
+            second_account["uuid"]
+        )
         second = self.post(
             {"command": "friend name 同名", "channel": "web"},
             self.web_headers("web-rename-b"),
         ).json()
-        self.assertTrue(second["ok"])
-        self.assertEqual(second["account"]["id"], "同名#2")
+        self.assertFalse(second["ok"])
+        self.assertIn("已被占用", second["text"])
+        self.assertEqual(second["account"]["id"], second_account["id"])
+        second_stats = self.app.state.service.save_manager.load_stats(
+            second_account["uuid"]
+        )
+        self.assertEqual(second_stats.gp, GITHUB_BIND_REWARD_GP)
+        self.assertEqual(second_stats.player_handle, second_before.player_handle)
 
         same = self.post(
             {"command": "改名 同名", "channel": "web"},
