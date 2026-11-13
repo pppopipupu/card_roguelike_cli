@@ -4,7 +4,7 @@ from ...data.locale_data import get_locale_text
 from ...data.damage_type_data import is_physical_damage
 from ...models.state import GameRun, PlayerState, EnemyState, MinionState, Card, BuffState
 from ...models.events import (
-    DamageCalculateEvent, DamageTakeEvent, HealEvent, MinionDeathEvent, MinionSummonEvent, ShieldGainEvent, HealCalculateEvent, EnemyBeforeDeathEvent
+    BeforeDamageApplyEvent, DamageCalculateEvent, DamageTakeEvent, HealEvent, MinionDeathEvent, MinionSummonEvent, ShieldGainEvent, HealCalculateEvent, EnemyBeforeDeathEvent
 )
 
 DAMAGE_TYPE_KEYS = {
@@ -343,6 +343,9 @@ class CombatResolver:
             dtype_str = damage_type.value if hasattr(damage_type, "value") else str(damage_type)
             if not is_physical_damage(dtype_str):
                 final_dmg = 0
+        before_apply_evt = BeforeDamageApplyEvent(game_run_context, card, source, target, damage_type, final_dmg)
+        self.engine.event_bus.dispatch(before_apply_evt)
+        final_dmg = max(0, before_apply_evt.final_damage)
         is_fatal = False
         is_true = False
         if damage_type == "true" or damage_type == "TRUE":

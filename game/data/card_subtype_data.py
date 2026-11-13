@@ -9,6 +9,7 @@ ATTACK_SPELL_IDS = frozenset({
     "glacier_tempest",
     "neutral_astral_strike",
     "neutral_banish_slash",
+    "desperate_strike",
 
     "strike_of_all",
     "warrior_strike",
@@ -49,6 +50,9 @@ SKILL_SPELL_IDS = frozenset({
     "elder_guidance",
     "jack_brew",
     "bard_epic",
+    "haste_sp",
+    "calm_mind",
+    "intangible",
 
     "discover",
     "warrior_defend",

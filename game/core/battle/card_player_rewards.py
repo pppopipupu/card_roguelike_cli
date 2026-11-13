@@ -232,6 +232,11 @@ class CardPlayerRewardsMixin:
             return
         difficulty = run.node_data.get("difficulty", "normal")
         stage = max((run.players[u].stage for u in run.party_order if u in run.players), default=run.player.stage)
+        if run.node_data.get("is_secret_boss"):
+            run.enemies.clear()
+            self.engine.map_engine.enter_ancient_node(run)
+            self.engine._reindex_minions(run.player)
+            return
         run.enemies.clear()
         ach = AchievementService(self.engine.save_manager)
         if stage in (MapConfig.FINAL_BOSS_STAGE, MapConfig.GATE_BOSS_STAGE):
@@ -256,7 +261,7 @@ class CardPlayerRewardsMixin:
         if stage == MapConfig.GATE_BOSS_STAGE:
             has_gatekey = all(
                 getattr(self.engine.save_manager.load_stats(uid), "unlocked_gatekey", False)
-                for uid in run.human_uids()
+                for uid in run.all_human_uids()
                 if uid in run.players
             )
             boss_name = run.node_data.get("boss_name", "")

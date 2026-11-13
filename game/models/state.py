@@ -401,6 +401,10 @@ class PlayerState:
     mercenary_id: str = ""
     mercenary_owner: str = ""
     mercenary_timing: str = "before"
+    sp: int = 10
+    max_sp: int = 10
+    exhaustion: int = 0
+    quest_relics: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         if not hasattr(self, "potions") or self.potions is None:
@@ -499,6 +503,47 @@ class EnemyState:
                         cost_ba=1
                     ))
 
+
+@dataclass
+class RoomState:
+    coord: str
+    room_type: str
+    explored: bool = False
+    cleared: bool = False
+    locked: bool = False
+    obstacle_sp: int = 0
+    is_high_danger: bool = False
+    landmark_id: str = ""
+    secret_unlocked: bool = False
+    shared_payload: Dict = field(default_factory=dict)
+
+@dataclass
+class EncounterSession:
+    session_id: str
+    coord: str
+    node_type: str
+    participants: List[str] = field(default_factory=list)
+    enemies: List[EnemyState] = field(default_factory=list)
+    node_data: Dict = field(default_factory=dict)
+    status: str = "active"
+
+@dataclass
+class FloorMapState:
+    floor_index: int = 1
+    width: int = 8
+    height: int = 6
+    rooms: Dict[str, RoomState] = field(default_factory=dict)
+    revealed_coords: List[str] = field(default_factory=list)
+    player_coords: Dict[str, str] = field(default_factory=dict)
+    active_sessions: Dict[str, EncounterSession] = field(default_factory=dict)
+    player_session_map: Dict[str, str] = field(default_factory=dict)
+    boss_coord: str = ""
+    secret_boss_coord: str = ""
+    ritual_coord: str = ""
+    ritual_protocol: str = ""
+    secret_unlocked: bool = False
+    secret_clue_found: bool = False
+    floor_flags: Dict = field(default_factory=dict)
 @dataclass
 class GameRun:
     user_id: str
@@ -512,6 +557,7 @@ class GameRun:
     leader_id: str = ""
     party_order: List[str] = field(default_factory=list)
     players: Dict[str, PlayerState] = field(default_factory=dict)
+    floor_map: Optional[FloorMapState] = None
 
     def __post_init__(self):
         if self.player is not None:
@@ -538,6 +584,19 @@ class GameRun:
 
     def human_uids(self) -> List[str]:
         order = self.party_order or list(self.players.keys())
+        return [
+            uid for uid in order
+            if uid in self.players and not getattr(self.players[uid], "is_mercenary", False)
+        ]
+
+    def all_party_order(self) -> List[str]:
+        full = getattr(self, "_full_party_order", None)
+        if full:
+            return list(full)
+        return list(self.party_order)
+
+    def all_human_uids(self) -> List[str]:
+        order = self.all_party_order() or list(self.players.keys())
         return [
             uid for uid in order
             if uid in self.players and not getattr(self.players[uid], "is_mercenary", False)

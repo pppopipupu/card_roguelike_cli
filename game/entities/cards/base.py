@@ -9,6 +9,7 @@ from . import warrior
 from . import coop
 from . import life_merchant_cards
 from . import mercenary_cards
+from . import map_cards
 import copy
 import re
 
@@ -82,6 +83,10 @@ NUMERIC_CARD_FIELDS = (
     "absorb_amount",
     "target_hp_cap",
     "gold_cost",
+    "sp_cost",
+    "sp_gain",
+    "sp_loss_bonus",
+    "exhaustion_pct",
 )
 
 GEM_DAMAGE_ADD = {
@@ -243,12 +248,14 @@ def _get_card_config():
     from ...data.warrior_card_data import WARRIOR_CARD_CONFIG
     from ...data.coop_card_data import COOP_CARD_CONFIG
     from ...data.mercenary_card_data import MERCENARY_CARD_CONFIG
+    from ...data.map_card_data import MAP_CARD_CONFIG
     cfg = {}
     cfg.update(NEUTRAL_CARD_CONFIG)
     cfg.update(WIZARD_CARD_CONFIG)
     cfg.update(WARRIOR_CARD_CONFIG)
     cfg.update(COOP_CARD_CONFIG)
     cfg.update(MERCENARY_CARD_CONFIG)
+    cfg.update(MAP_CARD_CONFIG)
     return cfg
 
 class CardRegistryDict(dict):
@@ -318,6 +325,7 @@ class CardRegistryDict(dict):
             inst.instant_summon_piles = tuple(cfg.get("instant_summon_piles", ()))
             inst.coop_only = cfg.get("coop_only", False)
             inst.life_merchant_only = cfg.get("life_merchant_only", False)
+            inst.event_only = cfg.get("event_only", False)
             fragile_val = cfg.get("fragile", 0)
             if fragile_val > 0:
                 from ...entities.tags import FragileTag
@@ -412,6 +420,8 @@ class CardRegistryDict(dict):
                 card.innate = up_cfg["innate"]
             if "exhaust" in up_cfg:
                 card.exhaust = up_cfg["exhaust"]
+            if "ethereal" in up_cfg:
+                card.ethereal = up_cfg["ethereal"]
             for prop in (*NUMERIC_CARD_FIELDS, "amulet_desc"):
                 if prop in up_cfg:
                     setattr(card, prop, up_cfg[prop])
@@ -619,9 +629,34 @@ for cid, cfg in _get_card_config().items():
     inst.instant_summon_piles = tuple(cfg.get("instant_summon_piles", ()))
     inst.coop_only = cfg.get("coop_only", False)
     inst.life_merchant_only = cfg.get("life_merchant_only", False)
+    inst.event_only = cfg.get("event_only", False)
     fragile_val = cfg.get("fragile", 0)
     if fragile_val > 0:
         from ...entities.tags import FragileTag
         inst.add_tag(FragileTag("fragile", fragile_val))
         inst.desc = add_fragile_marker(inst.desc, fragile_val)
     ALL_CARDS[cid] = inst
+
+
+def card_matches_color(card_or_color, target_color: str) -> bool:
+    color = getattr(card_or_color, "color", card_or_color) if card_or_color is not None else ""
+    if color == target_color:
+        return True
+    if color == "wizard_warrior" and target_color in ("wizard", "warrior"):
+        return True
+    return False
+
+
+def get_card_color_icon(card_or_color) -> str:
+    color = getattr(card_or_color, "color", card_or_color) if card_or_color is not None else ""
+    if color == "wizard_warrior":
+        return "🔵🔴"
+    if color == "wizard":
+        return "🔵"
+    if color == "warrior":
+        return "🔴"
+    if color == "curse":
+        return "⚫"
+    if color == "mercenary":
+        return "🟣"
+    return "⚪"

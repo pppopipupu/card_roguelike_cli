@@ -3,7 +3,7 @@ import random
 import tempfile
 import unittest
 
-from game.test.core.base import CorePlugin, run_command
+from game.test.core.base import CorePlugin, move_to_room, run_command
 
 
 class TestRogueLogs(unittest.TestCase):
@@ -24,15 +24,7 @@ class TestRogueLogs(unittest.TestCase):
         uid = "logs_battle_user"
         self.run_cmd("start confirm", uid)
         self.run_cmd("c 1", uid)
-        run = self.plugin.save_manager.load_save(uid)
-        options = run.node_data.get("options", [])
-        battle_index = next(
-            (index + 1 for index, option in enumerate(options) if option.get("node_type") == "battle"),
-            None,
-        )
-        self.assertIsNotNone(battle_index)
-        self.run_cmd(f"c {battle_index}", uid)
-        run = self.plugin.save_manager.load_save(uid)
+        _, run = move_to_room(self.plugin, uid, ("battle", "elite"))
         self.assertEqual(run.node_type, "battle")
         self.run_cmd("p 1", uid)
         result = self.run_cmd("logs 10", uid)

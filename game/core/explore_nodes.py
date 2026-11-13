@@ -353,6 +353,26 @@ def handle_boss_chest(engine, run, option_idx, target=None) -> str | None:
     return res
 
 
+def _coop_relic_limit(run, pool):
+    total = len(pool)
+    if total <= 0:
+        return 0
+    humans = 0
+    mercenaries = 0
+    for uid in run.party_order or list(run.players):
+        player = run.players.get(uid)
+        if player is None or player.downed or player.hp <= 0:
+            continue
+        if getattr(player, "is_mercenary", False):
+            mercenaries += 1
+        else:
+            humans += 1
+    if humans <= 0:
+        return 0
+    share = max(1, total - mercenaries)
+    return -(-share // humans)
+
+
 def _claim_coop_relic(engine, run, pool_idx):
     data = run.node_data
     pool = data.get("coop_relic_pool") or []
@@ -369,8 +389,9 @@ def _claim_coop_relic(engine, run, pool_idx):
             player_name=player_name,
         )
     uid = run.user_id
-    if any(item.get("claimed_by") == uid for item in pool):
-        return get_locale_text("i18n_coop_explore.relic_limit_reached")
+    limit = _coop_relic_limit(run, pool)
+    if sum(1 for item in pool if item.get("claimed_by") == uid) >= limit:
+        return get_locale_text("i18n_coop_explore.relic_limit_reached", limit=limit)
     player = run.players.get(uid) or run.player
     if rid in player.relics:
         return get_locale_text("i18n_coop_explore.relic_already_owned", relic_name=get_relic_name(rid))
@@ -430,7 +451,7 @@ def handle_corpse_reward(engine, run, option_idx, target=None) -> str | None:
     skip_idx = len(cards) + 1
     if picks_left <= 0:
         stage = p.stage
-        engine.map_engine.return_to_map_select(run)
+        engine.map_engine.return_to_grid_map(run)
         engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_explore_core.corpse_search_complete", stage=stage)
     if option_idx < 1 or option_idx > skip_idx:
@@ -455,7 +476,7 @@ def handle_corpse_reward(engine, run, option_idx, target=None) -> str | None:
         if corpse_id:
             engine.save_manager.corpses.remove(corpse_id)
         stage = p.stage
-        engine.map_engine.return_to_map_select(run)
+        engine.map_engine.return_to_grid_map(run)
         engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_explore_core.corpse_return", msg=msg, stage=stage)
     engine.save_manager.save_save(run.user_id, run)
@@ -514,7 +535,13 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
             it["taken"] = True
         heal = (p.max_hp * COOP_REST_HEAL_PERCENT // COOP_PERCENT_BASE) if multi else int(p.max_hp * REST_HEAL_RATIO)
         p.hp = min(p.max_hp, p.hp + heal)
-        msg = get_locale_text("i18n_coop_explore.rest_heal", heal=heal) if multi else get_locale_text("msg_rest_heal", heal=heal)
+        from ..data.grid_map_config import SP_CONFIG
+        from .sp_system import reduce_exhaustion, restore_sp
+        sp_gain = restore_sp(p, SP_CONFIG["rest_sp_gain"])
+        old_ex = getattr(p, "exhaustion", 0)
+        new_ex = reduce_exhaustion(p, SP_CONFIG["rest_exhaustion_cure"])
+        sp_suffix = get_locale_text("i18n_grid_map.rest_sp_suffix", sp_gain=sp_gain, exhaustion_cured=max(0, old_ex - new_ex))
+        msg = (get_locale_text("i18n_coop_explore.rest_heal", heal=heal) if multi else get_locale_text("msg_rest_heal", heal=heal)) + sp_suffix
         return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
     if option_idx == 2:
         for it in items:
@@ -541,8 +568,7 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
                 for uid in run.party_order
                 if uid != current
                 and uid in run.players
-                and run.players[uid].hp > COOP_DOWNED_HP
-                and not run.players[uid].downed
+                and (run.players[uid].hp > COOP_DOWNED_HP or run.players[uid].downed)
             ]
             if len(candidates) != COOP_AUTO_TARGET_CANDIDATE_COUNT:
                 names = get_locale_text("i18n_coop_explore.list_delimiter").join(f"a{run.party_order.index(uid) + 1}" for uid in candidates)
@@ -550,7 +576,9 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
             resolved = (candidates[0], run.players[candidates[0]], None)
         _, ally, _ = resolved
         heal = ally.max_hp * COOP_REST_MEND_PERCENT // COOP_PERCENT_BASE
-        ally.hp = min(ally.max_hp, ally.hp + heal)
+        ally.hp = min(ally.max_hp, max(0, ally.hp) + heal)
+        if ally.downed and ally.hp > 0:
+            ally.downed = False
         from ..entities.buffs import is_debuff
         removed = ""
         for buff in list(ally.buffs):

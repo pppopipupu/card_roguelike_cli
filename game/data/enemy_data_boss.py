@@ -215,6 +215,42 @@ ENEMY_BOSS_CONFIG = {
             {"id": "mist_condense_1", "val": 5, "desc": "迷雾翻涌 (剩余 2 回合重组，对全体造成 5 点心灵伤害并获得 1 层力量)"},
             {"id": "mist_condense_2", "val": 150, "desc": "肉身重塑 (剩余 1 回合重组，回合末满血复活为伟大的克苏鲁)"}
         ]
+    },
+    "裂隙暗影领主": {
+        "name": "裂隙暗影领主",
+        "type": "boss",
+        "hp": "165",
+        "actions": "1A 2BA",
+        "passive": "裂隙暗影 (每回合获得护盾并试图以心灵冲击削弱心智)",
+        "intents": [
+            {"id": "rift_slash", "val": 11, "desc": "裂隙斩击 (造成 11 点挥砍伤害并施加 1 层虚空虚弱)"},
+            {"id": "shadow_veil", "val": 14, "desc": "暗影帷幕 (获得 14 点护盾)"},
+            {"id": "mind_flay", "val": 7, "desc": "心智撕裂 (造成 7 点心灵伤害)"}
+        ]
+    },
+    "星渊审判官": {
+        "name": "星渊审判官",
+        "type": "boss",
+        "hp": "210",
+        "actions": "2A 1BA",
+        "passive": "星渊戒律 (每隔数回合以高压心灵裁决考验来访者)",
+        "intents": [
+            {"id": "astral_verdict", "val": 14, "desc": "星渊裁决 (造成 14 点心灵伤害)"},
+            {"id": "starlight_ward", "val": 18, "desc": "星辉壁垒 (获得 18 点护盾并获得 1 层力量)"},
+            {"id": "gravity_lash", "val": 9, "desc": "重力鞭笞 (造成 9 点钝击伤害，使玩家下回合少 1BA)"}
+        ]
+    },
+    "深渊原初回响": {
+        "name": "深渊原初回响",
+        "type": "boss",
+        "hp": "255",
+        "actions": "2A 2BA",
+        "passive": "原初共鸣 (兼具高额力场与心灵打击，并向牌堆混入诅咒)",
+        "intents": [
+            {"id": "primordial_roar", "val": 16, "desc": "原初咆哮 (造成 16 点心灵伤害，向弃牌堆放入 1 张【晕眩】)"},
+            {"id": "void_aegis", "val": 22, "desc": "虚空神盾 (获得 22 点护盾与 2 层力量)"},
+            {"id": "abyssal_cleave", "val": 12, "desc": "深渊裂斩 (对玩家与所有随从造成 12 点力场伤害)"}
+        ]
     }
 }
 
@@ -222,5 +258,6 @@ BOSS_POOLS = {
     "early": ["远古红龙", "雷霆领主", "纯粹容器"],
     "gate": ["腐化之心", "Icerainboww", "伟大的克苏鲁"],
     "aforgomon": ["亚弗戈蒙"],
+    "secret": ["裂隙暗影领主", "星渊审判官", "深渊原初回响"],
     "final": ["虚空之门·尤格-索托斯"]
 }

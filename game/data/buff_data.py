@@ -707,5 +707,25 @@ BUFF_CONFIG = {
         "desc": "回合结束时，受到层数点灵能伤害，随后层数减少 1",
         "damage_per_stack": 1,
         "is_debuff": True
+    },
+    "psychic_resistance": {
+        "name": "心灵伤害抗性",
+        "type": "buff",
+        "damage_multiplier": 0.5,
+        "desc": "受到的心灵伤害减半；每回合结束时层数减少 1"
+    },
+    "intangible": {
+        "name": "无实体",
+        "type": "buff",
+        "damage_cap": 1,
+        "desc": "受到的一切伤害封顶为 1 点；每回合开始时层数减少 1"
+    },
+    "bladesong": {
+        "name": "剑歌",
+        "type": "buff",
+        "ba_gain": 1,
+        "proc_dmg": 3,
+        "proc_shield": 3,
+        "desc": "每回合开始时额外获得 1 点附赠动作 (BA)；每当打出红色或蓝色卡牌时，对随机敌方造成 3*层数 点力场伤害并获得 3*层数 点护盾"
     }
 }

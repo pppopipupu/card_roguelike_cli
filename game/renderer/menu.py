@@ -1,4 +1,5 @@
 from ..models.state import GameRun, UserStats
+from ..entities.cards.base import get_card_color_icon
 from ..cards import ALL_CARDS
 from ..data.locale_data import t
 
@@ -127,13 +128,14 @@ def get_rogue_card_library_items(user_id: str | None = None) -> list:
             curses.append(t("renderer_menu.prefix_curse", info=info))
         elif card.color == "neutral":
             neutrals.append(t("renderer_menu.prefix_neutral", info=info))
+        elif card.color == "wizard_warrior":
+            blue_spells.append(f"{get_card_color_icon(card)} {info}")
         elif card.color == "warrior":
             red_cards.append(t("renderer_menu.prefix_warrior", info=info))
         elif card.color == "mercenary":
             merc_cards.append(t("renderer_menu.prefix_mercenary", info=info))
         else:
             blue_spells.append(t("renderer_menu.prefix_wizard", info=info))
-            
     return neutrals + blue_spells + red_cards + merc_cards + curses
 def get_rogue_relic_library_items() -> list:
     from ..data.relic_data import RELIC_CONFIG
@@ -335,7 +337,7 @@ def render_deck(run: GameRun) -> str:
     for cid, count in sorted(counts.items(), key=get_sort_key):
         card = ALL_CARDS.get(cid)
         if card:
-            color_type = "⚫" if card.color == "curse" else ("🔴" if card.color == "warrior" else ("🔵" if card.color == "wizard" else ("🟣" if card.color == "mercenary" else "⚪")))
+            color_type = get_card_color_icon(card)
             rarity_map = {
                 "common": t("renderer_menu.rarity_common"),
                 "rare": t("renderer_menu.rarity_rare"),

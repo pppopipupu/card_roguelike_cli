@@ -128,6 +128,16 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                     from ..party_coordinator import finish_player_node
                     msg = finish_player_node(router.save_manager, router.engine.map_engine, run, user_id, get_locale_text("i18n_cli_core.msg_leave_node"))
                     return msg, False, True
+                if run.node_type in ("landmark", "downstairs", "battle_prompt"):
+                    fm = getattr(run, "floor_map", None)
+                    if fm is not None:
+                        sid = fm.player_session_map.get(user_id)
+                        if sid:
+                            from ..session_manager import SessionContextScoper
+                            SessionContextScoper.close_session(run, sid, mark_cleared=False)
+                    run.node_type = "grid_map"
+                    router.save_manager.save_save(user_id, run)
+                    return get_locale_text("i18n_cli_core.msg_leave_node"), False, True
             if arg in ("wizard", "warrior", "wiz", "war", "法师", "战士", "选择", "时序法师", "塑能法师", "秘钥学者"):
                 return get_locale_text("i18n_cli_core.err_class_switch"), False, False
             return get_locale_text("i18n_cli_core.err_index_numeric"), False, False

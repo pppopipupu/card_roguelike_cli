@@ -4,7 +4,7 @@ from ...base import CommandHandler
 from .....data.locale_data import get_locale_text
 
 
-class FriendCommand(CommandHandler, names=["friend", "好友", "fr"], allowed_states=["menu", "town", "explore", "battle", "dialog", "cafe"], help_key="friend"):
+class FriendCommand(CommandHandler, names=["friend", "好友", "fr"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe"], help_key="friend"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         service = router.social_service
         if len(parts) < 2:

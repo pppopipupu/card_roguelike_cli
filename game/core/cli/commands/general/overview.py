@@ -2,7 +2,7 @@ from typing import Generator
 from ...base import CommandHandler
 from .....data.locale_data import get_locale_text
 
-class OverviewCommand(CommandHandler, names=["总览", "overview"], allowed_states=["menu", "town", "explore", "battle"], help_key="overview"):
+class OverviewCommand(CommandHandler, names=["总览", "overview"], allowed_states=["menu", "town", "grid_map", "explore", "battle"], help_key="overview"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         stats = router.save_manager.load_stats(user_id)
         if len(parts) > 1 and parts[1] in ("遗物", "relic", "relics"):

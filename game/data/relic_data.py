@@ -492,6 +492,13 @@ RELIC_CONFIG = {
         "revive_shield": 30,
         "exhaust_shield": 4,
         "price": 350
+    },
+    "ghost_body": {
+        "name": "虚体之躯",
+        "rarity": "artifact",
+        "event_only": True,
+        "desc": "完全免疫所有【真实伤害】（伤害强制归零）。",
+        "price": 0
     }
 }
 

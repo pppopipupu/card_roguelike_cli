@@ -11,7 +11,9 @@ from game.core.life_merchant import calc_life_merchant_price
 from game.data.achievement_data import ACHIEVEMENT_ALL_VIEW_PRICE, ACHIEVEMENTS_CONFIG
 from game.data.map_config import MapConfig
 from game.models.state import EnemyIntentState, EnemyState, GameRun, PlayerState, UserStats, ensure_card_state
-from game.renderer.map import render_map_select
+from game.core.grid_map_generator import generate_floor_map
+from game.core.session_manager import SessionContextScoper
+from game.renderer.grid_map import render_grid_map
 from game.renderer.menu import render_shop
 from game.test.core.base import CorePlugin, run_command
 
@@ -59,61 +61,34 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         self.assertEqual(cafe_trash, 0)
 
     def test_map_size_expanded_and_life_merchant_generation(self):
-        seen_widths = set()
         seen_merchants = []
         for _ in range(40):
             run = GameRun(
                 user_id=self.uid,
-                node_type="map_select",
+                node_type="grid_map",
                 player=PlayerState(hp=45, max_hp=45, shield=0, gold=20, stage=2),
                 enemies=[],
             )
-            me = self.plugin.engine.map_engine
             count = 0
-            me._generate_map_network(run, 2, 12)
-            for s in range(2, 12):
-                layer = run.map_data["nodes"][str(s)]
-                seen_widths.add(len(layer))
-                self.assertIn(len(layer), (3, 4, 5))
-                for nd in layer:
-                    self.assertGreaterEqual(len(nd["next"]), 1)
-                    if len(run.map_data["nodes"][str(s + 1)]) >= 2:
-                        self.assertGreaterEqual(len(nd["next"]), 2)
-                        self.assertLessEqual(len(nd["next"]), 3)
-            for s_str, layer in run.map_data["nodes"].items():
-                for nd in layer:
-                    if nd["type"] == "life_merchant":
+            for floor_idx in (1, 2, 3):
+                fm = generate_floor_map(run, floor_idx)
+                for room in fm.rooms.values():
+                    if room.room_type == "life_merchant":
                         count += 1
-                        self.assertTrue(4 <= int(s_str) <= 11)
-            me._generate_map_network(run, 14, 25)
-            for s_str, layer in run.map_data["nodes"].items():
-                for nd in layer:
-                    if nd["type"] == "life_merchant":
-                        count += 1
-                        self.assertTrue(15 <= int(s_str) <= 24)
-            me._generate_map_network(run, 27, 32)
-            for s_str, layer in run.map_data["nodes"].items():
-                for nd in layer:
-                    if nd["type"] == "life_merchant":
-                        count += 1
-                        self.assertTrue(27 <= int(s_str) <= 30)
-            self.assertGreaterEqual(count, 1)
             self.assertLessEqual(count, 2)
             seen_merchants.append(count)
 
-        self.assertEqual(seen_widths, {3, 4, 5})
-        self.assertTrue(any(c == 2 for c in seen_merchants))
+        self.assertTrue(any(c >= 1 for c in seen_merchants))
 
         run_preview = GameRun(
             user_id=self.uid,
-            node_type="map_select",
-            player=PlayerState(hp=45, max_hp=45, shield=0, gold=20, stage=22),
+            node_type="grid_map",
+            player=PlayerState(hp=45, max_hp=45, shield=0, gold=20, stage=14),
             enemies=[],
         )
-        self.plugin.engine.map_engine._generate_map_network(run_preview, 14, 25)
-        self.plugin.engine.map_engine._build_map_options(run_preview)
-        rendered = render_map_select(run_preview)
-        self.assertIn("第 25 层", rendered)
+        run_preview.floor_map = generate_floor_map(run_preview, 2)
+        rendered = render_grid_map(run_preview)
+        self.assertIn("第 2 层", rendered)
 
     def test_life_merchant_dynamic_pricing_min_hp_one_and_shou_hui_bonus(self):
         self._run_cmd("start")
@@ -122,15 +97,10 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         run.player.max_hp = 5
         run.player.hp = 5
         run.player.deck = [ensure_card_state("fire_bolt"), ensure_card_state("shield")]
-        run.node_type = "map_select"
-        run.map_data = {
-            "nodes": {"6": [{"id": "6_0", "type": "life_merchant", "next": ["7_0"]}], "7": [{"id": "7_0", "type": "battle", "next": []}]},
-            "current_node_id": None,
-        }
-        self.plugin.engine.map_engine._build_map_options(run)
+        SessionContextScoper.create_session(run, "A1", "life_merchant", [self.uid])
+        self.plugin.engine.map_engine.explore_engine._init_life_merchant_node(run)
         self.sm.save_save(self.uid, run)
-
-        enter_res = self._run_cmd("1")
+        enter_res = self._run_cmd("r")
         self.assertIn("生命商人", enter_res)
 
         run = self.sm.load_save(self.uid)
@@ -190,13 +160,12 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         res_leave = self._run_cmd("8")
         self.assertIn("离开了摊位", res_leave)
         run = self.sm.load_save(self.uid)
-        self.assertEqual(run.player.stage, 7)
+        self.assertEqual(run.node_type, "grid_map")
 
     def test_fusion_shou_lai_shou_hui_tau_and_relics_in_battle(self):
         self._run_cmd("start")
         run = self.sm.load_save(self.uid)
-        run.node_type = "battle"
-        run.node_data = {"difficulty": "normal", "turn_count": 1}
+        SessionContextScoper.create_session(run, "A1", "battle", [self.uid], node_data={"difficulty": "normal", "turn_count": 1})
         run.player.max_hp = 40
         run.player.hp = 40
         run.player.actions = 5

@@ -1,5 +1,6 @@
 from ..models.state import GameRun
 from ..cards import ALL_CARDS, MINION_SKILLS
+from ..entities.cards.base import get_card_color_icon
 from ..entities import get_relic_name, get_relic_desc
 from ..data.buff_data import BUFF_CONFIG
 from ..data.minion_data import MINION_CONFIG
@@ -82,7 +83,7 @@ def render_ally_units(member) -> list[str]:
 def render_battle(run: GameRun) -> str:
     from .party import render_party_status
     p = run.player
-    cur_max = get_effective_max_hp(p)
+    cur_max = get_effective_max_hp(p, run)
     relics_str = format_relic_bar(p.relics)
     potions_str = ""
     if hasattr(p, "potions") and p.potions:
@@ -94,6 +95,8 @@ def render_battle(run: GameRun) -> str:
         t("renderer.battle.title", stage=p.stage, turn=turn_count),
         t("renderer.battle.status_line", name=run.player.name, hp=p.hp, max_hp=cur_max, shield=p.shield, actions=p.actions, bonus_actions=p.bonus_actions) + relics_str + potions_str
     ]
+    if getattr(run, "floor_map", None) is not None or getattr(p, "exhaustion", 0) > 0 or getattr(p, "sp", 10) < getattr(p, "max_sp", 10):
+        lines.append(t("i18n_grid_map.battle_sp_line", sp=getattr(p, "sp", 10), max_sp=getattr(p, "max_sp", 10), exhaustion=getattr(p, "exhaustion", 0)))
     if run.player_count() > 1:
         lines.append(render_party_status(run))
         if p.downed or p.hp <= 0:
@@ -176,7 +179,7 @@ def render_battle(run: GameRun) -> str:
         for cid in p.hand:
             card = ALL_CARDS.get(cid)
             if card:
-                color_ch = "⚫" if card.color == "curse" else ("🔴" if card.color == "warrior" else ("🔵" if card.color == "wizard" else "⚪"))
+                color_ch = get_card_color_icon(card)
                 cost_str = get_card_cost_str(card)
                 rarity_map = {
                     "common": t("renderer.battle.rarity_common"),
@@ -220,7 +223,7 @@ def render_battle(run: GameRun) -> str:
 
 def render_detailed_battle(run: GameRun) -> str:
     p = run.player
-    cur_max = get_effective_max_hp(p)
+    cur_max = get_effective_max_hp(p, run)
     turn_count = run.node_data.get("turn_count", 1)
     detailed_potions = t("renderer.battle.none")
     if hasattr(p, "potions") and p.potions:

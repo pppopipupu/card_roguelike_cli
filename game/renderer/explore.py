@@ -1,5 +1,6 @@
 from ..models.state import GameRun
 from ..entities import get_relic_name, get_relic_desc
+from ..entities.cards.base import get_card_color_icon
 from ..cards import ALL_CARDS
 from .menu import get_card_cost_str
 from .formatters import format_relic_bar
@@ -71,7 +72,7 @@ def render_shop(run: GameRun) -> str:
         if itype == "card":
             card = ALL_CARDS.get(item.get("card_id"))
             if card:
-                color_ch = "⚫" if card.color == "curse" else ("🔵" if card.color == "wizard" else "⚪")
+                color_ch = get_card_color_icon(card)
                 cost_str = get_card_cost_str(card)
                 lines.append(get_locale_text("renderer_explore.shop_card", idx=idx, color=color_ch, name=card.name, cost=cost_str, price=price, desc=card.desc))
         elif itype == "relic":
@@ -323,7 +324,7 @@ def render_corpse_reward(run: GameRun) -> str:
         state = ensure_card_state(card_data)
         card = ALL_CARDS.get(state)
         if card:
-            color_ch = "⚫" if card.color == "curse" else ("🔵" if card.color == "wizard" else "⚪")
+            color_ch = get_card_color_icon(card)
             cost_str = get_card_cost_str(card)
             suffix = ""
             if state.upgraded:
@@ -359,7 +360,7 @@ def render_card_select(run: GameRun) -> str:
     for idx, cid in enumerate(cards, 1):
         card = ALL_CARDS.get(CardState(id=cid, upgraded=is_upgraded))
         if card:
-            color_ch = "⚫" if card.color == "curse" else ("🔵" if card.color == "wizard" else "⚪")
+            color_ch = get_card_color_icon(card)
             cost_str = get_card_cost_str(card)
             lines.append(get_locale_text("renderer_explore.card_select_card", idx=idx, color=color_ch, name=card.name, cost=cost_str, desc=card.desc))
     skip_idx = len(cards) + 1
@@ -403,7 +404,7 @@ def render_boss_chest(run: GameRun) -> str:
         elif itype == "boss_card":
             card = ALL_CARDS.get(id_)
             if card:
-                color_ch = "⚫" if card.color == "curse" else ("🔵" if card.color == "wizard" else "⚪")
+                color_ch = get_card_color_icon(card)
                 cost_str = get_card_cost_str(card)
                 lines.append(get_locale_text("renderer_explore.boss_card", idx=idx, prefix=prefix, color=color_ch, name=card.name, cost=cost_str, desc=card.desc))
     lines.append(get_locale_text("renderer_explore.separator"))
@@ -467,7 +468,7 @@ def render_life_merchant(run: GameRun) -> str:
         if itype == "card":
             card = ALL_CARDS.get(item.get("card_id"))
             if card:
-                color_ch = "⚫" if card.color == "curse" else ("🔵" if card.color == "wizard" else ("🔴" if card.color == "warrior" else "⚪"))
+                color_ch = get_card_color_icon(card)
                 cost_str = get_card_cost_str(card)
                 rlabel = rarity_labels.get(getattr(card, "rarity", "common"), getattr(card, "rarity", ""))
                 lines.append(get_locale_text("renderer_explore.life_merchant_card", idx=idx, color=color_ch, name=card.name, rarity=rlabel, cost=cost_str, price_label=price_label, desc=card.desc))

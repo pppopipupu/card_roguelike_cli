@@ -24,7 +24,7 @@ UNLOCKED_ALIASES = ("已解锁", "unlocked")
 class AchievementCommand(
     CommandHandler,
     names=["成就", "achievement", "achi", "ach", "成就列表"],
-    allowed_states=["menu", "town", "explore", "battle", "dialog", "cafe"],
+    allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe"],
     help_key="achievement",
 ):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:

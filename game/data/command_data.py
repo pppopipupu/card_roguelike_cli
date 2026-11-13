@@ -17,6 +17,10 @@ COMMAND_SECTION_ORDER = {
         "class",
         "mode",
         "merc_talk",
+        "grid_move",
+        "grid_tp",
+        "grid_map",
+        "grid_talk",
         "abandon"
     ),
     "battle": (
@@ -63,7 +67,7 @@ COMMAND_SECTION_ORDER = {
     )
 }
 
-GAME_STATE_ORDER = ("menu", "town", "explore", "battle", "dialog", "cafe")
+GAME_STATE_ORDER = ("menu", "town", "grid_map", "explore", "battle", "dialog", "cafe")
 
 POTION_LIST_ALIASES = ("list", "ls", "列表", "药水列表")
 POTION_DRINK_ALIASES = ("drink", "喝", "饮用", "喝药水", "use_potion")

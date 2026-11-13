@@ -494,5 +494,55 @@ EVENT_CONFIG = {
                 "action": "carve_own_name"
             }
         ]
+    },
+    "ghostification": {
+        "intangible_count": 2,
+        "description": "迷雾深处漂浮着一具半透明的古代幽魂残骸，它向你伸出冷冽而虚无的双手，低声询问你是否愿以血肉凡躯换取跨越生死的虚体权能。",
+        "options": [
+            {"text": "拥抱虚无 (最大生命值上限永久减半，获得专属神器【虚体之躯】与 2 张【无实体】)", "action": "accept_ghostification"},
+            {"text": "坚守凡躯并离开", "action": "refuse_ghostification"}
+        ]
+    },
+    "collapsed_tunnel": {
+        "sp_cost": 3,
+        "gold_cost": 25,
+        "fallback_gold": 10,
+        "description": "前方的矿道被巨石与塌方死死封堵，岩壁缝隙中透出微弱的风声，似乎背后连通着未曾被迷雾记录的捷径。",
+        "options": [
+            {"text": "徒手清理碎石开路 (消耗 3 点 SP，将相邻 1 格实心墙壁打通为走廊)", "action": "tunnel_break_sp"},
+            {"text": "雇佣地精炸药爆破 (花费 25 金币，将相邻 1 格实心墙壁打通为走廊)", "action": "tunnel_break_gold"},
+            {"text": "绕道离开", "action": "tunnel_leave"}
+        ]
+    },
+    "ancient_beacon": {
+        "danger_convert_count": 2,
+        "description": "一座熄灭已久的先古黑曜石灯塔静静矗立在迷雾中心，塔顶残存着微弱的火星与暗影共鸣。",
+        "options": [
+            {"text": "点燃常规火种驱散迷雾 (直接探明并点亮自身周围 3x3 区域)", "action": "beacon_scan"},
+            {"text": "注入疯狂薪柴引来强敌 (获得 1 件随机遗物，并将附近最多 2 个普通战区转化为高危险境)", "action": "beacon_ignite_danger"},
+            {"text": "不触碰灯塔离开", "action": "beacon_leave"}
+        ]
+    },
+    "mist_ferryman": {
+        "gold_cost": 15,
+        "sp_cost": 2,
+        "fallback_gold": 20,
+        "fallback_heal": 6,
+        "description": "灰白的雾海边停泊着一叶无桨小舟，戴着兜帽的摆渡人一言不发，只朝你摊开掌心等待船资。",
+        "options": [
+            {"text": "支付船资顺雾而行 (花费 15 金币或 2 点 SP，直接传送至本层 1 处未探索的特殊设施房间)", "action": "ferry_to_special"},
+            {"text": "谢绝摆渡并离开", "action": "ferry_refuse"}
+        ]
+    },
+    "bladesinger_echo": {
+        "sp_cost": 3,
+        "hp_cost": 6,
+        "meditate_sp": 4,
+        "meditate_heal": 8,
+        "description": "废墟祭坛上回响着高等精灵剑咏者跨越千年的奥术剑鸣，蓝光与红芒交织的剑影悬停在半空等待契合者响应。",
+        "options": [
+            {"text": "承受剑鸣共鸣 (消耗 3 点 SP 与 6 点生命值，获得事件专属蓝红双色卡【剑歌】并随机升级卡组 1 张牌)", "action": "bladesong_learn"},
+            {"text": "静坐吐纳余韵 (回复 4 点 SP 与 8 点生命值)", "action": "bladesong_meditate"}
+        ]
     }
 }

@@ -36,9 +36,10 @@ class GameEngine:
         hp_bonus = getattr(stats, "town_health_bonus", 0)
         hp += hp_bonus
         max_hp += hp_bonus
-        commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not is_coop_only(cid) and is_card_available(cid, stats)]
-        rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not is_coop_only(cid) and is_card_available(cid, stats)]
-        epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not is_coop_only(cid) and is_card_available(cid, stats)]
+        from .core.deck_service import DeckService
+        commons = [cid for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("common",)) if cid != "time_stop"]
+        rares = [cid for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("rare",)) if cid != "time_stop"]
+        epics = [cid for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("epic",)) if cid != "time_stop"]
         locked_cards = list(getattr(stats, "locked_cards", []) or [])[:LOCK_SLOT_LIMIT]
         g_card = getattr(stats, "guaranteed_card", None)
         if g_card:
@@ -147,7 +148,7 @@ class GameEngine:
             run.players[merc_uid] = build_mercenary_player(merc_id, owner_uid)
         run.player = run.players[leader]
         run.user_id = leader
-        self.enter_next_stage(run)
+        self.map_engine.init_new_run_map(run)
         self.save_manager.save_save(leader, run)
         return run
     def start_new_game(self, user_id: str) -> GameRun:
@@ -180,8 +181,6 @@ class GameEngine:
     def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str:
         return self.map_engine.choose_option(run, option_idx, target)
 
-    def choose_map_node(self, run: GameRun, option_idx: int) -> str:
-        return self.map_engine.choose_map_node(run, option_idx)
 
     def remove_card_from_deck(self, run: GameRun, deck_idx: int) -> str:
         return self.map_engine.remove_card_from_deck(run, deck_idx)
@@ -205,17 +204,23 @@ class GameEngine:
         return self.map_engine.gem_insert_cancel(run)
 
     def jump_to_stage(self, run: GameRun, target_stage: int) -> str:
-        p = run.player
-        p.stage = target_stage - 1
-        if 2 <= target_stage <= 10:
-            self.map_engine._generate_map_network(run, 2, 10)
-            run.map_data["current_node_id"] = None
-        elif 12 <= target_stage <= 19:
-            self.map_engine._generate_map_network(run, 12, 20)
-            run.map_data["current_node_id"] = None
-        elif 21 <= target_stage <= 24:
-            self.map_engine._generate_map_network(run, 21, 25)
-            run.map_data["current_node_id"] = None
-        self.map_engine.enter_next_stage(run)
+        from .core.grid_map_generator import generate_floor_map
+        from .core.session_manager import SessionContextScoper
+        floor_idx = 1
+        if target_stage >= 32:
+            floor_idx = 4
+        elif target_stage >= 27:
+            floor_idx = 3
+        elif target_stage >= 13:
+            floor_idx = 2
+        run.floor_map = generate_floor_map(run, floor_idx, save_manager=self.save_manager)
+        SessionContextScoper.ensure_full_party_order(run)
+        for uid in run.all_human_uids():
+            pl = run.players.get(uid)
+            if pl is not None:
+                pl.stage = target_stage
+        run.node_type = "grid_map"
+        run.enemies.clear()
+        run.node_data = {}
         self.save_manager.save_save(run.user_id, run)
-        return f"成功跳转到第 {target_stage} 层。"
+        return f"成功跳转到第 {target_stage} 层（大层 {floor_idx}）。"

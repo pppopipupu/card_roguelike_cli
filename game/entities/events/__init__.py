@@ -18,6 +18,7 @@ from .forge_furnace import *
 from .leave import *
 from .portal_chamber import *
 from .chaos_events import *
+from .map_events import *
 
 
 ALL_EVENTS = [
@@ -190,6 +191,58 @@ ALL_EVENTS = [
         ],
         min_stage=30,
         max_stage=31
+    ),
+    EventTemplate(
+        "ghostification",
+        EVENT_CONFIG["ghostification"]["description"],
+        [
+            AcceptGhostificationOption(get_locale_text("i18n_grid_map.event.ghostification.opt_accept"), "accept_ghostification"),
+            RefuseGhostificationOption(get_locale_text("i18n_grid_map.event.ghostification.opt_refuse"), "refuse_ghostification")
+        ],
+        min_stage=2,
+        max_stage=32
+    ),
+    EventTemplate(
+        "collapsed_tunnel",
+        EVENT_CONFIG["collapsed_tunnel"]["description"],
+        [
+            TunnelBreakSpOption(get_locale_text("i18n_grid_map.event.collapsed_tunnel.opt_sp"), "tunnel_break_sp"),
+            TunnelBreakGoldOption(get_locale_text("i18n_grid_map.event.collapsed_tunnel.opt_gold"), "tunnel_break_gold"),
+            TunnelLeaveOption(get_locale_text("i18n_grid_map.event.collapsed_tunnel.opt_leave"), "tunnel_leave")
+        ],
+        min_stage=2,
+        max_stage=32
+    ),
+    EventTemplate(
+        "ancient_beacon",
+        EVENT_CONFIG["ancient_beacon"]["description"],
+        [
+            BeaconScanOption(get_locale_text("i18n_grid_map.event.ancient_beacon.opt_scan"), "beacon_scan"),
+            BeaconIgniteDangerOption(get_locale_text("i18n_grid_map.event.ancient_beacon.opt_danger"), "beacon_ignite_danger"),
+            BeaconLeaveOption(get_locale_text("i18n_grid_map.event.ancient_beacon.opt_leave"), "beacon_leave")
+        ],
+        min_stage=2,
+        max_stage=32
+    ),
+    EventTemplate(
+        "mist_ferryman",
+        EVENT_CONFIG["mist_ferryman"]["description"],
+        [
+            FerryToSpecialOption(get_locale_text("i18n_grid_map.event.mist_ferryman.opt_ferry"), "ferry_to_special"),
+            FerryRefuseOption(get_locale_text("i18n_grid_map.event.mist_ferryman.opt_refuse"), "ferry_refuse")
+        ],
+        min_stage=2,
+        max_stage=32
+    ),
+    EventTemplate(
+        "bladesinger_echo",
+        EVENT_CONFIG["bladesinger_echo"]["description"],
+        [
+            BladesongLearnOption(get_locale_text("i18n_grid_map.event.bladesinger_echo.opt_learn"), "bladesong_learn"),
+            BladesongMeditateOption(get_locale_text("i18n_grid_map.event.bladesinger_echo.opt_meditate"), "bladesong_meditate")
+        ],
+        min_stage=2,
+        max_stage=32
     )
 ]
 

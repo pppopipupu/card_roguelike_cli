@@ -4,7 +4,7 @@ from ...base import CommandHandler
 from .....data.locale_data import get_locale_text
 
 
-class ProjectionCommand(CommandHandler, names=["projection", "投影", "pj"], allowed_states=["menu", "town", "explore", "battle", "dialog", "cafe"], help_key="projection"):
+class ProjectionCommand(CommandHandler, names=["projection", "投影", "pj"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe"], help_key="projection"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         stats = router.save_manager.load_stats(user_id)
         if len(parts) == 1:

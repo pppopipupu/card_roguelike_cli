@@ -2,6 +2,8 @@ def resolve_game_state(run, stats) -> str:
     if run is not None:
         if run.node_type == "battle":
             return "battle"
+        if run.node_type == "grid_map":
+            return "grid_map"
         if run.node_type == "cafe":
             return "cafe"
         return "explore"

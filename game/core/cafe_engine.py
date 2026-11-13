@@ -178,6 +178,7 @@ class CafeEngine(CafeDialogMixin):
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 get_locale_text("i18n_map_cafe.cafe_hint_talk"),
                 get_locale_text("i18n_map_cafe.cafe_hint_leave"),
+                *([] if getattr(run, "floor_map", None) is None else [get_locale_text("i18n_grid_map.cafe_counter_hint", price=25, sp=5)]),
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             ]
             return "\n".join(lines)
@@ -296,7 +297,7 @@ class CafeEngine(CafeDialogMixin):
             run,
             run.user_id,
             msg,
-            on_all_ready=self.map_engine.enter_ancient_node,
+            on_all_ready=(None if getattr(run, "floor_map", None) is not None else self.map_engine.enter_ancient_node),
         )
 
     def choose_option(self, run: GameRun, idx: int) -> str:
@@ -310,6 +311,19 @@ class CafeEngine(CafeDialogMixin):
         talked = active_npc in shared_cafe.get("talked_npcs", [])
 
         if active_npc is None:
+            if getattr(run, "floor_map", None) is not None and idx == 1:
+                from ..data.grid_map_config import SP_CONFIG
+                from .sp_system import reduce_exhaustion, restore_sp
+                p = run.player
+                price = SP_CONFIG["cafe_drink_price"]
+                if p.gold < price:
+                    return get_locale_text("i18n_map_cafe.cafe_err_gold_insufficient", cost=price)
+                p.gold -= price
+                gained = restore_sp(p, SP_CONFIG["cafe_drink_sp_gain"])
+                old_ex = getattr(p, "exhaustion", 0)
+                new_ex = reduce_exhaustion(p, SP_CONFIG["cafe_drink_exhaustion_cure"])
+                self.save_manager.save_save(run.user_id, run)
+                return get_locale_text("i18n_grid_map.cafe_drink_bought", cost=price, sp=gained, exhaustion_cured=max(0, old_ex - new_ex))
             return get_locale_text("i18n_map_cafe.cafe_err_not_in_dialog")
 
         _, options = self._get_dialog_content(run, active_npc, dialog_state, talked)

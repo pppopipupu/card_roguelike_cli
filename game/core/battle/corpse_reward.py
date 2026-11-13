@@ -13,10 +13,10 @@ def handle_corpse_win(owner, run: GameRun):
     map_engine = getattr(owner.engine, "map_engine", None)
     if not corpse:
         if map_engine is not None:
-            map_engine.return_to_map_select(run)
+            map_engine.return_to_grid_map(run)
             run.node_data["notice"] = get_locale_text("i18n_battle_misc.corpse_already_looted")
         else:
-            run.node_type = "map_select"
+            run.node_type = "grid_map"
             run.node_data = {}
         owner.engine.save_manager.save_save(run.user_id, run)
         return

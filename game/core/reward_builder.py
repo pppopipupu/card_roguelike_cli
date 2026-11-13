@@ -78,6 +78,9 @@ def build_reward_items(save_manager, run, player, difficulty):
     coop = run.player_count() > 1
     stats = save_manager.load_stats(run.user_id)
     gold = roll_battle_gold(difficulty)
+    if run.node_data.get("is_high_danger"):
+        from ..data.grid_map_config import HIGH_DANGER_CONFIG
+        gold += random.randint(HIGH_DANGER_CONFIG["bonus_gold_min"], HIGH_DANGER_CONFIG["bonus_gold_max"])
     skip_gold = battle_gold_skipped(run)
     relic_id = ""
     if not coop and difficulty == "elite":

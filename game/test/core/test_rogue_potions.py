@@ -20,12 +20,12 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         p.potions = ["healing_potion", "shield_potion"]
         self.plugin.save_manager.save_save(self.user_id, run)
         
-        run.node_type = "reward"
-        run.node_data = {
+        from game.core.session_manager import SessionContextScoper
+        SessionContextScoper.create_session(run, "A1", "reward", [self.user_id], node_data={
             "items": [
                 {"type": "potion", "potion_id": "fire_potion", "taken": False}
             ]
-        }
+        })
         self.plugin.save_manager.save_save(self.user_id, run)
         
         res = await run_command(self.plugin, "1", self.user_id)
@@ -35,12 +35,11 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(run.player.potions), 3)
         self.assertEqual(run.player.potions[2], "fire_potion")
         
-        run.node_type = "reward"
-        run.node_data = {
+        SessionContextScoper.create_session(run, "A1", "reward", [self.user_id], node_data={
             "items": [
                 {"type": "potion", "potion_id": "frost_potion", "taken": False}
             ]
-        }
+        })
         self.plugin.save_manager.save_save(self.user_id, run)
         
         res = await run_command(self.plugin, "1", self.user_id)
@@ -55,12 +54,11 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         run = self.plugin.save_manager.load_save(self.user_id)
         self.assertEqual(len(run.player.potions), 2)
         
-        run.node_type = "reward"
-        run.node_data = {
+        SessionContextScoper.create_session(run, "A1", "reward", [self.user_id], node_data={
             "items": [
                 {"type": "potion", "potion_id": "frost_potion", "taken": False}
             ]
-        }
+        })
         self.plugin.save_manager.save_save(self.user_id, run)
         res = await run_command(self.plugin, "1", self.user_id)
         self.assertIn("获得药水【冰霜药水】", res)

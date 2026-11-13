@@ -78,8 +78,9 @@ class DeckService:
         return "warrior" if getattr(player, "selected_class", "法师") == "战士" else "wizard"
 
     @staticmethod
-    def eligible_card_ids(stats, *, colors=None, rarities=None, card_types=None, allow_coop=False, allow_curse=False, allow_duel=False, require_available=True, exclude_upgraded=True):
+    def eligible_card_ids(stats, *, colors=None, rarities=None, card_types=None, allow_coop=False, allow_curse=False, allow_duel=False, allow_event=False, require_available=True, exclude_upgraded=True):
         from ..entities import ALL_CARDS
+        from ..entities.cards.base import card_matches_color
         from ..entities.cards.market import is_card_available
         color_allow = None if colors is None else tuple(colors)
         rarity_allow = None if rarities is None else tuple(rarities)
@@ -92,13 +93,15 @@ class DeckService:
                 continue
             if not allow_duel and cid.startswith("duel_"):
                 continue
-            if color_allow is not None and getattr(card, "color", "") not in color_allow:
+            if color_allow is not None and not any(card_matches_color(card, c) for c in color_allow):
                 continue
             if rarity_allow is not None and getattr(card, "rarity", "common") not in rarity_allow:
                 continue
             if type_allow is not None and getattr(card, "type", "") not in type_allow:
                 continue
             if not allow_coop and getattr(card, "coop_only", False):
+                continue
+            if not allow_event and (getattr(card, "event_only", False) or getattr(card, "life_merchant_only", False)):
                 continue
             if require_available and not is_card_available(cid, stats):
                 continue

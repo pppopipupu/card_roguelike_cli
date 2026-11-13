@@ -70,6 +70,15 @@ class DamageTakeEvent(GameEvent):
     damage_type: str = "effect"
 
 @dataclass
+class BeforeDamageApplyEvent(GameEvent):
+    run: GameRun
+    card: Any
+    source: str
+    target: str
+    damage_type: str
+    final_damage: int
+
+@dataclass
 class HealEvent(GameEvent):
     run: GameRun
     target: str

@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 from game.data.account_config import RENAME_COST_GP
-from game.test.core.base import CorePlugin, run_command
+from game.test.core.base import CorePlugin, move_to_room, run_command
 
 class TestMercenaryAndShortcuts(unittest.TestCase):
     def setUp(self):
@@ -116,10 +116,7 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
         leave_res = self.run_cmd("4", uid)
         self.assertIn("结束了与【哈里·杜博阿】的交谈", leave_res)
 
-        run = self.plugin.save_manager.load_save(uid)
-        options = run.node_data.get("options", [])
-        battle_idx = next(i + 1 for i, opt in enumerate(options) if opt.get("node_type") == "battle")
-        battle_res = self.run_cmd(f"c {battle_idx}", uid)
+        battle_res, run = move_to_room(self.plugin, uid, ("battle", "elite"))
         self.assertIn("哈里·杜博阿", battle_res)
 
         run = self.plugin.save_manager.load_save(uid)
@@ -167,13 +164,12 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
             run = self.plugin.save_manager.load_save(uid)
             if not run:
                 break
-            if run.node_type == "map_select":
-                options = run.node_data.get("options", [])
-                target_idx = next(
-                    (i + 1 for i, opt in enumerate(options) if opt.get("node_type") in ("elite", "battle")),
-                    1,
-                )
-                self.run_cmd(f"c {target_idx}", uid)
+            if run.node_type == "grid_map":
+                _, moved_run = move_to_room(self.plugin, uid, ("battle", "elite", "high_danger", "boss"))
+                if moved_run and moved_run.node_type == "grid_map":
+                    move_to_room(self.plugin, uid, ("downstairs",))
+                    self.run_cmd("talk", uid)
+                    self.run_cmd("1", uid)
             elif run.node_type == "battle":
                 self.run_cmd("e", uid)
             elif run.node_type == "reward":
@@ -218,20 +214,9 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
         self.run_cmd("c 1", uids[0])
         self.run_cmd("c 1", uids[1])
         after_ancient = self.plugin.save_manager.load_save(uids[0])
-        self.assertEqual(after_ancient.node_type, "map_select")
+        self.assertEqual(after_ancient.node_type, "grid_map")
 
-        options = after_ancient.node_data.get("options", [])
-        battle_idx = next(
-            (i + 1 for i, opt in enumerate(options) if opt.get("node_type") in ("battle", "elite")),
-            None,
-        )
-        if battle_idx is None:
-            self.run_cmd("c 1", uids[0])
-            self.run_cmd("c 1", uids[1])
-            after_ancient = self.plugin.save_manager.load_save(uids[0])
-            options = after_ancient.node_data.get("options", [])
-            battle_idx = next(i + 1 for i, opt in enumerate(options) if opt.get("node_type") in ("battle", "elite"))
-        self.run_cmd(f"c {battle_idx}", uids[0])
+        move_to_room(self.plugin, uids[0], ("battle", "elite"), rally=True)
         res1 = self.run_cmd("e", uids[0])
         self.assertIn("等待队友", res1)
         res2 = self.run_cmd("e", uids[1])
@@ -260,10 +245,7 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
                 self.run_cmd("0", uid)
             self.run_cmd("4", uid)
 
-        run = self.plugin.save_manager.load_save(uid)
-        options = run.node_data.get("options", [])
-        battle_idx = next(i + 1 for i, opt in enumerate(options) if opt.get("node_type") in ("battle", "elite"))
-        self.run_cmd(f"c {battle_idx}", uid)
+        move_to_room(self.plugin, uid, ("battle", "elite"))
 
         played_seen = False
         for turn_i in range(4):

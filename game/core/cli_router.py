@@ -134,9 +134,6 @@ class CLIRouter:
     def _handle_command_raw(self, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         set_user_id(user_id)
         run = self.save_manager.load_save(user_id)
-        if run is not None and run.node_type == "map_select":
-            if self.engine.map_engine.sync_corpse_options(run):
-                self.save_manager.save_save(user_id, run)
         curr_state = self._get_current_state(user_id, run)
         is_town_combat = run is not None and run.node_data.get("is_town_combat", False)
         if not parts:

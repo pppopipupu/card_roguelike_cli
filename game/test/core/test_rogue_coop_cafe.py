@@ -7,7 +7,7 @@ from game.models.state import CardState
 from game.data.balance_config import COOP_MAX_PLAYERS
 from game.data.cafe_data import CAFE_GUESTS, CAFE_NORMALS, CAFE_NPCS_PER_EXTRA_PLAYER, CAFE_TOTAL_NPCS, NPC_SHOW_NAMES
 from game.data.map_config import MapConfig
-from game.test.core.base import CorePlugin, run_command
+from game.test.core.base import CorePlugin, move_to_room, run_command
 
 
 class TestRogueCoopCafeAndCapacity(unittest.TestCase):
@@ -38,11 +38,13 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
     def _enter_cafe_for_party(self, uids):
         self._start_coop_direct(uids)
         run = self.plugin.save_manager.load_save(uids[0])
-        cafe_stage = MapConfig.CAFE_STAGES[0]
         for uid in uids:
-            run.players[uid].stage = cafe_stage - 1
             run.players[uid].gold = 500
-        self.plugin.engine.map_engine.enter_next_stage(run)
+        cafe_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "cafe"), "A1")
+        from game.core.session_manager import SessionContextScoper
+        SessionContextScoper.create_session(run, cafe_coord, "cafe", uids)
+        from game.core.cafe_engine import CafeEngine
+        CafeEngine(self.plugin.save_manager, self.plugin.engine.map_engine).init_cafe(run, persist=False)
         self.plugin.save_manager.save_save(uids[0], run)
         return self.plugin.save_manager.load_save(uids[0])
 
@@ -56,14 +58,7 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.plugin.engine.start_party_game(uids + ["cap_overflow"], uids[0], shared_save=True)
 
-        options = run.node_data.get("options", [])
-        battle_index = next(
-            (index + 1 for index, opt in enumerate(options) if opt.get("node_type") in ("battle", "elite")),
-            None,
-        )
-        self.assertIsNotNone(battle_index)
-        self.run_cmd(f"c {battle_index}", uids[0])
-        battle_run = self.plugin.save_manager.load_save(uids[0])
+        _, battle_run = move_to_room(self.plugin, uids[0], ("battle", "elite"), rally=True)
         self.assertEqual(battle_run.node_type, "battle")
         self.assertEqual(battle_run.node_data.get("coop_hp_mult"), 2.0)
         self.assertEqual(len(battle_run.enemies) % 2, 0)
@@ -148,7 +143,7 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         self.assertIn("继续前进", completed)
         for uid in uids:
             after = self.plugin.save_manager.load_save(uid)
-            self.assertEqual(after.node_type, "ancient")
+            self.assertEqual(after.node_type, "grid_map")
 
     def test_six_player_team_start_via_lobby(self):
         uids = [f"six_{i}" for i in range(6)]
@@ -187,12 +182,9 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         res = self.run_cmd("c 1", uid)
         self.assertIn("契约达成", res)
         run = self.plugin.save_manager.load_save(uid)
-        self.assertEqual(run.node_type, "map_select")
+        self.assertEqual(run.node_type, "grid_map")
 
-        options = run.node_data.get("options", [])
-        battle_index = next(index + 1 for index, opt in enumerate(options) if opt.get("node_type") in ("battle", "elite"))
-        self.run_cmd(f"c {battle_index}", uid)
-        battle_run = self.plugin.save_manager.load_save(uid)
+        _, battle_run = move_to_room(self.plugin, uid, ("battle", "elite"))
         self.assertEqual(battle_run.node_type, "battle")
 
         battle_run.player.hp = 10
@@ -222,10 +214,7 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         from game.models.state import MinionState
         uids = ["minion_sel_a", "minion_sel_b"]
         run = self._start_coop_direct(uids)
-        options = run.node_data.get("options", [])
-        battle_index = next(index + 1 for index, opt in enumerate(options) if opt.get("node_type") in ("battle", "elite"))
-        self.run_cmd(f"c {battle_index}", uids[0])
-        battle_run = self.plugin.save_manager.load_save(uids[0])
+        _, battle_run = move_to_room(self.plugin, uids[0], ("battle", "elite"), rally=True)
         self.assertEqual(battle_run.node_type, "battle")
 
         p1 = battle_run.players[uids[0]]
@@ -286,10 +275,7 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
 
         uids = ["wide_a", "wide_b"]
         run = self._start_coop_direct(uids)
-        options = run.node_data.get("options", [])
-        battle_index = next(index + 1 for index, opt in enumerate(options) if opt.get("node_type") in ("battle", "elite"))
-        self.run_cmd(f"c {battle_index}", uids[0])
-        battle_run = self.plugin.save_manager.load_save(uids[0])
+        _, battle_run = move_to_room(self.plugin, uids[0], ("battle", "elite"), rally=True)
         self.assertEqual(battle_run.node_type, "battle")
 
         p1 = battle_run.players[uids[0]]
@@ -356,6 +342,68 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         self.assertEqual(after_amf.players[uids[0]].minions["1"].buffs, [])
         self.assertEqual(after_amf.players[uids[1]].minions["1"].buffs, [])
         self.assertEqual(after_amf.enemies[0].buffs, [])
+
+
+    def test_coop_cafe_and_ancient_wait_for_all_players(self):
+        uids = ["cafe_wait_leader", "cafe_wait_member"]
+        run = self._start_coop_direct(uids)
+        from game.core.cafe_engine import CafeEngine
+        from game.core.session_manager import SessionContextScoper
+        SessionContextScoper.create_session(run, "A1", "cafe", uids)
+        CafeEngine(self.plugin.save_manager, self.plugin.engine.map_engine).init_cafe(run, persist=False)
+        self.plugin.save_manager.save_save(uids[0], run)
+        run = self.plugin.save_manager.load_save(uids[0])
+        self.assertEqual(run.node_type, "cafe")
+        self.assertEqual(run.node_data.get("coop_node_type"), "cafe")
+        views = run.node_data.get("player_views", {})
+        self.assertEqual(set(views), set(uids))
+        self.assertTrue(views[uids[0]]["data"]["cafe_data"])
+
+        waiting = self.run_cmd("离开", uids[0])
+        self.assertIn("等待队友", waiting)
+        member = self.plugin.save_manager.load_save(uids[1])
+        self.assertEqual(member.node_type, "cafe")
+        self.assertTrue(member.node_data.get("cafe_data"))
+        self.assertFalse(member.node_data.get("coop_done"))
+
+        completed = self.run_cmd("离开", uids[1])
+        self.assertIn("继续前进", completed)
+        for uid in uids:
+            grid = self.plugin.save_manager.load_save(uid)
+            self.assertEqual(grid.node_type, "grid_map")
+
+        SessionContextScoper.create_session(run, "A1", "ancient", uids)
+        self.plugin.engine.map_engine.enter_ancient_node(run)
+        self.plugin.save_manager.save_save(uids[0], run)
+
+        waiting = self.run_cmd("c 1", uids[0])
+        self.assertIn("等待队友", waiting)
+        member = self.plugin.save_manager.load_save(uids[1])
+        self.assertEqual(member.node_type, "ancient")
+
+        completed = self.run_cmd("c 1", uids[1])
+        self.assertIn("继续前进", completed)
+        for uid in uids:
+            advanced = self.plugin.save_manager.load_save(uid)
+            self.assertEqual(advanced.node_type, "grid_map")
+
+    def test_coop_ally_card_defaults_to_first_teammate(self):
+        uids = ["ally_default_leader", "ally_default_member", "ally_default_third"]
+        self._start_coop_direct(uids)
+        _, run = move_to_room(self.plugin, uids[0], ("battle", "elite"), rally=True)
+        uid = uids[0]
+        p = run.players[uid]
+        from game.models.state import CardState
+        p.hand = [CardState(id="coop_tactical_command")]
+        p.actions = 2
+        p.bonus_actions = 1
+        self.plugin.save_manager.save_save(uid, run)
+        before = self.plugin.save_manager.load_save(uids[1]).players[uids[1]].actions
+        result = self.run_cmd("p 1", uid)
+        self.assertNotIn("请指定", result)
+        self.assertIn("战术指挥", result)
+        after = self.plugin.save_manager.load_save(uids[1]).players[uids[1]].actions
+        self.assertEqual(after, before + 1)
 
 
 if __name__ == "__main__":

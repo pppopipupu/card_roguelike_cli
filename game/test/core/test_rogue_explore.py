@@ -13,6 +13,9 @@ class TestRogueExplore(unittest.TestCase):
             await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
             run = plugin.save_manager.load_save(user_id)
             self.assertIsNotNone(run)
+            from game.core.session_manager import SessionContextScoper
+            shop_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "shop"), "A1")
+            SessionContextScoper.create_session(run, shop_coord, "shop", [user_id])
             run.node_type = "shop"
             plugin.engine.map_engine.explore_engine._init_shop_node(run)
             plugin.save_manager.save_save(user_id, run)
@@ -65,7 +68,8 @@ class TestRogueExplore(unittest.TestCase):
             if remove_idx != -1:
                 run = plugin.save_manager.load_save(user_id)
                 run.player.gold = 500
-                run.node_type = "shop"
+                from game.core.session_manager import SessionContextScoper
+                SessionContextScoper.create_session(run, "A1", "shop", [user_id])
                 plugin.engine.map_engine.explore_engine._init_shop_node(run)
                 for it in run.node_data["items"]:
                     if it.get("type") == "remove":
@@ -196,10 +200,13 @@ class TestRogueExplore(unittest.TestCase):
             await run_command(plugin, ".rogue 开启 确认", sender_id="test_user_upg")
             await run_command(plugin, ".rogue 选择 1", sender_id="test_user_upg")
             run = save_manager.load_save("test_user_upg")
-            run.node_type = "rest"
-            run.node_data = {}
+            rest_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "rest"), "A1")
+            from game.core.session_manager import SessionContextScoper
+            SessionContextScoper.create_session(run, rest_coord, "rest", ["test_user_upg"])
+            plugin.engine.map_engine.explore_engine._init_rest_node(run)
             save_manager.save_save("test_user_upg", run)
-            res = await run_command(plugin, ".rogue 选择 4", sender_id="test_user_upg")
+            self.assertEqual(run.node_type, "rest")
+            res = await run_command(plugin, ".rogue 选择 3", sender_id="test_user_upg")
             self.assertIn("卡牌升级强化已启动", res)
             run = save_manager.load_save("test_user_upg")
             self.assertTrue(run.node_data.get("pending_upgrade"))
@@ -207,8 +214,8 @@ class TestRogueExplore(unittest.TestCase):
             self.assertIn("升级成功", res_upg)
             run = save_manager.load_save("test_user_upg")
             self.assertTrue(any(card.upgraded for card in run.player.deck))
-            run.node_type = "event"
-            run.node_data = {
+            from game.core.session_manager import SessionContextScoper
+            forge_data = {
                 "event_id": "forge_furnace",
                 "description": "奥术符文熔炉描述",
                 "options": [
@@ -219,22 +226,12 @@ class TestRogueExplore(unittest.TestCase):
                     {"text": "安全离开", "action": "leave_event"}
                 ]
             }
+            SessionContextScoper.create_session(run, "A1", "event", ["test_user_upg"], node_data=dict(forge_data))
             save_manager.save_save("test_user_upg", run)
             res_event_fire = await run_command(plugin, ".rogue 选择 1", sender_id="test_user_upg")
             self.assertIn("卡牌升级强化已启动", res_event_fire)
             run = save_manager.load_save("test_user_upg")
-            run.node_type = "event"
-            run.node_data = {
-                "event_id": "forge_furnace",
-                "description": "奥术符文熔炉描述",
-                "options": [
-                    {"text": "使用常规重铸", "action": "forge_fire"},
-                    {"text": "过载重铸", "action": "overload_forge"},
-                    {"text": "汲取熔炉余温", "action": "forge_backfire"},
-                    {"text": "强行破坏熔炉", "action": "shatter_forge"},
-                    {"text": "安全离开", "action": "leave_event"}
-                ]
-            }
+            SessionContextScoper.create_session(run, "A1", "event", ["test_user_upg"], node_data=dict(forge_data))
             save_manager.save_save("test_user_upg", run)
             res_backfire = await run_command(plugin, ".rogue 选择 3", sender_id="test_user_upg")
             self.assertIn("炉温反噬", res_backfire)
@@ -721,23 +718,11 @@ class TestRogueExplore(unittest.TestCase):
             last_card = ensure_card_state(run_after.player.deck[-1])
             self.assertEqual(last_card.id, "fireball")
             run_after = plugin.save_manager.load_save(user_id)
-            run_after.node_type = "map_select"
-            run_after.node_data = {
-                "options": [
-                    {"node_id": "node_rest", "node_type": "rest", "desc": "篝火营地"}
-                ]
-            }
-            run_after.map_data = {
-                "nodes": {
-                    "5": [
-                        {"id": "node_rest", "type": "rest", "stage": 5, "desc": "篝火营地", "connections": []}
-                    ]
-                },
-                "current_node_id": None
-            }
+            run_after.node_type = "rest"
+            plugin.engine.map_engine.explore_engine._init_rest_node(run_after)
             plugin.save_manager.save_save(user_id, run_after)
-            
-            res_rest_enter = await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
+
+            res_rest_enter = await run_command(plugin, ".rogue 状态", sender_id=user_id)
             self.assertIn("🍖 休息", res_rest_enter)
             self.assertIn("🔮 冥想", res_rest_enter)
             self.assertIn("🔨 强化", res_rest_enter)
@@ -750,35 +735,32 @@ class TestRogueExplore(unittest.TestCase):
         plugin.save_manager.delete_save(user_id)
 
         async def go():
-            def setup_rest_node():
-                player = PlayerState(
-                    hp=60, max_hp=80, shield=0, gold=10, stage=9,
-                    deck=["first_aid", "fireball"], hand=[], draw_pile=[], discard_pile=[], exhaust_pile=[], graveyard=[]
-                )
-                run = GameRun(user_id=user_id, node_type="map_select", player=player, enemies=[])
-                run.node_data = {"options": [{"node_id": "node_rest", "node_type": "rest", "desc": "篝火营地 (恢复生命值或冥想领悟卡牌)"}]}
-                run.map_data = {
-                    "nodes": {"9": [{"id": "node_rest", "type": "rest", "next": []}]},
-                    "current_node_id": None
-                }
+            async def setup_rest_node():
+                plugin.save_manager.delete_save(user_id)
+                await run_command(plugin, ".rogue 开启", sender_id=user_id)
+                await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
+                run = plugin.save_manager.load_save(user_id)
+                from game.core.session_manager import SessionContextScoper
+                rest_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "rest"), "A1")
+                SessionContextScoper.create_session(run, rest_coord, "rest", [user_id])
+                plugin.engine.map_engine.explore_engine._init_rest_node(run)
                 plugin.save_manager.save_save(user_id, run)
+                return await run_command(plugin, "r", sender_id=user_id)
 
             stats = plugin.save_manager.load_stats(user_id)
             stats.rogue_mode = True
             plugin.save_manager.save_stats(user_id, stats)
 
             for alias in ("exit", "离开", "退出", "quit"):
-                setup_rest_node()
-                enter_res = await run_command(plugin, "1", sender_id=user_id)
+                enter_res = await setup_rest_node()
                 self.assertIn("篝火营地", enter_res)
                 exit_res = await run_command(plugin, alias, sender_id=user_id)
                 self.assertNotEqual(exit_res, "")
                 self.assertIn("你离开了当前节点", exit_res)
                 run_after = plugin.save_manager.load_save(user_id)
-                self.assertEqual(run_after.node_type, "map_select")
+                self.assertEqual(run_after.node_type, "grid_map")
 
-            setup_rest_node()
-            await run_command(plugin, "1", sender_id=user_id)
+            await setup_rest_node()
             upgrade_res = await run_command(plugin, "3", sender_id=user_id)
             self.assertIn("卡牌升级强化已启动", upgrade_res)
             cancel_res = await run_command(plugin, "取消", sender_id=user_id)

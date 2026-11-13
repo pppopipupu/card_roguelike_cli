@@ -13,6 +13,7 @@ from .battle.card_player import CardPlayer
 from .battle.enemy_controller import EnemyTurnController
 from .battle.observers import RelicTriggerHandler, BuffTriggerHandler, AmuletTriggerHandler, RallyTriggerHandler, MinionTriggerHandler, EnemyTriggerHandler, CardTriggerHandler, StatTrackingHandler
 from .battle.instant_summon import InstantSummonHandler
+from .battle.exhaustion_observer import ExhaustionObserver
 from .daily_blessing import DailyBlessingHandler
 from .deck_service import DeckService
 from ..models.stats_tracker import StatsTracker
@@ -36,6 +37,7 @@ class BattleEngine(BaseBattleEngine):
         self.daily_blessing_handler = DailyBlessingHandler(self.event_bus, self)
         from .mercenary import MercenaryVoiceHandler
         self.mercenary_voice_handler = MercenaryVoiceHandler(self.event_bus, self)
+        self.exhaustion_observer = ExhaustionObserver(self.event_bus, self)
 
     def _log_event(self, run: Optional[GameRun], msg: str):
         if run is None:
@@ -241,6 +243,7 @@ class BattleEngine(BaseBattleEngine):
             impl = get_relic_impl(r)
             if impl:
                 init_draw = impl.modify_initial_draw(run, init_draw, self)
+        init_draw = self.exhaustion_observer.modify_initial_draw(p, init_draw)
         self._draw_cards(p, init_draw, run, ignore_focus=True)
         run.node_data["difficulty"] = difficulty
 
@@ -316,6 +319,11 @@ class BattleEngine(BaseBattleEngine):
                     self._log_event(run, get_locale_text("i18n_battle_core.yog_sothoth_intro_repeat", name=run.player.name))
             else:
                 run.node_data["boss_name"] = boss_name
+        elif difficulty == "secret_boss":
+            boss_name = run.node_data.get("secret_boss_name") or random.choice(BOSS_POOLS["secret"])
+            run.enemies = [self._create_boss_enemy(boss_name)]
+            run.node_data["boss_name"] = boss_name
+            run.node_data["is_secret_boss"] = True
         elif difficulty == "elite":
             encounter = ENEMY_ENCOUNTER_CONFIG["elite"]
             elite_pool = self._stage_enemy_pool(encounter["pools"], p.stage)

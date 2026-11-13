@@ -28,12 +28,10 @@ def format_buff_detail(buff, desc: str, indent: str = "    ") -> str:
     return get_locale_text("i18n_renderer_extra.formatters.buff_detail", indent=indent, name=buff.name, stacks=format_large_int(buff.stacks), desc=desc)
 
 
-def get_effective_max_hp(player) -> int:
-    total = player.max_hp
-    for buff in player.buffs:
-        if buff.id.startswith("iron_will"):
-            total += buff.stacks * (15 if buff.id.endswith("+") else 10)
-    return int(total)
+def get_effective_max_hp(player, run=None) -> int:
+    from ..core.sp_system import effective_max_hp_for_player
+    in_battle = bool(run is not None and getattr(run, "node_type", "") == "battle")
+    return effective_max_hp_for_player(player, in_battle=in_battle)
 
 
 def format_relic_bar(relics) -> str:

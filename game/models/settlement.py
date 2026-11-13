@@ -9,20 +9,38 @@ class SettlementMixin:
             return self._settle_single_game(user_id, None, is_victory, create_corpse, delete_personal=True)
         other_alive = [
             uid
-            for uid in run.human_uids()
+            for uid in run.all_human_uids()
             if uid != user_id and uid in run.players and run.players[uid].hp > 0 and not run.players[uid].downed
         ]
         if not force and not is_victory and other_alive:
             downed = run.players.get(user_id)
             if downed is not None:
                 downed.downed = True
+            fm = getattr(run, "floor_map", None)
+            if fm is not None:
+                sid = fm.player_session_map.pop(user_id, None)
+                if sid and sid in fm.active_sessions:
+                    sess = fm.active_sessions[sid]
+                    if user_id in sess.participants:
+                        sess.participants.remove(user_id)
+                    human_alive_in_sess = [
+                        u for u in sess.participants
+                        if u in run.players and not getattr(run.players[u], "is_mercenary", False) and not getattr(run.players[u], "downed", False) and run.players[u].hp > 0
+                    ]
+                    if not human_alive_in_sess:
+                        for u in list(sess.participants):
+                            fm.player_session_map.pop(u, None)
+                        fm.active_sessions.pop(sid, None)
+                run.node_type = "grid_map"
+                run.enemies = []
+                run.node_data = {}
             self.save_save(user_id, run)
             return get_locale_text("i18n_models.manager.settle_coop_downed")
         original_player = run.player
         original_user = run.user_id
         results = []
         lines = []
-        for uid in run.party_order:
+        for uid in run.all_party_order():
             player = run.players.get(uid)
             if player is None or getattr(player, "is_mercenary", False):
                 continue

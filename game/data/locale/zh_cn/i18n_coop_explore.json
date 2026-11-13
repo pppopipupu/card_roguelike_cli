@@ -2,7 +2,7 @@
   "coop_done_waiting": "⏳ 你已完成本节点行动，正在等待队友。",
   "err_invalid_reward_idx": "❌ 无效的奖励序号。",
   "relic_claimed_by_other": "❌ 遗物【{relic_name}】已被【{player_name}】夺走，请选择其他遗物。",
-  "relic_limit_reached": "❌ 每位玩家最多只能选择一件遗物。",
+  "relic_limit_reached": "❌ 每位玩家最多只能选择 {limit} 件遗物。",
   "relic_already_owned": "❌ 你已拥有遗物【{relic_name}】,请选择其他遗物。",
   "relic_gained": "🎒 你获得了遗物【{relic_name}】。",
   "relic_taken_notice": "🎒 【{player_name}】夺得了遗物【{relic_name}】。",

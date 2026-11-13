@@ -22,11 +22,13 @@ class QuickenBuff(BuffImpl):
 
 class SpellSurgeBuff(BuffImpl):
     def on_card_played(self, event, buff_state, entity):
-        if entity == event.run.player and event.card.color == "wizard":
+        from ..cards.base import card_matches_color
+        if entity == event.run.player and card_matches_color(event.card, "wizard"):
             event.engine._draw_cards(event.run.player, buff_state.stacks, event.run)
 
     def on_card_played_legacy(self, run, card, target: str, engine) -> str:
-        if card.color == "wizard":
+        from ..cards.base import card_matches_color
+        if card_matches_color(card, "wizard"):
             engine._draw_cards(run.player, self.stacks, run)
         return ""
 
@@ -597,6 +599,60 @@ class PhaseTransitionImmuneBuff(BuffImpl):
                 if buff_state in entity.buffs:
                     entity.buffs.remove(buff_state)
 
+
+
+class PsychicResistanceBuff(BuffImpl):
+    def on_damage_calculate_defend(self, event, buff_state, entity):
+        dtype = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
+        if dtype.lower() == "psychic":
+            mult = _stat(self, "psychic_resistance", "damage_multiplier", 0.5)
+            event.modified_damage = int(event.modified_damage * mult)
+
+    def on_turn_end(self, event, buff_state, entity):
+        if event.is_player and entity == event.run.player:
+            buff_state.stacks -= 1
+            if buff_state.stacks <= 0 and buff_state in entity.buffs:
+                entity.buffs.remove(buff_state)
+
+
+class IntangibleBuff(BuffImpl):
+    def on_damage_calculate_defend(self, event, buff_state, entity):
+        cap = _stat(self, "intangible", "damage_cap", 1)
+        if event.modified_damage > cap:
+            event.modified_damage = cap
+
+    def on_turn_start(self, event, buff_state, entity):
+        if event.is_player and entity == event.run.player:
+            buff_state.stacks -= 1
+            if buff_state.stacks <= 0 and buff_state in entity.buffs:
+                entity.buffs.remove(buff_state)
+
+
+class BladesongBuff(BuffImpl):
+    def on_turn_start(self, event, buff_state, entity):
+        if event.is_player and entity == event.run.player:
+            ba_gain = _stat(self, "bladesong", "ba_gain", 1)
+            event.run.player.bonus_actions += ba_gain
+            event.engine._log_event(event.run, get_locale_text("i18n_grid_map.bladesong_turn_log", ba=ba_gain))
+
+    def on_card_played(self, event, buff_state, entity):
+        if entity != event.run.player:
+            return
+        from ..cards.base import card_matches_color
+        if not (card_matches_color(event.card, "warrior") or card_matches_color(event.card, "wizard")):
+            return
+        stacks = max(1, int(getattr(buff_state, "stacks", 1) or 1))
+        proc_dmg = _stat(self, "bladesong", "proc_dmg", 3) * stacks
+        proc_shield = _stat(self, "bladesong", "proc_shield", 3) * stacks
+        event.engine._gain_shield(event.run, "p0", proc_shield)
+        living = [f"e{i+1}" for i, e in enumerate(event.run.enemies) if e.hp > 0]
+        if living:
+            import random
+            target = random.choice(living)
+            event.engine._damage_target(event.run, target, proc_dmg, source="p0", damage_type="force")
+            event.engine._log_event(event.run, get_locale_text("i18n_grid_map.bladesong_proc_log", dmg=proc_dmg, shield=proc_shield))
+        else:
+            event.engine._log_event(event.run, get_locale_text("i18n_grid_map.bladesong_shield_log", shield=proc_shield))
 
 for name, obj in list(globals().items()):
     if isinstance(obj, type) and issubclass(obj, BuffImpl) and obj is not BuffImpl:

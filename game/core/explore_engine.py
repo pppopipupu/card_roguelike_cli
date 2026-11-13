@@ -154,12 +154,16 @@ class ExploreEngine:
                     
         return res
 
-    def _init_event_node(self, run: GameRun):
+    def _init_event_node(self, run: GameRun, event_id: str = ""):
         stage = max((p.stage for p in run.players.values()), default=run.player.stage)
-        valid_events = [e for e in ALL_EVENTS if getattr(e, "min_stage", 2) <= stage <= getattr(e, "max_stage", MapConfig.COMMON_EVENT_MAX_STAGE)]
-        if not valid_events:
-            valid_events = ALL_EVENTS
-        event = random.choice(valid_events)
+        event = None
+        if event_id:
+            event = next((e for e in ALL_EVENTS if e.id == event_id), None)
+        if event is None:
+            valid_events = [e for e in ALL_EVENTS if getattr(e, "min_stage", 2) <= stage <= getattr(e, "max_stage", MapConfig.COMMON_EVENT_MAX_STAGE)]
+            if not valid_events:
+                valid_events = ALL_EVENTS
+            event = random.choice(valid_events)
         run.node_type = "event"
         run.node_data = {
             "coop_node_type": "event",
@@ -220,7 +224,8 @@ class ExploreEngine:
         for cid in shop_cards:
             card = ALL_CARDS[cid]
             price = SHOP_CARD_BASE_PRICE
-            if card.color == "wizard":
+            from ..entities.cards.base import card_matches_color
+            if card_matches_color(card, "wizard"):
                 price += SHOP_CARD_COLOR_SURCHARGE
             if card.type in ("ability", "minion"):
                 price += SHOP_CARD_TYPE_SURCHARGE
