@@ -3,8 +3,8 @@ import random
 import tempfile
 import unittest
 
-from game.core.grid_map_generator import coord_to_xy, xy_to_coord
-from game.core.session_manager import SessionContextScoper
+from game.core.world.grid_map_generator import coord_to_xy, xy_to_coord
+from game.core.party.session import SessionContextScoper
 from game.data.grid_map_config import FLOOR_CONFIGS
 from game.entities import ALL_CARDS
 from game.entities.cards.base import card_matches_color, get_card_color_icon
@@ -95,6 +95,9 @@ class TestGridMapAndBladesong(unittest.TestCase):
 
         warn = self.run_cmd(adj_dir, "gm_obs")
         self.assertIn("体力透支", warn)
+        self.assertEqual(self.plugin.save_manager.load_save("gm_obs").player.exhaustion, 0)
+        warn2 = self.run_cmd(adj_dir, "gm_obs")
+        self.assertIn("2/2", warn2)
         self.assertEqual(self.plugin.save_manager.load_save("gm_obs").player.exhaustion, 0)
 
         forced = self.run_cmd(adj_dir, "gm_obs")

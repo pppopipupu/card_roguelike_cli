@@ -18,9 +18,8 @@ class GameRenderer:
 
 
     @staticmethod
-    def render_bag(stats: UserStats) -> str:
-        return format_output_numbers(render_bag(stats))
-
+    def render_bag(stats: UserStats, run: GameRun = None) -> str:
+        return format_output_numbers(render_bag(stats, run=run))
     @staticmethod
     def render_town(stats: UserStats, room_data: dict) -> str:
         return format_output_numbers(render_town(stats, room_data))
@@ -66,7 +65,7 @@ class GameRenderer:
     def _render_game_raw(run: GameRun) -> str:
         if not run:
             return render_menu()
-        from ..core.mercenary import is_in_merc_dialog, render_merc_dialog
+        from ..core.party.mercenary import is_in_merc_dialog, render_merc_dialog
         if is_in_merc_dialog(run, getattr(run, "user_id", "")):
             return render_merc_dialog(run, run.user_id)
         nt = run.node_type
@@ -90,6 +89,9 @@ class GameRenderer:
             return render_landmark(run)
         elif nt == "downstairs":
             return render_downstairs(run)
+        elif nt == "room_dialog":
+            from ..core.world.rooms.npc_dialog import render_room_dialog
+            return render_room_dialog(run)
         elif nt == "start_ancient":
             return render_start_ancient(run)
         elif nt == "ancient":
@@ -105,7 +107,7 @@ class GameRenderer:
         elif nt == "gem_insert":
             return run.node_data.get("text", "") + "\n\n" + render_deck(run)
         elif nt == "cafe":
-            from ..core.cafe_engine import CafeEngine
+            from ..core.world.cafe.engine import CafeEngine
             return CafeEngine(None, None).render_cafe(run)
         return get_locale_text("i18n_renderer_extra.unknown_state")
 

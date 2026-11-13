@@ -104,6 +104,14 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                 if run.node_type == "gem_insert":
                     res = router.engine.gem_insert_cancel(run)
                     return res, False, "❌" not in res
+                if run.node_type == "shop" and (
+                    run.node_data.get("shop_mode") == "dialog"
+                    or (run.node_data.get("shop_mode") == "wares" and run.node_data.get("entered_via_lobby"))
+                ):
+                    from ..world.rooms.shop_dialog import render_shop_view
+                    run.node_data["shop_mode"] = "lobby"
+                    router.save_manager.save_save(user_id, run)
+                    return render_shop_view(run), False, True
                 if run.node_type in ("reward", "treasure", "boss_chest", "rest", "shop", "life_merchant"):
                     items = run.node_data.get("items", [])
                     forced_items = [it for it in items if it.get("force") and not it.get("taken")]
@@ -125,15 +133,18 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                                 forced_names.append(get_locale_text("i18n_cli_core.reward_gem_name", name=get_gem_name(gid)))
                         names_str = get_locale_text("i18n_cli_core.list_separator").join(forced_names)
                         return get_locale_text("i18n_cli_core.err_must_claim_forced", names_str=names_str), False, False
-                    from ..party_coordinator import finish_player_node
+                    from ..party.coordinator import finish_player_node
                     msg = finish_player_node(router.save_manager, router.engine.map_engine, run, user_id, get_locale_text("i18n_cli_core.msg_leave_node"))
                     return msg, False, True
+                if run.node_type == "room_dialog":
+                    from ..world.rooms.npc_dialog import close_room_dialog
+                    return close_room_dialog(router.save_manager, run), False, True
                 if run.node_type in ("landmark", "downstairs", "battle_prompt"):
                     fm = getattr(run, "floor_map", None)
                     if fm is not None:
                         sid = fm.player_session_map.get(user_id)
                         if sid:
-                            from ..session_manager import SessionContextScoper
+                            from ..party.session import SessionContextScoper
                             SessionContextScoper.close_session(run, sid, mark_cleared=False)
                     run.node_type = "grid_map"
                     router.save_manager.save_save(user_id, run)

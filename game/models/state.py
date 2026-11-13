@@ -60,6 +60,7 @@ class UserStats:
     purchased_pool: List[str] = field(default_factory=list)
     defeated_town_npcs: List[str] = field(default_factory=list)
     town_inventory: List[str] = field(default_factory=list)
+    town_potions: List[str] = field(default_factory=list)
     town_flags: Dict[str, Any] = field(default_factory=dict)
     town_health_bonus: int = 0
     player_name: str = "玩家"
@@ -405,6 +406,8 @@ class PlayerState:
     max_sp: int = 10
     exhaustion: int = 0
     quest_relics: List[str] = field(default_factory=list)
+    bag_items: List[str] = field(default_factory=list)
+    bag_max_weight: int = 10
 
     def __post_init__(self):
         if not hasattr(self, "potions") or self.potions is None:
@@ -516,6 +519,13 @@ class RoomState:
     landmark_id: str = ""
     secret_unlocked: bool = False
     shared_payload: Dict = field(default_factory=dict)
+    env_id: str = ""
+    obstacle_style: str = ""
+    npcs: List[str] = field(default_factory=list)
+    items: List[str] = field(default_factory=list)
+    props: List[str] = field(default_factory=list)
+    interacted_props: List[str] = field(default_factory=list)
+    defeated_npcs: List[str] = field(default_factory=list)
 
 @dataclass
 class EncounterSession:

@@ -9,7 +9,7 @@ from unittest.mock import patch
 from game.entities.events import ALL_EVENTS
 
 from game.test.core.base import CorePlugin, move_to_room, run_command
-from game.core.session_manager import SessionContextScoper
+from game.core.party.session import SessionContextScoper
 from game.data.account_config import RENAME_COST_GP
 from game.data.gem_data import GEM_CONFIG
 from game.entities.cards.base import ALL_CARDS
@@ -164,7 +164,7 @@ class TestRogueCoop(unittest.TestCase):
         run = self.plugin.save_manager.load_save(uids[0])
         self.assertEqual(run.node_data.get("turn_count"), 2)
         self.assertFalse(any(run.node_data["turn_ready"].values()))
-        from game.core.deck_service import DeckService
+        from game.core.inventory.deck_service import DeckService
         from game.entities.cards.market import is_coop_only
         stats = self.plugin.save_manager.load_stats(uids[0])
         pool = set(DeckService.get_reward_card_pool(run, run.players[uids[0]], stats, include_coop=True))
@@ -467,7 +467,7 @@ class TestRogueCoop(unittest.TestCase):
         SessionContextScoper.create_session(run, "A1", "event", uids)
         explore = self.plugin.engine.map_engine.explore_engine
         event = next(e for e in ALL_EVENTS if e.id == event_id)
-        with patch("game.core.explore_engine.random.choice", return_value=event):
+        with patch("game.core.world.explore_engine.random.choice", return_value=event):
             explore._init_event_node(run)
         self.plugin.save_manager.save_save(uids[0], run)
         return run

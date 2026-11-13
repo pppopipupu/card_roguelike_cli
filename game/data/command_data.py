@@ -21,6 +21,11 @@ COMMAND_SECTION_ORDER = {
         "grid_tp",
         "grid_map",
         "grid_talk",
+        "grid_attack",
+        "grid_touch",
+        "grid_take",
+        "grid_use",
+        "drop_item",
         "abandon"
     ),
     "battle": (

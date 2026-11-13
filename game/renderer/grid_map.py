@@ -1,5 +1,5 @@
-from ..core.grid_map_generator import coord_to_xy, neighbors_4, xy_to_coord
-from ..core.sp_system import format_exhaustion_effects
+from ..core.world.grid_map_generator import coord_to_xy, neighbors_4, xy_to_coord
+from ..core.world.sp_system import format_exhaustion_effects
 from ..data.grid_map_config import (
     DIRECT_REVEAL_ADJACENT_TYPES,
     FLOOR_CONFIGS,
@@ -157,28 +157,36 @@ def render_grid_map(run: GameRun) -> str:
         lines.append(get_locale_text("i18n_grid_map.revealed_facilities") + " ".join(tp_entries))
 
     cur_room = fm.rooms.get(viewer_coord)
-    if cur_room and (cur_room.room_type in ("landmark", "downstairs") or (viewer_coord == fm.ritual_coord and not fm.secret_unlocked)):
-        lines.append(get_locale_text("i18n_grid_map.talk_hint"))
+    if cur_room is not None:
+        lines.extend(_render_room_details(fm, cur_room, viewer_coord, p))
+        if cur_room.room_type in ("landmark", "downstairs") or (viewer_coord == fm.ritual_coord and not fm.secret_unlocked):
+            lines.append(get_locale_text("i18n_grid_map.talk_hint"))
 
-    if not p.fold_guide:
+    if p.fold_guide:
+        lines.append(get_locale_text("i18n_grid_map.guide_folded"))
+    else:
         lines.append(get_locale_text("i18n_grid_map.controls_hint"))
+        lines.append(get_locale_text("i18n_room_interact.room_ui.interact_hints"))
     lines.append(get_locale_text("i18n_grid_map.separator"))
     return "\n".join(lines)
 
 
 def render_battle_prompt(run: GameRun) -> str:
+    from ..core.world.rooms.interact import format_room_extras
+    p = run.player
     options = run.node_data.get("options", [])
     coord = run.node_data.get("coord", "")
     lines = [
         get_locale_text("i18n_grid_map.separator"),
         get_locale_text("i18n_grid_map.battle_prompt.title", coord=coord),
         get_locale_text("i18n_grid_map.battle_prompt.desc"),
+        *format_room_extras(run, include_env=True),
         "",
     ]
     for idx, opt in enumerate(options, 1):
         lines.append(f"  [{idx}] {opt.get('text', '')}")
     lines.append("")
-    lines.append(get_locale_text("i18n_grid_map.choose_hint"))
+    lines.append(get_locale_text("i18n_grid_map.guide_folded") if p.fold_guide else get_locale_text("i18n_grid_map.choose_hint"))
     lines.append(get_locale_text("i18n_grid_map.separator"))
     return "\n".join(lines)
 
@@ -196,7 +204,7 @@ def render_landmark(run: GameRun) -> str:
     for idx, opt in enumerate(options, 1):
         lines.append(f"  [{idx}] {opt.get('text', '')}")
     lines.append("")
-    lines.append(get_locale_text("i18n_grid_map.choose_hint"))
+    lines.append(get_locale_text("i18n_grid_map.guide_folded") if run.player.fold_guide else get_locale_text("i18n_grid_map.choose_hint"))
     lines.append(get_locale_text("i18n_grid_map.separator"))
     return "\n".join(lines)
 
@@ -214,6 +222,91 @@ def render_downstairs(run: GameRun) -> str:
     for idx, opt in enumerate(options, 1):
         lines.append(f"  [{idx}] {opt.get('text', '')}")
     lines.append("")
-    lines.append(get_locale_text("i18n_grid_map.choose_hint"))
+    lines.append(get_locale_text("i18n_grid_map.guide_folded") if run.player.fold_guide else get_locale_text("i18n_grid_map.choose_hint"))
     lines.append(get_locale_text("i18n_grid_map.separator"))
     return "\n".join(lines)
+
+
+def _describe_neighbor(fm, x: int, y: int) -> str:
+    from ..data.room_interact_data import OBSTACLE_STYLES
+    if not (0 <= x < fm.width and 0 <= y < fm.height):
+        return get_locale_text("i18n_room_interact.dir.void_edge")
+    coord = xy_to_coord(x, y)
+    room = fm.rooms.get(coord)
+    if room is None or room.room_type == "wall":
+        return get_locale_text("i18n_room_interact.dir.wall")
+    if room.room_type == "secret_boss" and not fm.secret_unlocked:
+        return get_locale_text("i18n_room_interact.dir.secret_locked")
+    revealed = coord in fm.revealed_coords or room.explored
+    if room.room_type == "obstacle":
+        style = room.obstacle_style or "collapsed_boulders"
+        scfg = OBSTACLE_STYLES.get(style, OBSTACLE_STYLES["collapsed_boulders"])
+        return get_locale_text("i18n_room_interact.dir.obstacle", name=get_locale_text(scfg["name_key"]))
+    if not revealed:
+        if room.room_type in DIRECT_REVEAL_ADJACENT_TYPES:
+            label = get_locale_text(f"i18n_grid_map.room_name.{room.room_type}")
+            return get_locale_text("i18n_room_interact.dir.room_open", room_label=label)
+        return get_locale_text("i18n_room_interact.dir.unexplored")
+    label = get_locale_text(f"i18n_grid_map.room_name.{room.room_type}")
+    if room.cleared and room.room_type not in PERMANENT_ICON_TYPES:
+        return get_locale_text("i18n_room_interact.dir.room_cleared", room_label=label)
+    return get_locale_text("i18n_room_interact.dir.room_open", room_label=label)
+
+
+def _render_room_details(fm, cur_room, viewer_coord: str, player) -> list[str]:
+    from ..core.inventory.bag_service import get_bag_max_weight, get_bag_weight, get_item_display_name
+    from ..data.potion_data import POTION_SLOT_LIMIT
+    from ..data.room_interact_data import ROOM_NPCS, ROOM_PROPS
+    out = []
+    env_id = getattr(cur_room, "env_id", "") or "dungeon_corridor"
+    env_text = get_locale_text(f"i18n_room_interact.env.{env_id}")
+    if cur_room.cleared and cur_room.room_type not in ("spawn", "empty", "shop", "cafe", "landmark", "downstairs"):
+        env_text += get_locale_text("i18n_room_interact.env.cleared_suffix")
+    out.append(env_text)
+
+    cx, cy = coord_to_xy(viewer_coord)
+    dirs = [
+        ("i18n_room_interact.dir.north", cx, cy - 1),
+        ("i18n_room_interact.dir.south", cx, cy + 1),
+        ("i18n_room_interact.dir.west", cx - 1, cy),
+        ("i18n_room_interact.dir.east", cx + 1, cy),
+    ]
+    dir_parts = [
+        get_locale_text("i18n_room_interact.dir.entry", dir=get_locale_text(dkey), desc=_describe_neighbor(fm, nx, ny))
+        for dkey, nx, ny in dirs
+    ]
+    out.append(get_locale_text("i18n_room_interact.dir.line_header") + " | ".join(dir_parts))
+
+    defeated = set(getattr(cur_room, "defeated_npcs", None) or [])
+    alive_npcs = [nid for nid in (getattr(cur_room, "npcs", None) or []) if nid not in defeated]
+    if alive_npcs:
+        npc_names = [
+            f"【{get_locale_text(ROOM_NPCS[nid]['name_key'])}】" if nid in ROOM_NPCS else nid
+            for nid in alive_npcs
+        ]
+        out.append(get_locale_text("i18n_room_interact.room_ui.npcs_line", items="、".join(npc_names)))
+
+    props = list(getattr(cur_room, "props", None) or [])
+    done_props = set(getattr(cur_room, "interacted_props", None) or [])
+    if props:
+        prop_parts = []
+        for pid in props:
+            pname = get_locale_text(ROOM_PROPS[pid]["name_key"]) if pid in ROOM_PROPS else pid
+            if pid in done_props:
+                prop_parts.append(f"【{pname}·{get_locale_text('i18n_room_interact.room_ui.prop_done_tag')}】")
+            else:
+                prop_parts.append(f"【{pname}】")
+        out.append(get_locale_text("i18n_room_interact.room_ui.props_line", items="、".join(prop_parts)))
+
+    items = list(getattr(cur_room, "items", None) or [])
+    if items:
+        item_names = [f"【{get_item_display_name(it)}】" for it in items]
+        out.append(get_locale_text("i18n_room_interact.room_ui.items_line", items="、".join(item_names)))
+
+    potions = list(getattr(player, "potions", None) or [])
+    out.append(get_locale_text(
+        "i18n_room_interact.bag.rogue_weight_line",
+        used=get_bag_weight(player),
+        max=get_bag_max_weight(player),
+    ) + get_locale_text("i18n_room_interact.bag.rogue_potion_inline", count=len(potions), limit=POTION_SLOT_LIMIT))
+    return out

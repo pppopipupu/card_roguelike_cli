@@ -9,7 +9,7 @@ class AbandonCommand(CommandHandler, names=["放弃", "abandon"], allowed_states
             yield get_locale_text("i18n_cli_general_b.err_no_active_game")
             return
         if len(parts) > 1 and parts[1] in ("确认", "confirm"):
-            from ....session_manager import SessionContextScoper
+            from ....party.session import SessionContextScoper
             run.party_order = SessionContextScoper.ensure_full_party_order(run)
             multi = run.player_count() > 1
             settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False, create_corpse=False, force=True)

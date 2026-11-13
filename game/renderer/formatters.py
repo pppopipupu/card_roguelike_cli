@@ -29,7 +29,7 @@ def format_buff_detail(buff, desc: str, indent: str = "    ") -> str:
 
 
 def get_effective_max_hp(player, run=None) -> int:
-    from ..core.sp_system import effective_max_hp_for_player
+    from ..core.world.sp_system import effective_max_hp_for_player
     in_battle = bool(run is not None and getattr(run, "node_type", "") == "battle")
     return effective_max_hp_for_player(player, in_battle=in_battle)
 

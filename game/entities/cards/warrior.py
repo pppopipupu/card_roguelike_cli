@@ -2,7 +2,7 @@ from typing import Optional
 from ...models.state import Card
 from ...data.card_data import CARD_CONFIG
 from ...data.locale_data import get_locale_text
-from ...core.deck_service import DeckService
+from ...core.inventory.deck_service import DeckService
 from .registry import register_card
 from .warrior_officer import (
     AURORA_ENTRY_SHIELD,

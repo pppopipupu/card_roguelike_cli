@@ -1,6 +1,6 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
-from ....core.deck_service import DeckService
+from ....core.inventory.deck_service import DeckService
 from ....data.enemy_data import ENEMY_CONFIG
 from ....data.locale_data import get_locale_text
 

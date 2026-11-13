@@ -197,7 +197,7 @@ class CardPlayerTurnMixin:
             for member in run.party_order
             if member in run.players
         }
-        from ..mercenary import run_mercenaries_for_timing
+        from ..party.mercenary import run_mercenaries_for_timing
         from ...data.mercenary_data import MERCENARY_TIMING_AFTER, MERCENARY_TIMING_BEFORE
         merc_after_logs = run_mercenaries_for_timing(self.engine, run, MERCENARY_TIMING_AFTER)
         if self.engine.is_battle_won(run):
@@ -244,7 +244,7 @@ class CardPlayerTurnMixin:
             if multi:
                 return get_locale_text("i18n_explore_core.coop_wipe_enemy_log", enemy_logs=enemy_actions, settle_msg=settle_msg)
             return get_locale_text("i18n_battle_core.adventure_defeat", enemy_actions=enemy_actions, settle_msg=settle_msg)
-        from ..mercenary import end_unended_mercenary_phases
+        from ..party.mercenary import end_unended_mercenary_phases
         end_unended_mercenary_phases(self.engine, run)
         if self.engine.is_battle_won(run):
             if is_all_downed(run):

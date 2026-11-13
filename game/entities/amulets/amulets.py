@@ -2,7 +2,7 @@ from typing import Optional
 from ...data.amulet_data import AMULET_CONFIG
 from ...data.locale_data import get_locale_text
 from ...data.damage_type_data import is_physical_damage
-from ...core.deck_service import DeckService, UPGRADE_SUFFIX
+from ...core.inventory.deck_service import DeckService, UPGRADE_SUFFIX
 
 class AmuletTemplate:
     def on_end_turn(self, run, grid: str, engine) -> str:

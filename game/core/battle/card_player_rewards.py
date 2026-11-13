@@ -12,9 +12,9 @@ from ...data.reward_config import (
 from ...entities import get_relic_name
 from ...models.events import BattleWinEvent, RewardGenerateEvent
 from ...models.state import GameRun, PlayerState
-from ..achievement_service import AchievementService
-from ..party_coordinator import apply_and_scope, restore_player, swap_player, team_notice
-from ..reward_builder import build_reward_items, elite_relic_id, roll_battle_gold, roll_potion
+from ..progress.achievement_service import AchievementService
+from ..party.coordinator import apply_and_scope, restore_player, swap_player, team_notice
+from .reward_builder import build_reward_items, elite_relic_id, roll_battle_gold, roll_potion
 from .corpse_reward import handle_corpse_win as handle_corpse_reward
 
 
@@ -221,6 +221,10 @@ class CardPlayerRewardsMixin:
             restore_player(run, previous, previous_user)
         if run.node_data.get("corpse_battle"):
             self.handle_corpse_win(run)
+            return
+        if run.node_data.get("npc_combat"):
+            from ..world.rooms.npc_dialog import handle_npc_combat_win
+            handle_npc_combat_win(self, run)
             return
         if run.node_data.get("is_town_combat"):
             self.engine.save_manager.save_save(run.user_id, run)

@@ -4,7 +4,7 @@ from ...data.event_data import EVENT_CONFIG, EVENT_MIN_HP, EVENT_MIN_MAX_HP
 from ...data.relic_data import RELIC_CONFIG
 from ..relics import get_relic_name
 from ..cards import ALL_CARDS
-from ...core.deck_service import DeckService
+from ...core.inventory.deck_service import DeckService
 from ...data.locale_data import get_locale_text
 
 class ContractRelicOption(EventOption, action="contract_relic", text=get_locale_text("i18n_events_c.opt_contract_relic")):

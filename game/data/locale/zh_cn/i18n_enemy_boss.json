@@ -221,7 +221,7 @@
   "yog_log_doomsday_tide_heal": "【{enemy_name}】吸取了生命力，恢复了 15 点生命值。",
   "yog_log_reality_shatter": "【{enemy_name}】引爆现实碎裂，对玩家造成真实伤害。{dmg_msg}",
   "yog_log_meta_code_injection": "【{enemy_name}】引动了底层代码篡改。{dmg_msg}",
-  "yog_log_traceback": "Traceback (most recent call last):\n  File \"game/core/battle_engine.py\", line 212, in run_combat_turn\n    raise DimensionCollapseError(\"Yog-Sothoth injected malicious bytes into GameRun.state.\")\ngame.core.battle.exceptions.DimensionCollapseError: 维度坍缩：存档已损坏？不，尤格-索托斯篡改了底层代码！\n💬 【万物归一】虚空之门·尤格-索托斯：‘在我的真理之下，你们的代码不过是虚无的泥潭。下一个回合，如果你没有打出任何一张【防御】卡牌，我将从你的卡组中删去最珍贵的一张卡！’",
+  "yog_log_traceback": "Traceback (most recent call last):\n  File \"game/core/battle/engine.py\", line 212, in run_combat_turn\n    raise DimensionCollapseError(\"Yog-Sothoth injected malicious bytes into GameRun.state.\")\ngame.core.battle.exceptions.DimensionCollapseError: 维度坍缩：存档已损坏？不，尤格-索托斯篡改了底层代码！\n💬 【万物归一】虚空之门·尤格-索托斯：‘在我的真理之下，你们的代码不过是虚无的泥潭。下一个回合，如果你没有打出任何一张【防御】卡牌，我将从你的卡组中删去最珍贵的一张卡！’",
   "yog_log_data_overflow": "【{enemy_name}】引爆了数据溢出攻击！{dmg_summary}",
   "yog_log_data_overflow_warning": "⚠️ 【数据溢出警告】\nSYSTEM_DETECTED_ERROR: PLAYER_HP_OVERFLOW [HP: -9999 / 9999]\n但由于先古守护的底层数据冗余重构，你的实际生命值未受影响。",
   "yog_log_save_erase_gold": "【{enemy_name}】施展了时空抹除，试图擦除你的存在，获得了 35 点护盾！\n⚠️ 尤格-索托斯正在读取你的存档... 试图执行 delete_save()...\n🛡️ 先古防火墙防御成功！但你仍丢失了 5 枚金币！",

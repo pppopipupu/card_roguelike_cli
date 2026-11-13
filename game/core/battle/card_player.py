@@ -5,7 +5,7 @@ from ...models.state import GameRun, PlayerState
 from .card_player_rewards import CardPlayerRewardsMixin
 from .card_player_turn import CardPlayerTurnMixin
 from .coop_targeting import validate_coop_target, normalize_coop_target
-from ..deck_service import DeckService
+from ..inventory.deck_service import DeckService
 from ...data.locale_data import get_locale_text
 from ...data.buff_data import BUFF_CONFIG
 from ...data.gem_data import GEM_CONFIG

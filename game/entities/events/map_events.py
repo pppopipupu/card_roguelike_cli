@@ -6,8 +6,8 @@ from ...data.reward_config import TREASURE_RELIC_POOL
 from ...data.locale_data import get_locale_text
 from ...entities import ALL_CARDS, get_relic_name
 from ...models.state import ensure_card_state
-from ...core.deck_service import DeckService
-from ...core.sp_system import consume_sp, restore_sp
+from ...core.inventory.deck_service import DeckService
+from ...core.world.sp_system import consume_sp, restore_sp
 
 
 def _coord_to_xy(coord: str) -> tuple[int, int]:

@@ -14,14 +14,14 @@ if sys.platform.startswith("win"):
 
 from game.models.manager import SaveManager
 from game.models.state import GameRun, PlayerState, EnemyState, MinionState, BuffState
-from game.core.battle_engine import BattleEngine
-from game.core.map_engine import MapEngine
+from game.core.battle.engine import BattleEngine
+from game.core.world.map_engine import MapEngine
 from game.entities.cards.base import ALL_CARDS
 from game.renderer.query import render_query_info
-from game.core.cli_router import CLIRouter
+from game.core.cli.router import CLIRouter
 from game.models.state import UserStats
 from game.engine import GameEngine
-from game.core.headless_server import HeadlessGameServer
+from game.core.api.headless_server import HeadlessGameServer
 
 class DummyContext:
     pass
@@ -98,7 +98,7 @@ async def run_command(plugin, cmd_str: str, sender_id: str = "test_user") -> str
 
 async def async_move_to_room(plugin, uid: str, target_types, rally: bool = False):
     import heapq
-    from game.core.grid_map_generator import coord_to_xy, xy_to_coord
+    from game.core.world.grid_map_generator import coord_to_xy, xy_to_coord
     if isinstance(target_types, str):
         target_types = (target_types,)
     else:

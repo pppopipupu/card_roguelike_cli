@@ -30,7 +30,7 @@ def _target_enemy(run, target):
 
 
 def _enemy_base_name(name):
-    from ...core.reward_builder import base_enemy_name
+    from ...core.battle.reward_builder import base_enemy_name
 
     return base_enemy_name(str(name))
 

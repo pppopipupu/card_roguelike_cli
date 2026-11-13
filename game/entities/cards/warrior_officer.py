@@ -1,6 +1,6 @@
 from ...models.state import Card
 from ...data.locale_data import get_locale_text
-from ...core.deck_service import DeckService
+from ...core.inventory.deck_service import DeckService
 from .registry import register_card
 
 AURORA_ENTRY_SHIELD = 12

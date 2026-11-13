@@ -20,7 +20,7 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         p.potions = ["healing_potion", "shield_potion"]
         self.plugin.save_manager.save_save(self.user_id, run)
         
-        from game.core.session_manager import SessionContextScoper
+        from game.core.party.session import SessionContextScoper
         SessionContextScoper.create_session(run, "A1", "reward", [self.user_id], node_data={
             "items": [
                 {"type": "potion", "potion_id": "fire_potion", "taken": False}

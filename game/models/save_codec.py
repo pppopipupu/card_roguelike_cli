@@ -116,7 +116,9 @@ class SaveCodecMixin:
             sp=p_data.get("sp", 10),
             max_sp=p_data.get("max_sp", 10),
             exhaustion=p_data.get("exhaustion", 0),
-            quest_relics=list(p_data.get("quest_relics", []) or [])
+            quest_relics=list(p_data.get("quest_relics", []) or []),
+            bag_items=list(p_data.get("bag_items", []) or []),
+            bag_max_weight=int(p_data.get("bag_max_weight", 10) or 10),
         )
 
     def _parse_enemy_list(self, enemies_data: list) -> list:
@@ -195,6 +197,13 @@ class SaveCodecMixin:
                 landmark_id=rdata.get("landmark_id", ""),
                 secret_unlocked=bool(rdata.get("secret_unlocked", False)),
                 shared_payload=dict(rdata.get("shared_payload") or {}),
+                env_id=rdata.get("env_id", ""),
+                obstacle_style=rdata.get("obstacle_style", ""),
+                npcs=list(rdata.get("npcs") or []),
+                items=list(rdata.get("items") or []),
+                props=list(rdata.get("props") or []),
+                interacted_props=list(rdata.get("interacted_props") or []),
+                defeated_npcs=list(rdata.get("defeated_npcs") or []),
             )
         sessions = {}
         for sid, sdata in (fm_data.get("active_sessions") or {}).items():

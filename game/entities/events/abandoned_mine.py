@@ -1,7 +1,7 @@
 import random
 from .base import EventOption
 from ...data.event_data import EVENT_CONFIG, EVENT_MIN_HP
-from ...core.deck_service import DeckService
+from ...core.inventory.deck_service import DeckService
 from ...data.relic_data import RELIC_CONFIG
 from ..relics import get_relic_name
 from ...data.locale_data import get_locale_text

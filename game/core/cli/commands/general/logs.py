@@ -1,7 +1,7 @@
 from typing import Generator
 
 from ...base import CommandHandler
-from ....log_service import parse_log_limit
+from ....telemetry.log_service import parse_log_limit
 
 
 class LogsCommand(CommandHandler, names=["logs", "日志"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe"], help_key="logs"):

@@ -301,7 +301,7 @@ class TestRogueTown(unittest.TestCase):
 
             stats.town_flags["market_shelf"] = ["invalid_card"]
             save_manager.save_stats("test_user", stats)
-            from game.core.town_engine import TownEngine
+            from game.core.world.town.engine import TownEngine
             town_eng = TownEngine(save_manager, None)
             shelf = town_eng._get_market_shelf(stats)
             self.assertEqual(len(shelf), len(MARKET_SHELF_CARDS))

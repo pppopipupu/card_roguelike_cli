@@ -472,7 +472,7 @@ class TestRogueEnemyStage(unittest.TestCase):
                     yog_sothoth_challenge_count = 1
                 return DummyStats()
         dummy_save = DummySaveManager()
-        from game.core.battle_engine import BattleEngine
+        from game.core.battle.engine import BattleEngine
         engine = BattleEngine(dummy_save)
         from game.models.state import PlayerState, EnemyState, GameRun
         player = PlayerState(hp=100, max_hp=100, shield=0, gold=100, stage=32)

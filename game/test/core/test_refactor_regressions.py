@@ -1,6 +1,6 @@
 import unittest
 
-from game.core.battle_engine import BattleEngine
+from game.core.battle.engine import BattleEngine
 from game.models.state import BuffState, CardState, EnemyState, GameRun, PlayerState
 
 

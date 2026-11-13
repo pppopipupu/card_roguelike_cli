@@ -22,7 +22,7 @@ class AncientPageRelic(RelicImpl):
         engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.ancient_page.hp_loss", hp_loss=self.hp_loss))
         max_hand = self.void_mask_max_hand if "mask_of_void" in p.relics else self.max_hand
         spark_added = 0
-        from ...core.deck_service import DeckService
+        from ...core.inventory.deck_service import DeckService
         for _ in range(self.spark_count):
             if len(p.hand) < max_hand:
                 DeckService.add_card_to_hand(p, "arcane_spark")

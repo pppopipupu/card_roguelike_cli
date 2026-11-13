@@ -5,18 +5,21 @@ from .....data.potion_data import get_potion_name
 from .....data.command_data import POTION_LIST_ALIASES, POTION_DRINK_ALIASES, POTION_THROW_ALIASES, POTION_DROP_ALIASES, POTION_CONTAINER_ALIASES
 from .....data.locale_data import get_locale_text
 
-class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "drink", "use_potion", "丢弃药水", "discard_potion", "drop_potion", "drop", "丢药", "dp", "dr", "pot", "投掷", "投", "throw", "t"], allowed_states=["battle", "grid_map", "explore", "town", "menu"], help_key="potion"):
+class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "drink", "use_potion", "丢弃药水", "discard_potion", "drop_potion", "drop", "丢药", "dp", "dr", "pot", "投掷", "投", "throw", "t"], allowed_states=["battle", "grid_map", "explore", "cafe", "town", "menu"], help_key="potion"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
+        action, args = self._parse(parts)
         if not run:
+            if action == "list":
+                stats = router.save_manager.load_stats(user_id)
+                yield GameRenderer.render_bag(stats)
+                return
             yield get_locale_text("i18n_cli_general_a.potion.no_run")
             return
-
         p = run.player
         if not hasattr(p, "potions"):
             p.potions = []
 
-        action, args = self._parse(parts)
         if action == "list":
             yield GameRenderer.render_potion_list(run)
             return
@@ -36,9 +39,14 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
         try:
             idx = int(args[0]) - 1
         except ValueError:
+            if action == "drop":
+                from ....inventory.bag_service import drop_bag_item
+                msg = drop_bag_item(run, " ".join(args))
+                router.save_manager.save_save(user_id, run)
+                yield msg
+                return
             yield get_locale_text("i18n_cli_general_a.potion.invalid_slot")
             return
-
         if idx < 0 or idx >= len(p.potions):
             yield get_locale_text("i18n_cli_general_a.potion.invalid_slot_count", count=len(p.potions))
             return

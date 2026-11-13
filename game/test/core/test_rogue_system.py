@@ -137,7 +137,7 @@ class TestRogueSystem(unittest.TestCase):
         asyncio.run(go())
 
     def test_warrior_ward_and_rally(self):
-        from game.core.battle_engine import BattleEngine
+        from game.core.battle.engine import BattleEngine
         from game.models.state import GameRun, PlayerState, EnemyState, MinionState, Card
         from game.entities.enemies.base import EnemyTemplate
         class DummySaveManager:

@@ -1,6 +1,6 @@
 from typing import List
 from ..base import EnemyTemplate, register_enemy
-from ....core.deck_service import DeckService
+from ....core.inventory.deck_service import DeckService
 from ....data.locale_data import get_locale_text
 
 @register_enemy("虚空之门·尤格-索托斯")

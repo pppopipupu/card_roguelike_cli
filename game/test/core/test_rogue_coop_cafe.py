@@ -41,9 +41,9 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         for uid in uids:
             run.players[uid].gold = 500
         cafe_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "cafe"), "A1")
-        from game.core.session_manager import SessionContextScoper
+        from game.core.party.session import SessionContextScoper
         SessionContextScoper.create_session(run, cafe_coord, "cafe", uids)
-        from game.core.cafe_engine import CafeEngine
+        from game.core.world.cafe.engine import CafeEngine
         CafeEngine(self.plugin.save_manager, self.plugin.engine.map_engine).init_cafe(run, persist=False)
         self.plugin.save_manager.save_save(uids[0], run)
         return self.plugin.save_manager.load_save(uids[0])
@@ -347,8 +347,8 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
     def test_coop_cafe_and_ancient_wait_for_all_players(self):
         uids = ["cafe_wait_leader", "cafe_wait_member"]
         run = self._start_coop_direct(uids)
-        from game.core.cafe_engine import CafeEngine
-        from game.core.session_manager import SessionContextScoper
+        from game.core.world.cafe.engine import CafeEngine
+        from game.core.party.session import SessionContextScoper
         SessionContextScoper.create_session(run, "A1", "cafe", uids)
         CafeEngine(self.plugin.save_manager, self.plugin.engine.map_engine).init_cafe(run, persist=False)
         self.plugin.save_manager.save_save(uids[0], run)

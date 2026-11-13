@@ -2,7 +2,7 @@ import random
 from .base import EventOption
 from ...data.event_data import EVENT_CONFIG
 from ..cards import ALL_CARDS
-from ...core.deck_service import DeckService
+from ...core.inventory.deck_service import DeckService
 from ...data.reward_config import NORMAL_CARD_RARITIES
 from ...data.locale_data import get_locale_text
 

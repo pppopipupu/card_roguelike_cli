@@ -3,7 +3,7 @@ import random
 from game.test.core.base import *
 from game.models.state import PlayerState, GameRun, EnemyState, CardState
 from game.entities.cards.base import ALL_CARDS
-from game.core.battle_engine import BattleEngine
+from game.core.battle.engine import BattleEngine
 from game.entities.events.chaos_events import (
     ReadVoidTomeOption, BurnVoidBooksOption, SacrificeMindOption,
     BuyBlackmarketRelicOption, RobBlackmarketOption, SellFleshOption,

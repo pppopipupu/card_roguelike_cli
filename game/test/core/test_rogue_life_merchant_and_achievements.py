@@ -5,14 +5,14 @@ import os
 import tempfile
 import unittest
 
-from game.core.achievement_service import AchievementService
-from game.core.battle_engine import BattleEngine
-from game.core.life_merchant import calc_life_merchant_price
+from game.core.progress.achievement_service import AchievementService
+from game.core.battle.engine import BattleEngine
+from game.core.world.life_merchant import calc_life_merchant_price
 from game.data.achievement_data import ACHIEVEMENT_ALL_VIEW_PRICE, ACHIEVEMENTS_CONFIG
 from game.data.map_config import MapConfig
 from game.models.state import EnemyIntentState, EnemyState, GameRun, PlayerState, UserStats, ensure_card_state
-from game.core.grid_map_generator import generate_floor_map
-from game.core.session_manager import SessionContextScoper
+from game.core.world.grid_map_generator import generate_floor_map
+from game.core.party.session import SessionContextScoper
 from game.renderer.grid_map import render_grid_map
 from game.renderer.menu import render_shop
 from game.test.core.base import CorePlugin, run_command

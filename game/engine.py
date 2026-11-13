@@ -4,8 +4,8 @@ from .models.state import GameRun, PlayerState, EnemyState, MinionState, AmuletS
 from .entities import ALL_CARDS
 from .entities.cards.market import is_card_available, is_coop_only
 from .models.manager import SaveManager
-from .core.battle_engine import BattleEngine
-from .core.map_engine import MapEngine
+from .core.battle.engine import BattleEngine
+from .core.world.map_engine import MapEngine
 from .data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
 
 class GameEngine:
@@ -36,7 +36,7 @@ class GameEngine:
         hp_bonus = getattr(stats, "town_health_bonus", 0)
         hp += hp_bonus
         max_hp += hp_bonus
-        from .core.deck_service import DeckService
+        from .core.inventory.deck_service import DeckService
         commons = [cid for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("common",)) if cid != "time_stop"]
         rares = [cid for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("rare",)) if cid != "time_stop"]
         epics = [cid for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("epic",)) if cid != "time_stop"]
@@ -94,14 +94,16 @@ class GameEngine:
             subclass=selected_subclass,
             selected_class=selected_class
         )
+        from .core.inventory.bag_service import carryin_from_stats
+        carryin_from_stats(player, stats)
         self.save_manager.save_stats(user_id, stats)
         return player
 
     def start_party_game(self, member_ids: List[str], leader_id: Optional[str] = None, shared_save: bool = False) -> Optional[GameRun]:
         import uuid
         from .data.balance_config import COOP_MAX_PLAYERS
-        from .core.daily_blessing import apply_pending_blessing
-        from .core.mercenary import build_mercenary_player
+        from .core.battle.daily_blessing import apply_pending_blessing
+        from .core.party.mercenary import build_mercenary_player
         if not member_ids:
             return None
         if len(member_ids) > COOP_MAX_PLAYERS:
@@ -204,8 +206,8 @@ class GameEngine:
         return self.map_engine.gem_insert_cancel(run)
 
     def jump_to_stage(self, run: GameRun, target_stage: int) -> str:
-        from .core.grid_map_generator import generate_floor_map
-        from .core.session_manager import SessionContextScoper
+        from .core.world.grid_map_generator import generate_floor_map
+        from .core.party.session import SessionContextScoper
         floor_idx = 1
         if target_stage >= 32:
             floor_idx = 4

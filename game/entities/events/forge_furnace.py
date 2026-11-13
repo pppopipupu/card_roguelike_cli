@@ -6,7 +6,7 @@ from ...data.relic_data import RELIC_CONFIG
 from ..cards import ALL_CARDS
 from ..relics import get_relic_name
 from ...models.state import BuffState, ensure_card_state
-from ...core.deck_service import DeckService
+from ...core.inventory.deck_service import DeckService
 from ...data.locale_data import get_locale_text
 
 class ForgeFireOption(EventOption, action="forge_fire", text=get_locale_text("i18n_events_a.forge_fire_text")):

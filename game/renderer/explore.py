@@ -19,6 +19,11 @@ def render_event(run: GameRun) -> str:
         "",
         get_locale_text("renderer_explore.event_prompt")
     ]
+    if getattr(run, "floor_map", None) is not None:
+        from ..core.world.rooms.interact import format_room_extras
+        extras = format_room_extras(run, include_env=True)
+        if extras:
+            lines[7:7] = extras + [""]
     options = data.get("options", [])
     for idx, opt in enumerate(options, 1):
         lines.append(get_locale_text("renderer_explore.event_option", idx=idx, text=opt.get('text', '')))
@@ -43,6 +48,11 @@ def render_event(run: GameRun) -> str:
     return "\n".join(lines)
 
 def render_shop(run: GameRun) -> str:
+    from ..core.world.rooms.shop_dialog import render_shop_view
+    return render_shop_view(run)
+
+
+def render_shop_wares(run: GameRun) -> str:
     from .party import render_party_status, render_waiting
     p = run.player
     data = run.node_data
@@ -113,6 +123,9 @@ def render_rest(run: GameRun) -> str:
     if run.player_count() > 1:
         lines.append(render_party_status(run))
         lines.append("")
+    if getattr(run, "floor_map", None) is not None:
+        from ..core.world.rooms.interact import format_room_extras
+        lines.extend(format_room_extras(run, include_env=True))
     lines.append(get_locale_text("render_rest_desc"))
     items = data.get("items", [])
     available_items = [it for it in items if not it.get("taken")]
@@ -127,9 +140,12 @@ def render_rest(run: GameRun) -> str:
         elif itype == "rest_mend":
             lines.append(get_locale_text("renderer_explore.rest_mend", idx=idx))
     lines.append(get_locale_text("renderer_explore.separator"))
-    if not available_items:
-        lines.append(get_locale_text("render_rest_completed"))
-    lines.append(get_locale_text("render_rest_exit"))
+    if p.fold_guide:
+        lines.append(get_locale_text("renderer_explore.guide_folded"))
+    else:
+        if not available_items:
+            lines.append(get_locale_text("render_rest_completed"))
+        lines.append(get_locale_text("render_rest_exit"))
     lines.append(get_locale_text("renderer_explore.separator"))
     return "\n".join(lines)
 
@@ -240,6 +256,9 @@ def render_treasure(run: GameRun) -> str:
         text,
         ""
     ]
+    if getattr(run, "floor_map", None) is not None:
+        from ..core.world.rooms.interact import format_room_extras
+        lines.extend(format_room_extras(run, include_env=True))
     if run.player_count() > 1:
         lines.insert(3, render_party_status(run))
         lines.insert(4, "")
@@ -284,7 +303,9 @@ def render_treasure(run: GameRun) -> str:
                 g_cfg = GEM_CONFIG.get(gid, {})
                 lines.append(get_locale_text("renderer_explore.item_gem", idx=idx, prefix=prefix, name=g_cfg.get('name', gid), desc=g_cfg.get('desc', '')))
     lines.append(get_locale_text("renderer_explore.separator"))
-    if state == "pending_remove":
+    if p.fold_guide:
+        lines.append(get_locale_text("renderer_explore.guide_folded"))
+    elif state == "pending_remove":
         lines.append(get_locale_text("render_treasure_exit_sacrifice"))
     else:
         available_items = [it for it in data.get("items", []) if not it.get("taken")]
@@ -418,7 +439,7 @@ def render_boss_chest(run: GameRun) -> str:
 
 def render_life_merchant(run: GameRun) -> str:
     from .party import render_party_status, render_waiting
-    from ..core.life_merchant import calc_life_merchant_price
+    from ..core.world.life_merchant import calc_life_merchant_price
     from ..data.gem_data import GEM_CONFIG
     from ..data.potion_data import POTION_CONFIG, get_potion_desc, get_potion_name
     from ..entities import get_relic_rarity
@@ -440,6 +461,9 @@ def render_life_merchant(run: GameRun) -> str:
         lines.append("")
     lines.append(get_locale_text("renderer_explore.life_merchant_intro"))
     lines.append("")
+    if getattr(run, "floor_map", None) is not None:
+        from ..core.world.rooms.interact import format_room_extras
+        lines.extend(format_room_extras(run, include_env=True))
 
     rarity_labels = {
         "common": get_locale_text("renderer_menu.rarity_common"),

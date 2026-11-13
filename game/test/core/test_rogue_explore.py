@@ -13,7 +13,7 @@ class TestRogueExplore(unittest.TestCase):
             await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
             run = plugin.save_manager.load_save(user_id)
             self.assertIsNotNone(run)
-            from game.core.session_manager import SessionContextScoper
+            from game.core.party.session import SessionContextScoper
             shop_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "shop"), "A1")
             SessionContextScoper.create_session(run, shop_coord, "shop", [user_id])
             run.node_type = "shop"
@@ -68,7 +68,7 @@ class TestRogueExplore(unittest.TestCase):
             if remove_idx != -1:
                 run = plugin.save_manager.load_save(user_id)
                 run.player.gold = 500
-                from game.core.session_manager import SessionContextScoper
+                from game.core.party.session import SessionContextScoper
                 SessionContextScoper.create_session(run, "A1", "shop", [user_id])
                 plugin.engine.map_engine.explore_engine._init_shop_node(run)
                 for it in run.node_data["items"]:
@@ -201,7 +201,7 @@ class TestRogueExplore(unittest.TestCase):
             await run_command(plugin, ".rogue 选择 1", sender_id="test_user_upg")
             run = save_manager.load_save("test_user_upg")
             rest_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "rest"), "A1")
-            from game.core.session_manager import SessionContextScoper
+            from game.core.party.session import SessionContextScoper
             SessionContextScoper.create_session(run, rest_coord, "rest", ["test_user_upg"])
             plugin.engine.map_engine.explore_engine._init_rest_node(run)
             save_manager.save_save("test_user_upg", run)
@@ -214,7 +214,7 @@ class TestRogueExplore(unittest.TestCase):
             self.assertIn("升级成功", res_upg)
             run = save_manager.load_save("test_user_upg")
             self.assertTrue(any(card.upgraded for card in run.player.deck))
-            from game.core.session_manager import SessionContextScoper
+            from game.core.party.session import SessionContextScoper
             forge_data = {
                 "event_id": "forge_furnace",
                 "description": "奥术符文熔炉描述",
@@ -740,7 +740,7 @@ class TestRogueExplore(unittest.TestCase):
                 await run_command(plugin, ".rogue 开启", sender_id=user_id)
                 await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
                 run = plugin.save_manager.load_save(user_id)
-                from game.core.session_manager import SessionContextScoper
+                from game.core.party.session import SessionContextScoper
                 rest_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "rest"), "A1")
                 SessionContextScoper.create_session(run, rest_coord, "rest", [user_id])
                 plugin.engine.map_engine.explore_engine._init_rest_node(run)

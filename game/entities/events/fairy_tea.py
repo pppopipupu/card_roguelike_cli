@@ -2,7 +2,7 @@ import random
 from .base import EventOption
 from ...data.event_data import EVENT_CONFIG
 from ..cards import ALL_CARDS
-from ...core.deck_service import DeckService
+from ...core.inventory.deck_service import DeckService
 from ...data.locale_data import get_locale_text
 
 class DrinkNectarOption(EventOption, action="drink_nectar", text=get_locale_text("i18n_events_a.fairy_drink_text")):

@@ -7,7 +7,7 @@ from ..entities.cards.market import MARKET_SHELF_CARDS, get_market_price
 from ..data.locale_data import t, get_locale_text
 
 def _load_zh_cn() -> Dict[str, Any]:
-    from ..core.locale_manager import LocaleManager
+    from ..core.i18n.locale_manager import LocaleManager
     return LocaleManager.get_all_translations()
 
 def get_display_width(s: str) -> int:

@@ -1,0 +1,378 @@
+{
+  "env": {
+    "spawn_sanctum": "你身处昏暗而宏伟的先古入廊，地面刻有残缺的传送法阵，微弱的磷火顺着石壁缓缓跳动。",
+    "dungeon_corridor": "潮湿的青石通道向幽暗处延伸，角落堆着腐朽的木箱，头顶吊灯残火摇曳。",
+    "mossy_vault": "青苔与藤蔓爬满了拱顶石柱，潮冷的穿堂风中隐约夹杂着远处的铁链碰撞声。",
+    "lantern_passage": "壁龛里的长明油灯散发着苍白光晕，石砖缝隙间还留有前人匆忙撤离时的划痕。",
+    "battle_arena": "碎裂的武器散落在地，暗红焦痕遍布石板，空气里弥漫着未散尽的硝烟与铁锈味。",
+    "charred_hall": "焦黑的梁柱倾颓在地面，四周墙面满是法术轰击留下的灼痕，战斗的余烬仍在冒烟。",
+    "bone_alcove": "石阶两侧零落散布着泛白骨殖，低沉的回响仿佛仍在警示曾在此激战的痕迹。",
+    "elite_sanctuary": "肃杀的古祭坛大厅寂静无声，穹顶垂下的锁链泛着冷冽寒光，压迫感笼罩四周。",
+    "obsidian_dais": "黑曜石铺就的高台泛着幽紫微光，空气凝重如铅，曾经强敌的残威仍未彻底散去。",
+    "high_danger_chasm": "深不见底的裂隙横亘足下，刺骨虚空罡风不断撕扯着护体微光，每一步都险象环生。",
+    "void_fissure": "空间在这里扭曲撕裂，暗紫色电弧贴着地面游走，脚下碎石悬浮半空缓缓颤动。",
+    "treasure_vault": "尘封的铁箱与鎏金石台静静立于室中，零星散落的古钱币在火光下闪着微芒。",
+    "gilded_crypt": "华丽的石棺与雕花铜匣摆放在高台之上，厚重积灰底下似乎掩埋着未被人取走的珍宝。",
+    "rest_hearth": "一簇温暖的篝火在石灶中噼啪作响，干草铺就的休憩角落让人紧绷的神经略微放松。",
+    "warm_alcove": "避风的石室里升着不灭炭火，柔和暖意驱散了迷雾寒气，适合稍作喘息。",
+    "shop_parlor": "挂满奇珍异宝的绒布帐篷搭在石厅中央，铜秤与水晶瓶在烛影下闪烁着微光。",
+    "cafe_lounge": "温暖的烘焙咖啡香盖过了地牢阴冷，留声机缓缓转动，暖黄壁灯下摆着几张圆木桌。",
+    "landmark_hall": "古老地标建筑巍然矗立于大厅中央，斑驳铭文记载着这片秘境早已被遗忘的往事。",
+    "life_merchant_booth": "一盏幽绿灯笼悬在木摊上方，苍白的契约羊皮纸整齐摊开，隐约传来心跳般的低鸣。",
+    "event_chamber": "神异的石环与未知遗迹静卧此间，空气中流淌着古怪而活跃的魔力波动。",
+    "corpse_shrine": "残破的冒险者遗骸倚靠在石柱旁，周围散落着旧日行囊与未燃尽的火把。",
+    "boss_throne": "宽阔的王座厅堂寒气逼人，残破旌旗垂在半空，王者陨落后的威压依旧令人窒息。",
+    "secret_rift": "破碎的维度裂隙之外是一片虚无星海，难以名状的古老低语在耳畔不断回响。",
+    "downstairs_hall": "通往更深层的盘旋石阶在冷雾中显现，幽蓝阶梯尽头传来深邃而低沉的风声。",
+    "cleared_suffix": " 这里的威胁已被肃清，四周重归死寂。"
+  },
+  "dir": {
+    "north": "北",
+    "south": "南",
+    "west": "西",
+    "east": "东",
+    "line_header": "🧭 【四周景象】",
+    "entry": "{dir}：{desc}",
+    "void_edge": "漆黑的迷宫边界，石壁彻底封死了去路",
+    "wall": "厚重的玄石高墙，毫无缝隙",
+    "unexplored": "未知的浓重迷雾笼罩着前方，隐约可见走廊轮廓",
+    "obstacle": "一道【{name}】死死堵住了通道",
+    "secret_locked": "看似完好的石壁缝隙间偶有微弱空间震颤",
+    "room_open": "通往{room_label}的石门敞开着",
+    "room_cleared": "通往已清理的{room_label}的通道"
+  },
+  "obstacle": {
+    "collapsed_boulders": {
+      "name": "坍塌巨石堆",
+      "desc": "数块布满青苔的巨大条石横七竖八地叠在一起，碎石不断滚落，需要耗费气力将其推开。"
+    },
+    "abyss_thorns": {
+      "name": "深渊黑荆棘",
+      "desc": "粗壮带刺的暗紫色藤蔓疯狂交织，倒钩上渗出淡淡寒芒，强行劈开会耗损不少体力。"
+    },
+    "crystal_seal": {
+      "name": "裂隙晶簇墙",
+      "desc": "锋利如刃的半透明棱晶从地缝生长出来，阻断整条通道，隐隐发出共鸣嗡响。"
+    },
+    "rusted_portcullis": {
+      "name": "锈蚀铁闸门",
+      "desc": "沉重的铸铁栅栏卡死在石槽中，铁锈簌簌落下，必须奋力撬动才有可能通过。"
+    },
+    "confirm_step1": "🚧 前方 {coord} 被【{name}】阻挡：{desc}\n   开辟此路需要消耗 {cost} 点 SP，当前 SP 为 {sp}。{sp_warn}\n   请再次朝【{direction}】移动进行第 1/2 次确认。",
+    "confirm_step2": "⚠️ 最后警告！再次确认强行突破 {coord} 的【{name}】。\n   消耗 {cost} 点 SP，当前 SP 为 {sp}。{sp_warn}\n   继续朝【{direction}】移动将立即破除障碍并前进，第 2/2 次确认。",
+    "sp_warn_ok": "当前体力充足。",
+    "sp_warn_overdraft": "警告：体力不足，强行突破将造成体力透支、提升力竭等级并损失 {loss} 点生命！"
+  },
+  "items": {
+    "espresso_beans": {
+      "name": "浓缩咖啡豆",
+      "desc": "烘焙得油亮的先古咖啡豆，直接嚼食可恢复 2 点 SP，或在咖啡馆研磨免费强化卡牌。"
+    },
+    "rusty_pickaxe": {
+      "name": "锈蚀矿镐",
+      "desc": "沉重的旧矿工铁镐，使用后可顺势清除邻近一处障碍通道并恢复 1 点 SP。"
+    },
+    "glowing_runestone": {
+      "name": "微光符石",
+      "desc": "刻有侦测阵纹的石块，使用后揭示当前层最多 2 个未探索的特殊房间坐标。"
+    },
+    "field_bandage": {
+      "name": "战地绷带",
+      "desc": "浸过草药的洁净绷带，使用后恢复 8 点生命值并清理少许不良状态。"
+    },
+    "ancient_notes": {
+      "name": "先古残页",
+      "desc": "泛黄的手写秘境笔记，使用后若本层存在隐秘祭坛则立即揭示线索，否则获得 15 金币见闻。"
+    },
+    "skeleton_key": {
+      "name": "万能骷髅钥匙",
+      "desc": "能开启各类锈锁的秘银钥匙，使用后立刻恢复 3 点 SP 并随机揭示 1 处邻近迷雾。"
+    },
+    "sugar_cube_pack": {
+      "name": "方糖包",
+      "desc": "包装完好的甜方糖，使用后恢复 3 点 SP 并减轻 1 级力竭。"
+    },
+    "smuggler_token": {
+      "name": "走私者徽记",
+      "desc": "黑市暗道通行的金属徽章，局内使用可换取 35 金币，带回主城可写入永久行囊。"
+    },
+    "merchant_ledger": {
+      "name": "行商账册",
+      "desc": "记录着秘密货源的厚重账本，局内使用可兑现 45 金币，带回主城可写入永久行囊。"
+    },
+    "barista_seal": {
+      "name": "店主秘藏印章",
+      "desc": "刻着热气咖啡杯的铜印章，局内使用可恢复 4 点 SP，带回主城可写入永久行囊。"
+    },
+    "potion_drop": "药水·{name}"
+  },
+  "props": {
+    "ancient_brazier": {
+      "name": "先古火盆",
+      "desc": "刻满火纹的青铜火盆，拨动余烬或许能汲取一点暖意与体力。"
+    },
+    "cracked_statue": {
+      "name": "残破雕像",
+      "desc": "石像底座裂开了一条缝隙，里面似乎藏着什么闪光之物，但也可能设有旧机关。"
+    },
+    "alchemy_desk": {
+      "name": "破旧炼金台",
+      "desc": "桌面散落着玻璃曲颈瓶与未干的药剂残液，或许还能刮出可用材料。"
+    },
+    "bloodied_pack": {
+      "name": "染血行囊",
+      "desc": "被遗弃在墙角的旧皮包，拉链半开着，不知前任主人遭遇了什么。"
+    },
+    "runic_wall": {
+      "name": "刻痕符文墙",
+      "desc": "石壁上留着密密麻麻的刻痕，像是一份粗略绘制的迷宫方位草图。"
+    },
+    "crystal_cluster": {
+      "name": "微光晶簇",
+      "desc": "柔和流动的蓝绿色晶体从地面长出，触碰它能让人精神一振。"
+    },
+    "shop_scale": {
+      "name": "黄铜天平",
+      "desc": "行商柜台旁摆放着精密天平，托盘缝隙里似乎卡着几枚遗落的金币。"
+    },
+    "shop_display": {
+      "name": "神秘展柜",
+      "desc": "上锁的玻璃展柜里陈列着异域小物件，贴近观察可以辨识商人的货源。"
+    },
+    "cafe_espresso_machine": {
+      "name": "先古意式咖啡机",
+      "desc": "黄铜锅炉依然温热，轻轻拉下手柄也许还能接出一杯浓香浓缩。"
+    },
+    "cafe_gramophone": {
+      "name": "黑胶留声机",
+      "desc": "古老的喇叭正放着舒缓弦乐，抚平探索带来的焦躁与疲惫。"
+    },
+    "cafe_guestbook": {
+      "name": "冒险者留言簿",
+      "desc": "柜台角落放着厚厚的留言本，翻阅其中或许能发现前人留下的暗门记录。"
+    }
+  },
+  "npcs": {
+    "wandering_smith": {
+      "name": "流浪铁匠·托林",
+      "desc": "背着铁砧与大锤的矮人老匠，正擦拭着手中泛蓝光的锻锤。",
+      "enemy_name": "狂怒铁匠·托林"
+    },
+    "smuggler_broker": {
+      "name": "黑市掮客·莫斯",
+      "desc": "披着灰斗篷的狡黠商人，袖口藏着成串钥匙与未知药瓶。",
+      "enemy_name": "黑市掮客·莫斯"
+    },
+    "lost_scholar": {
+      "name": "迷途学者·艾拉",
+      "desc": "怀抱残破典籍的年轻法师，正对着墙上的符文小声喃喃。",
+      "enemy_name": "狂乱学者·艾拉"
+    },
+    "wounded_scout": {
+      "name": "负伤斥候·里昂",
+      "desc": "倚靠在墙边的游侠斥候，肩头缠着渗血的布条，警惕地打量四周。",
+      "enemy_name": "绝望斥候·里昂"
+    },
+    "shrine_keeper": {
+      "name": "幽暗守坛人·赛伦",
+      "desc": "蒙面祭司静立于阴影中，手里握着一盏发出幽蓝火焰的提灯。",
+      "enemy_name": "幽暗守坛人·赛伦"
+    },
+    "shop_merchant": {
+      "name": "黑袍行商·维克多",
+      "desc": "戴着鸟嘴半面具的精明行商，微笑着擦拭货架上的奇珍与遗物。",
+      "enemy_name": "秘境行商·维克多"
+    },
+    "cafe_barista": {
+      "name": "咖啡店长·布鲁诺",
+      "desc": "系着深棕围裙的魁梧店主，正不慌不忙地擦拭手冲铜壶。",
+      "enemy_name": "暴走店长·布鲁诺"
+    }
+  },
+  "room_ui": {
+    "npcs_line": "👤 【在场人物】{items}",
+    "props_line": "🔎 【可交互物件】{items}",
+    "items_line": "🎒 【地面物品】{items}",
+    "prop_done_tag": "已调查",
+    "interact_hints": "💡 互动指令：对话 <人物> | 攻击 <人物> | 触摸 <物件> | 拿取 <物品> | 使用 <背包物品> | 背包"
+  },
+  "bag": {
+    "rogue_weight_line": " ⚖️ 肉鸽背包负重：{used} / {max}，药水只占药水槽，不占负重",
+    "rogue_potion_inline": " | 药水槽：{count}/{limit}",
+    "rogue_potion_section": " 【药水槽 · 背包快捷栏】 {count}/{limit} 瓶 · 不占负重",
+    "rogue_potion_empty": "   * 药水槽空空如也。",
+    "rogue_potion_line": "   [{idx}] 【{name}】不占负重 - {desc}",
+    "rogue_items_section": " 【肉鸽探险行囊】 占用负重",
+    "rogue_items_empty": "   * 行囊里还没有探险物品，可使用 拿取 <物品名> 收集。",
+    "rogue_item_line": "   * 【{name}】 重量 {weight} · {carry_tag} - {desc}",
+    "carry_yes": "可带回主城",
+    "carry_no": "局内消耗品",
+    "town_stash_section": " 【主城无限仓库联动】",
+    "town_stash_summary": "   主城无限背包现有：常规物品 {item_count} 件 | 寄存药水 {potion_count} 瓶，容量无限",
+    "town_potion_section": " 【主城药水仓库】 无限容量，下局开局自动装入药水槽",
+    "town_potion_empty": "   * 主城药水仓库暂无存货。",
+    "town_potion_line": "   * 【{name}】 - {desc}",
+    "town_infinite_badge": " 📦 主城背包容量：无限，无负重限制",
+    "carryover_tag": "可带回/带入",
+    "town_only_tag": "主城物品",
+    "weight_full": "[FAIL] 背包负重已满！当前负重 {used}/{max}，【{name}】需要负重 {weight}。\n💡 提示：药水只占药水槽不占负重，可先使用或「丢弃物品 <物品名>」腾出空间。",
+    "potion_full": "[FAIL] 药水槽已满，当前 {count}/{limit} 瓶，无法再装入【{name}】。",
+    "take_success": "✅ 你拾取了【{name}】，重量 {weight}，当前负重 {used}/{max}，已放入肉鸽背包。",
+    "take_potion_success": "🧪 你拾取了【{name}】，已放入药水槽 {count}/{limit}，不占负重。",
+    "take_not_found": "[FAIL] 当前房间地上没有【{target}】。",
+    "take_need_arg": "[FAIL] 请指定要拿取的物品名称，例如：拿取 咖啡豆",
+    "drop_success": "🗑️ 你从背包丢弃了【{name}】，释放负重 {weight}，当前负重 {used}/{max}。",
+    "drop_not_found": "[FAIL] 你的背包里没有【{target}】。",
+    "use_need_arg": "[FAIL] 请指定要使用的背包物品名称，例如：使用 绷带",
+    "use_not_found": "[FAIL] 你的背包里没有【{target}】。",
+    "use_cannot_here": "[FAIL] 当前情况下无法使用【{name}】。",
+    "use_espresso_beans": "☕ 你嚼下【浓缩咖啡豆】，提神醒脑，恢复了 {sp} 点 SP！",
+    "use_rusty_pickaxe_clear": "⛏️ 你挥动【锈蚀矿镐】击碎了邻近 {coord} 的障碍，并振奋精神恢复 {sp} 点 SP！",
+    "use_rusty_pickaxe_sp": "⛏️ 附近没有可击碎的障碍，你借着矿镐稳步调整呼吸，恢复了 {sp} 点 SP。",
+    "use_glowing_runestone": "🔮 【微光符石】绽放幽光，揭示了本层坐标：{coords}！",
+    "use_glowing_runestone_none": "🔮 【微光符石】微光一闪，本层已无更多未探明特殊房间，转为恢复 2 点 SP。",
+    "use_field_bandage": "🩹 你包扎了【战地绷带】，恢复了 {hp} 点生命值！",
+    "use_ancient_notes_clue": "📜 翻阅【先古残页】后，你辨认出本层隐秘祭坛与裂隙的准确位置：{coord}！",
+    "use_ancient_notes_gold": "📜 你研读【先古残页】并照着记号搜寻夹层，发现 {gold} 金币！",
+    "use_skeleton_key": "🗝️ 你转动【万能骷髅钥匙】解开身旁暗锁，恢复 {sp} 点 SP 并侦测了邻近迷雾！",
+    "use_sugar_cube_pack": "🍬 你含下【方糖包】，恢复 {sp} 点 SP 并减轻了 {cured} 级力竭！",
+    "use_smuggler_token": "🪙 你将【走私者徽记】兑换成黑市暗账，获得 {gold} 金币！",
+    "use_merchant_ledger": "📒 你变卖了【行商账册】上的秘境货单，获得 {gold} 金币！",
+    "use_barista_seal": "☕ 握紧【店主秘藏印章】令你精神焕发，恢复了 {sp} 点 SP！",
+    "use_town_item": "📖 你翻阅随身携带的【{name}】：{desc}",
+    "settle_carryover": "\n🎒 带回主城持久化存档：{items}"
+  },
+  "touch": {
+    "need_arg": "[FAIL] 请指定要触摸或调查的物件名，例如：触摸 火盆",
+    "not_found": "[FAIL] 当前房间没有找到名为【{target}】的物件。",
+    "already_done": "🔎 你再次端详【{name}】，这里已经没有什么新发现。",
+    "ancient_brazier": "🔥 你拨亮【先古火盆】的余烬，暖流驱散了寒意，恢复 {sp} 点 SP！",
+    "cracked_statue_gold": "🗿 你小心掏出【残破雕像】底座的暗格，找到 {gold} 金币！",
+    "cracked_statue_trap": "🗿 雕像机关突然弹射毒针！你受到 {dmg} 点伤害，好在抓出 {gold} 金币。",
+    "alchemy_desk_potion": "⚗️ 你从【破旧炼金台】角落回收了一瓶完好的【{potion}】！",
+    "alchemy_desk_item": "⚗️ 你在【破旧炼金台】抽屉里找到一份【{item}】！",
+    "alchemy_desk_full": "⚗️ 炼金台上还有一瓶【{potion}】，但你的药水槽与背包都已塞满，只好暂留原地。",
+    "bloodied_pack": "🎒 你翻查【染血行囊】，找到 {gold} 金币与一捆补给！",
+    "runic_wall_reveal": "🧱 你解读了【刻痕符文墙】上的路径记号，揭示了坐标 {coord}！",
+    "runic_wall_sp": "🧱 你辨认出墙上的古文字，稳住了探索节奏，恢复 2 点 SP！",
+    "crystal_cluster": "💎 触碰【微光晶簇】时温和魔力涌入体内，恢复 {hp} 点生命与 {sp} 点 SP！",
+    "shop_scale": "⚖️ 你拨动【黄铜天平】下的暗槽，发现商人掉落在底座的 {gold} 金币！",
+    "shop_display": "🪞 贴近观察【神秘展柜】的陈列品后，你记下了货物暗记，获得了 {gold} 金币的小额回扣券。",
+    "cafe_espresso_machine": "☕ 你拉下【先古意式咖啡机】手柄，接出一杯香醇浓缩，恢复 {sp} 点 SP！",
+    "cafe_gramophone": "🎵 轻转【黑胶留声机】摇柄，舒缓乐声减轻了你 {cured} 级力竭！",
+    "cafe_guestbook": "📒 你翻看【冒险者留言簿】，上面记着某处秘境房间坐标：{coord}！"
+  },
+  "dialog": {
+    "title": "💬 与【{name}】交谈中",
+    "footer": "输入选项编号如 1、2 推进对话，或输入 离开 结束交谈。",
+    "talk_need_target": "[FAIL] 这里没有默认设施可交互。请指定交谈对象，例如：对话 托林",
+    "talk_not_found": "[FAIL] 当前房间没有找到名为【{target}】的可交谈人物。",
+    "smith_start_text": "流浪铁匠·托林擦着额头的汗珠望向你：'地牢里能碰到个活人可真不容易。需要敲两锤武器，还是聊聊迷宫深处的矿脉？'",
+    "smith_start_opt1": "请求锻造强化手头卡牌 · 花费 {cost} 金币",
+    "smith_start_opt2": "打磨嵌孔或购买宝石 · 花费 {cost} 金币",
+    "smith_start_opt3": "切磋锻造秘辛与打听矿镐下落",
+    "smith_start_opt4": "离开交谈",
+    "smith_lore_text": "托林压低嗓音：'这层石壁后头有不少封锁通道，带把矿镐比硬撞省力得多。你若出得起工钱，我也能直接给你打一把。'",
+    "smith_lore_opt1": "用 30 金币买下【锈蚀矿镐】",
+    "smith_lore_opt2": "以旧换新 · 回复 2 点 SP 并道谢离开",
+    "smith_lore_opt3": "返回上层对话",
+    "smith_buy_pickaxe_ok": "🔨 托林递给你一把沉甸甸的【锈蚀矿镐】，拍了拍你的肩膀。",
+    "smith_no_unupgraded": "🔨 托林检查了你的卡组：'你的牌都已经精炼到头了，我就不收你的钱啦。'",
+    "smith_gem_ok": "💎 托林为你挑选了一颗闪亮的宝石，请从卡组中选择要镶嵌的卡牌！",
+    "broker_start_text": "黑市掮客·莫斯晃了晃袖子里的骰盅：'在这片迷雾里，金币和情报同样值钱。想赌一把手气，还是买份防身暗货？'",
+    "broker_start_opt1": "黑市掷骰押注 · 花费 {cost} 金币，赢取双倍或小道具",
+    "broker_start_opt2": "购买走私情报 · 花费 {cost} 金币揭示 2 个特殊房间",
+    "broker_start_opt3": "交易特殊补给品",
+    "broker_start_opt4": "离开交谈",
+    "broker_gamble_win": "🎲 骰盅揭开——大胜！莫斯啧了一声，把 {gold} 金币和额外补给推了过来。",
+    "broker_gamble_lose": "🎲 骰面略逊一筹，莫斯笑眯眯收走 {cost} 金币，随手丢给你一块方糖算安慰。",
+    "broker_intel_ok": "🗺️ 莫斯在你的地图边缘标出了几处秘境记号：{coords}！",
+    "broker_trade_text": "莫斯掀起灰斗篷的一角，露出一排贴着封条的小瓶与徽记：",
+    "broker_trade_opt1": "花费 28 金币购买随机药水",
+    "broker_trade_opt2": "花费 30 金币买下【万能骷髅钥匙】",
+    "broker_trade_opt3": "返回上层对话",
+    "scholar_start_text": "迷途学者·艾拉指着地上的铭文抬头看你：'太好了，你也懂这些古文吗？我正卡在一段秘术咒文上，或许我们能互通有无。'",
+    "scholar_start_opt1": "与她共同研读残卷 · 消耗 {hp} 点生命，获得 1 张随机法术/稀有卡",
+    "scholar_start_opt2": "分享探险见闻 · 获赠 1 份【先古残页】或恢复 3 点 SP",
+    "scholar_start_opt3": "询问关于隐秘首领祭坛的线索",
+    "scholar_start_opt4": "离开交谈",
+    "scholar_study_ok": "📘 艾拉兴奋地拍手，你们一同破译了古咒！你获得了新卡牌【{card}】！",
+    "scholar_lore_clue": "📜 艾拉轻声道：'这一层的隐秘暗门与祭坛息息相关，坐标大约就在 {coord}。'",
+    "scholar_lore_none": "📜 艾拉摇头叹气：'这层似乎并没有埋藏隐秘祭坛，不过记住：多观察四周壁画总不会错。'",
+    "scout_start_text": "负伤斥候·里昂捂着伤口微微点头：'前面几条走廊不太平。如果你手头宽裕，借我点药资或绷带，我能把探明的路线和余货都交给你。'",
+    "scout_start_opt1": "资助 25 金币替他包扎 · 获赠实用道具并揭示邻近房间",
+    "scout_start_opt2": "接过他的干粮与应急方糖 · 恢复 2 点 SP，里昂先行撤离",
+    "scout_start_opt3": "交换前线敌情 · 恢复 1 点 SP 并获得 15 金币赏金情报",
+    "scout_start_opt4": "离开交谈",
+    "scout_aid_ok": "🧭 里昂感激地收下金币，将一份【微光符石】塞进你手里，并为你标出附近房间！",
+    "scout_supply_ok": "🍬 里昂把剩下的【方糖包】交给了你，并为你指明安全路径。",
+    "scout_shield_ok": "🛡️ 你记下了敌群伏击规律，心神大定，恢复 1 点 SP 并获得 15 金币赏金情报。",
+    "keeper_start_text": "幽暗守坛人·赛伦手中的蓝焰提灯轻轻摇曳：'迷途者，你踏足了被遗忘的圣域。若愿献上微薄血誓或金币，灯火自会为你指明生路。'",
+    "keeper_start_opt1": "献上 {hp} 点生命接受圣焰祝祷 · 恢复 5 点 SP 并减轻 1 级力竭",
+    "keeper_start_opt2": "以 35 金币换取秘仪秘宝 · 获赠随机遗物或强化卡牌",
+    "keeper_start_opt3": "探询本层守关首领与隐秘祭坛所在",
+    "keeper_start_opt4": "离开交谈",
+    "keeper_bless_ok": "🕯️ 幽蓝火焰温柔拂过你的肩头，力量重新涌回四肢：恢复 {sp} 点 SP 并减轻 {cured} 级力竭！",
+    "keeper_boss_reveal": "👁️ 守坛人低诵祷文，迷雾为你分开一道缝隙：本层目标位于 {coords}！",
+    "err_gold": "[FAIL] 金币不足！需要 {cost} 金币。",
+    "err_hp": "[FAIL] 生命值过低，无法承受此仪式。",
+    "ended": "你礼貌地告别了【{name}】，回到探索状态。"
+  },
+  "combat": {
+    "attack_need_arg": "[FAIL] 请指定要攻击的目标名，例如：攻击 行商",
+    "attack_not_found": "[FAIL] 当前房间没有名为【{target}】的可攻击目标。",
+    "attack_already_defeated": "[FAIL] 【{name}】已经被击败了。",
+    "attack_start": "⚔️ 你突然向【{name}】发起攻击！对方立刻摆出战斗姿态！",
+    "npc_win_title": "⚔️ 击败了【{name}】！",
+    "npc_win_loot": "你在战利品中搜出了 {gold} 金币{item_note}！",
+    "npc_win_item_note": "以及【{item}】",
+    "room_entry_intro": "📍 你踏入了 {coord} 【{label}】。"
+  },
+  "shop": {
+    "lobby_title": "🏪 【秘境行商帐篷 · 第 {stage} 层】",
+    "lobby_merchant_alive": "黑袍行商·维克多正打量着你的行囊：'欢迎光临。先谈谈价钱，还是直接看看货架？'",
+    "lobby_merchant_dead": "店铺一片狼藉，黑袍行商已倒在血泊中，货架早已被洗劫一空。",
+    "lobby_opt_talk": "与黑袍行商·维克多交谈 · 浏览货架 / 讨价还价 / 黑市典当 / 情报",
+    "lobby_opt_attack": "直接攻击黑袍行商·维克多 · 抢夺金币与秘藏账册",
+    "lobby_opt_leave": "离开商店回到迷雾地图",
+    "dialog_title": "🗣️ 与【黑袍行商·维克多】交谈中",
+    "dialog_greeting": "维克多推了推鸟嘴面具：'客人想怎么谈这笔买卖？'",
+    "dialog_opt_wares": "浏览货架并购买商品",
+    "dialog_opt_haggle": "讨价还价 · 60% 成功全场 75 折，失败加价 15%",
+    "dialog_opt_pawn": "黑市典当 · 出售 1 件随身背包物品换取 {gold} 金币",
+    "dialog_opt_intel": "购买迷雾情报 · 花费 {cost} 金币揭示 2 处未知房间",
+    "dialog_opt_extort": "拔刀威胁勒索 · 45% 强索 40 金币与折扣，失败立即开战！",
+    "dialog_opt_back": "结束交谈回到店铺大厅",
+    "haggle_already": "维克多冷哼一声：'价钱刚才已经定死了，别得寸进尺。'",
+    "haggle_success": "🤝 维克多挑了挑眉：'算你有眼光！这批货给你打 75 折。'",
+    "haggle_fail": "😠 维克多脸色一沉：'嫌贵？那全场涨价 15%！'",
+    "pawn_empty": "维克多扫了一眼你的行囊：'你背包里空空如也，拿什么典当？'",
+    "pawn_success": "💰 你典当了【{item}】，维克多爽快付给你 {gold} 金币！",
+    "intel_success": "🗺️ 维克多悄声在地图上圈出几处重点坐标：{coords}。",
+    "intel_none": "🗺️ 维克多摊手道：'这一层的门道你几乎都摸透了，我这儿没有新情报，退回金币给你。'",
+    "extort_success": "😈 维克多权衡利弊后退了一步，乖乖塞给你 {gold} 金币并降价 25%！",
+    "extort_fail": "⚔️ 维克多冷笑一声抽出秘银短杖：'敢在老夫地盘动粗？找死！'",
+    "wares_back_hint": "输入商品编号购买，或输入 离开 返回店铺大厅。"
+  },
+  "cafe": {
+    "barista_line": "☕ 【吧台常驻店主】咖啡店长·布鲁诺 · 输入 对话 店长 打开特调与研磨柜台，或 攻击 店长",
+    "barista_dead_line": "☕ 【吧台惨状】咖啡店长·布鲁诺已被击倒，吧台一片狼藉。",
+    "barista_title": "☕ 与【咖啡店长·布鲁诺】交谈中",
+    "barista_greeting": "布鲁诺擦净手冲铜壶：'欢迎来到迷雾边缘的避风港。想点单特调，借用研磨机，还是打听点地下情报？'",
+    "barista_opt_espresso": "点单先古浓缩咖啡 · {cost} 金币，恢复 {sp} SP 并减轻 {cure} 级力竭",
+    "barista_opt_americano": "限定特调·奥术冰美式 · {cost} 金币，恢复 {sp} SP 且回复 6 生命",
+    "barista_opt_macchiato": "限定特调·深渊焦糖玛奇朵 · 消耗 {hp} 生命，恢复全满 SP 并获得 25 金币",
+    "barista_opt_chamomile": "限定特调·宁神洋甘菊茶 · {cost} 金币，回复 {heal} 生命并减轻 {cure} 级力竭",
+    "barista_opt_grinder": "借用吧台研磨机 · 优先消耗【浓缩咖啡豆】免费升级卡牌，或花 {cost} 金币升级",
+    "barista_opt_rumor": "打听本层迷雾与隐秘祭坛情报 · 花费 {cost} 金币",
+    "barista_opt_leave": "离开吧台回到咖啡馆大堂",
+    "americano_ok": "🧊 冰凉苦香直透四肢！你恢复了 {sp} 点 SP 与 {heal} 点生命值！",
+    "macchiato_ok": "🖤 深渊苦甜刺激着神经！你耗损 {hp} 点生命，SP 瞬间补满并从暗格收到 {gold} 金币回礼！",
+    "chamomile_ok": "🍵 温热花茶安抚了伤痛，你回复 {heal} 点生命并减轻了 {cure} 级力竭！",
+    "grinder_beans_ok": "⚙️ 你把随身【浓缩咖啡豆】倒入研磨机换取工时，免费将【{old}】强化为【{new}】！",
+    "grinder_gold_ok": "⚙️ 你支付 {cost} 金币使用吧台工坊，将【{old}】强化为【{new}】！",
+    "grinder_no_card": "⚙️ 布鲁诺查看了你的卡组：'你的牌都已经精炼到头了，先留着咖啡豆吧。'",
+    "rumor_ok": "🗣️ 布鲁诺俯身低语：'顺着这几个坐标找准没错：{coords}。'",
+    "rumor_none": "🗣️ 布鲁诺擦擦杯子：'这一层的情况大家早已门清了，金币你收好。'"
+  }
+}

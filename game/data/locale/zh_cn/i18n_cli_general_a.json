@@ -100,7 +100,7 @@
     "no_minion": "❌ 我方格子 [{grid}] 没有随从。",
     "invalid_target": "❌ 无效的目标选择。",
     "battle_only": "❌ 该药水只能在战斗中使用。",
-    "list_title": "🧪 【药水列表】({count}/{limit})",
+    "list_title": "🧪 【药水槽 · 背包快捷栏】({count}/{limit}，不占负重)",
     "list_empty": "你的药水槽是空的。",
     "list_entry": "{idx}. 【{name}】",
     "list_drink": "   饮用：{desc}",

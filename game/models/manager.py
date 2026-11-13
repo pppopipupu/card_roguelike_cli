@@ -8,7 +8,7 @@ from .state import GameRun, UserStats
 from .corpse_registry import CorpseRegistry
 from .save_codec import SaveCodecMixin
 from .settlement import SettlementMixin
-from ..core.player_names import fallback_player_name, unique_handle
+from ..core.social.player_names import fallback_player_name, unique_handle
 from ..data.locale_data import get_locale_text
 from ..data.starting_deck_config import LOCK_SLOT_LIMIT
 
@@ -127,6 +127,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 purchased_pool=d.get("purchased_pool", []),
                 defeated_town_npcs=d.get("defeated_town_npcs", []),
                 town_inventory=d.get("town_inventory", []),
+                town_potions=list(d.get("town_potions", []) or []),
                 town_flags=d.get("town_flags", {}),
                 town_health_bonus=d.get("town_health_bonus", 0),
                 player_name=d.get("player_name", "玩家"),
@@ -268,7 +269,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 if user_id in run.players:
                     run.player = run.players[user_id]
                     run.user_id = user_id
-                from ..core.session_manager import SessionContextScoper
+                from ..core.party.session import SessionContextScoper
                 SessionContextScoper.bind_to_run(run, user_id)
                 from .coop_view import apply_view, scope_view
                 apply_view(run, user_id)
@@ -307,7 +308,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 return self.save_coop_save(save_uid, run)
             if run:
                 from .coop_view import persist_view
-                from ..core.session_manager import SessionContextScoper
+                from ..core.party.session import SessionContextScoper
                 SessionContextScoper.sync_from_run(run, save_uid)
                 persist_view(run, save_uid)
             path = self.get_save_path(save_uid)
@@ -347,7 +348,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             if run and user_id in run.players:
                 run.player = run.players[user_id]
                 run.user_id = user_id
-                from ..core.session_manager import SessionContextScoper
+                from ..core.party.session import SessionContextScoper
                 SessionContextScoper.bind_to_run(run, user_id)
                 from .coop_view import apply_view, scope_view
                 apply_view(run, user_id)
@@ -361,7 +362,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         run.players[user_id] = run.player
         run.user_id = user_id
         from .coop_view import persist_view
-        from ..core.session_manager import SessionContextScoper
+        from ..core.party.session import SessionContextScoper
         SessionContextScoper.sync_from_run(run, user_id)
         persist_view(run, user_id)
         path = self.get_coop_save_path(run.coop_id)

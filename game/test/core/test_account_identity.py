@@ -4,7 +4,7 @@ import os
 import tempfile
 import unittest
 
-from game.core.headless_server import HeadlessGameServer
+from game.core.api.headless_server import HeadlessGameServer
 from game.data.account_config import RENAME_COST_GP
 from game.test.core.base import CorePlugin, run_command
 

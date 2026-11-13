@@ -173,7 +173,7 @@ def scan_files():
 
 def scan_locale_keys():
     sys.path.insert(0, ROOT)
-    from game.core.locale_manager import LocaleManager
+    from game.core.i18n.locale_manager import LocaleManager
     LocaleManager.load_locale("zh_cn")
     data = LocaleManager.get_all_translations()
     missing = []

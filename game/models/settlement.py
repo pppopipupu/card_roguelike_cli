@@ -86,14 +86,22 @@ class SettlementMixin:
             corpse = self.corpses.create_from_run(run, cause)
             if corpse:
                 corpse_note = get_locale_text("i18n_models.manager.settle_corpse_note", stage=stage)
+        stats = self.load_stats(user_id)
+        carryover_note = ""
+        if is_victory or run.player.hp > 0:
+            from ..core.inventory.bag_service import carryout_to_stats
+            carried = carryout_to_stats(run.player, stats)
+            if carried:
+                carryover_note = get_locale_text("i18n_room_interact.bag.settle_carryover", items="、".join(carried))
         if stage < 5:
+            if carryover_note:
+                self.save_stats(user_id, stats)
             if delete_personal:
                 self.delete_save(user_id)
-            return get_locale_text("i18n_models.manager.settle_too_shallow", stage=stage, corpse_note=corpse_note)
+            return get_locale_text("i18n_models.manager.settle_too_shallow", stage=stage, corpse_note=corpse_note, carryover_note=carryover_note)
         gp_gained = gold * 10
         victory_bonus = ""
         unlock_msg = ""
-        stats = self.load_stats(user_id)
         if is_victory:
             ach_stats = getattr(stats, "achievement_stats", None)
             if isinstance(ach_stats, dict):
@@ -114,5 +122,4 @@ class SettlementMixin:
         self.save_stats(user_id, stats)
         if delete_personal:
             self.delete_save(user_id)
-        return get_locale_text("i18n_models.manager.settle_result", gold=gold, gp_gained=gp_gained, victory_bonus=victory_bonus, total_gp=stats.gp, unlock_msg=unlock_msg, corpse_note=corpse_note)
-
+        return get_locale_text("i18n_models.manager.settle_result", gold=gold, gp_gained=gp_gained, victory_bonus=victory_bonus, total_gp=stats.gp, unlock_msg=unlock_msg, corpse_note=corpse_note, carryover_note=carryover_note)

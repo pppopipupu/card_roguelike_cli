@@ -9,7 +9,7 @@ class ChooseCommand(CommandHandler, names=["选择", "c"], allowed_states=["menu
         if run is not None and run.node_type == "cafe":
             val = parts[1] if len(parts) > 1 else parts[0]
             if val.isdigit():
-                from ....cafe_engine import CafeEngine
+                from ....world.cafe.engine import CafeEngine
                 cafe = CafeEngine(router.save_manager, router.engine.map_engine)
                 yield cafe.choose_option(run, int(val))
             else:

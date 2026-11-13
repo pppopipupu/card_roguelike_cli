@@ -7,7 +7,7 @@ from ...data.balance_config import (
     COOP_HP_MULTIPLIERS,
 )
 from ...data.locale_data import get_locale_text
-from ..reward_builder import base_enemy_name
+from .reward_builder import base_enemy_name
 
 
 AOE_INTENT_TYPES = {

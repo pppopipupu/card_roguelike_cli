@@ -2,8 +2,8 @@ import asyncio
 import os
 import random
 import unittest
-from game.core.deck_service import DeckService
-from game.core.reward_builder import build_reward_items
+from game.core.inventory.deck_service import DeckService
+from game.core.battle.reward_builder import build_reward_items
 from game.test.core.base import DummyContext, MyPlugin, SaveManager, run_command
 
 

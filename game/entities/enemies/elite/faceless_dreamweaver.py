@@ -3,7 +3,7 @@ import random
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
 from ....data.locale_data import get_locale_text
-from ....core.deck_service import DeckService
+from ....core.inventory.deck_service import DeckService
 
 @register_enemy("无面织梦者")
 class FacelessDreamweaverTemplate(EnemyTemplate):

@@ -1,6 +1,6 @@
 from typing import Any
 
-from ..core.locale_manager import LocaleManager
+from ..core.i18n.locale_manager import LocaleManager
 
 
 def get_locale_text(key: str, default: str = "", **kwargs: Any) -> str:

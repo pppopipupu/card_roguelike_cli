@@ -1,6 +1,6 @@
 import math
 
-from ...core.achievement_service import AchievementService
+from ...core.progress.achievement_service import AchievementService
 from ...data.card_data import CARD_CONFIG
 from ...data.locale_data import get_locale_text
 from ...models.events import EnemyBeforeDeathEvent, MinionDeathEvent

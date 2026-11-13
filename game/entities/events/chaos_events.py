@@ -3,7 +3,7 @@ from .base import EventOption
 from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
 from ...data.event_data import EVENT_CONFIG, EVENT_MIN_HP, EVENT_MIN_MAX_HP, EVENT_MIN_GOLD, EVENT_TIME_SAND_MIN_MAX_HP
 from ..cards import ALL_CARDS
-from ...core.deck_service import DeckService
+from ...core.inventory.deck_service import DeckService
 from ...models.state import ensure_card_state
 from ...data.locale_data import get_locale_text
 

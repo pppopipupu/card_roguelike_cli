@@ -1,4 +1,4 @@
-from ..event_bus import EventBus
+from .event_bus import EventBus
 
 class BaseBattleEngine:
     def __init__(self, save_manager):
