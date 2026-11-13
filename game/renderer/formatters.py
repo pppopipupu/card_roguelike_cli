@@ -42,10 +42,23 @@ def get_effective_max_hp(player, run=None) -> int:
     return effective_max_hp_for_player(player, in_battle=in_battle)
 
 
-def format_relic_bar(relics) -> str:
+def format_relic_name_with_counter(relic_id: str, relic_counters: Optional[dict] = None) -> str:
+    name = get_relic_name(relic_id)
+    from ..data.relic_data import RELIC_CONFIG
+    cfg = RELIC_CONFIG.get(relic_id, {})
+    if "counter_max" in cfg:
+        counters = relic_counters if relic_counters is not None else {}
+        val = counters.get(relic_id, cfg.get("counter_init", 0))
+        return f"{name}({val}/{cfg['counter_max']})"
+    return name
+
+def format_relic_bar(relics, relic_counters: Optional[dict] = None) -> str:
     if not relics:
         return ""
-    return get_locale_text("i18n_renderer_extra.formatters.relic_prefix") + " ".join(get_locale_text("i18n_renderer_extra.formatters.relic_item", name=get_relic_name(r)) for r in relics)
+    return get_locale_text("i18n_renderer_extra.formatters.relic_prefix") + " ".join(
+        get_locale_text("i18n_renderer_extra.formatters.relic_item", name=format_relic_name_with_counter(r, relic_counters))
+        for r in relics
+    )
 
 
 def _format_digits_scientific(

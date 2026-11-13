@@ -195,6 +195,36 @@ class StarVampireProboscisRelic(RelicImpl):
             engine._log_event(run, get_locale_text("i18n_relics_amulets.rare.star_vampire_proboscis.trigger"))
             engine._heal_target(run, "p0", self.heal_amount)
 
+class PrayerWheelRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.turn_threshold = int(cfg.get("turn_threshold", 3))
+        self.action_bonus = int(cfg.get("action_bonus", 1))
+
+    def on_turn_end(self, event, run, engine):
+        if not event.is_player:
+            return
+        from ...core.inventory.relic_service import get_relic_counter, set_relic_counter
+        p = run.player
+        cnt = get_relic_counter(p, self.relic_id)
+        if cnt < self.turn_threshold:
+            cnt += 1
+            set_relic_counter(p, self.relic_id, cnt)
+            if cnt >= self.turn_threshold:
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.rare.prayer_wheel.ready"))
+
+    def on_turn_start(self, event, run, engine):
+        if not event.is_player:
+            return
+        from ...core.inventory.relic_service import get_relic_counter, set_relic_counter
+        p = run.player
+        cnt = get_relic_counter(p, self.relic_id)
+        if cnt >= self.turn_threshold:
+            p.actions += self.action_bonus
+            set_relic_counter(p, self.relic_id, 0)
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.rare.prayer_wheel.trigger", action_bonus=self.action_bonus))
+
 
 
 for name, obj in list(globals().items()):

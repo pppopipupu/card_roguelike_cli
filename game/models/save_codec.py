@@ -116,6 +116,7 @@ class SaveCodecMixin:
             fold_guide=p_data.get("fold_guide", False),
             buffs=p_buffs,
             relics=p_data.get("relics", []),
+            relic_counters={k: int(v) for k, v in (p_data.get("relic_counters", {}) or {}).items()},
             subclass=p_data.get("subclass", ""),
             selected_class=p_data.get("selected_class", "法师"),
             potions=p_data.get("potions", []),

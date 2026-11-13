@@ -499,6 +499,37 @@ RELIC_CONFIG = {
         "event_only": True,
         "desc": "完全免疫所有【真实伤害】（伤害强制归零）。",
         "price": 0
+    },
+    "pen_nib": {
+        "name": "铅笔尖",
+        "rarity": "common",
+        "desc": "你每打出 5 张攻击牌，你的下一张攻击牌伤害翻倍。",
+        "attack_threshold": 5,
+        "damage_multiplier": 2,
+        "counter_init": 0,
+        "counter_max": 5,
+        "price": 40
+    },
+    "prayer_wheel": {
+        "name": "转经轮",
+        "rarity": "rare",
+        "desc": "每 3 个回合，你的下一回合开始时额外获得 1 点动作点 (A)。",
+        "turn_threshold": 3,
+        "action_bonus": 1,
+        "counter_init": 0,
+        "counter_max": 3,
+        "price": 70
+    },
+    "nail_of_heaven": {
+        "name": "天之钉",
+        "rarity": "epic",
+        "desc": "初始计数值为 5。每受到一次来自敌人的攻击伤害且伤害不少于 10 点时计数减 1（每回合最多减 1）；归 0 时，你下一次受到来自敌人的伤害将被免除，并对其施加 1 层【混乱】与 1 层【震颤】，随后重置计数。",
+        "min_damage": 10,
+        "confusion_stacks": 1,
+        "tremor_stacks": 1,
+        "counter_init": 5,
+        "counter_max": 5,
+        "price": 120
     }
 }
 

@@ -19,7 +19,7 @@ def render_party_status(run: GameRun) -> str:
         else:
             hp_text = f"{member.hp}/{member.max_hp}"
         grid_text = t("renderer_town.party_grid", idx=idx)
-        relics_text = format_relic_bar(getattr(member, "relics", []))
+        relics_text = format_relic_bar(getattr(member, "relics", []), getattr(member, "relic_counters", None))
         lines.append(t(
             "renderer_town.party_member_line",
             idx=idx,

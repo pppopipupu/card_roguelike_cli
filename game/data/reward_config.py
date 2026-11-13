@@ -1,7 +1,7 @@
 TREASURE_RELIC_POOL = [
     "lucky_coin", "red_bottle", "leather_armor", "whetstone", "ready_pack",
     "arcane_rune", "ancient_eye", "gold_compass", "dragon_blood",
-    "energy_core", "heavy_armor",
+    "energy_core", "heavy_armor", "pen_nib", "prayer_wheel", "nail_of_heaven",
 ]
 
 ELITE_RELIC_MAP = {

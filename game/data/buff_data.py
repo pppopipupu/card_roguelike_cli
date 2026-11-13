@@ -758,5 +758,22 @@ BUFF_CONFIG = {
         "persistent": True,
         "weak_stacks": 1,
         "desc": "持久负面状态：下场战斗开始时获得 1 层虚弱并消耗 1 层，可在篝火或咖啡馆中治愈"
+    },
+    "confusion": {
+        "name": "混乱",
+        "type": "debuff",
+        "is_debuff": True,
+        "damage_multiplier": 0.7,
+        "recoil_damage": 4,
+        "desc": "心智错乱：造成的伤害降低 30%，每次造成伤害后自身受到 4 点心灵伤害；每回合结束时层数减少 1"
+    },
+    "tremor": {
+        "name": "震颤",
+        "type": "debuff",
+        "is_debuff": True,
+        "damage_taken_bonus": 0.25,
+        "shield_multiplier": 0.5,
+        "burst_damage": 3,
+        "desc": "躯体震颤：受到的所有伤害提高 25%（每层累加），获得的护盾减少 50%；受到来自玩家的卡牌伤害时额外受到 3 点钝击伤害；每回合结束时层数减少 1"
     }
 }

@@ -200,7 +200,8 @@ def handle_start_ancient(engine, run, option_idx, target=None) -> str | None:
         return get_locale_text("err_invalid_option_idx")
     chosen = options[option_idx - 1]
     rid = chosen["relic"]
-    p.relics.append(rid)
+    from ..inventory.relic_service import grant_relic
+    grant_relic(p, rid)
     if rid == "mark_of_fury":
         p.max_hp = max(5, p.max_hp - 3)
         p.hp = min(p.hp, p.max_hp)
@@ -230,7 +231,8 @@ def handle_ancient(engine, run, option_idx, target=None) -> str | None:
     chosen = options[option_idx - 1]
     rid = chosen["relic"]
     cid = chosen.get("card")
-    p.relics.append(rid)
+    from ..inventory.relic_service import grant_relic
+    grant_relic(p, rid)
     if cid:
         from ...models.state import ensure_card_state
         p.deck.append(ensure_card_state(cid))
@@ -270,7 +272,8 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
                 available_relics = [r for r in relics_pool if r not in p.relics]
                 got_relic = random.choice(available_relics) if available_relics else ""
             if got_relic:
-                p.relics.append(got_relic)
+                from ..inventory.relic_service import grant_relic
+                grant_relic(p, got_relic)
                 if got_relic == "red_bottle":
                     p.max_hp += 5
                     p.hp += 5
@@ -396,7 +399,8 @@ def _claim_coop_relic(engine, run, pool_idx):
     if rid in player.relics:
         return get_locale_text("i18n_coop_explore.relic_already_owned", relic_name=get_relic_name(rid))
     entry["claimed_by"] = uid
-    player.relics.append(rid)
+    from ..inventory.relic_service import grant_relic
+    grant_relic(player, rid)
     if rid == "red_bottle":
         player.max_hp += 5
         player.hp += 5
@@ -653,7 +657,8 @@ def handle_shop(engine, run, option_idx, target=None) -> str | None:
     elif itype == "relic":
         p.gold -= price
         rid = item.get("relic_id")
-        p.relics.append(rid)
+        from ..inventory.relic_service import grant_relic
+        grant_relic(p, rid)
         item["sold"] = True
         if rid == "red_bottle":
             p.max_hp += 5

@@ -437,6 +437,81 @@ class StarspawnCoreRelic(RelicImpl):
                 engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.starspawn_core.trigger", name=target_enemy.name))
                 engine.combat_resolver.damage_target(run, f"e{idx}", self.damage, source="relic:starspawn_core", damage_type="force")
 
+class NailOfHeavenRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.min_damage = int(cfg.get("min_damage", 10))
+        self.confusion_stacks = int(cfg.get("confusion_stacks", 1))
+        self.tremor_stacks = int(cfg.get("tremor_stacks", 1))
+        self.counter_init = int(cfg.get("counter_init", 5))
+        self.counter_max = int(cfg.get("counter_max", 5))
+
+    def _last_turn_key(self, run) -> str:
+        uid = run.uid_for(run.player) if hasattr(run, "uid_for") and run.player else getattr(run, "user_id", "")
+        return f"nail_of_heaven_last_turn_{uid}"
+
+    def on_battle_start(self, run, engine):
+        from ...core.inventory.relic_service import init_relic_counter
+        init_relic_counter(run.player, self.relic_id)
+        run.node_data.pop(self._last_turn_key(run), None)
+
+    def on_before_damage_apply(self, event, run, engine):
+        if event.target != "p0" or event.final_damage <= 0:
+            return
+        src = str(getattr(event, "source", "") or "")
+        if not src.startswith("e"):
+            return
+        from ...core.inventory.relic_service import get_relic_counter, set_relic_counter
+        p = run.player
+        if get_relic_counter(p, self.relic_id) > 0:
+            return
+        event.final_damage = 0
+        set_relic_counter(p, self.relic_id, self.counter_init)
+        try:
+            idx = int(src[1:]) - 1
+        except ValueError:
+            idx = -1
+        if 0 <= idx < len(run.enemies):
+            enemy = run.enemies[idx]
+            from ...data.buff_data import BUFF_CONFIG
+            conf_cfg = BUFF_CONFIG.get("confusion", {})
+            trem_cfg = BUFF_CONFIG.get("tremor", {})
+            engine._add_buff_to(enemy, "confusion", conf_cfg.get("name", ""), conf_cfg.get("desc", ""), self.confusion_stacks)
+            engine._add_buff_to(enemy, "tremor", trem_cfg.get("name", ""), trem_cfg.get("desc", ""), self.tremor_stacks)
+            if run.node_data.get("current_acting_enemy_idx") is not None:
+                skip = run.node_data.setdefault("skip_enemy_buff_decay", [])
+                skip.append([idx, "confusion"])
+                skip.append([idx, "tremor"])
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.nail_of_heaven.trigger", name=enemy.name))
+        else:
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.nail_of_heaven.trigger_generic"))
+
+    def on_damage_take(self, event, run, engine):
+        if event.target != "p0":
+            return
+        src = str(getattr(event, "source", "") or "")
+        if not src.startswith("e"):
+            return
+        if int(getattr(event, "amount", 0) or 0) < self.min_damage:
+            return
+        from ...core.inventory.relic_service import get_relic_counter, set_relic_counter
+        p = run.player
+        cnt = get_relic_counter(p, self.relic_id)
+        if cnt <= 0:
+            return
+        last_key = self._last_turn_key(run)
+        cur_turn = int(run.node_data.get("turn_count", 1) or 1)
+        if run.node_data.get(last_key) == cur_turn:
+            return
+        run.node_data[last_key] = cur_turn
+        new_cnt = max(0, cnt - 1)
+        set_relic_counter(p, self.relic_id, new_cnt)
+        if new_cnt == 0:
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.nail_of_heaven.ready"))
+        else:
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.nail_of_heaven.charge", cnt=new_cnt, max_cnt=self.counter_max))
+
 
 for name, obj in list(globals().items()):
     if isinstance(obj, type) and issubclass(obj, RelicImpl) and obj is not RelicImpl:

@@ -285,7 +285,8 @@ def handle_room_dialog_choice(map_engine, run, idx: int) -> str:
         avail = [r for r in TREASURE_RELIC_POOL if r not in p.relics]
         if avail:
             rid = random.choice(avail)
-            p.relics.append(rid)
+            from ...inventory.relic_service import grant_relic
+            grant_relic(p, rid)
             from ....entities import get_relic_name
             close_room_dialog(map_engine.save_manager, run)
             return get_locale_text("i18n_explore_core.relic_gained", relic_name=get_relic_name(rid))

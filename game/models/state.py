@@ -393,6 +393,7 @@ class PlayerState:
     fold_guide: bool = False
     buffs: List[BuffState] = field(default_factory=list)
     relics: List[str] = field(default_factory=list)
+    relic_counters: Dict[str, int] = field(default_factory=dict)
     subclass: str = ""
     selected_class: str = "法师"
     potions: List[str] = field(default_factory=list)

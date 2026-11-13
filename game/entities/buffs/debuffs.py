@@ -314,6 +314,97 @@ class PaleEntropyBuff(BuffImpl):
         if buff_state.stacks <= 0 and buff_state in entity.buffs:
             entity.buffs.remove(buff_state)
 
+def _consume_enemy_turn_end_skip(run, entity, buff_id: str) -> bool:
+    if entity not in run.enemies:
+        return False
+    skip = run.node_data.get("skip_enemy_buff_decay")
+    if not isinstance(skip, list):
+        return False
+    marker = [run.enemies.index(entity), buff_id]
+    if marker in skip:
+        skip.remove(marker)
+        return True
+    return False
+
+class ConfusionBuff(BuffImpl):
+    def on_damage_calculate(self, event, buff_state, entity):
+        run = event.run
+        is_owner = False
+        if entity == run.player and event.source in ("p0", "player", "effect") and event.target != "p0":
+            is_owner = True
+        elif entity in run.enemies and event.source == f"e{run.enemies.index(entity) + 1}":
+            is_owner = True
+        if is_owner:
+            mult = _stat(self, "confusion", "damage_multiplier", 0.7)
+            event.modified_damage = int(event.modified_damage * mult)
+
+    def on_damage_take_attack(self, event, buff_state, entity, engine):
+        run = event.run
+        if event.amount <= 0 or event.source == event.target:
+            return
+        recoil = _stat(self, "confusion", "recoil_damage", 4)
+        if recoil <= 0:
+            return
+        if entity == run.player and event.source in ("p0", "player", "effect") and event.target != "p0":
+            engine._log_event(run, get_locale_text("i18n_buffs.confusion_recoil_log", entity=entity.name, dmg=recoil))
+            engine._damage_target(run, "p0", recoil, source="buff:confusion", damage_type="psychic")
+        elif entity in run.enemies and event.source == f"e{run.enemies.index(entity) + 1}":
+            target_ref = event.source
+            engine._log_event(run, get_locale_text("i18n_buffs.confusion_recoil_log", entity=entity.name, dmg=recoil))
+            engine._damage_target(run, target_ref, recoil, source="buff:confusion", damage_type="psychic")
+
+    def on_turn_end(self, event, buff_state, entity):
+        run = event.run
+        if (entity == run.player and event.is_player) or (entity in run.enemies and not event.is_player):
+            if not event.is_player and _consume_enemy_turn_end_skip(run, entity, "confusion"):
+                return
+            buff_state.stacks -= 1
+            if buff_state.stacks <= 0 and buff_state in entity.buffs:
+                entity.buffs.remove(buff_state)
+
+class TremorBuff(BuffImpl):
+    def on_damage_calculate_defend(self, event, buff_state, entity):
+        run = event.run
+        is_target = False
+        if entity == run.player and event.target == "p0":
+            is_target = True
+        elif entity in run.enemies and event.target == f"e{run.enemies.index(entity) + 1}":
+            is_target = True
+        if is_target:
+            bonus = _stat(self, "tremor", "damage_taken_bonus", 0.25) * max(1, buff_state.stacks)
+            event.modified_damage = int(event.modified_damage * (1.0 + bonus))
+
+    def on_shield_gain(self, event, buff_state, entity):
+        run = event.run
+        is_target = False
+        if entity == run.player and event.target == "p0":
+            is_target = True
+        elif entity in run.enemies and event.target == f"e{run.enemies.index(entity) + 1}":
+            is_target = True
+        if is_target:
+            mult = _stat(self, "tremor", "shield_multiplier", 0.5)
+            event.modified_amount = int(event.modified_amount * mult)
+
+    def on_damage_take_defend(self, event, buff_state, entity, engine):
+        run = event.run
+        if event.source not in ("p0", "player", "effect") or event.amount <= 0 or entity.hp <= 0:
+            return
+        burst = _stat(self, "tremor", "burst_damage", 3) * max(1, buff_state.stacks)
+        if burst <= 0:
+            return
+        if entity in run.enemies and event.target == f"e{run.enemies.index(entity) + 1}":
+            engine._log_event(run, get_locale_text("i18n_buffs.tremor_burst_log", entity=entity.name, dmg=burst))
+            engine._damage_target(run, event.target, burst, source="buff:tremor", damage_type="bludgeoning")
+
+    def on_turn_end(self, event, buff_state, entity):
+        run = event.run
+        if (entity == run.player and event.is_player) or (entity in run.enemies and not event.is_player):
+            if not event.is_player and _consume_enemy_turn_end_skip(run, entity, "tremor"):
+                return
+            buff_state.stacks -= 1
+            if buff_state.stacks <= 0 and buff_state in entity.buffs:
+                entity.buffs.remove(buff_state)
+
 for name, obj in list(globals().items()):
     if isinstance(obj, type) and issubclass(obj, BuffImpl) and obj is not BuffImpl:
         if not getattr(obj, "auto_register", True):

@@ -106,5 +106,7 @@
   "soul_phylactery_passive_name": "魂匣共鸣",
   "soul_phylactery_passive_desc": "场上有骷髅兵存活时，自身受到的伤害降低 30%",
   "dream_eater_passive_name": "食梦帷幕",
-  "dream_eater_passive_desc": "每当玩家消耗卡牌时，获得 4 点护盾并恢复 3 点生命"
+  "dream_eater_passive_desc": "每当玩家消耗卡牌时，获得 4 点护盾并恢复 3 点生命",
+  "confusion_recoil_log": "🌀 【{entity}】因【混乱】心智错乱，受到 {dmg} 点心灵反噬伤害！",
+  "tremor_burst_log": "💢 【{entity}】体内的【震颤】迸发，额外受到 {dmg} 点钝击伤害！"
 }

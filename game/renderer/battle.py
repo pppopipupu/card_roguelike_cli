@@ -7,7 +7,7 @@ from ..data.minion_data import MINION_CONFIG
 from ..data.locale_data import t
 from .menu import get_card_cost_str
 from .card_preview import render_card_description, replace_structured_number
-from .formatters import format_buff_detail, format_buff_list, format_relic_bar, get_effective_max_hp
+from .formatters import format_buff_detail, format_buff_list, format_relic_bar, format_relic_name_with_counter, get_effective_max_hp
 
 def void_corrupt_text(text: str) -> str:
     import random
@@ -84,7 +84,7 @@ def render_battle(run: GameRun) -> str:
     from .party import render_party_status
     p = run.player
     cur_max = get_effective_max_hp(p, run)
-    relics_str = format_relic_bar(p.relics)
+    relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     potions_str = ""
     if hasattr(p, "potions") and p.potions:
         from ..data.potion_data import get_potion_name
@@ -242,7 +242,7 @@ def render_detailed_battle(run: GameRun) -> str:
     if p.relics:
         lines.append(t("renderer.battle.relics_title"))
         for r in p.relics:
-            rname = get_relic_name(r)
+            rname = format_relic_name_with_counter(r, getattr(p, "relic_counters", None))
             rdesc = get_relic_desc(r)
             lines.append(t("i18n_card_runtime.battle.detailed_relic_line", name=rname, desc=rdesc))
     else:

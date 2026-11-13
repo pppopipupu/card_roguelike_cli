@@ -71,7 +71,7 @@ def render_grid_map(run: GameRun) -> str:
         if u != uid and u in run.players and not getattr(run.players[u], "is_mercenary", False)
     }
     adj_set = _adjacent_to_revealed(fm)
-    relics_str = format_relic_bar(p.relics)
+    relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     quest_str = ""
     if getattr(p, "quest_relics", None):
         qnames = []

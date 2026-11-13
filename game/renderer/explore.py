@@ -9,7 +9,7 @@ from .formatters import format_persistent_buff_bar, format_relic_bar
 def render_event(run: GameRun) -> str:
     p = run.player
     data = run.node_data
-    relics_str = format_relic_bar(p.relics)
+    relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("renderer_explore.event_title", stage=p.stage),
@@ -57,7 +57,7 @@ def render_shop_wares(run: GameRun) -> str:
     data = run.node_data
     if data.get("coop_done"):
         return render_waiting(run)
-    relics_str = format_relic_bar(p.relics)
+    relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("renderer_explore.shop_title", stage=p.stage),
@@ -111,7 +111,7 @@ def render_rest(run: GameRun) -> str:
     data = run.node_data
     if data.get("coop_done"):
         return render_waiting(run)
-    relics_str = format_relic_bar(p.relics)
+    relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("render_rest_title", stage=p.stage),
@@ -361,7 +361,7 @@ def render_card_select(run: GameRun) -> str:
     p = run.player
     data = run.node_data
     title = data.get("title", get_locale_text("renderer_explore.card_select_default_title"))
-    relics_str = format_relic_bar(p.relics)
+    relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("renderer_explore.card_select_title", title=title),
@@ -400,7 +400,7 @@ def render_boss_chest(run: GameRun) -> str:
     data = run.node_data
     title = data.get("title", get_locale_text("renderer_explore.boss_chest_default_title"))
     desc = data.get("desc", "")
-    relics_str = format_relic_bar(p.relics)
+    relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("renderer_explore.boss_chest_title", title=title),
@@ -447,7 +447,7 @@ def render_life_merchant(run: GameRun) -> str:
     data = run.node_data
     if data.get("coop_done"):
         return render_waiting(run)
-    relics_str = format_relic_bar(p.relics)
+    relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("renderer_explore.life_merchant_title", stage=p.stage),

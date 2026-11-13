@@ -36,6 +36,9 @@ class RelicImpl:
 
     def on_damage_take_defend(self, event, run, engine):
         pass
+    def on_before_damage_apply(self, event, run, engine):
+        pass
+
 
     def on_shield_gain(self, event, run, engine):
         pass

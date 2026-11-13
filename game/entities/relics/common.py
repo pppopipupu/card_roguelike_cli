@@ -32,6 +32,42 @@ class AncientSigilRelic(RelicImpl):
                 engine._gain_shield(run, "p0", self.shield_gain)
                 engine._log_event(run, get_locale_text("i18n_relics_amulets.common.ancient_sigil.shield"))
 
+class PenNibRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.attack_threshold = int(cfg.get("attack_threshold", 5))
+        self.damage_multiplier = int(cfg.get("damage_multiplier", 2))
+
+    def on_damage_calculate(self, event, run, engine):
+        if event.source != "p0":
+            return
+        from ...data.card_subtype_data import is_attack_card
+        if not is_attack_card(getattr(event, "card", None)):
+            return
+        from ...core.inventory.relic_service import get_relic_counter
+        if get_relic_counter(run.player, self.relic_id) >= self.attack_threshold:
+            event.modified_damage = int(event.modified_damage * self.damage_multiplier)
+
+    def on_card_played(self, event, run, engine):
+        if getattr(event, "is_extra", False):
+            return
+        from ...data.card_subtype_data import is_attack_card
+        card = getattr(event, "card", None)
+        if not is_attack_card(card):
+            return
+        from ...core.inventory.relic_service import get_relic_counter, set_relic_counter
+        p = run.player
+        cnt = get_relic_counter(p, self.relic_id)
+        if cnt >= self.attack_threshold:
+            set_relic_counter(p, self.relic_id, 0)
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.common.pen_nib.consumed", name=card.name))
+        else:
+            cnt += 1
+            set_relic_counter(p, self.relic_id, cnt)
+            if cnt >= self.attack_threshold:
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.common.pen_nib.ready"))
+
 
 for name, obj in list(globals().items()):
     if isinstance(obj, type) and issubclass(obj, RelicImpl) and obj is not RelicImpl:

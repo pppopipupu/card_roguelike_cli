@@ -86,3 +86,11 @@ SKILL_SPELL_IDS = frozenset({
     "coop_phalanx_bulwark",
     "coop_resonance_hymn",
 })
+
+def is_attack_card(card) -> bool:
+    if card is None or getattr(card, "type", "") != "spell":
+        return False
+    cid = getattr(card, "id", "") or ""
+    if cid.startswith("duel_"):
+        cid = cid[5:]
+    return cid.rstrip("+") in ATTACK_SPELL_IDS

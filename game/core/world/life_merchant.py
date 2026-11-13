@@ -296,7 +296,8 @@ def handle_life_merchant(explore_engine, run, option_idx: int, target=None) -> s
 
     if itype == "relic":
         rid = item.get("relic_id")
-        p.relics.append(rid)
+        from ..inventory.relic_service import grant_relic
+        grant_relic(p, rid)
         if rid == "red_bottle":
             p.max_hp += 5
             p.hp += 5
