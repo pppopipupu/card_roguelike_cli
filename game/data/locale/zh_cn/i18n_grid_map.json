@@ -5,8 +5,8 @@
   "floor_3_name": "终幕表层",
   "floor_4_name": "深渊里界",
   "header_title": "🗺️ 【第 {floor} 层 · {floor_name}】 当前坐标：{coord}",
-  "header_status": "🧙 {name} | ❤️ HP {hp}/{max_hp} | 💰 金币 {gold} | ⚡ SP {sp}/{max_sp} | 💫 力竭 {exhaustion} 级",
-  "battle_sp_line": "⚡ SP {sp}/{max_sp} | 💫 力竭 {exhaustion} 级",
+  "header_status": "🧙 {name} | ❤️ HP {hp}/{max_hp} | 💰 金币 {gold} | ⚡ SP {sp}/{max_sp}",
+  "battle_sp_line": "⚡ SP {sp}/{max_sp}",
   "exhaustion_line": "💫 力竭状态（{level} 级）：{desc}",
   "exhaustion_desc_0": "无",
   "exhaustion_desc_1": "首回合初始抽牌 -1",
@@ -22,11 +22,10 @@
   "quest_relics_line": "🔮 因果信物：{items}",
   "legend_title": "📌 图例：",
   "revealed_facilities": "🧭 已发现设施：",
-  "talk_hint": "💬 当前格子有默认设施可交互，输入 对话 触发。",
-  "controls_hint": "🎮 操作：w/a/s/d 移动 | tp 传送 | map 地图 | 对话 | 攻击 | 触摸 | 拿取 | 使用 | 背包 | f 折叠",
-  "guide_folded": "🎮 操作指引已折叠，输入 f 展开 | 当前：迷雾探索",
-  "choose_hint": "💡 请选择序号（如 c 1 或直接输入 1）",
-  "tp_missing_arg": "❓ 请指定传送目标，例如 tp D2 或 tp 咖啡馆。",
+  "talk_hint": "💬 当前格子有设施可交互，输入 talk 触发。",
+  "controls_hint": "🎮 w/a/s/d 移动 | tp 传送 | m 地图 | bag 背包 | f 折叠",
+  "guide_folded": "🎮 f 展开提示",
+  "choose_hint": "💡 c <序号> (或直接输入数字) | leave 离开 | f 折叠",
   "tp_list_header": "🌀 【当前层已探明可传送节点】\n{items}\n输入 tp <坐标或名称> 即可免费传送。",
   "tp_list_empty": "🌫️ 当前暂无可传送的已探明节点。",
   "err_no_floor_map": "❌ 当前没有可用的网格地图。",
@@ -127,22 +126,27 @@
     },
     "broken_sword_camp": {
       "name": "断剑残营",
-      "desc": "插在地面的断剑旁还留有未熄的余烬，可供短暂歇息或取走信物。",
+      "desc": "插在地面的断剑旁还留有未熄的余烬，可供短暂歇息、搜寻补给或取走信物。",
       "npc": "守营剑魂",
       "opt_ember": "拾取营地信物【断剑营火余烬】",
       "opt_rest": "在残营小憩（恢复少量生命并恢复 SP）",
+      "opt_scavenge": "搜寻营地遗留补给（随机获得实用物品）",
       "opt_leave": "离开断剑残营",
       "ember_gained": "🔥 获得了信物【{name}】。",
-      "rest_msg": "⛺ 在残营小憩片刻，恢复至 {hp} 点生命，当前 SP：{sp}/{max_sp}。"
+      "rest_msg": "⛺ 在残营小憩片刻，恢复至 {hp} 点生命，当前 SP：{sp}/{max_sp}。",
+      "scavenge_item_msg": "🎒 你在断剑残营的旧包袱里翻出了【{item}】！",
+      "scavenge_gold_msg": "🪙 行囊已满，你在断剑残营里另外捡到了 {gold} 金币。"
     },
     "ancient_stele": {
       "name": "先古裂隙古碑",
-      "desc": "铭刻着跨层因果纹路的石碑，似乎正呼应着行囊中的【裂隙残盘】。",
+      "desc": "铭刻着跨层因果纹路的石碑，石面残留着先古防御秘印。",
       "npc": "古碑铭文",
       "opt_charge_sp": "以 {cost} 点 SP 为【裂隙残盘】充能",
       "opt_charge_hp": "献祭 {cost} 点最大生命为【裂隙残盘】充能",
+      "opt_inscribe": "消耗 1 点 SP 研读碑文（获得 1 层【先古庇护】并揭示 1 处秘境坐标）",
       "opt_leave": "离开古碑",
-      "charged_msg": "🔮 裂隙纹路点亮！信物升华为【{name}】。"
+      "charged_msg": "🔮 裂隙纹路点亮！信物升华为【{name}】。",
+      "inscribed_msg": "📜 你领悟了古碑上的守御铭文，获得 1 层【先古庇护】并揭示了坐标：{coord}！"
     }
   },
   "ritual_protocol": {

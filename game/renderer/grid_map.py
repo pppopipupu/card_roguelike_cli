@@ -1,5 +1,4 @@
 from ..core.world.grid_map_generator import coord_to_xy, neighbors_4, xy_to_coord
-from ..core.world.sp_system import format_exhaustion_effects
 from ..data.grid_map_config import (
     DIRECT_REVEAL_ADJACENT_TYPES,
     FLOOR_CONFIGS,
@@ -8,11 +7,8 @@ from ..data.grid_map_config import (
     ROOM_ICONS,
 )
 from ..data.locale_data import get_locale_text
-from ..entities import get_relic_name
 from ..models.state import GameRun
-from .formatters import format_relic_bar
-
-
+from .formatters import format_persistent_buff_bar, format_relic_bar
 def _visible_cell_icon(fm, coord: str, viewer_coord: str, other_coords: set[str], adj_set: set[str]) -> str:
     room = fm.rooms.get(coord)
     if room is None:
@@ -85,8 +81,7 @@ def render_grid_map(run: GameRun) -> str:
             qnames.append(f"【{qname}】")
         quest_str = get_locale_text("i18n_grid_map.quest_relics_line", items=" ".join(qnames))
 
-    ex_lvl = int(getattr(p, "exhaustion", 0) or 0)
-    ex_desc = format_exhaustion_effects(ex_lvl)
+    pbuff_str = format_persistent_buff_bar(p)
     lines = [
         get_locale_text("i18n_grid_map.header_title", floor=fm.floor_index, floor_name=floor_name, coord=viewer_coord),
         get_locale_text(
@@ -97,9 +92,7 @@ def render_grid_map(run: GameRun) -> str:
             gold=p.gold,
             sp=getattr(p, "sp", 10),
             max_sp=getattr(p, "max_sp", 10),
-            exhaustion=ex_lvl,
-        ) + relics_str,
-        get_locale_text("i18n_grid_map.exhaustion_line", level=ex_lvl, desc=ex_desc),
+        ) + relics_str + pbuff_str,
     ]
     if quest_str:
         lines.append(quest_str)
@@ -255,14 +248,10 @@ def _describe_neighbor(fm, x: int, y: int) -> str:
 
 def _render_room_details(fm, cur_room, viewer_coord: str, player) -> list[str]:
     from ..core.inventory.bag_service import get_bag_max_weight, get_bag_weight, get_item_display_name
+    from ..core.world.rooms.interact import format_room_env_with_props
     from ..data.potion_data import POTION_SLOT_LIMIT
-    from ..data.room_interact_data import ROOM_NPCS, ROOM_PROPS
-    out = []
-    env_id = getattr(cur_room, "env_id", "") or "dungeon_corridor"
-    env_text = get_locale_text(f"i18n_room_interact.env.{env_id}")
-    if cur_room.cleared and cur_room.room_type not in ("spawn", "empty", "shop", "cafe", "landmark", "downstairs"):
-        env_text += get_locale_text("i18n_room_interact.env.cleared_suffix")
-    out.append(env_text)
+    from ..data.room_interact_data import ROOM_NPCS
+    out = [format_room_env_with_props(cur_room, include_cleared_suffix=True)]
 
     cx, cy = coord_to_xy(viewer_coord)
     dirs = [
@@ -285,18 +274,6 @@ def _render_room_details(fm, cur_room, viewer_coord: str, player) -> list[str]:
             for nid in alive_npcs
         ]
         out.append(get_locale_text("i18n_room_interact.room_ui.npcs_line", items="、".join(npc_names)))
-
-    props = list(getattr(cur_room, "props", None) or [])
-    done_props = set(getattr(cur_room, "interacted_props", None) or [])
-    if props:
-        prop_parts = []
-        for pid in props:
-            pname = get_locale_text(ROOM_PROPS[pid]["name_key"]) if pid in ROOM_PROPS else pid
-            if pid in done_props:
-                prop_parts.append(f"【{pname}·{get_locale_text('i18n_room_interact.room_ui.prop_done_tag')}】")
-            else:
-                prop_parts.append(f"【{pname}】")
-        out.append(get_locale_text("i18n_room_interact.room_ui.props_line", items="、".join(prop_parts)))
 
     items = list(getattr(cur_room, "items", None) or [])
     if items:

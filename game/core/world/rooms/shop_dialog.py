@@ -4,8 +4,7 @@ from ....data.room_interact_data import ROOM_NPCS, ROOM_PROPS, SHOP_DIALOG_CONFI
 from ....entities import ALL_CARDS, get_relic_desc, get_relic_name
 from ...inventory.bag_service import get_bag_max_weight, get_bag_weight, get_item_display_name
 from .npc_dialog import start_npc_combat
-from .interact import _reveal_any_special, get_current_room
-
+from .interact import _reveal_any_special, format_room_env_with_props, get_current_room
 
 def apply_shop_price_multiplier(items: list, mult: float) -> None:
     for item in items:
@@ -49,25 +48,16 @@ def render_shop_view(run) -> str:
     p = run.player
     room, coord = get_current_room(run)
     merchant_dead = bool(run.node_data.get("merchant_defeated")) or (room is not None and bool(room.shared_payload.get("merchant_defeated")))
+    from ....renderer.formatters import format_persistent_buff_bar
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("i18n_room_interact.shop.lobby_title", stage=p.stage) if mode == "lobby" else get_locale_text("i18n_room_interact.shop.dialog_title"),
-        get_locale_text("renderer_explore.status_line", name=p.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold),
+        get_locale_text("renderer_explore.status_line", name=p.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + format_persistent_buff_bar(p),
         "",
     ]
     if mode == "lobby":
         if room is not None:
-            env_id = room.env_id or "shop_parlor"
-            lines.append(get_locale_text(f"i18n_room_interact.env.{env_id}"))
-            props = list(room.props or [])
-            done = set(room.interacted_props or [])
-            if props:
-                pnames = [
-                    f"【{get_locale_text(ROOM_PROPS[pid]['name_key'])}{'·已调查' if pid in done else ''}】"
-                    for pid in props if pid in ROOM_PROPS
-                ]
-                if pnames:
-                    lines.append(get_locale_text("i18n_room_interact.room_ui.props_line", items="、".join(pnames)))
+            lines.append(format_room_env_with_props(room, include_cleared_suffix=False))
             if room.items:
                 inames = [f"【{get_item_display_name(it)}】" for it in room.items]
                 lines.append(get_locale_text("i18n_room_interact.room_ui.items_line", items="、".join(inames)))
@@ -95,9 +85,10 @@ def render_shop_view(run) -> str:
     lines.append(f" [4] {get_locale_text('i18n_room_interact.shop.dialog_opt_intel', cost=SHOP_DIALOG_CONFIG['intel_cost'])}")
     lines.append(f" [5] {get_locale_text('i18n_room_interact.shop.dialog_opt_extort')}")
     lines.append(f" [6] {get_locale_text('i18n_room_interact.shop.dialog_opt_back')}")
+    lines.append("")
+    lines.append(get_locale_text("renderer_explore.guide_folded") if p.fold_guide else get_locale_text("i18n_room_interact.shop.dialog_footer"))
     lines.append(get_locale_text("renderer_explore.separator"))
     return "\n".join(lines)
-
 
 def handle_shop_lobby_or_dialog_choice(explore_engine, run, option_idx: int) -> str | None:
     from ...party.coordinator import finish_player_node

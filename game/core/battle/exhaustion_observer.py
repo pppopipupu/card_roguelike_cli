@@ -22,14 +22,18 @@ class ExhaustionObserver:
         event_bus.subscribe(BeforeDamageApplyEvent, self.on_before_damage_apply)
 
     def modify_initial_draw(self, player, draw_count: int) -> int:
+        from ..world.persistent_buffs import get_persistent_buff_stacks
         ex = int(getattr(player, "exhaustion", 0) or 0)
         if ex >= 1:
             draw_count -= EXHAUSTION_CONFIG.get("level1_draw_penalty", 1)
         if ex >= 4:
             draw_count -= EXHAUSTION_CONFIG.get("level4_draw_penalty", 1)
+        if get_persistent_buff_stacks(player, "arcane_clarity") > 0:
+            draw_count += 1
         return max(1, draw_count)
 
     def on_battle_start(self, event):
+        from ..world.persistent_buffs import consume_persistent_buff_in_battle, get_persistent_buff_stacks
         p = event.run.player
         ex = int(getattr(p, "exhaustion", 0) or 0)
         if ex >= 4:
@@ -38,7 +42,23 @@ class ExhaustionObserver:
             if p.hp > cap:
                 p.hp = cap
             self.engine._log_event(event.run, get_locale_text("i18n_grid_map.exhaustion_battle_max_hp_log", max_hp=cap))
-
+        if get_persistent_buff_stacks(p, "ancient_ward") > 0:
+            consume_persistent_buff_in_battle(p, "ancient_ward", 1)
+            self.engine._gain_shield(event.run, "p0", 6)
+            self.engine._log_event(event.run, get_locale_text("i18n_room_interact.pbuff.ancient_ward_log", shield=6))
+        if get_persistent_buff_stacks(p, "arcane_clarity") > 0:
+            consume_persistent_buff_in_battle(p, "arcane_clarity", 1)
+            self.engine._log_event(event.run, get_locale_text("i18n_room_interact.pbuff.arcane_clarity_log"))
+        if get_persistent_buff_stacks(p, "abyss_chill") > 0:
+            consume_persistent_buff_in_battle(p, "abyss_chill", 1)
+            self.engine._add_buff_to(
+                p,
+                "weak",
+                get_locale_text("i18n_battle_core.buff_weak_name"),
+                get_locale_text("i18n_battle_core.buff_weak_desc"),
+                1,
+            )
+            self.engine._log_event(event.run, get_locale_text("i18n_room_interact.pbuff.abyss_chill_log"))
     def on_turn_start(self, event):
         if not event.is_player:
             return

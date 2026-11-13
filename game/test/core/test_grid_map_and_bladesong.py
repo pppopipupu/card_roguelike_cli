@@ -14,9 +14,9 @@ from game.test.core.base import CorePlugin, move_to_room, run_command
 
 class TestGridMapAndBladesong(unittest.TestCase):
     def setUp(self):
+        random.seed(2026)
         self.tmp = tempfile.TemporaryDirectory()
         self.plugin = CorePlugin(data_dir=self.tmp.name)
-
     def tearDown(self):
         self.tmp.cleanup()
 
@@ -230,6 +230,7 @@ class TestGridMapAndBladesong(unittest.TestCase):
             CardState(id="quick_strike"),
         ]
         p.relics = []
+        p.buffs = []
         p.actions = 4
         p.bonus_actions = 1
         p.shield = 0

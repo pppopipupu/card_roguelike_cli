@@ -95,9 +95,8 @@ def render_battle(run: GameRun) -> str:
         t("renderer.battle.title", stage=p.stage, turn=turn_count),
         t("renderer.battle.status_line", name=run.player.name, hp=p.hp, max_hp=cur_max, shield=p.shield, actions=p.actions, bonus_actions=p.bonus_actions) + relics_str + potions_str
     ]
-    if getattr(run, "floor_map", None) is not None or getattr(p, "exhaustion", 0) > 0 or getattr(p, "sp", 10) < getattr(p, "max_sp", 10):
-        lines.append(t("i18n_grid_map.battle_sp_line", sp=getattr(p, "sp", 10), max_sp=getattr(p, "max_sp", 10), exhaustion=getattr(p, "exhaustion", 0)))
-    if run.player_count() > 1:
+    if getattr(run, "floor_map", None) is not None or getattr(p, "sp", 10) < getattr(p, "max_sp", 10):
+        lines.append(t("i18n_grid_map.battle_sp_line", sp=getattr(p, "sp", 10), max_sp=getattr(p, "max_sp", 10)))
         lines.append(render_party_status(run))
         if p.downed or p.hp <= 0:
             lines.append(t("renderer.battle.downed"))

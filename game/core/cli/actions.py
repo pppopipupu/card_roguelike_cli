@@ -92,7 +92,7 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
             idx = int(parts[1])
         except ValueError:
             arg = parts[1].lower()
-            if arg in ("取消", "cancel", "返回", "quit", "exit", "0", "离开", "退出"):
+            if arg in ("取消", "cancel", "返回", "quit", "exit", "leave", "lv", "0", "离开", "退出"):
                 if run.node_data.get("pending_remove"):
                     run.node_data["pending_remove"] = False
                     router.save_manager.save_save(user_id, run)

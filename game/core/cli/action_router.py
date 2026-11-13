@@ -20,6 +20,10 @@ class ActionRouter:
             run.node_data.pop("pending_discard", None)
             run.node_data.pop("pending_discard_source", None)
             state_stack.append({"type": "force_discard", "required_count": 1})
+        if parts[0].lower() in ("折叠", "f", "fold"):
+            handler = self._action_handlers.get(parts[0].lower())
+            if handler:
+                return handler.execute(router, user_id, run, parts)
         if state_stack:
             top_state = state_stack[-1]
             stype = top_state.get("type")

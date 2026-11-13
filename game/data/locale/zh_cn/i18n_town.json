@@ -38,5 +38,5 @@
   "quest_goals_title": "   任务目标：",
   "quest_empty": "   📝 你当前没有任何已接取的任务。",
   "quest_empty_hint": "   提示：去主城各处找居民闲聊或询问他们的烦恼吧！",
-  "quest_help_tip": "💡 提示：输入 背包/inv 查看你拥有的物品，输入 W/A/S/D 继续移动探索。"
+  "quest_help_tip": "💡 提示：输入 bag 查看你的行囊与资产，输入 w/a/s/d 继续移动探索。"
 }

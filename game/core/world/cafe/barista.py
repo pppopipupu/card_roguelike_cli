@@ -70,11 +70,14 @@ def execute_barista_dialog_choice(cafe_engine, run, idx: int) -> str:
         cost = cfg["chamomile_tea_cost"]
         if p.gold < cost:
             return get_locale_text("i18n_map_cafe.cafe_err_gold_insufficient", cost=cost)
+        from ..persistent_buffs import cure_persistent_debuffs
         p.gold -= cost
         before = p.hp
         p.hp = min(p.max_hp, p.hp + cfg["chamomile_heal"])
         old_ex = getattr(p, "exhaustion", 0)
-        new_ex = reduce_exhaustion(p, cfg["chamomile_ex_cure"])
+        new_ex = reduce_exhaustion(p, cfg["chamomile_exhaustion_cure"])
+        cure_persistent_debuffs(p, 1)
+        cafe_engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_room_interact.cafe.chamomile_ok", heal=p.hp - before, cure=max(0, old_ex - new_ex))
     if idx == 5:
         from ....data.card_upgrade_data import CARD_UPGRADE_CONFIG
@@ -122,13 +125,12 @@ def render_cafe_room_extras(run) -> List[str]:
     else:
         extras.append(get_locale_text("i18n_room_interact.cafe.barista_line"))
     done = set(room.interacted_props or [])
-    done_tag = get_locale_text("i18n_room_interact.room_ui.prop_done_tag")
-    props = [
-        f"【{get_locale_text(ROOM_PROPS[pid]['name_key'])}{f'·{done_tag}' if pid in done else ''}】"
+    prop_scenes = [
+        get_locale_text(f"i18n_room_interact.props.{pid}.done_scene" if pid in done else f"i18n_room_interact.props.{pid}.scene")
         for pid in (room.props or []) if pid in ROOM_PROPS
     ]
-    if props:
-        extras.append(get_locale_text("i18n_room_interact.room_ui.props_line", items="、".join(props)))
+    if prop_scenes:
+        extras.append(get_locale_text("i18n_room_interact.cafe.facilities_scene", desc="".join(prop_scenes)))
     if room.items:
         inames = [f"【{get_item_display_name(it)}】" for it in room.items]
         extras.append(get_locale_text("i18n_room_interact.room_ui.items_line", items="、".join(inames)))

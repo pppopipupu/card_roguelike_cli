@@ -95,7 +95,7 @@ def render_room_dialog(run) -> str:
     for idx, opt in enumerate(opts, 1):
         lines.append(f" [{idx}] {opt}")
     lines.append("")
-    lines.append(get_locale_text("i18n_room_interact.dialog.footer"))
+    lines.append(get_locale_text("renderer_explore.guide_folded") if run.player.fold_guide else get_locale_text("i18n_room_interact.dialog.footer"))
     lines.append(get_locale_text("i18n_grid_map.separator"))
     return "\n".join(lines)
 

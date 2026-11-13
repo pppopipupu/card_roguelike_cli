@@ -75,6 +75,11 @@ def build_landmark_options(run, uid: str) -> dict:
                 "action": "camp_rest",
                 "text": get_locale_text("i18n_grid_map.landmarks.broken_sword_camp.opt_rest"),
             })
+        if not fm.floor_flags.get("camp_scavenged"):
+            options.append({
+                "action": "camp_scavenge",
+                "text": get_locale_text("i18n_grid_map.landmarks.broken_sword_camp.opt_scavenge"),
+            })
     elif lm_id == "ancient_stele":
         title = get_locale_text(LANDMARK_CONFIGS["ancient_stele"]["name_key"])
         desc = get_locale_text(LANDMARK_CONFIGS["ancient_stele"]["desc_key"])
@@ -88,7 +93,11 @@ def build_landmark_options(run, uid: str) -> dict:
                 "action": "stele_charge_hp",
                 "text": get_locale_text("i18n_grid_map.landmarks.ancient_stele.opt_charge_hp", cost=SP_CONFIG["stele_charge_hp_cost"]),
             })
-
+        if not fm.floor_flags.get("stele_inscribed"):
+            options.append({
+                "action": "stele_inscribe",
+                "text": get_locale_text("i18n_grid_map.landmarks.ancient_stele.opt_inscribe"),
+            })
     if coord == fm.ritual_coord and fm.secret_boss_coord and not fm.secret_unlocked:
         proto = fm.ritual_protocol
         options.append({
@@ -215,6 +224,30 @@ def execute_landmark_option(save_manager, map_engine, run, idx: int) -> str:
         save_manager.save_save(uid, run)
         return get_locale_text("i18n_grid_map.landmarks.broken_sword_camp.rest_msg", hp=p.hp, sp=p.sp, max_sp=p.max_sp)
 
+    if action == "camp_scavenge":
+        from ..inventory.bag_service import add_bag_item, get_item_display_name
+        fm.floor_flags["camp_scavenged"] = True
+        loot = random.choice(["field_bandage", "espresso_beans"])
+        ok, _ = add_bag_item(p, loot)
+        map_engine.complete_session(run, mark_cleared=True)
+        save_manager.save_save(uid, run)
+        if ok:
+            return get_locale_text("i18n_grid_map.landmarks.broken_sword_camp.scavenge_item_msg", item=get_item_display_name(loot))
+        p.gold += 15
+        return get_locale_text("i18n_grid_map.landmarks.broken_sword_camp.scavenge_gold_msg", gold=15)
+
+    if action == "stele_inscribe":
+        from .persistent_buffs import add_persistent_buff
+        from .rooms.interact import _reveal_any_special
+        fm.floor_flags["stele_inscribed"] = True
+        consume_sp(p, 1, allow_overdraft=True)
+        add_persistent_buff(p, "ancient_ward", 1)
+        revealed = _reveal_any_special(fm, 1)
+        map_engine.complete_session(run, mark_cleared=True)
+        save_manager.save_save(uid, run)
+        coord_str = revealed[0] if revealed else get_locale_text("i18n_grid_map.none")
+        return get_locale_text("i18n_grid_map.landmarks.ancient_stele.inscribed_msg", coord=coord_str)
+
     if action == "stele_charge_max_sp":
         cost = SP_CONFIG["stele_charge_max_sp_cost"]
         p.max_sp = max(2, p.max_sp - cost)
@@ -237,7 +270,6 @@ def execute_landmark_option(save_manager, map_engine, run, idx: int) -> str:
         map_engine.complete_session(run, mark_cleared=True)
         save_manager.save_save(uid, run)
         return get_locale_text("i18n_grid_map.landmarks.ancient_stele.charged_msg", name=_quest_relic_name("awakened_rift_compass"))
-
     if action.startswith("ritual_"):
         proto = action[len("ritual_"):]
         if proto == "exhaustion_or_curse":

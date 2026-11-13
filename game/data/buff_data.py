@@ -727,5 +727,36 @@ BUFF_CONFIG = {
         "proc_dmg": 3,
         "proc_shield": 3,
         "desc": "每回合开始时额外获得 1 点附赠动作 (BA)；每当打出红色或蓝色卡牌时，对随机敌方造成 3*层数 点力场伤害并获得 3*层数 点护盾"
+    },
+    "exhaustion": {
+        "name": "力竭",
+        "type": "debuff",
+        "is_debuff": True,
+        "persistent": True,
+        "desc": "持久负面状态（共 5 级）：1 级首回合抽牌 -1；2 级护盾获得量 -25%；3 级每回合少 1 点 BA 且伤害 -20%；4 级战斗中最大生命上限减半且每回合抽牌 -1；5 级力竭阵亡"
+    },
+    "ancient_ward": {
+        "name": "先古庇护",
+        "type": "buff",
+        "is_debuff": False,
+        "persistent": True,
+        "shield_gain": 6,
+        "desc": "持久增益状态：下场战斗开始时获得 6 点护盾并消耗 1 层"
+    },
+    "arcane_clarity": {
+        "name": "奥术澄明",
+        "type": "buff",
+        "is_debuff": False,
+        "persistent": True,
+        "draw_gain": 1,
+        "desc": "持久增益状态：下场战斗首回合额外抽 1 张牌并消耗 1 层"
+    },
+    "abyss_chill": {
+        "name": "深渊寒蚀",
+        "type": "debuff",
+        "is_debuff": True,
+        "persistent": True,
+        "weak_stacks": 1,
+        "desc": "持久负面状态：下场战斗开始时获得 1 层虚弱并消耗 1 层，可在篝火或咖啡馆中治愈"
     }
 }

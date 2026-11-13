@@ -292,8 +292,10 @@ class GridMapService:
 
         if room.room_type in ("battle", "elite", "high_danger", "boss", "secret_boss"):
             if room.room_type == "high_danger" and not room.shared_payload.get("hazard_applied"):
+                from .persistent_buffs import add_persistent_buff
                 loss = max(HIGH_DANGER_CONFIG["hazard_hp_min"], int(p.max_hp * HIGH_DANGER_CONFIG["hazard_hp_ratio"]))
                 p.hp = max(1, p.hp - loss)
+                add_persistent_buff(p, "abyss_chill", 1)
                 room.shared_payload["hazard_applied"] = True
                 room.shared_payload["hazard_loss"] = loss
             diff = {

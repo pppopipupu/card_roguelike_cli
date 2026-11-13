@@ -102,54 +102,100 @@
     },
     "barista_seal": {
       "name": "店主秘藏印章",
-      "desc": "刻着热气咖啡杯的铜印章，局内使用可恢复 4 点 SP，带回主城可写入永久行囊。"
+      "desc": "刻着热气咖啡杯的铜印章，局内使用可恢复 4 点 SP，可带回先古主城。"
     },
     "potion_drop": "药水·{name}"
   },
   "props": {
     "ancient_brazier": {
       "name": "先古火盆",
-      "desc": "刻满火纹的青铜火盆，拨动余烬或许能汲取一点暖意与体力。"
+      "desc": "刻满火纹的青铜火盆，拨动余烬或许能汲取一点暖意与体力。",
+      "scene": "角落静立着一座刻满火纹的先古火盆，余烬仍在微弱跳动。",
+      "done_scene": "角落里的先古火盆已然熄灭，只余淡淡烟灰。"
     },
     "cracked_statue": {
       "name": "残破雕像",
-      "desc": "石像底座裂开了一条缝隙，里面似乎藏着什么闪光之物，但也可能设有旧机关。"
+      "desc": "石像底座裂开了一条缝隙，里面似乎藏着什么闪光之物，但也可能设有旧机关。",
+      "scene": "墙边矗立着一尊残破雕像，底座裂开的缝隙里隐约闪烁着微光。",
+      "done_scene": "墙边的残破雕像底座已被搜查一空。"
     },
     "alchemy_desk": {
       "name": "破旧炼金台",
-      "desc": "桌面散落着玻璃曲颈瓶与未干的药剂残液，或许还能刮出可用材料。"
+      "desc": "桌面散落着玻璃曲颈瓶与未干的药剂残液，或许还能刮出可用材料。",
+      "scene": "靠墙摆着一张破旧炼金台，台面散落着玻璃曲颈瓶与药剂残液。",
+      "done_scene": "破旧炼金台上的可用器皿已被搜刮殆尽。"
     },
     "bloodied_pack": {
       "name": "染血行囊",
-      "desc": "被遗弃在墙角的旧皮包，拉链半开着，不知前任主人遭遇了什么。"
+      "desc": "被遗弃在墙角的旧皮包，拉链半开着，不知前任主人遭遇了什么。",
+      "scene": "阴影里遗落着一个半敞的染血行囊，似乎还残留着前人的补给。",
+      "done_scene": "墙角的染血行囊已被翻查清空。"
     },
     "runic_wall": {
       "name": "刻痕符文墙",
-      "desc": "石壁上留着密密麻麻的刻痕，像是一份粗略绘制的迷宫方位草图。"
+      "desc": "石壁上留着密密麻麻的刻痕，像是一份粗略绘制的迷宫方位草图。",
+      "scene": "侧壁是一面布满密集刻痕的符文墙，宛如前人留下的迷宫草图。",
+      "done_scene": "刻痕符文墙上的方位记号已经被你记入心中。"
     },
     "crystal_cluster": {
       "name": "微光晶簇",
-      "desc": "柔和流动的蓝绿色晶体从地面长出，触碰它能让人精神一振。"
+      "desc": "柔和流动的蓝绿色晶体从地面长出，触碰它能让人精神一振。",
+      "scene": "地缝中生长着一簇流动蓝绿微光的晶簇，散发着温和魔力。",
+      "done_scene": "那簇微光晶簇已被吸纳灵光，如今黯淡如常石。"
+    },
+    "forgotten_shrine": {
+      "name": "遗忘神龛",
+      "desc": "被青苔半掩的古老小神龛，虔诚触碰或许能获得先古庇护。",
+      "scene": "壁龛里供奉着一座布满青苔的遗忘神龛，石面仍存淡淡灵韵。",
+      "done_scene": "遗忘神龛的微光已融入你身，石台重归沉寂。"
+    },
+    "arcane_mirror": {
+      "name": "裂纹魔镜",
+      "desc": "镜面蛛网般龟裂的银框魔镜，映出的却不是当前房间，而是迷雾深处。",
+      "scene": "柱旁斜靠着一面蛛网龟裂的魔镜，镜中隐约倒映着未知回廊。",
+      "done_scene": "裂纹魔镜的幻象已经散去，镜面归于浑浊。"
+    },
+    "smuggler_cache": {
+      "name": "松动砖石暗格",
+      "desc": "墙脚几块砖石略微外凸，背后显然被人掏空藏了私货。",
+      "scene": "墙根处几块砖石明显松动，背后似乎掩着走私者留下的暗格。",
+      "done_scene": "墙根的砖石暗格敞开着，里面的东西已被取走。"
+    },
+    "dusty_bookshelf": {
+      "name": "积灰古书架",
+      "desc": "摇摇欲坠的橡木书架上塞满受潮手札，翻阅或许有所领悟。",
+      "scene": "房间一侧立着一座积灰古书架，几卷发黄手札露在架边。",
+      "done_scene": "积灰古书架上的可用手札已被翻阅收集。"
     },
     "shop_scale": {
       "name": "黄铜天平",
-      "desc": "行商柜台旁摆放着精密天平，托盘缝隙里似乎卡着几枚遗落的金币。"
+      "desc": "行商柜台旁摆放着精密天平，托盘缝隙里似乎卡着几枚遗落的金币。",
+      "scene": "柜台边放着一架精密的黄铜天平，底座缝隙似有反光。",
+      "done_scene": "黄铜天平底座已被拨弄查验过。"
     },
     "shop_display": {
       "name": "神秘展柜",
-      "desc": "上锁的玻璃展柜里陈列着异域小物件，贴近观察可以辨识商人的货源。"
+      "desc": "上锁的玻璃展柜里陈列着异域小物件，贴近观察可以辨识商人的货源。",
+      "scene": "一旁陈列着上锁的神秘展柜，隔着玻璃能看清异域珍玩的暗记。",
+      "done_scene": "神秘展柜上的货物暗记你已尽数记下。"
     },
     "cafe_espresso_machine": {
       "name": "先古意式咖啡机",
-      "desc": "黄铜锅炉依然温热，轻轻拉下手柄也许还能接出一杯浓香浓缩。"
+      "desc": "黄铜锅炉依然温热，轻轻拉下手柄也许还能接出一杯浓香浓缩。",
+      "scene": "吧台角落嗡鸣着一台温热的先古意式咖啡机；",
+      "done_scene": "吧台边的咖啡机已经放空余压；"
     },
     "cafe_gramophone": {
       "name": "黑胶留声机",
-      "desc": "古老的喇叭正放着舒缓弦乐，抚平探索带来的焦躁与疲惫。"
+      "desc": "古老的喇叭正放着舒缓弦乐，抚平探索带来的焦躁与疲惫。",
+      "scene": "木架上的黑胶留声机正低低流淌着弦乐；",
+      "done_scene": "木架上的黑胶留声机唱针已悄然停歇；"
     },
     "cafe_guestbook": {
       "name": "冒险者留言簿",
-      "desc": "柜台角落放着厚厚的留言本，翻阅其中或许能发现前人留下的暗门记录。"
+      "desc": "柜台角落放着厚厚的留言本，翻阅其中或许能发现前人留下的暗门记录。",
+      "scene": "桌角摊开着一本写满字迹的冒险者留言簿。",
+      "done_scene": "桌角的冒险者留言簿你已翻阅记录完毕。"
     }
   },
   "npcs": {
@@ -191,40 +237,42 @@
   },
   "room_ui": {
     "npcs_line": "👤 【在场人物】{items}",
-    "props_line": "🔎 【可交互物件】{items}",
-    "items_line": "🎒 【地面物品】{items}",
-    "prop_done_tag": "已调查",
-    "interact_hints": "💡 互动指令：对话 <人物> | 攻击 <人物> | 触摸 <物件> | 拿取 <物品> | 使用 <背包物品> | 背包"
+    "items_line": "🎁 【地面物品】{items}",
+    "interact_hints": "💡 talk <目标> | atk <目标> | touch <物件> | take <物品> | use <物品> | di <物品> | bag | f"
   },
   "bag": {
-    "rogue_weight_line": " ⚖️ 肉鸽背包负重：{used} / {max}，药水只占药水槽，不占负重",
+    "town_bag_title": "🎒 【先古主城行囊】",
+    "rogue_bag_title": "🎒 【秘境冒险行囊】",
+    "rogue_bag_no_run": "🌫️ 当前不在秘境探索中，暂无冒险行囊。输入 bag t 查看主城行囊。",
+    "rogue_bag_tip": "💡 use <物品> 使用 | di <物品> 丢弃 | bag t 查看主城行囊",
+    "town_bag_tip": "💡 主城行囊容量无限 | bag r 查看冒险行囊",
+    "invalid_mode": "[FAIL] 无效行囊参数，请输入 bag t（主城）或 bag r（冒险）。",
+    "rogue_weight_line": " ⚖️ 行囊负重：{used} / {max}，药水只占药水槽",
     "rogue_potion_inline": " | 药水槽：{count}/{limit}",
-    "rogue_potion_section": " 【药水槽 · 背包快捷栏】 {count}/{limit} 瓶 · 不占负重",
+    "rogue_potion_section": " 【药水槽】 {count}/{limit} 瓶 · 不占负重",
     "rogue_potion_empty": "   * 药水槽空空如也。",
     "rogue_potion_line": "   [{idx}] 【{name}】不占负重 - {desc}",
-    "rogue_items_section": " 【肉鸽探险行囊】 占用负重",
-    "rogue_items_empty": "   * 行囊里还没有探险物品，可使用 拿取 <物品名> 收集。",
+    "rogue_items_section": " 【随身物品】 占用负重",
+    "rogue_items_empty": "   * 行囊里还没有随身物品，可使用 take <物品名> 收集。",
     "rogue_item_line": "   * 【{name}】 重量 {weight} · {carry_tag} - {desc}",
     "carry_yes": "可带回主城",
     "carry_no": "局内消耗品",
-    "town_stash_section": " 【主城无限仓库联动】",
-    "town_stash_summary": "   主城无限背包现有：常规物品 {item_count} 件 | 寄存药水 {potion_count} 瓶，容量无限",
-    "town_potion_section": " 【主城药水仓库】 无限容量，下局开局自动装入药水槽",
-    "town_potion_empty": "   * 主城药水仓库暂无存货。",
+    "town_potion_section": " 【主城药水储藏】 无限容量，开局自动装入药水槽",
+    "town_potion_empty": "   * 主城暂无寄存药水。",
     "town_potion_line": "   * 【{name}】 - {desc}",
-    "town_infinite_badge": " 📦 主城背包容量：无限，无负重限制",
+    "town_infinite_badge": " 📦 主城行囊容量：无限，无负重限制",
     "carryover_tag": "可带回/带入",
     "town_only_tag": "主城物品",
-    "weight_full": "[FAIL] 背包负重已满！当前负重 {used}/{max}，【{name}】需要负重 {weight}。\n💡 提示：药水只占药水槽不占负重，可先使用或「丢弃物品 <物品名>」腾出空间。",
+    "weight_full": "[FAIL] 背包负重已满！当前负重 {used}/{max}，【{name}】需要负重 {weight}。\n💡 药水不占负重，可先 use 或 di <物品名> 腾出空间。",
     "potion_full": "[FAIL] 药水槽已满，当前 {count}/{limit} 瓶，无法再装入【{name}】。",
-    "take_success": "✅ 你拾取了【{name}】，重量 {weight}，当前负重 {used}/{max}，已放入肉鸽背包。",
-    "take_potion_success": "🧪 你拾取了【{name}】，已放入药水槽 {count}/{limit}，不占负重。",
+    "take_success": "✅ 你拾取了【{name}】，重量 {weight}，当前负重 {used}/{max}。",
+    "take_potion_success": "🧪 你拾取了【{name}】，已放入药水槽 {count}/{limit}。",
     "take_not_found": "[FAIL] 当前房间地上没有【{target}】。",
-    "take_need_arg": "[FAIL] 请指定要拿取的物品名称，例如：拿取 咖啡豆",
-    "drop_success": "🗑️ 你从背包丢弃了【{name}】，释放负重 {weight}，当前负重 {used}/{max}。",
-    "drop_not_found": "[FAIL] 你的背包里没有【{target}】。",
-    "use_need_arg": "[FAIL] 请指定要使用的背包物品名称，例如：使用 绷带",
-    "use_not_found": "[FAIL] 你的背包里没有【{target}】。",
+    "take_need_arg": "[FAIL] 请指定要拿取的物品名称，例如：take 咖啡豆",
+    "drop_success": "🗑️ 你丢弃了【{name}】，释放负重 {weight}，当前负重 {used}/{max}。",
+    "drop_not_found": "[FAIL] 你的行囊里没有【{target}】。",
+    "use_need_arg": "[FAIL] 请指定要使用的物品名称，例如：use 绷带",
+    "use_not_found": "[FAIL] 你的行囊里没有【{target}】。",
     "use_cannot_here": "[FAIL] 当前情况下无法使用【{name}】。",
     "use_espresso_beans": "☕ 你嚼下【浓缩咖啡豆】，提神醒脑，恢复了 {sp} 点 SP！",
     "use_rusty_pickaxe_clear": "⛏️ 你挥动【锈蚀矿镐】击碎了邻近 {coord} 的障碍，并振奋精神恢复 {sp} 点 SP！",
@@ -240,10 +288,15 @@
     "use_merchant_ledger": "📒 你变卖了【行商账册】上的秘境货单，获得 {gold} 金币！",
     "use_barista_seal": "☕ 握紧【店主秘藏印章】令你精神焕发，恢复了 {sp} 点 SP！",
     "use_town_item": "📖 你翻阅随身携带的【{name}】：{desc}",
-    "settle_carryover": "\n🎒 带回主城持久化存档：{items}"
+    "settle_carryover": "\n🎒 已收入先古主城行囊：{items}"
+  },
+  "pbuff": {
+    "ancient_ward_log": "🛡️ 【先古庇护】生效！战斗开始获得 {shield} 点护盾。",
+    "arcane_clarity_log": "📘 【奥术澄明】生效！首回合额外抽取 1 张卡牌。",
+    "abyss_chill_log": "🥶 【深渊寒蚀】发作！你感到了 1 层虚弱。"
   },
   "touch": {
-    "need_arg": "[FAIL] 请指定要触摸或调查的物件名，例如：触摸 火盆",
+    "need_arg": "[FAIL] 请指定要触摸或调查的物件名，例如：touch 火盆",
     "not_found": "[FAIL] 当前房间没有找到名为【{target}】的物件。",
     "already_done": "🔎 你再次端详【{name}】，这里已经没有什么新发现。",
     "ancient_brazier": "🔥 你拨亮【先古火盆】的余烬，暖流驱散了寒意，恢复 {sp} 点 SP！",
@@ -256,16 +309,22 @@
     "runic_wall_reveal": "🧱 你解读了【刻痕符文墙】上的路径记号，揭示了坐标 {coord}！",
     "runic_wall_sp": "🧱 你辨认出墙上的古文字，稳住了探索节奏，恢复 2 点 SP！",
     "crystal_cluster": "💎 触碰【微光晶簇】时温和魔力涌入体内，恢复 {hp} 点生命与 {sp} 点 SP！",
+    "forgotten_shrine": "⛩️ 你轻触【遗忘神龛】，温润古息恢复了 {heal} 点生命并赋予 1 层【先古庇护】！",
+    "arcane_mirror_reveal": "🪞 镜面涟漪散去，【裂纹魔镜】向你揭示了秘境坐标：{coords}！",
+    "arcane_mirror_fallback": "🪞 镜中迷雾已散尽，你汲取残留魔力恢复 {sp} 点 SP 并拾得 {gold} 金币。",
+    "smuggler_cache_item": "🧱 你撬开【松动砖石暗格】，从里面摸出一份【{item}】！",
+    "smuggler_cache_gold": "🧱 你在【松动砖石暗格】里找到了一袋 {gold} 金币！",
+    "dusty_bookshelf": "📚 翻阅【积灰古书架】后你获得 1 层【奥术澄明】，并带走了【先古残页】！",
     "shop_scale": "⚖️ 你拨动【黄铜天平】下的暗槽，发现商人掉落在底座的 {gold} 金币！",
     "shop_display": "🪞 贴近观察【神秘展柜】的陈列品后，你记下了货物暗记，获得了 {gold} 金币的小额回扣券。",
     "cafe_espresso_machine": "☕ 你拉下【先古意式咖啡机】手柄，接出一杯香醇浓缩，恢复 {sp} 点 SP！",
-    "cafe_gramophone": "🎵 轻转【黑胶留声机】摇柄，舒缓乐声减轻了你 {cured} 级力竭！",
+    "cafe_gramophone": "🎵 轻转【黑胶留声机】摇柄，舒缓乐声减轻了你 {cured} 级力竭并抚平负面寒蚀！",
     "cafe_guestbook": "📒 你翻看【冒险者留言簿】，上面记着某处秘境房间坐标：{coord}！"
   },
   "dialog": {
     "title": "💬 与【{name}】交谈中",
-    "footer": "输入选项编号如 1、2 推进对话，或输入 离开 结束交谈。",
-    "talk_need_target": "[FAIL] 这里没有默认设施可交互。请指定交谈对象，例如：对话 托林",
+    "footer": "💡 c <序号> / 数字推进 | leave 结束交谈 | f 折叠",
+    "talk_need_target": "[FAIL] 这里没有默认设施可交互。请指定交谈对象，例如：talk 托林",
     "talk_not_found": "[FAIL] 当前房间没有找到名为【{target}】的可交谈人物。",
     "smith_start_text": "流浪铁匠·托林擦着额头的汗珠望向你：'地牢里能碰到个活人可真不容易。需要敲两锤武器，还是聊聊迷宫深处的矿脉？'",
     "smith_start_opt1": "请求锻造强化手头卡牌 · 花费 {cost} 金币",
@@ -352,12 +411,13 @@
     "intel_none": "🗺️ 维克多摊手道：'这一层的门道你几乎都摸透了，我这儿没有新情报，退回金币给你。'",
     "extort_success": "😈 维克多权衡利弊后退了一步，乖乖塞给你 {gold} 金币并降价 25%！",
     "extort_fail": "⚔️ 维克多冷笑一声抽出秘银短杖：'敢在老夫地盘动粗？找死！'",
-    "wares_back_hint": "输入商品编号购买，或输入 离开 返回店铺大厅。"
+    "wares_back_hint": "💡 c <序号> 购买 | leave 返回大厅 | f 折叠",
+    "dialog_footer": "💡 c <序号> / 数字选择 | leave 返回大厅 | f 折叠"
   },
   "cafe": {
-    "barista_line": "☕ 【吧台常驻店主】咖啡店长·布鲁诺 · 输入 对话 店长 打开特调与研磨柜台，或 攻击 店长",
+    "barista_line": "☕ 【吧台店主】咖啡店长·布鲁诺 · talk 店长 / atk 店长",
     "barista_dead_line": "☕ 【吧台惨状】咖啡店长·布鲁诺已被击倒，吧台一片狼藉。",
-    "barista_title": "☕ 与【咖啡店长·布鲁诺】交谈中",
+    "facilities_scene": "🪑 店内陈设：{desc}",
     "barista_greeting": "布鲁诺擦净手冲铜壶：'欢迎来到迷雾边缘的避风港。想点单特调，借用研磨机，还是打听点地下情报？'",
     "barista_opt_espresso": "点单先古浓缩咖啡 · {cost} 金币，恢复 {sp} SP 并减轻 {cure} 级力竭",
     "barista_opt_americano": "限定特调·奥术冰美式 · {cost} 金币，恢复 {sp} SP 且回复 6 生命",

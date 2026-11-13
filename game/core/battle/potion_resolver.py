@@ -158,6 +158,8 @@ class PotionResolver:
                 to_remove = []
                 for b in p.buffs:
                     cfg = BUFF_CONFIG.get(b.id, {})
+                    if getattr(b, "persistent", False) or cfg.get("persistent"):
+                        continue
                     if cfg.get("is_debuff") or b.id in ("bleed", "tactical_focus", "beat_of_death", "void_exhaustion", "mana_leak", "minor_vulnerable", "vulnerable", "weak", "grappled", "discard_next_turn", "drain_ba", "drain_a", "forge_backfire", "void_weakness"):
                         to_remove.append(b)
                 for b in to_remove:
@@ -170,6 +172,8 @@ class PotionResolver:
                 to_remove = []
                 for b in target_entity.buffs:
                     cfg = BUFF_CONFIG.get(b.id, {})
+                    if getattr(b, "persistent", False) or cfg.get("persistent"):
+                        continue
                     if cfg.get("is_debuff") or b.id in ("bleed", "tactical_focus", "beat_of_death", "void_exhaustion", "mana_leak", "minor_vulnerable", "vulnerable", "weak", "grappled", "discard_next_turn", "drain_ba", "drain_a", "forge_backfire", "void_weakness"):
                         to_remove.append(b)
                 for b in to_remove:
@@ -183,12 +187,13 @@ class PotionResolver:
                         to_remove = []
                         for b in m.buffs:
                             cfg = BUFF_CONFIG.get(b.id, {})
+                            if getattr(b, "persistent", False) or cfg.get("persistent"):
+                                continue
                             if cfg.get("is_debuff") or b.id in ("bleed", "tactical_focus", "beat_of_death", "void_exhaustion", "mana_leak", "minor_vulnerable", "vulnerable", "weak", "grappled", "discard_next_turn", "drain_ba", "drain_a", "forge_backfire", "void_weakness"):
                                 to_remove.append(b)
                         for b in to_remove:
                             m.buffs.remove(b)
                         return get_locale_text("i18n_battle_core.cleanse_potion_minion_log", name=name, minion=m.name)
-                elif target.startswith("e"):
                     try:
                         idx = int(target[1:]) - 1
                         if 0 <= idx < len(run.enemies):

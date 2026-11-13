@@ -36,7 +36,7 @@ def render_start_ancient(run: GameRun) -> str:
             lines.append(get_locale_text("i18n_renderer_extra.map.start_card_option", idx=idx, style=name_str, cname=cname, rname=rname, cdesc=cdesc, rdesc=rdesc))
     lines.append("")
     lines.append(get_locale_text("i18n_renderer_extra.map.separator"))
-    lines.append(get_locale_text("i18n_renderer_extra.map.contract_cmd"))
+    lines.append(get_locale_text("i18n_renderer_extra.map.fold_hint") if p.fold_guide else get_locale_text("i18n_renderer_extra.map.contract_cmd"))
     lines.append(get_locale_text("i18n_renderer_extra.map.separator"))
     return "\n".join(lines)
 
@@ -71,6 +71,6 @@ def render_ancient(run: GameRun) -> str:
         lines.append(get_locale_text("i18n_renderer_extra.map.bless_card_option", idx=idx, rname=rname, cname=cname, rdesc=rdesc, cdesc=cdesc))
     lines.append("")
     lines.append(get_locale_text("i18n_renderer_extra.map.separator"))
-    lines.append(get_locale_text("i18n_renderer_extra.map.bless_cmd"))
+    lines.append(get_locale_text("i18n_renderer_extra.map.fold_hint") if p.fold_guide else get_locale_text("i18n_renderer_extra.map.bless_cmd"))
     lines.append(get_locale_text("i18n_renderer_extra.map.separator"))
     return "\n".join(lines)

@@ -206,6 +206,30 @@ ROOM_PROPS = {
         "desc_key": "i18n_room_interact.props.cafe_guestbook.desc",
         "aliases": ["留言簿", "手记", "guestbook"],
     },
+    "forgotten_shrine": {
+        "name_key": "i18n_room_interact.props.forgotten_shrine.name",
+        "desc_key": "i18n_room_interact.props.forgotten_shrine.desc",
+        "aliases": ["神龛", "遗忘神龛", "shrine"],
+        "heal": 5,
+    },
+    "arcane_mirror": {
+        "name_key": "i18n_room_interact.props.arcane_mirror.name",
+        "desc_key": "i18n_room_interact.props.arcane_mirror.desc",
+        "aliases": ["魔镜", "裂纹魔镜", "mirror"],
+        "sp_gain": 2,
+        "gold_gain": 12,
+    },
+    "smuggler_cache": {
+        "name_key": "i18n_room_interact.props.smuggler_cache.name",
+        "desc_key": "i18n_room_interact.props.smuggler_cache.desc",
+        "aliases": ["暗格", "砖石暗格", "cache"],
+        "gold_gain": 20,
+    },
+    "dusty_bookshelf": {
+        "name_key": "i18n_room_interact.props.dusty_bookshelf.name",
+        "desc_key": "i18n_room_interact.props.dusty_bookshelf.desc",
+        "aliases": ["书架", "古书架", "bookshelf"],
+    },
 }
 
 DUNGEON_PROP_POOL = [
@@ -215,8 +239,11 @@ DUNGEON_PROP_POOL = [
     "bloodied_pack",
     "runic_wall",
     "crystal_cluster",
+    "forgotten_shrine",
+    "arcane_mirror",
+    "smuggler_cache",
+    "dusty_bookshelf",
 ]
-
 ROOM_NPCS = {
     "wandering_smith": {
         "name_key": "i18n_room_interact.npcs.wandering_smith.name",

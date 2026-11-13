@@ -18,8 +18,8 @@ class GameRenderer:
 
 
     @staticmethod
-    def render_bag(stats: UserStats, run: GameRun = None) -> str:
-        return format_output_numbers(render_bag(stats, run=run))
+    def render_bag(stats: UserStats, run: GameRun = None, mode: str = None) -> str:
+        return format_output_numbers(render_bag(stats, run=run, mode=mode))
     @staticmethod
     def render_town(stats: UserStats, room_data: dict) -> str:
         return format_output_numbers(render_town(stats, room_data))

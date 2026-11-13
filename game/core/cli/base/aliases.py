@@ -1,4 +1,4 @@
-NODE_EXIT_ALIASES = ("exit", "quit", "离开", "退出")
+NODE_EXIT_ALIASES = ("exit", "quit", "leave", "lv", "离开", "退出")
 NODE_CANCEL_ALIASES = ("取消", "cancel", "返回")
 STATE_STACK_CANCEL_ALIASES = ("取消", "cancel", "abandon", "放弃", "exit", "quit", "退出")
 

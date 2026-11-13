@@ -18,19 +18,22 @@ def _load_zh_cn() -> Dict[str, Any]:
     return LocaleManager.get_all_translations()
 
 
-def render_bag(stats: UserStats, run: Optional[GameRun] = None) -> str:
+def render_bag(stats: UserStats, run: Optional[GameRun] = None, mode: Optional[str] = None) -> str:
     zh_cn = _load_zh_cn()
     items_loc = zh_cn.get("items", {})
     item_descs = zh_cn.get("item_descs", {})
+    active_mode = mode or ("r" if (run is not None and run.player is not None) else "t")
 
-    lines = [
-        get_locale_text("renderer_menu.separator_long"),
-        get_locale_text("renderer_menu.bag_title"),
-        get_locale_text("renderer_menu.separator_long"),
-        get_locale_text("renderer_menu.bag_gp", gp=stats.gp),
-    ]
-
-    if run is not None and run.player is not None:
+    if active_mode == "r":
+        lines = [
+            get_locale_text("renderer_menu.separator_long"),
+            get_locale_text("i18n_room_interact.bag.rogue_bag_title"),
+            get_locale_text("renderer_menu.separator_long"),
+        ]
+        if run is None or run.player is None:
+            lines.append(get_locale_text("i18n_room_interact.bag.rogue_bag_no_run"))
+            lines.append(get_locale_text("renderer_menu.separator_long"))
+            return "\n".join(lines)
         p = run.player
         used = get_bag_weight(p)
         mx = get_bag_max_weight(p)
@@ -63,18 +66,19 @@ def render_bag(stats: UserStats, run: Optional[GameRun] = None) -> str:
                 ))
         else:
             lines.append(get_locale_text("i18n_room_interact.bag.rogue_items_empty"))
-        lines.append("")
-        lines.append(get_locale_text("i18n_room_interact.bag.town_stash_section"))
-        lines.append(get_locale_text(
-            "i18n_room_interact.bag.town_stash_summary",
-            item_count=len(getattr(stats, "town_inventory", []) or []),
-            potion_count=len(getattr(stats, "town_potions", []) or []),
-        ))
-        lines.append("")
-    else:
-        lines.append(get_locale_text("i18n_room_interact.bag.town_infinite_badge"))
-        lines.append("")
+        lines.append(get_locale_text("renderer_menu.separator_long"))
+        lines.append(get_locale_text("i18n_room_interact.bag.rogue_bag_tip"))
+        lines.append(get_locale_text("renderer_menu.separator_long"))
+        return "\n".join(lines)
 
+    lines = [
+        get_locale_text("renderer_menu.separator_long"),
+        get_locale_text("i18n_room_interact.bag.town_bag_title"),
+        get_locale_text("renderer_menu.separator_long"),
+        get_locale_text("renderer_menu.bag_gp", gp=stats.gp),
+        get_locale_text("i18n_room_interact.bag.town_infinite_badge"),
+        "",
+    ]
     lines.append(get_locale_text("renderer_menu.bag_items_section"))
     if stats.town_inventory:
         for item_id in stats.town_inventory:
@@ -91,18 +95,17 @@ def render_bag(stats: UserStats, run: Optional[GameRun] = None) -> str:
     lines.append("")
 
     town_potions = list(getattr(stats, "town_potions", []) or [])
-    if run is None:
-        lines.append(get_locale_text("i18n_room_interact.bag.town_potion_section"))
-        if town_potions:
-            for pid in town_potions:
-                lines.append(get_locale_text(
-                    "i18n_room_interact.bag.town_potion_line",
-                    name=get_potion_name(pid),
-                    desc=get_potion_desc(pid),
-                ))
-        else:
-            lines.append(get_locale_text("i18n_room_interact.bag.town_potion_empty"))
-        lines.append("")
+    lines.append(get_locale_text("i18n_room_interact.bag.town_potion_section"))
+    if town_potions:
+        for pid in town_potions:
+            lines.append(get_locale_text(
+                "i18n_room_interact.bag.town_potion_line",
+                name=get_potion_name(pid),
+                desc=get_potion_desc(pid),
+            ))
+    else:
+        lines.append(get_locale_text("i18n_room_interact.bag.town_potion_empty"))
+    lines.append("")
 
     lines.append(get_locale_text("renderer_menu.bag_custom_section"))
     locked_list = getattr(stats, "locked_cards", []) or []
@@ -137,7 +140,7 @@ def render_bag(stats: UserStats, run: Optional[GameRun] = None) -> str:
         lines.append(get_locale_text("renderer_menu.bag_empty_privileges"))
 
     lines.append(get_locale_text("renderer_menu.separator_long"))
-    lines.append(get_locale_text("renderer_menu.bag_tip"))
+    lines.append(get_locale_text("i18n_room_interact.bag.town_bag_tip"))
     lines.append(get_locale_text("renderer_menu.separator_long"))
 
     return "\n".join(lines)

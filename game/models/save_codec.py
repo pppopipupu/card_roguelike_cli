@@ -69,7 +69,19 @@ class SaveCodecMixin:
                 stacks=b.get("stacks", 1),
                 stacks2=b.get("stacks2", None),
                 desc=b.get("desc", ""),
-                source_uid=b.get("source_uid", "")
+                source_uid=b.get("source_uid", ""),
+                persistent=bool(b.get("persistent", False))
+            ))
+        p_persistent_buffs = []
+        for b in p_data.get("persistent_buffs", []):
+            p_persistent_buffs.append(BuffState(
+                id=b["id"],
+                name=b["name"],
+                stacks=b.get("stacks", 1),
+                stacks2=b.get("stacks2", None),
+                desc=b.get("desc", ""),
+                source_uid=b.get("source_uid", ""),
+                persistent=True
             ))
         minion_gy = list(p_data.get("minion_graveyard", []))
         enemy_gy = list(p_data.get("enemy_graveyard", []))
@@ -81,7 +93,7 @@ class SaveCodecMixin:
                     enemy_gy.append(item[len("enemy:"):])
                 else:
                     enemy_gy.append(item)
-        return PlayerState(
+        player = PlayerState(
             hp=p_data["hp"],
             max_hp=p_data["max_hp"],
             shield=p_data["shield"],
@@ -115,11 +127,15 @@ class SaveCodecMixin:
             mercenary_timing=p_data.get("mercenary_timing", "before"),
             sp=p_data.get("sp", 10),
             max_sp=p_data.get("max_sp", 10),
-            exhaustion=p_data.get("exhaustion", 0),
+            persistent_buffs=p_persistent_buffs,
             quest_relics=list(p_data.get("quest_relics", []) or []),
             bag_items=list(p_data.get("bag_items", []) or []),
             bag_max_weight=int(p_data.get("bag_max_weight", 10) or 10),
         )
+        legacy_ex = int(p_data.get("exhaustion", 0) or 0)
+        if not p_persistent_buffs and legacy_ex > 0:
+            player.exhaustion = legacy_ex
+        return player
 
     def _parse_enemy_list(self, enemies_data: list) -> list:
         enemies = []

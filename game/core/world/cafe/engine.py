@@ -172,12 +172,13 @@ class CafeEngine(CafeDialogMixin):
                     status = ""
                 npcs_str += f"\n  - {NPC_SHOW_NAMES.get(npc, npc)}{status}"
             from .barista import render_cafe_room_extras
+            from ....renderer.formatters import format_persistent_buff_bar
             lines = [
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 get_locale_text("i18n_map_cafe.cafe_title"),
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 get_locale_text("i18n_map_cafe.cafe_header_stage", stage=p.stage, name=run.player.name),
-                get_locale_text("i18n_map_cafe.cafe_header_stats", hp=p.hp, max_hp=p.max_hp, gold=p.gold),
+                get_locale_text("i18n_map_cafe.cafe_header_stats", hp=p.hp, max_hp=p.max_hp, gold=p.gold) + format_persistent_buff_bar(p),
                 "" if not p.relics else get_locale_text("i18n_map_cafe.cafe_relics_prefix") + " ".join(f"【{get_relic_name(r)}】" for r in p.relics),
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 get_locale_text("i18n_map_cafe.cafe_environment"),
@@ -190,7 +191,6 @@ class CafeEngine(CafeDialogMixin):
                     else [
                         get_locale_text("i18n_map_cafe.cafe_hint_talk"),
                         get_locale_text("i18n_map_cafe.cafe_hint_leave"),
-                        *([] if getattr(run, "floor_map", None) is None else [get_locale_text("i18n_grid_map.cafe_counter_hint", price=25, sp=5)]),
                     ]
                 ),
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -219,11 +219,13 @@ class CafeEngine(CafeDialogMixin):
                 lines.append(f"  [{idx}] {opt}")
 
             lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            lines.append(get_locale_text("i18n_map_cafe.cafe_hint_choice"))
-            lines.append(get_locale_text("i18n_map_cafe.cafe_hint_exit_dialog"))
+            if p.fold_guide:
+                lines.append(get_locale_text("renderer_explore.guide_folded"))
+            else:
+                lines.append(get_locale_text("i18n_map_cafe.cafe_hint_choice"))
+                lines.append(get_locale_text("i18n_map_cafe.cafe_hint_exit_dialog"))
             lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             return "\n".join(lines)
-
     def talk_npc(self, run: GameRun, target: str) -> str:
         waiting = self._waiting(run)
         if waiting:

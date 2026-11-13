@@ -1,10 +1,10 @@
 from ..models.state import GameRun
+from ..data.locale_data import get_locale_text
 from ..entities import get_relic_name, get_relic_desc
 from ..entities.cards.base import get_card_color_icon
 from ..cards import ALL_CARDS
 from .menu import get_card_cost_str
-from .formatters import format_relic_bar
-from ..data.locale_data import get_locale_text
+from .formatters import format_persistent_buff_bar, format_relic_bar
 
 def render_event(run: GameRun) -> str:
     p = run.player
@@ -13,8 +13,7 @@ def render_event(run: GameRun) -> str:
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("renderer_explore.event_title", stage=p.stage),
-        get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str,
-        "",
+        get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str + format_persistent_buff_bar(p),
         data.get("description", get_locale_text("renderer_explore.event_default_desc")),
         "",
         get_locale_text("renderer_explore.event_prompt")
@@ -62,8 +61,7 @@ def render_shop_wares(run: GameRun) -> str:
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("renderer_explore.shop_title", stage=p.stage),
-        get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str,
-        "",
+        get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str + format_persistent_buff_bar(p),
     ]
     if run.player_count() > 1:
         lines.append(render_party_status(run))
@@ -117,8 +115,7 @@ def render_rest(run: GameRun) -> str:
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("render_rest_title", stage=p.stage),
-        get_locale_text("renderer_explore.status_line_hp", name=run.player.name, hp=p.hp, max_hp=p.max_hp) + relics_str,
-        "",
+        get_locale_text("renderer_explore.status_line_hp", name=run.player.name, hp=p.hp, max_hp=p.max_hp) + relics_str + format_persistent_buff_bar(p),
     ]
     if run.player_count() > 1:
         lines.append(render_party_status(run))
@@ -230,13 +227,14 @@ def render_reward(run: GameRun) -> str:
             pid = it.get("potion_id")
             lines.append(get_locale_text("renderer_explore.reward_potion", idx=idx, prefix=prefix, name=get_potion_name(pid), desc=get_potion_desc(pid)))
     lines.append(get_locale_text("renderer_explore.separator"))
-    if not available_items:
+    if p.fold_guide:
+        lines.append(get_locale_text("renderer_explore.guide_folded"))
+    elif not available_items:
         lines.append(get_locale_text("render_reward_completed"))
+    elif has_forced:
+        lines.append(get_locale_text("render_reward_exit_forced"))
     else:
-        if has_forced:
-            lines.append(get_locale_text("render_reward_exit_forced"))
-        else:
-            lines.append(get_locale_text("render_reward_exit_normal"))
+        lines.append(get_locale_text("render_reward_exit_normal"))
     lines.append(get_locale_text("renderer_explore.separator"))
     return "\n".join(lines)
 
@@ -251,8 +249,7 @@ def render_treasure(run: GameRun) -> str:
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("render_treasure_title", stage=p.stage),
-        get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold),
-        "",
+        get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + format_persistent_buff_bar(p),
         text,
         ""
     ]
@@ -355,7 +352,7 @@ def render_corpse_reward(run: GameRun) -> str:
             lines.append(get_locale_text("renderer_explore.corpse_card", idx=idx, color=color_ch, name=card.name, cost=cost_str, suffix=suffix, desc=card.desc))
     lines.append(get_locale_text("renderer_explore.reward_skip_pick", idx=len(cards) + 1))
     lines.append(get_locale_text("renderer_explore.separator"))
-    lines.append(get_locale_text("renderer_explore.guide_choice"))
+    lines.append(get_locale_text("renderer_explore.guide_folded") if p.fold_guide else get_locale_text("renderer_explore.guide_choice"))
     lines.append(get_locale_text("renderer_explore.separator"))
     return "\n".join(lines)
 
@@ -429,7 +426,9 @@ def render_boss_chest(run: GameRun) -> str:
                 cost_str = get_card_cost_str(card)
                 lines.append(get_locale_text("renderer_explore.boss_card", idx=idx, prefix=prefix, color=color_ch, name=card.name, cost=cost_str, desc=card.desc))
     lines.append(get_locale_text("renderer_explore.separator"))
-    if not available_items:
+    if p.fold_guide:
+        lines.append(get_locale_text("renderer_explore.guide_folded"))
+    elif not available_items:
         lines.append(get_locale_text("render_reward_completed"))
     else:
         lines.append(get_locale_text("render_boss_chest_exit"))
@@ -452,8 +451,7 @@ def render_life_merchant(run: GameRun) -> str:
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("renderer_explore.life_merchant_title", stage=p.stage),
-        get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str,
-        "",
+        get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str + format_persistent_buff_bar(p),
     ]
     if run.player_count() > 1:
         lines.append(render_party_status(run))

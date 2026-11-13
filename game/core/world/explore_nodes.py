@@ -536,10 +536,12 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
         heal = (p.max_hp * COOP_REST_HEAL_PERCENT // COOP_PERCENT_BASE) if multi else int(p.max_hp * REST_HEAL_RATIO)
         p.hp = min(p.max_hp, p.hp + heal)
         from ...data.grid_map_config import SP_CONFIG
+        from .persistent_buffs import cure_persistent_debuffs
         from .sp_system import reduce_exhaustion, restore_sp
         sp_gain = restore_sp(p, SP_CONFIG["rest_sp_gain"])
         old_ex = getattr(p, "exhaustion", 0)
         new_ex = reduce_exhaustion(p, SP_CONFIG["rest_exhaustion_cure"])
+        cure_persistent_debuffs(p, 1)
         sp_suffix = get_locale_text("i18n_grid_map.rest_sp_suffix", sp_gain=sp_gain, exhaustion_cured=max(0, old_ex - new_ex))
         msg = (get_locale_text("i18n_coop_explore.rest_heal", heal=heal) if multi else get_locale_text("msg_rest_heal", heal=heal)) + sp_suffix
         return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)

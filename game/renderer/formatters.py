@@ -9,6 +9,8 @@ from ..data.locale_data import get_locale_text
 
 
 def format_buff_stacks(buff) -> str:
+    if getattr(buff, "id", "") == "exhaustion":
+        return get_locale_text("i18n_renderer_extra.formatters.exhaustion_stack", name=buff.name, stacks=format_large_int(buff.stacks))
     stacks2 = getattr(buff, "stacks2", None)
     if stacks2 is not None and stacks2 > 0:
         return f"{buff.name}({format_large_int(buff.stacks)},{format_large_int(stacks2)})"
@@ -20,6 +22,12 @@ def format_buff_stacks(buff) -> str:
 def format_buff_list(buffs, sep: str = " | ") -> str:
     return sep.join(format_buff_stacks(b) for b in buffs)
 
+
+def format_persistent_buff_bar(player) -> str:
+    pbuffs = getattr(player, "persistent_buffs", None) or []
+    if not pbuffs:
+        return ""
+    return get_locale_text("i18n_renderer_extra.formatters.persistent_buff_prefix") + format_buff_list(pbuffs, " ")
 
 def format_buff_detail(buff, desc: str, indent: str = "    ") -> str:
     stacks2 = getattr(buff, "stacks2", None)

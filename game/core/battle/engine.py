@@ -222,6 +222,8 @@ class BattleEngine(BaseBattleEngine):
         p.minions.clear()
         p.amulets.clear()
         p.buffs.clear()
+        from ..world.persistent_buffs import sync_persistent_buffs_to_battle
+        sync_persistent_buffs_to_battle(p)
         p.actions = 2
         p.bonus_actions = 1
         p.shield = 0

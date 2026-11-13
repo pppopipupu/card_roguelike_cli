@@ -161,13 +161,44 @@ def touch_in_room(save_manager, run, query: str) -> str:
         sp = restore_sp(p, cfg["sp_gain"])
         msg = get_locale_text("i18n_room_interact.touch.cafe_espresso_machine", sp=sp)
     elif prop_id == "cafe_gramophone":
+        from ..persistent_buffs import cure_persistent_debuffs
         old_ex = getattr(p, "exhaustion", 0)
         new_ex = reduce_exhaustion(p, cfg["exhaustion_cure"])
+        cure_persistent_debuffs(p, 1)
         msg = get_locale_text("i18n_room_interact.touch.cafe_gramophone", cured=max(0, old_ex - new_ex))
     elif prop_id == "cafe_guestbook":
         revealed = _reveal_any_special(fm, 1) if fm is not None else []
         target_c = revealed[0] if revealed else (fm.boss_coord if fm is not None and fm.boss_coord else coord)
         msg = get_locale_text("i18n_room_interact.touch.cafe_guestbook", coord=target_c)
+    elif prop_id == "forgotten_shrine":
+        from ..persistent_buffs import add_persistent_buff
+        before = p.hp
+        p.hp = min(p.max_hp, p.hp + cfg["heal"])
+        add_persistent_buff(p, "ancient_ward", 1)
+        msg = get_locale_text("i18n_room_interact.touch.forgotten_shrine", heal=p.hp - before)
+    elif prop_id == "arcane_mirror":
+        revealed = _reveal_any_special(fm, 2) if fm is not None else []
+        if revealed:
+            msg = get_locale_text("i18n_room_interact.touch.arcane_mirror_reveal", coords="、".join(revealed))
+        else:
+            sp = restore_sp(p, cfg["sp_gain"])
+            p.gold += cfg["gold_gain"]
+            msg = get_locale_text("i18n_room_interact.touch.arcane_mirror_fallback", sp=sp, gold=cfg["gold_gain"])
+    elif prop_id == "smuggler_cache":
+        loot = random.choice(["skeleton_key", "sugar_cube_pack"])
+        ok, _ = add_bag_item(p, loot)
+        if ok:
+            msg = get_locale_text("i18n_room_interact.touch.smuggler_cache_item", item=get_item_display_name(loot))
+        else:
+            p.gold += cfg["gold_gain"]
+            msg = get_locale_text("i18n_room_interact.touch.smuggler_cache_gold", gold=cfg["gold_gain"])
+    elif prop_id == "dusty_bookshelf":
+        from ..persistent_buffs import add_persistent_buff
+        add_persistent_buff(p, "arcane_clarity", 1)
+        ok, _ = add_bag_item(p, "ancient_notes")
+        if not ok:
+            room.items.append("ancient_notes")
+        msg = get_locale_text("i18n_room_interact.touch.dusty_bookshelf")
     else:
         msg = get_locale_text("i18n_room_interact.touch.already_done", name=pname)
     save_manager.save_save(run.user_id, run)
@@ -192,27 +223,32 @@ def take_in_room(save_manager, run, query: str) -> str:
     return msg
 
 
+def format_room_env_with_props(room, include_cleared_suffix: bool = True) -> str:
+    env_id = getattr(room, "env_id", "") or "dungeon_corridor"
+    env_text = get_locale_text(f"i18n_room_interact.env.{env_id}")
+    if include_cleared_suffix and room.cleared and room.room_type not in ("spawn", "empty", "shop", "cafe", "landmark", "downstairs"):
+        env_text += get_locale_text("i18n_room_interact.env.cleared_suffix")
+    done_props = set(getattr(room, "interacted_props", None) or [])
+    for pid in getattr(room, "props", None) or []:
+        if pid not in ROOM_PROPS:
+            continue
+        skey = f"i18n_room_interact.props.{pid}.done_scene" if pid in done_props else f"i18n_room_interact.props.{pid}.scene"
+        env_text += get_locale_text(skey)
+    return env_text
+
+
 def format_room_extras(run, include_env: bool = True) -> List[str]:
     room, _ = get_current_room(run)
     if room is None:
         return []
     lines = []
-    env_id = getattr(room, "env_id", "") or ""
-    if include_env and env_id:
-        lines.append(get_locale_text(f"i18n_room_interact.env.{env_id}"))
+    if include_env:
+        lines.append(format_room_env_with_props(room, include_cleared_suffix=True))
     defeated = set(getattr(room, "defeated_npcs", None) or [])
     alive_npcs = [nid for nid in (getattr(room, "npcs", None) or []) if nid not in defeated and nid in ROOM_NPCS]
     if alive_npcs:
         nnames = [f"【{get_locale_text(ROOM_NPCS[nid]['name_key'])}】" for nid in alive_npcs]
         lines.append(get_locale_text("i18n_room_interact.room_ui.npcs_line", items="、".join(nnames)))
-    done_props = set(getattr(room, "interacted_props", None) or [])
-    done_tag = get_locale_text("i18n_room_interact.room_ui.prop_done_tag")
-    props = [
-        f"【{get_locale_text(ROOM_PROPS[pid]['name_key'])}{f'·{done_tag}' if pid in done_props else ''}】"
-        for pid in (getattr(room, "props", None) or []) if pid in ROOM_PROPS
-    ]
-    if props:
-        lines.append(get_locale_text("i18n_room_interact.room_ui.props_line", items="、".join(props)))
     items = list(getattr(room, "items", None) or [])
     if items:
         inames = [f"【{get_item_display_name(it)}】" for it in items]

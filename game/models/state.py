@@ -225,7 +225,7 @@ class BuffState:
     stacks2: Optional[int] = None
     desc: str = ""
     source_uid: str = ""
-
+    persistent: bool = False
 
 @dataclass
 class CardTag:
@@ -404,10 +404,22 @@ class PlayerState:
     mercenary_timing: str = "before"
     sp: int = 10
     max_sp: int = 10
-    exhaustion: int = 0
+    persistent_buffs: List[BuffState] = field(default_factory=list)
     quest_relics: List[str] = field(default_factory=list)
     bag_items: List[str] = field(default_factory=list)
     bag_max_weight: int = 10
+
+    @property
+    def exhaustion(self) -> int:
+        for b in self.persistent_buffs:
+            if b.id == "exhaustion":
+                return int(b.stacks)
+        return 0
+
+    @exhaustion.setter
+    def exhaustion(self, value: int) -> None:
+        from ..core.world.persistent_buffs import set_persistent_buff
+        set_persistent_buff(self, "exhaustion", int(value or 0))
 
     def __post_init__(self):
         if not hasattr(self, "potions") or self.potions is None:

@@ -31,7 +31,7 @@ class GridTeleportCommand(CommandHandler, names=["传送", "tp", "teleport"], al
         yield router.engine.map_engine.teleport(run, target)
 
 
-class GridMapViewCommand(CommandHandler, names=["地图", "map", "look", "l", "看", "查看"], allowed_states=["grid_map"], help_key="grid_map"):
+class GridMapViewCommand(CommandHandler, names=["地图", "map", "m", "look", "l", "看", "查看"], allowed_states=["grid_map"], help_key="grid_map"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:
@@ -87,7 +87,7 @@ class GridAttackCommand(CommandHandler, names=["攻击", "attack", "atk", "打"]
         yield attack_in_room(router.engine.map_engine, run, query)
 
 
-class GridTouchCommand(CommandHandler, names=["触摸", "touch", "摸", "调查", "inspect"], allowed_states=["grid_map", "explore", "cafe"], help_key="grid_touch"):
+class GridTouchCommand(CommandHandler, names=["触摸", "touch", "tch", "摸", "调查", "inspect"], allowed_states=["grid_map", "explore", "cafe"], help_key="grid_touch"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:
@@ -119,7 +119,7 @@ class GridUseCommand(CommandHandler, names=["使用", "use"], allowed_states=["g
         yield msg
 
 
-class DropItemCommand(CommandHandler, names=["丢弃物品", "扔掉", "drop_item"], allowed_states=["grid_map", "explore", "cafe"], help_key="drop_item"):
+class DropItemCommand(CommandHandler, names=["丢弃物品", "扔掉", "drop_item", "di"], allowed_states=["grid_map", "explore", "cafe"], help_key="drop_item"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:
