@@ -172,6 +172,18 @@ ACHIEVEMENTS_CONFIG = {
         "desc": "在战斗中通过【聚变】将当前动作点 (A) 推高至至少 10 点。",
         "gp_reward": 2500,
     },
+    "temple_awakening": {
+        "name": "先古主城·启程",
+        "rarity": "legendary",
+        "desc": "完成【尤格索托斯之死？】，在外层位面见过真正的尤格-索托斯。",
+        "gp_reward": 3000,
+    },
+    "silent_passage": {
+        "name": "一路无话",
+        "rarity": "epic",
+        "desc": "以出手代替交谈的方式完成【尤格索托斯之死？】。",
+        "gp_reward": 2500,
+    },
 }
 
 ACHIEVEMENT_ORDER = list(ACHIEVEMENTS_CONFIG.keys())

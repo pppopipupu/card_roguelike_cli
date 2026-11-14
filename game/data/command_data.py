@@ -1,4 +1,4 @@
-COMMAND_SECTIONS = ("basic", "battle", "town", "cafe", "social")
+COMMAND_SECTIONS = ("basic", "battle", "town", "temple", "cafe", "social")
 
 COMMAND_SECTION_ORDER = {
     "basic": (
@@ -69,10 +69,17 @@ COMMAND_SECTION_ORDER = {
         "quest_list",
         "query",
         "lock"
+    ),
+    "temple": (
+        "temple_enter",
+        "temple_choose",
+        "temple_look",
+        "temple_read",
+        "temple_leave"
     )
 }
 
-GAME_STATE_ORDER = ("menu", "town", "grid_map", "explore", "battle", "dialog", "cafe")
+GAME_STATE_ORDER = ("menu", "town", "temple", "grid_map", "explore", "battle", "dialog", "cafe")
 
 POTION_LIST_ALIASES = ("list", "ls", "列表", "药水列表")
 POTION_DRINK_ALIASES = ("drink", "喝", "饮用", "喝药水", "use_potion")

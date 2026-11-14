@@ -8,7 +8,7 @@ class CommandHandler:
     def __init_subclass__(cls, names: list[str] = None, allowed_states: list[str] = None, help_key: str = "", **kwargs):
         super().__init_subclass__(**kwargs)
         cls.names = names or []
-        cls.allowed_states = allowed_states if allowed_states is not None else ["menu", "town", "grid_map", "explore", "battle", "dialog"]
+        cls.allowed_states = allowed_states if allowed_states is not None else ["menu", "town", "temple", "grid_map", "explore", "battle", "dialog"]
         cls.help_key = help_key
         if names:
             inst = cls()

@@ -12,6 +12,7 @@ from ...data.achievement_data import (
     HIDDEN_ACHIEVEMENT_RARITIES,
 )
 from ...data.locale_data import get_locale_text
+from ...data.temple_config import TEMPLE_QUEST_FLAG
 
 _PENDING_NOTICES: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
 
@@ -142,6 +143,10 @@ def _check_fusion_overclock(stats) -> bool:
     return _stat_int(stats, "fusion_overclocks") >= 1
 
 
+def _check_temple_awakening(stats) -> bool:
+    return stats.town_flags.get(TEMPLE_QUEST_FLAG) == "completed"
+
+
 ACHIEVEMENT_EVALUATORS = {
     "first_step": _check_first_step,
     "battle_rookie": _check_battle_rookie,
@@ -170,6 +175,7 @@ ACHIEVEMENT_EVALUATORS = {
     "one_hp_boss_slayer": _check_one_hp_boss_slayer,
     "shou_hui_karma": _check_shou_hui_karma,
     "fusion_overclock": _check_fusion_overclock,
+    "temple_awakening": _check_temple_awakening,
 }
 
 

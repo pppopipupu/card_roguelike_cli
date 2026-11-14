@@ -8,10 +8,16 @@ from ....entities.cards.market import MARKET_SHELF_CARDS, is_card_available
 from ....data.locale_data import get_locale_text
 from ....data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
 
+from ....data.temple_config import TEMPLE_ACTIVE_FLAG
+
 class TownEngine:
     def __init__(self, save_manager, engine):
         self.save_manager = save_manager
         self.engine = engine
+        from ..temple.engine import TempleEngine
+        self.temple_engine = TempleEngine(save_manager, engine, self)
+        from ..outer_plane.engine import OuterPlaneEngine
+        self.outer_plane_engine = OuterPlaneEngine(save_manager, engine, self)
 
     def _load_zh_cn(self) -> Dict[str, Any]:
         from ...i18n.locale_manager import LocaleManager
@@ -63,6 +69,11 @@ class TownEngine:
         return list(stats.town_flags.get("visited_rooms", []))
 
     def render_current_room(self, user_id: str, stats: UserStats) -> str:
+        if stats.town_flags.get(TEMPLE_ACTIVE_FLAG):
+            return self.temple_engine.render(user_id, stats)
+        from ....data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
+        if stats.town_flags.get(OUTER_PLANE_ACTIVE_FLAG):
+            return self.outer_plane_engine.render(user_id, stats)
         zh_cn = self._load_zh_cn()
         dirty = self.record_visited_room(stats)
         if stats.town_pos == "market":
@@ -285,27 +296,28 @@ class TownEngine:
         if target_id == "lost_notebook":
             return get_locale_text("global.lost_notebook_use_desc")
 
+        from ....data.outer_plane_config import NECRONOMICON_ITEM
+        if target_id == NECRONOMICON_ITEM:
+            return self.outer_plane_engine.enter_wip(user_id, stats)
+
         return get_locale_text("global.use_cannot_use", target=item_name)
 
-    def challenge_npc(self, user_id: str, npc_id: str) -> str:
-        stats = self.save_manager.load_stats(user_id)
-        zh_cn = self._load_zh_cn()
-        npc_name = zh_cn.get("interactive_entities", {}).get(npc_id, {}).get("name", npc_id)
-
+    def build_combat_player(self, user_id: str, stats: UserStats, hp: int = None, max_hp: int = None) -> PlayerState:
         selected_class = getattr(stats, "selected_class", "法师")
         selected_subclass = getattr(stats, "selected_subclass", "")
         if selected_class == "战士":
             selected_subclass = ""
             allowed_colors = ("warrior", "neutral")
-            hp = 80
-            max_hp = 80
         else:
             allowed_colors = ("wizard", "neutral")
-            hp = 45
-            max_hp = 45
-        hp_bonus = getattr(stats, "town_health_bonus", 0)
-        hp += hp_bonus
-        max_hp += hp_bonus
+        if hp is None:
+            hp = 80 if selected_class == "战士" else 45
+            hp += getattr(stats, "town_health_bonus", 0)
+        if max_hp is None:
+            max_hp = hp
+        if self.outer_plane_engine.apply_max_hp_zero(stats):
+            hp = 0
+            max_hp = 0
         commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and is_card_available(cid, stats)]
         rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and is_card_available(cid, stats)]
         epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and is_card_available(cid, stats)]
@@ -345,8 +357,7 @@ class TownEngine:
             deck.append(random.choice(epics))
         if selected_class == "法师" and selected_subclass == "时序法师":
             deck.append("time_stop")
-            
-        p_state = PlayerState(
+        return PlayerState(
             hp=hp,
             max_hp=max_hp,
             shield=0,
@@ -365,6 +376,13 @@ class TownEngine:
             subclass="",
             selected_class=selected_class
         )
+
+    def challenge_npc(self, user_id: str, npc_id: str) -> str:
+        stats = self.save_manager.load_stats(user_id)
+        zh_cn = self._load_zh_cn()
+        npc_name = zh_cn.get("interactive_entities", {}).get(npc_id, {}).get("name", npc_id)
+
+        p_state = self.build_combat_player(user_id, stats)
 
         if npc_id == "Dummy":
             enemy = EnemyState(name=get_locale_text("i18n_town.dummy_enemy_name"), hp=200, max_hp=200, shield=0)

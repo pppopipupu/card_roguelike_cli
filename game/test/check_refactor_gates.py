@@ -270,6 +270,47 @@ def scan_locale_keys():
             if rule and rule not in REVEAL_RULES:
                 missing.append(f"dynamic_config: reveal rule {rule}")
 
+    from game.data.temple_config import ENDING_BRANCH_FLAGS, TEMPLE_ENCOUNTERS, TEMPLE_ROOMS, ZONE_NAME_KEYS
+    for zone_key in ZONE_NAME_KEYS.values():
+        if not _has_key(zone_key):
+            missing.append(f"dynamic_config: {zone_key}")
+    for room_id, tcfg in TEMPLE_ROOMS.items():
+        for suffix in ("name", "desc"):
+            k = f"i18n_temple.room.{room_id}.{suffix}"
+            if not _has_key(k):
+                missing.append(f"dynamic_config: {k}")
+        for opt in tcfg["options"]:
+            k = f"i18n_temple.opt.{opt['id']}"
+            if not _has_key(k):
+                missing.append(f"dynamic_config: {k}")
+    for enc_id in TEMPLE_ENCOUNTERS:
+        for suffix in ("scene", "win"):
+            k = f"i18n_temple.encounter.{enc_id}.{suffix}"
+            if not _has_key(k):
+                missing.append(f"dynamic_config: {k}")
+    for suffix in ("title", "intro", "goal_1", "goal_2", "goal_3", "goal_4", "goal_5"):
+        k = f"i18n_temple.quest.{suffix}"
+        if not _has_key(k):
+            missing.append(f"dynamic_config: {k}")
+    for suffix in ("open", "faint", "outer_plane", "yog_arrive", "yog_reveal", "kick", "wake", "finale"):
+        k = f"i18n_temple.ending.{suffix}"
+        if not _has_key(k):
+            missing.append(f"dynamic_config: {k}")
+    for flag in ENDING_BRANCH_FLAGS:
+        k = f"i18n_temple.ending.branch.{flag}"
+        if not _has_key(k):
+            missing.append(f"dynamic_config: {k}")
+    for suffix in ("ember", "chant", "ward"):
+        for group in ("cultist_intent", "cultist_log"):
+            k = f"i18n_temple.{group}.{suffix}"
+            if not _has_key(k):
+                missing.append(f"dynamic_config: {k}")
+    for suffix in ("frost_lance", "winter_veil", "aurora_gaze", "absolute_zero"):
+        for group in ("boss_intent", "boss_log"):
+            k = f"i18n_temple.{group}.{suffix}"
+            if not _has_key(k):
+                missing.append(f"dynamic_config: {k}")
+
     for cls in set(CommandHandler.registry.values()):
         for st in getattr(cls, "allowed_states", []):
             k = f"i18n_help.state_{st}"

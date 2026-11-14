@@ -13,6 +13,9 @@ from ..social.service import SocialService
 from ..telemetry.projection_service import ProjectionService
 from ..telemetry.log_service import LogService
 from ...data.locale_data import get_locale_text
+from ...data.temple_config import TEMPLE_COMBAT_FLAG
+from ...data.outer_plane_config import OUTER_PLANE_COMBAT_FLAG, OUTER_PLANE_TRIGGER_FLAG
+
 
 
 class CLIRouter:
@@ -38,6 +41,10 @@ class CLIRouter:
 
     def _handle_town_combat_settle(self, user_id: str, run: GameRun, original_res: str) -> str:
         latest_run = self.save_manager.load_save(user_id)
+        if run.node_data.get(TEMPLE_COMBAT_FLAG):
+            return self._handle_temple_combat_settle(user_id, run, latest_run, original_res)
+        if run.node_data.get(OUTER_PLANE_COMBAT_FLAG):
+            return self._handle_outer_plane_combat_settle(user_id, run, latest_run, original_res)
         if not latest_run:
             stats = self.save_manager.load_stats(user_id)
             stats.in_town = True
@@ -80,6 +87,37 @@ class CLIRouter:
             self.save_manager.save_stats(user_id, stats)
             return f"{original_res}\n\n" + get_locale_text("i18n_cli_core.combat_won_banner", bonus=msg_bonus) + "\n\n" + self.town_engine.render_current_room(user_id, stats)
         return original_res
+
+    def _handle_temple_combat_settle(self, user_id: str, run: GameRun, latest_run, original_res: str) -> str:
+        if latest_run is None:
+            return original_res
+        is_won = self.engine.is_battle_won(latest_run) or latest_run.node_type in ("reward", "victory")
+        is_lost = latest_run.player.hp <= 0
+        if not is_won and not is_lost:
+            return original_res
+        self.save_manager.delete_save(user_id)
+        stats = self.save_manager.load_stats(user_id)
+        temple = self.town_engine.temple_engine
+        if is_lost:
+            return original_res + "\n\n" + temple.on_battle_lose(user_id, stats, latest_run)
+        return original_res + "\n\n" + temple.on_battle_win(user_id, stats, latest_run)
+
+    def _handle_outer_plane_combat_settle(self, user_id: str, run: GameRun, latest_run, original_res: str) -> str:
+        if latest_run is None:
+            return original_res
+        stats = self.save_manager.load_stats(user_id)
+        plane = self.town_engine.outer_plane_engine
+        if latest_run.node_data.get(OUTER_PLANE_TRIGGER_FLAG):
+            self.save_manager.delete_save(user_id)
+            return original_res + "\n\n" + plane.trigger_from_battle(user_id, stats)
+        is_won = self.engine.is_battle_won(latest_run) or latest_run.node_type in ("reward", "victory")
+        is_lost = latest_run.player.hp <= 0
+        if not is_won and not is_lost:
+            return original_res
+        self.save_manager.delete_save(user_id)
+        if is_lost:
+            return original_res + "\n\n" + plane.on_battle_lose(user_id, stats, latest_run)
+        return original_res + "\n\n" + plane.on_battle_win(user_id, stats, latest_run)
 
     def _projection_result(self, user_id: str, result: str) -> str:
         run = self.save_manager.load_save(user_id)
@@ -152,6 +190,12 @@ class CLIRouter:
                 handler, _ = CommandHandler.resolve(parts[0].lower(), curr_state)
                 if handler:
                     yield "\n".join(list(handler.execute(self, user_id, parts)))
+                    return
+                if curr_state == "temple" and parts[0].strip().isdigit():
+                    yield self.town_engine.temple_engine.choose(user_id, stats, parts[0].strip())
+                    return
+                if curr_state == "outer_plane" and parts[0].strip().isdigit():
+                    yield self.town_engine.outer_plane_engine.choose(user_id, stats, parts[0].strip())
                     return
                 if stats.town_flags.get("current_dialog"):
                     yield self.town_engine.handle_dialog_input(user_id, " ".join(parts).strip())

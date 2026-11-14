@@ -46,7 +46,7 @@
   "manual_neofetch": "neofetch\n显示终端与卡牌周目摘要。",
   "manual_fastfetch": "fastfetch\n以模块化布局显示终端与卡牌周目摘要。",
   "manual_git": "git status|log|branch|remote|diff\n查看仓库信息。",
-  "help_text": "可用终端命令：\n  ls / ls -la / cd / pwd / cat / echo / touch / rm\n  uname / whoami / id / hostname / date / uptime\n  df / free / ps / top / env / history / clear\n  head / tail / wc / grep / find / tree / stat / file / du\n  which / man / neofetch / fastfetch / git / docker / systemctl / journalctl\n  ip / ss / lscpu / lsblk / mount / printf\n",
+  "help_text": "终端模拟命令优先级低于游戏指令：输入命中游戏指令时由游戏处理，只有游戏内没有同名指令时才回退到终端。以 bash 开头可强制执行终端命令（例如 bash touch note.txt）；单独输入 bash 也会显示本页。\n可用终端命令：\n  ls / ls -la / cd / pwd / cat / echo / touch / rm\n  uname / whoami / id / hostname / date / uptime\n  df / free / ps / top / env / history / clear\n  head / tail / wc / grep / find / tree / stat / file / du\n  which / man / neofetch / fastfetch / git / docker / systemctl / journalctl\n  ip / ss / lscpu / lsblk / mount / printf\n",
   "err_head_invalid_lines": "head: 无效的行数。\n",
   "err_head_no_such_file": "head: {path}: 没有那个文件。\n",
   "err_tail_invalid_lines": "tail: 无效的行数。\n",

@@ -80,6 +80,8 @@ def _normal_specs(npc_id: str) -> List[Dict[str, Any]]:
         specs.append(_option("quest_accept", _npc_label("option_quest_accept"), condition=lambda s: s.town_flags.get("quest_town_tour_state", "unstarted") == "unstarted"))
         specs.append(_option("quest_status", _npc_label("option_quest_status"), condition=lambda s: s.town_flags.get("quest_town_tour_state", "unstarted") == "started" and len(s.town_flags.get("quest_town_tour_visited", [])) < 11))
         specs.append(_option("quest_complete", _npc_label("option_quest_complete"), condition=lambda s: s.town_flags.get("quest_town_tour_state", "unstarted") == "started" and len(s.town_flags.get("quest_town_tour_visited", [])) >= 11))
+        specs.append(_option("temple_info", _text_label(get_locale_text("i18n_temple.npc.elder_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and not s.town_flags.get("temple_info_received")))
+        specs.append(_option("temple_hint", _text_label(get_locale_text("i18n_temple.npc.elder_hint_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and bool(s.town_flags.get("temple_info_received")) and s.town_flags.get("quest_yog_death_state") != "completed"))
     elif npc_id == "Bartender_Jack":
         specs.append(_option("gift_glass", _npc_label("option_gift_glass"), condition=lambda s: "wine_glass" in s.town_inventory and not s.town_flags.get("jack_gift_given", 0)))
         specs.append(_option("buy_beer", _npc_label("option_buy_beer")))
@@ -283,6 +285,14 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
 
     def save() -> None:
         town_engine.save_manager.save_stats(user_id, stats)
+
+    if action == "temple_info":
+        stats.town_flags["temple_info_received"] = True
+        save()
+        return get_locale_text("i18n_temple.npc.elder_reply") + "\n\n" + get_locale_text("i18n_temple.ui.quest_notice") + "\n\n" + rerender()
+
+    if action == "temple_hint":
+        return get_locale_text("i18n_temple.npc.elder_hint") + "\n\n" + rerender()
 
     if action == "leave":
         stats.town_flags.pop("current_dialog", None)

@@ -200,7 +200,6 @@ class NeutralEmperorEyeCard(Card):
 @register_card("neutral_astral_strike")
 class AstralStrikeCard(Card):
     def execute(self, run, target, engine) -> str:
-        p = run.player
         dmg = getattr(self, "base_dmg", 32 if self.upgraded else 24)
         if not target:
             target = "e1"

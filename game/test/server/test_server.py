@@ -823,21 +823,87 @@ class ServerTests(unittest.TestCase):
         self.assertIn("指令一览", help_game["text"])
         self.assertNotIn("可用终端命令", help_game["text"])
 
-        help_system = self.post(
-            {"command": "help system", "channel": "web"},
+        game_touch = self.post(
+            {"command": "touch 火盆", "channel": "web"},
             self.web_headers("web-shell"),
         ).json()
-        self.assertIn("可用终端命令", help_system["text"])
-        self.assertNotIn("可写：", help_system["text"])
-        self.assertNotIn("受保护：", help_system["text"])
+        self.assertIn("在当前状态下不可用", game_touch["text"])
+        self.assertNotIn("touch: 缺少文件", game_touch["text"])
 
-        listing = self.post(
+        game_stat = self.post(
+            {"command": "stat", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()["text"]
+        self.assertIn("生涯统计", game_stat)
+
+        game_exit = self.post(
+            {"command": "exit", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertNotIn("无法退出", game_exit["text"])
+
+        fallback_ls = self.post(
             {"command": "ls", "channel": "web"}, self.web_headers("web-shell")
         ).json()
-        self.assertTrue(listing["ok"])
-        self.assertIn("README.md", listing["text"])
-        self.assertEqual(listing["shell"]["cwd"], "~")
-        self.assertEqual(listing["shell"]["status"], 0)
+        self.assertIn("README.md", fallback_ls["text"])
+        self.assertEqual(fallback_ls["shell"]["status"], 0)
+
+        fallback_touch = self.post(
+            {"command": "touch note.txt", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertIn("在当前状态下不可用", fallback_touch["text"])
+        self.assertNotIn(
+            "note.txt",
+            self.post(
+                {"command": "ls", "channel": "web"},
+                self.web_headers("web-shell"),
+            ).json()["text"],
+        )
+
+        trigger = self.post(
+            {"command": "bash", "channel": "web"}, self.web_headers("web-shell")
+        ).json()
+        self.assertIn("可用终端命令", trigger["text"])
+        self.assertIn("bash", trigger["text"])
+        self.assertEqual(trigger["shell"]["status"], 0)
+
+        bash_help = self.post(
+            {"command": "bash help", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertIn("可用终端命令", bash_help["text"])
+        self.assertIn("优先级低于游戏指令", bash_help["text"])
+        self.assertNotIn("可写：", bash_help["text"])
+        self.assertNotIn("受保护：", bash_help["text"])
+
+        bash_touch = self.post(
+            {"command": "bash touch note.txt", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertEqual(bash_touch["shell"]["status"], 0)
+        self.assertIn(
+            "note.txt",
+            self.post(
+                {"command": "ls", "channel": "web"},
+                self.web_headers("web-shell"),
+            ).json()["text"],
+        )
+
+        unknown = self.post(
+            {"command": "bash notashellcmd", "channel": "web"},
+            self.web_headers("web-shell"),
+        ).json()
+        self.assertIn("未找到命令", unknown["text"])
+        self.assertEqual(unknown["shell"]["status"], 1)
+
+        bash_listing = self.post(
+            {"command": "bash ls", "channel": "web"}, self.web_headers("web-shell")
+        ).json()
+        self.assertTrue(bash_listing["ok"])
+        self.assertIn("README.md", bash_listing["text"])
+        self.assertEqual(bash_listing["shell"]["cwd"], "~")
+        self.assertEqual(bash_listing["shell"]["status"], 0)
 
         readme = self.post(
             {"command": "cat README.md", "channel": "web"},
@@ -904,12 +970,12 @@ class ServerTests(unittest.TestCase):
         self.assertNotIn("对决模式", menu)
         self.assertNotIn("/rogue ", menu)
 
-        idle_exit = self.post(
-            {"command": "exit", "channel": "web"},
+        bash_exit = self.post(
+            {"command": "bash exit", "channel": "web"},
             self.web_headers("web-shell"),
         ).json()
-        self.assertIn("无法退出", idle_exit["text"])
-        self.assertEqual(idle_exit["shell"]["status"], 1)
+        self.assertIn("无法退出", bash_exit["text"])
+        self.assertEqual(bash_exit["shell"]["status"], 1)
 
         self.post(
             {"command": "start confirm", "channel": "web"},

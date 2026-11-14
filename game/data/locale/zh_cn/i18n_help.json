@@ -8,6 +8,7 @@
   "section_town": "🏙️ 主城",
   "section_cafe": "☕ 咖啡厅",
   "section_social": "👥 社交与查询",
+  "section_temple": "❄ 尤格索托斯神殿",
   "detail_header": "【{name}】",
   "usage_label": "📌 用法：{usage}",
   "alias_label": "🏷️ 别名：{aliases}",
@@ -24,6 +25,8 @@
   "state_battle": "战斗",
   "state_dialog": "对话",
   "state_cafe": "咖啡厅",
+  "state_temple": "神殿",
+  "state_outer_plane": "外层位面",
   "commands": {
     "start": {
       "name": "开始游戏",
@@ -437,6 +440,69 @@
       "brief": "丢弃冒险行囊中的常规物品以释放负重",
       "desc": "在肉鸽模式中丢弃指定背包物品，腾出负重空间拾取更有价值的带回物品。",
       "example": "di 矿镐"
+    },
+    "temple_enter": {
+      "name": "踏入尤格索托斯神殿",
+      "usage": "神殿 / temple / 出城",
+      "brief": "从西大门进入固定剧情神殿",
+      "desc": "击败虚空之门后向向导长老打听神殿，再到西大门使用本指令。神殿是固定的手工地图，进度会保留。",
+      "example": "temple"
+    },
+    "temple_choose": {
+      "name": "神殿抉择",
+      "usage": "go <序号> / 序号 / 抉择 <序号>",
+      "brief": "选择神殿房间的行动或去路",
+      "desc": "直接输入选项序号，或使用 go、抉择、choose 加序号。分支选择会被记住，并影响后续遭遇与结局台词。",
+      "example": "go 2"
+    },
+    "temple_read": {
+      "name": "翻阅死灵之书",
+      "usage": "翻阅 / 阅读 / read",
+      "brief": "在最终房间翻开死灵之书",
+      "desc": "击败冰封少女·欧吕尔的化身后来到死灵之书室，翻开书即进入外层位面剧情并完成任务。",
+      "example": "read"
+    },
+    "temple_look": {
+      "name": "查看神殿",
+      "usage": "看 / look / 神殿状态",
+      "brief": "重新显示当前神殿房间与可选行动",
+      "desc": "随时查看神殿区域进度、当前房间描述、神殿生命与全部可选行动序号。",
+      "example": "look"
+    },
+    "temple_leave": {
+      "name": "撤离神殿",
+      "usage": "撤离 / 离开神殿 / retreat",
+      "brief": "暂离神殿返回先古主城",
+      "desc": "进度、分支与已探明房间全部保留，随时可从西大门再进去接着走。",
+      "example": "retreat"
+    },
+    "outer_plane_choose": {
+      "name": "外层位面抉择",
+      "usage": "go <序号> / 序号 / 抉择 <序号>",
+      "brief": "在外层位面选择行动或去路",
+      "desc": "外层位面的房间可以来回走，分支最终汇合到漂泊之岸。输入选项序号即可移动、迎战或融合。",
+      "example": "go 1"
+    },
+    "outer_plane_look": {
+      "name": "查看外层位面",
+      "usage": "看 / look / 位面状态",
+      "brief": "重新显示当前房间与剩余意识",
+      "desc": "显示外层位面区域图、当前房间描述、剩余意识值与全部可选行动。",
+      "example": "look"
+    },
+    "outer_plane_leave": {
+      "name": "离开外层位面",
+      "usage": "撤离 / 离开位面 / retreat",
+      "brief": "从外层位面返回先古主城",
+      "desc": "余响阶段可随时离开，之后用背包里的死灵之书再次进入；冒险阶段必须走完剧情才能离开。",
+      "example": "retreat"
+    },
+    "butcher_attack": {
+      "name": "攻击",
+      "usage": "攻击 / attack / atk / 打",
+      "brief": "对当前场景的存在直接出手",
+      "desc": "神殿与外层位面中，对当前场景的存在直接出手；有战斗选项时直接开打，全程只用这条指令也能走完剧情。",
+      "example": "attack"
     }
   }
 }

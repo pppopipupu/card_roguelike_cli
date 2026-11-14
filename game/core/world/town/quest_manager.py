@@ -1,5 +1,7 @@
 from typing import Dict, Any, List
 from ....models.state import UserStats
+from ....data.temple_config import TEMPLE_FLAGS_KEY, TEMPLE_INFO_FLAG, TEMPLE_QUEST_FLAG, TEMPLE_VISITED_KEY
+
 from ....data.locale_data import get_locale_text
 
 
@@ -68,9 +70,31 @@ def _hammer_quest(stats: UserStats) -> Dict[str, Any]:
     }
 
 
+def _yog_death_quest(stats: UserStats) -> Dict[str, Any]:
+    if int(getattr(stats, "yog_sothoth_kill_count", 0) or 0) <= 0:
+        return {}
+    flags = stats.town_flags
+    inner = flags.get(TEMPLE_FLAGS_KEY) or {}
+    state = flags.get(TEMPLE_QUEST_FLAG, "unstarted")
+    goals = [
+        {"text": get_locale_text("i18n_temple.quest.goal_1"), "done": bool(flags.get(TEMPLE_INFO_FLAG))},
+        {"text": get_locale_text("i18n_temple.quest.goal_2"), "done": bool(flags.get(TEMPLE_VISITED_KEY))},
+        {"text": get_locale_text("i18n_temple.quest.goal_3"), "done": bool(inner.get("cultists_defeated") or inner.get("temple_boss_defeated"))},
+        {"text": get_locale_text("i18n_temple.quest.goal_4"), "done": bool(inner.get("temple_boss_defeated"))},
+        {"text": get_locale_text("i18n_temple.quest.goal_5"), "done": state == "completed"},
+        {"text": get_locale_text("i18n_temple.quest.goal_6"), "done": state == "completed"},
+    ]
+    return {
+        "state": state,
+        "title": get_locale_text("i18n_temple.quest.title"),
+        "intro": get_locale_text("i18n_temple.quest.intro"),
+        "goals": goals,
+    }
+
+
 def _active_quests(stats: UserStats) -> List[Dict[str, Any]]:
     quests = []
-    for builder in (_tour_quest, _brew_quest, _hammer_quest):
+    for builder in (_tour_quest, _brew_quest, _hammer_quest, _yog_death_quest):
         quest = builder(stats)
         if quest:
             quests.append(quest)

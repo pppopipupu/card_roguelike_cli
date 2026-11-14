@@ -55,6 +55,12 @@ class HeadlessGameServer:
     def _get_current_state(self, user_id: str, run, stats) -> str:
         return resolve_game_state(run, stats)
 
+    def is_game_command(self, message: str) -> bool:
+        parts = message.strip().split()
+        if not parts:
+            return False
+        return parts[0].lower().lstrip("/") in CommandHandler.registry_all
+
     async def handle_rogue_message(self, user_id: str, sender_name: str, message: str, shortcut_prefix: list[str] = None, enable_shortcut: bool = True, force_execute: bool = False, projection: bool = True) -> Optional[str]:
         set_user_id(user_id)
         if shortcut_prefix is None:
@@ -162,6 +168,8 @@ class HeadlessGameServer:
         curr_state = self._get_current_state(user_id, run, stats)
         _, exists = CommandHandler.resolve(first_word, curr_state)
         if exists:
+            is_game_cmd = True
+        if curr_state in ("temple", "outer_plane") and first_word.isdigit():
             is_game_cmd = True
         if curr_state == "dialog":
             if first_word.isdigit() or first_word in ("离开", "退出", "返回", "exit", "quit"):

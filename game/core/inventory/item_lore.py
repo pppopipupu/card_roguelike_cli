@@ -28,7 +28,7 @@ class LoreView:
     carry_tag: str
     version: LoreVersion
     intro: str
-    secret_line: str
+    detail: str
 
 
 REVEAL_RULES: Dict[str, Callable[[LoreContext], bool]] = {}
@@ -95,13 +95,13 @@ class ItemLoreStateMachine:
             carry_tag=get_locale_text(carry_key),
         )
         if state is LoreVersion.HIDDEN:
-            return LoreView(**base, version=state, intro="", secret_line="")
+            return LoreView(**base, version=state, intro="", detail=get_locale_text("i18n_item_lore.hidden_placeholder"))
         intro = get_locale_text(cfg["intro_key"])
         secret = cfg.get("secret")
         if not secret:
-            return LoreView(**base, version=state, intro=intro, secret_line="")
+            return LoreView(**base, version=state, intro=intro, detail="")
         key = secret["reveal_key"] if state is LoreVersion.FULL else secret["hint_key"]
-        return LoreView(**base, version=state, intro=intro, secret_line=get_locale_text(key))
+        return LoreView(**base, version=state, intro=intro, detail=get_locale_text(key))
 
 
 def query_item_lore(query: str, stats=None, run=None):

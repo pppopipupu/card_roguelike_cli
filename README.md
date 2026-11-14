@@ -166,18 +166,18 @@ Content-Type: application/json
 
 ### 终端命令
 
-终端命令与游戏指令共用同一输入框；命中终端命令时优先执行，其余输入交给游戏。终端命令在主菜单和战斗中都可用。
+终端模拟命令优先级低于游戏指令：输入命中游戏内已注册的指令时由游戏处理，只有游戏内没有同名指令时才回退到终端模拟器，避免 `touch`、`help`、`stat`、`exit`、`go` 等游戏指令被拦截。保留 `bash` 触发词用于强制执行终端命令（例如 `bash touch note.txt`）；单独输入 `bash` 或 `bash help` 显示终端命令帮助。下表命令均带 `bash` 前缀以保证一定走终端，其中不与游戏指令同名的命令（如 `ls`、`cat`、`neofetch`）也可以不带前缀直接输入，由回退机制交给终端。
 
 | 类别 | 示例 |
 | :--- | :--- |
-| 文件 | `ls`、`ls -la`、`cd dungeon`、`pwd`、`cat README.md` |
-| 写入 | `echo 文本 > note.txt`、`echo 追加 >> note.txt`、`touch note.txt`、`rm note.txt` |
-| 查询 | `uname -a`、`whoami`、`date`、`df -h`、`free -h`、`ps aux`、`top` |
-| 检索 | `grep card README.md`、`find . -name "*.md"`、`head`、`tail`、`wc`、`tree` |
-| 彩蛋 | `neofetch`、`git status`、`systemctl status rogue-core`、`journalctl -u rogue-core` |
-| 帮助 | `help system`、`man ls`、`history`、`clear` |
+| 文件 | `bash ls`、`bash ls -la`、`bash cd dungeon`、`bash pwd`、`bash cat README.md` |
+| 写入 | `bash echo 文本 > note.txt`、`bash echo 追加 >> note.txt`、`bash touch note.txt`、`bash rm note.txt` |
+| 查询 | `bash uname -a`、`bash whoami`、`bash date`、`bash df -h`、`bash free -h`、`bash ps aux`、`bash top` |
+| 检索 | `bash grep card README.md`、`bash find . -name "*.md"`、`bash head`、`bash tail`、`bash wc`、`bash tree` |
+| 彩蛋 | `bash neofetch`、`bash git status`、`bash systemctl status rogue-core`、`bash journalctl -u rogue-core` |
+| 帮助 | 单独输入 `bash` 或 `bash help`、`bash man ls`、`bash history`、`bash clear` |
 
-`help` 默认显示分类指令一览,`help <指令|别名>` 显示单条指令详解；`help system` 显示终端命令帮助。网页端肉鸽模式固定开启，`mode` 指令已移除；即时通讯端使用 `mode` 切换免前缀模式。
+`help` 默认显示分类指令一览,`help <指令|别名>` 显示单条指令详解；单独输入 `bash` 或 `bash help` 显示终端命令帮助。网页端肉鸽模式固定开启，`mode` 指令已移除；即时通讯端使用 `mode` 切换免前缀模式。
 
 账号命令也走同一接口：
 

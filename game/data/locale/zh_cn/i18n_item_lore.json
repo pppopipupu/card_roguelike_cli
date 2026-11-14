@@ -2,9 +2,6 @@
   "title": "🎒 冒险物品：{name} (ID: {id})",
   "weight_line": "⚖️ 重量：{weight} KG · {carry_tag}",
   "intro_line": "介绍：{intro}",
-  "secret_locked_line": "🔒 尚未解明的线索：{hint}",
-  "secret_unlocked_line": "🔓 已解明的隐秘：{secret}",
-  "hidden_line": "❓ {placeholder}",
   "hidden_placeholder": "此物的来历与用途仍笼罩在迷雾中，细节将在以后揭晓……",
   "items": {
     "espresso_beans": {

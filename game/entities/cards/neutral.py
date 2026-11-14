@@ -40,6 +40,8 @@ from .neutral_special import (
 from .anna import AnneMinionCard, ExcellentCritCard
 from .millika import MillikaMinionCard
 
+from .outer_plane import DreamShardCard
+
 __all__ = [
     "SpellDamageCard",
     "SpellHealCard",
