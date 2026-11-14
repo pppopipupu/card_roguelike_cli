@@ -6,7 +6,7 @@ class EnemyTemplate:
     def __init__(self, name: str):
         self.name = name
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ...models.state import EnemyIntentState
         stage = run.player.stage
         intents_list = []

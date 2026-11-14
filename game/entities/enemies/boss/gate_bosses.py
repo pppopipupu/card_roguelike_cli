@@ -8,7 +8,7 @@ from ...buffs import is_debuff
 
 @register_enemy("腐化之心")
 class BossCorruptedHeartTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         turn = run.node_data.get("heart_turn", 1)
         cycle = (turn - 1) % 4 + 1
@@ -165,7 +165,7 @@ class BossIcerainbowwTemplate(EnemyTemplate):
             BUFF_CONFIG.get("permafrost_aura_passive", {}).get("stacks", 1),
         )
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         turn = int(run.node_data.get("icerainboww_turn", 1))
         run.node_data["icerainboww_turn"] = turn + 1
         cycle = (turn - 1) % 4 + 1

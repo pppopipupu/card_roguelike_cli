@@ -1,7 +1,7 @@
 import os
-import json
 import logging
 from typing import Dict, Any
+from ...json_codec import load
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +36,8 @@ class LocaleManager:
             path = os.path.join(locale_dir, name)
             try:
                 with open(path, "r", encoding="utf-8") as f:
-                    payload = json.load(f)
-            except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+                    payload = load(f)
+            except (OSError, ValueError, TypeError) as exc:
                 logger.warning("locale file read failed %s: %s", path, exc)
                 continue
             if not isinstance(payload, dict):

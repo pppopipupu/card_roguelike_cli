@@ -12,7 +12,7 @@ def _intent_config(enemy_name: str, intent_type: str) -> dict:
 
 @register_enemy("地精突袭者")
 class GoblinRaiderTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         intents = ENEMY_CONFIG.get(self.name, {}).get("intents", [])
@@ -64,7 +64,7 @@ class GoblinRaiderTemplate(EnemyTemplate):
 
 @register_enemy("堕落学徒")
 class CorruptApprenticeTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         intents = ENEMY_CONFIG.get(self.name, {}).get("intents", [])
@@ -112,7 +112,7 @@ class CorruptApprenticeTemplate(EnemyTemplate):
 
 @register_enemy("纳奇姆")
 class NazeemTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         intents = ENEMY_CONFIG.get(self.name, {}).get("intents", [])

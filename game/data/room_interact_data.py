@@ -154,22 +154,27 @@ ROOM_PROPS = {
         "aliases": ["雕像", "残破雕像", "statue"],
         "gold_gain": 18,
         "trap_dmg": 4,
+        "trap_chance": 0.35,
     },
     "alchemy_desk": {
         "name_key": "i18n_room_interact.props.alchemy_desk.name",
         "desc_key": "i18n_room_interact.props.alchemy_desk.desc",
         "aliases": ["炼金台", "实验台", "desk"],
+        "fallback_item": "field_bandage",
     },
     "bloodied_pack": {
         "name_key": "i18n_room_interact.props.bloodied_pack.name",
         "desc_key": "i18n_room_interact.props.bloodied_pack.desc",
         "aliases": ["行囊", "染血行囊", "pack"],
         "gold_gain": 14,
+        "item": "field_bandage",
     },
     "runic_wall": {
         "name_key": "i18n_room_interact.props.runic_wall.name",
         "desc_key": "i18n_room_interact.props.runic_wall.desc",
         "aliases": ["符文墙", "刻痕石壁", "wall"],
+        "reveal_count": 1,
+        "sp_fallback": 2,
     },
     "crystal_cluster": {
         "name_key": "i18n_room_interact.props.crystal_cluster.name",
@@ -188,6 +193,7 @@ ROOM_PROPS = {
         "name_key": "i18n_room_interact.props.shop_display.name",
         "desc_key": "i18n_room_interact.props.shop_display.desc",
         "aliases": ["展柜", "神秘展柜", "display"],
+        "gold_gain": 8,
     },
     "cafe_espresso_machine": {
         "name_key": "i18n_room_interact.props.cafe_espresso_machine.name",
@@ -205,12 +211,14 @@ ROOM_PROPS = {
         "name_key": "i18n_room_interact.props.cafe_guestbook.name",
         "desc_key": "i18n_room_interact.props.cafe_guestbook.desc",
         "aliases": ["留言簿", "手记", "guestbook"],
+        "reveal_count": 1,
     },
     "forgotten_shrine": {
         "name_key": "i18n_room_interact.props.forgotten_shrine.name",
         "desc_key": "i18n_room_interact.props.forgotten_shrine.desc",
         "aliases": ["神龛", "遗忘神龛", "shrine"],
         "heal": 5,
+        "buff": ("ancient_ward", 1),
     },
     "arcane_mirror": {
         "name_key": "i18n_room_interact.props.arcane_mirror.name",
@@ -218,17 +226,21 @@ ROOM_PROPS = {
         "aliases": ["魔镜", "裂纹魔镜", "mirror"],
         "sp_gain": 2,
         "gold_gain": 12,
+        "reveal_count": 2,
     },
     "smuggler_cache": {
         "name_key": "i18n_room_interact.props.smuggler_cache.name",
         "desc_key": "i18n_room_interact.props.smuggler_cache.desc",
         "aliases": ["暗格", "砖石暗格", "cache"],
         "gold_gain": 20,
+        "loot": ["skeleton_key", "sugar_cube_pack"],
     },
     "dusty_bookshelf": {
         "name_key": "i18n_room_interact.props.dusty_bookshelf.name",
         "desc_key": "i18n_room_interact.props.dusty_bookshelf.desc",
         "aliases": ["书架", "古书架", "bookshelf"],
+        "item": "ancient_notes",
+        "buff": ("arcane_clarity", 1),
     },
     "descent_tunnel": {
         "name_key": "i18n_room_interact.props.descent_tunnel.name",

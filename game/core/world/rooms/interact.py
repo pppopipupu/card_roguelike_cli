@@ -7,6 +7,16 @@ from ...inventory.bag_service import add_bag_item, get_item_display_name, resolv
 from ...cli.base.pinyin_match import find_entry_by_query
 from ..sp_system import reduce_exhaustion, restore_sp
 
+PROP_HANDLERS = {}
+
+
+def register_prop_handler(*prop_ids):
+    def decorator(handler):
+        for prop_id in prop_ids:
+            PROP_HANDLERS[prop_id] = handler
+        return handler
+    return decorator
+
 
 def get_current_room(run):
     fm = getattr(run, "floor_map", None)
@@ -91,6 +101,137 @@ def resolve_prop_in_room(room, query: str) -> Optional[str]:
     return find_entry_by_query(entries, q)
 
 
+@register_prop_handler("ancient_brazier")
+def _touch_ancient_brazier(run, room, cfg, p, fm, coord):
+    sp = restore_sp(p, cfg["sp_gain"])
+    return get_locale_text("i18n_room_interact.touch.ancient_brazier", sp=sp)
+
+
+@register_prop_handler("cracked_statue")
+def _touch_cracked_statue(run, room, cfg, p, fm, coord):
+    if random.random() < cfg["trap_chance"]:
+        dmg = cfg["trap_dmg"]
+        p.hp = max(1, p.hp - dmg)
+        p.gold += cfg["gold_gain"]
+        return get_locale_text("i18n_room_interact.touch.cracked_statue_trap", dmg=dmg, gold=cfg["gold_gain"])
+    p.gold += cfg["gold_gain"]
+    return get_locale_text("i18n_room_interact.touch.cracked_statue_gold", gold=cfg["gold_gain"])
+
+
+@register_prop_handler("alchemy_desk")
+def _touch_alchemy_desk(run, room, cfg, p, fm, coord):
+    pid = roll_potion(getattr(p, "selected_class", "法师"))
+    ok, _ = add_bag_item(p, f"potion:{pid}")
+    if ok:
+        return get_locale_text("i18n_room_interact.touch.alchemy_desk_potion", potion=get_potion_name(pid))
+    ok2, _ = add_bag_item(p, cfg["fallback_item"])
+    if ok2:
+        return get_locale_text("i18n_room_interact.touch.alchemy_desk_item", item=get_item_display_name(cfg["fallback_item"]))
+    room.items.append(f"potion:{pid}")
+    return get_locale_text("i18n_room_interact.touch.alchemy_desk_full", potion=get_potion_name(pid))
+
+
+@register_prop_handler("bloodied_pack")
+def _touch_bloodied_pack(run, room, cfg, p, fm, coord):
+    p.gold += cfg["gold_gain"]
+    ok, _ = add_bag_item(p, cfg["item"])
+    if not ok:
+        room.items.append(cfg["item"])
+    return get_locale_text("i18n_room_interact.touch.bloodied_pack", gold=cfg["gold_gain"])
+
+
+@register_prop_handler("runic_wall")
+def _touch_runic_wall(run, room, cfg, p, fm, coord):
+    revealed = _reveal_any_special(fm, cfg["reveal_count"]) if fm is not None else []
+    if revealed:
+        return get_locale_text("i18n_room_interact.touch.runic_wall_reveal", coord=revealed[0])
+    restore_sp(p, cfg["sp_fallback"])
+    return get_locale_text("i18n_room_interact.touch.runic_wall_sp")
+
+
+@register_prop_handler("crystal_cluster")
+def _touch_crystal_cluster(run, room, cfg, p, fm, coord):
+    before = p.hp
+    p.hp = min(p.max_hp, p.hp + cfg["heal"])
+    sp = restore_sp(p, cfg["sp_gain"])
+    return get_locale_text("i18n_room_interact.touch.crystal_cluster", hp=p.hp - before, sp=sp)
+
+
+@register_prop_handler("shop_scale")
+def _touch_shop_gold(run, room, cfg, p, fm, coord):
+    p.gold += cfg["gold_gain"]
+    return get_locale_text("i18n_room_interact.touch.shop_scale", gold=cfg["gold_gain"])
+
+
+@register_prop_handler("shop_display")
+def _touch_shop_display(run, room, cfg, p, fm, coord):
+    p.gold += cfg["gold_gain"]
+    return get_locale_text("i18n_room_interact.touch.shop_display", gold=cfg["gold_gain"])
+
+
+@register_prop_handler("cafe_espresso_machine")
+def _touch_cafe_espresso_machine(run, room, cfg, p, fm, coord):
+    sp = restore_sp(p, cfg["sp_gain"])
+    return get_locale_text("i18n_room_interact.touch.cafe_espresso_machine", sp=sp)
+
+
+@register_prop_handler("cafe_gramophone")
+def _touch_cafe_gramophone(run, room, cfg, p, fm, coord):
+    from ..persistent_buffs import cure_persistent_debuffs
+    old_ex = getattr(p, "exhaustion", 0)
+    new_ex = reduce_exhaustion(p, cfg["exhaustion_cure"])
+    cure_persistent_debuffs(p, 1)
+    return get_locale_text("i18n_room_interact.touch.cafe_gramophone", cured=max(0, old_ex - new_ex))
+
+
+@register_prop_handler("cafe_guestbook")
+def _touch_cafe_guestbook(run, room, cfg, p, fm, coord):
+    revealed = _reveal_any_special(fm, cfg["reveal_count"]) if fm is not None else []
+    target_c = revealed[0] if revealed else (fm.boss_coord if fm is not None and fm.boss_coord else coord)
+    return get_locale_text("i18n_room_interact.touch.cafe_guestbook", coord=target_c)
+
+
+@register_prop_handler("forgotten_shrine")
+def _touch_forgotten_shrine(run, room, cfg, p, fm, coord):
+    from ..persistent_buffs import add_persistent_buff
+    before = p.hp
+    p.hp = min(p.max_hp, p.hp + cfg["heal"])
+    buff_id, stacks = cfg["buff"]
+    add_persistent_buff(p, buff_id, stacks)
+    return get_locale_text("i18n_room_interact.touch.forgotten_shrine", heal=p.hp - before)
+
+
+@register_prop_handler("arcane_mirror")
+def _touch_arcane_mirror(run, room, cfg, p, fm, coord):
+    revealed = _reveal_any_special(fm, cfg["reveal_count"]) if fm is not None else []
+    if revealed:
+        return get_locale_text("i18n_room_interact.touch.arcane_mirror_reveal", coords="、".join(revealed))
+    sp = restore_sp(p, cfg["sp_gain"])
+    p.gold += cfg["gold_gain"]
+    return get_locale_text("i18n_room_interact.touch.arcane_mirror_fallback", sp=sp, gold=cfg["gold_gain"])
+
+
+@register_prop_handler("smuggler_cache")
+def _touch_smuggler_cache(run, room, cfg, p, fm, coord):
+    loot = random.choice(cfg["loot"])
+    ok, _ = add_bag_item(p, loot)
+    if ok:
+        return get_locale_text("i18n_room_interact.touch.smuggler_cache_item", item=get_item_display_name(loot))
+    p.gold += cfg["gold_gain"]
+    return get_locale_text("i18n_room_interact.touch.smuggler_cache_gold", gold=cfg["gold_gain"])
+
+
+@register_prop_handler("dusty_bookshelf")
+def _touch_dusty_bookshelf(run, room, cfg, p, fm, coord):
+    from ..persistent_buffs import add_persistent_buff
+    buff_id, stacks = cfg["buff"]
+    add_persistent_buff(p, buff_id, stacks)
+    ok, _ = add_bag_item(p, cfg["item"])
+    if not ok:
+        room.items.append(cfg["item"])
+    return get_locale_text("i18n_room_interact.touch.dusty_bookshelf")
+
+
 def touch_in_room(save_manager, run, query: str) -> str:
     q = (query or "").strip()
     if not q:
@@ -117,98 +258,9 @@ def touch_in_room(save_manager, run, query: str) -> str:
     if prop_id in done:
         return get_locale_text("i18n_room_interact.touch.already_done", name=pname)
     done.append(prop_id)
-    p = run.player
-    fm = run.floor_map
-    if prop_id == "ancient_brazier":
-        sp = restore_sp(p, cfg["sp_gain"])
-        msg = get_locale_text("i18n_room_interact.touch.ancient_brazier", sp=sp)
-    elif prop_id == "cracked_statue":
-        if random.random() < 0.35:
-            dmg = cfg["trap_dmg"]
-            p.hp = max(1, p.hp - dmg)
-            p.gold += cfg["gold_gain"]
-            msg = get_locale_text("i18n_room_interact.touch.cracked_statue_trap", dmg=dmg, gold=cfg["gold_gain"])
-        else:
-            p.gold += cfg["gold_gain"]
-            msg = get_locale_text("i18n_room_interact.touch.cracked_statue_gold", gold=cfg["gold_gain"])
-    elif prop_id == "alchemy_desk":
-        pid = roll_potion(getattr(p, "selected_class", "法师"))
-        ok, _ = add_bag_item(p, f"potion:{pid}")
-        if ok:
-            msg = get_locale_text("i18n_room_interact.touch.alchemy_desk_potion", potion=get_potion_name(pid))
-        else:
-            ok2, _ = add_bag_item(p, "field_bandage")
-            if ok2:
-                msg = get_locale_text("i18n_room_interact.touch.alchemy_desk_item", item=get_item_display_name("field_bandage"))
-            else:
-                room.items.append(f"potion:{pid}")
-                msg = get_locale_text("i18n_room_interact.touch.alchemy_desk_full", potion=get_potion_name(pid))
-    elif prop_id == "bloodied_pack":
-        p.gold += cfg["gold_gain"]
-        ok, _ = add_bag_item(p, "field_bandage")
-        if not ok:
-            room.items.append("field_bandage")
-        msg = get_locale_text("i18n_room_interact.touch.bloodied_pack", gold=cfg["gold_gain"])
-    elif prop_id == "runic_wall":
-        revealed = _reveal_any_special(fm, 1) if fm is not None else []
-        if revealed:
-            msg = get_locale_text("i18n_room_interact.touch.runic_wall_reveal", coord=revealed[0])
-        else:
-            restore_sp(p, 2)
-            msg = get_locale_text("i18n_room_interact.touch.runic_wall_sp")
-    elif prop_id == "crystal_cluster":
-        before = p.hp
-        p.hp = min(p.max_hp, p.hp + cfg["heal"])
-        sp = restore_sp(p, cfg["sp_gain"])
-        msg = get_locale_text("i18n_room_interact.touch.crystal_cluster", hp=p.hp - before, sp=sp)
-    elif prop_id == "shop_scale":
-        p.gold += cfg["gold_gain"]
-        msg = get_locale_text("i18n_room_interact.touch.shop_scale", gold=cfg["gold_gain"])
-    elif prop_id == "shop_display":
-        p.gold += 8
-        msg = get_locale_text("i18n_room_interact.touch.shop_display", gold=8)
-    elif prop_id == "cafe_espresso_machine":
-        sp = restore_sp(p, cfg["sp_gain"])
-        msg = get_locale_text("i18n_room_interact.touch.cafe_espresso_machine", sp=sp)
-    elif prop_id == "cafe_gramophone":
-        from ..persistent_buffs import cure_persistent_debuffs
-        old_ex = getattr(p, "exhaustion", 0)
-        new_ex = reduce_exhaustion(p, cfg["exhaustion_cure"])
-        cure_persistent_debuffs(p, 1)
-        msg = get_locale_text("i18n_room_interact.touch.cafe_gramophone", cured=max(0, old_ex - new_ex))
-    elif prop_id == "cafe_guestbook":
-        revealed = _reveal_any_special(fm, 1) if fm is not None else []
-        target_c = revealed[0] if revealed else (fm.boss_coord if fm is not None and fm.boss_coord else coord)
-        msg = get_locale_text("i18n_room_interact.touch.cafe_guestbook", coord=target_c)
-    elif prop_id == "forgotten_shrine":
-        from ..persistent_buffs import add_persistent_buff
-        before = p.hp
-        p.hp = min(p.max_hp, p.hp + cfg["heal"])
-        add_persistent_buff(p, "ancient_ward", 1)
-        msg = get_locale_text("i18n_room_interact.touch.forgotten_shrine", heal=p.hp - before)
-    elif prop_id == "arcane_mirror":
-        revealed = _reveal_any_special(fm, 2) if fm is not None else []
-        if revealed:
-            msg = get_locale_text("i18n_room_interact.touch.arcane_mirror_reveal", coords="、".join(revealed))
-        else:
-            sp = restore_sp(p, cfg["sp_gain"])
-            p.gold += cfg["gold_gain"]
-            msg = get_locale_text("i18n_room_interact.touch.arcane_mirror_fallback", sp=sp, gold=cfg["gold_gain"])
-    elif prop_id == "smuggler_cache":
-        loot = random.choice(["skeleton_key", "sugar_cube_pack"])
-        ok, _ = add_bag_item(p, loot)
-        if ok:
-            msg = get_locale_text("i18n_room_interact.touch.smuggler_cache_item", item=get_item_display_name(loot))
-        else:
-            p.gold += cfg["gold_gain"]
-            msg = get_locale_text("i18n_room_interact.touch.smuggler_cache_gold", gold=cfg["gold_gain"])
-    elif prop_id == "dusty_bookshelf":
-        from ..persistent_buffs import add_persistent_buff
-        add_persistent_buff(p, "arcane_clarity", 1)
-        ok, _ = add_bag_item(p, "ancient_notes")
-        if not ok:
-            room.items.append("ancient_notes")
-        msg = get_locale_text("i18n_room_interact.touch.dusty_bookshelf")
+    handler = PROP_HANDLERS.get(prop_id)
+    if handler:
+        msg = handler(run, room, cfg, run.player, run.floor_map, coord)
     else:
         msg = get_locale_text("i18n_room_interact.touch.already_done", name=pname)
     save_manager.save_save(run.user_id, run)

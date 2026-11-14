@@ -5,7 +5,7 @@ from ....data.locale_data import get_locale_text
 
 @register_enemy("深潜者")
 class DeepOneTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("深潜者", {})
@@ -52,7 +52,7 @@ class DeepOneTemplate(EnemyTemplate):
 
 @register_enemy("食尸鬼")
 class GhoulTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("食尸鬼", {})
@@ -95,7 +95,7 @@ class GhoulTemplate(EnemyTemplate):
 
 @register_enemy("夜魇")
 class NightgauntTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("夜魇", {})
@@ -135,7 +135,7 @@ class NightgauntTemplate(EnemyTemplate):
 
 @register_enemy("夏塔克鸟")
 class ShantakTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("夏塔克鸟", {})
@@ -187,7 +187,7 @@ class ShantakTemplate(EnemyTemplate):
 
 @register_enemy("空鬼")
 class DimensionalShamblerTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("空鬼", {})

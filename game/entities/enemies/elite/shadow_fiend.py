@@ -6,7 +6,7 @@ from ....data.locale_data import get_locale_text
 
 @register_enemy("暗影影魔")
 class ShadowFiendTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("暗影影魔", {})

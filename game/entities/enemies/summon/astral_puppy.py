@@ -4,7 +4,7 @@ from ....data.locale_data import get_locale_text
 
 @register_enemy("星界幼犬")
 class AstralPuppyTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         return [EnemyIntentState(type="star_bite", val=3, desc=get_locale_text("i18n_enemy_misc.astral_puppy.intent_star_bite"), cost_a=1, cost_ba=0)]
 

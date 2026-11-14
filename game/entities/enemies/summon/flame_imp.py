@@ -5,7 +5,7 @@ from ....data.locale_data import get_locale_text
 
 @register_enemy("魔仆")
 class FlameImpTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         intents = ENEMY_CONFIG.get("魔仆", {}).get("intents", [])

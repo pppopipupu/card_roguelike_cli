@@ -28,7 +28,7 @@ class BossRedDragonTemplate(EnemyTemplate):
             1,
         )
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         turn = int(run.node_data.get("red_dragon_turn", 1))
         run.node_data["red_dragon_turn"] = turn + 1
         script_turn = (turn - 1) % 4 + 1
@@ -223,7 +223,7 @@ class BossThunderLordTemplate(EnemyTemplate):
         )
         run.node_data["thunder_lord_turn"] = 1
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         cycle = [
             ("thunder_strike", "i18n_enemy_boss.thunder_lord_intent_strike_8"),
             ("lightning_shield", "i18n_enemy_boss.thunder_lord_intent_shield_12"),

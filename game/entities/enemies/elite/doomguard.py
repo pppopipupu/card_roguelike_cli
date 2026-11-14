@@ -8,7 +8,7 @@ class DoomguardTemplate(EnemyTemplate):
     def on_battle_start(self, run, enemy, engine):
         engine._add_buff_to(enemy, "doom_furnace_passive", get_locale_text("i18n_buffs.doom_furnace_passive_name"), get_locale_text("i18n_buffs.doom_furnace_passive_desc"), 1)
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("末日守卫", {})

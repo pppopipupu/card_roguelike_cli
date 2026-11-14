@@ -120,7 +120,7 @@ def _mark_puzzle_advance(run, uid: str):
 
 @register_enemy(CTHULHU_NAME)
 class BossCthulhuTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         if enemy.name == CTHULHU_MIST_NAME:
             turns = run.node_data.get("cthulhu_mist_turns", 2)
             intent_id = "mist_condense_2" if turns <= 1 else "mist_condense_1"

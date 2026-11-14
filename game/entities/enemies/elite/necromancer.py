@@ -14,7 +14,7 @@ class NecromancerTemplate(EnemyTemplate):
     def _living_skeletons(self, run, skeleton_name: str) -> List:
         return [e for e in run.enemies if e.hp > 0 and skeleton_name and e.name.startswith(skeleton_name)]
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("亡灵巫师", {})

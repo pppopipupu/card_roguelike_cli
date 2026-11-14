@@ -5,7 +5,7 @@ from ....data.locale_data import get_locale_text
 
 @register_enemy("吉斯洋基至高指挥官")
 class GithyankiSupremeCommanderTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("吉斯洋基至高指挥官", {})

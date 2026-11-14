@@ -124,11 +124,11 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                             elif itype == "gold":
                                 forced_names.append(get_locale_text("i18n_cli_core.reward_gold_name", amount=it.get('amount')))
                             elif itype in ("relic", "quest_relic", "boss_relic"):
-                                from ....entities import get_relic_name
+                                from ...entities import get_relic_name
                                 rid = it.get("relic_id") or it.get("id")
                                 forced_names.append(get_locale_text("i18n_cli_core.reward_relic_name", name=get_relic_name(rid)))
                             elif itype == "gem":
-                                from ....entities import get_gem_name
+                                from ...entities import get_gem_name
                                 gid = it.get("gem_id")
                                 forced_names.append(get_locale_text("i18n_cli_core.reward_gem_name", name=get_gem_name(gid)))
                         names_str = get_locale_text("i18n_cli_core.list_separator").join(forced_names)

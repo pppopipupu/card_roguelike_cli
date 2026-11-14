@@ -40,7 +40,7 @@ class TheDefectTemplate(EnemyTemplate):
     def _strength(self, enemy):
         return sum(b.stacks for b in enemy.buffs if b.id == "strength")
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         cfg = ENEMY_CONFIG.get(self.name, {})
         intents = cfg.get("intents", [])

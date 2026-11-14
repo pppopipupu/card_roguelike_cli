@@ -81,8 +81,8 @@ class CoopPhalanxBulwark(Card):
         resolver = engine.combat_resolver
         shield = getattr(self, "shield_amount", 10 if self.upgraded else 8)
         buff_stacks = getattr(self, "buff_stacks", 1)
+        from ...core.battle.party_battle import party_slots, party_target_ref
         if self.upgraded:
-            from ...core.battle.party_battle import party_slots, party_target_ref
             for slot, _, _ in party_slots(run, alive_only=True):
                 resolver.gain_shield(run, f"a{slot}", shield)
         else:

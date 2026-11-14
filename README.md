@@ -63,6 +63,8 @@ PYTHONPATH="." .venv/Scripts/python.exe -m uvicorn server.app:create_app --facto
 
 后端必须单进程。游戏核心包含进程级状态，多 worker 会破坏每用户串行与存档一致性。
 
+JSON 读写与 HTTP 响应统一由 orjson 序列化。Linux 与 macOS 上服务端使用 uvloop 事件循环；Windows 无 uvloop 轮子，自动回退 asyncio，接口行为一致。
+
 ### 环境变量
 
 | 变量 | 说明 |
@@ -215,6 +217,14 @@ Content-Type: application/json
 ```bash
 PYTHONPATH="." PYTHONIOENCODING="utf-8" py -m unittest discover -s game/test/core -t . -p "test_*.py"
 PYTHONPATH="." PYTHONIOENCODING="utf-8" .venv/Scripts/python.exe -m unittest discover -s game/test/server -t . -p "test_*.py" -v
+```
+
+## 静态检查
+
+项目统一使用 Python 3.15；AstrBot 客户端插件固定使用 3.12。Pyright 配置位于 `pyproject.toml` 的 `[tool.pyright]`。
+
+```bash
+.venv/Scripts/pyright.exe
 ```
 
 ## 相关仓库

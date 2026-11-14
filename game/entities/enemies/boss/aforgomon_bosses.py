@@ -45,7 +45,7 @@ class BossAforgomonTemplate(EnemyTemplate):
             logs.append(get_locale_text("i18n_enemy_boss.aforgomon_log_phase2"))
             logs.append(get_locale_text("i18n_enemy_boss.aforgomon_log_phase2_quote", player_name=run.player.name))
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         phase = run.node_data.get("aforgomon_phase", 1)

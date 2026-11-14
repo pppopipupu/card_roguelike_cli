@@ -5,7 +5,7 @@ from ....data.locale_data import get_locale_text
 
 @register_enemy("冷蛛")
 class LengSpiderTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("冷蛛", {})
@@ -60,7 +60,7 @@ class LengSpiderTemplate(EnemyTemplate):
 
 @register_enemy("米·戈")
 class MigoTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("米·戈", {})
@@ -131,7 +131,7 @@ class MigoTemplate(EnemyTemplate):
 
 @register_enemy("修格斯")
 class ShoggothTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("修格斯", {})
@@ -186,7 +186,7 @@ class ShoggothTemplate(EnemyTemplate):
 
 @register_enemy("星之精")
 class StarVampireTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("星之精", {})
@@ -244,7 +244,7 @@ class StarVampireTemplate(EnemyTemplate):
 
 @register_enemy("克苏鲁之星之眷族")
 class StarspawnOfCthulhuTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("克苏鲁之星之眷族", {})

@@ -31,7 +31,7 @@ class VoidLurkerEliteTemplate(EnemyTemplate):
         impl = ALL_CARDS.get(cid)
         return getattr(impl, "name", cid) if impl is not None else cid
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         cfg = ENEMY_CONFIG.get(self.name, {})
         intents = cfg.get("intents", [])

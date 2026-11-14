@@ -5,7 +5,7 @@ from ....data.locale_data import get_locale_text
 
 @register_enemy("雷影魔仆")
 class ThunderOrbTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         key = f"thunder_orb_turn:{enemy.name}"
         turn = run.node_data.get(key, 0)

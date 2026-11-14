@@ -19,7 +19,7 @@ def _intent_val(name: str, intent_id: str, default: int) -> int:
 
 @register_enemy("裂隙暗影领主")
 class SecretRiftShadowLordTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         turn = int(run.node_data.get("secret_boss_turn", 1))
         run.node_data["secret_boss_turn"] = turn + 1
         v_slash = _intent_val(self.name, "rift_slash", 11)
@@ -56,7 +56,7 @@ class SecretRiftShadowLordTemplate(EnemyTemplate):
 
 @register_enemy("星渊审判官")
 class SecretAstralInquisitorTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         turn = int(run.node_data.get("secret_boss_turn", 1))
         run.node_data["secret_boss_turn"] = turn + 1
         v_verdict = _intent_val(self.name, "astral_verdict", 14)
@@ -94,7 +94,7 @@ class SecretAstralInquisitorTemplate(EnemyTemplate):
 
 @register_enemy("深渊原初回响")
 class SecretPrimordialEchoTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         turn = int(run.node_data.get("secret_boss_turn", 1))
         run.node_data["secret_boss_turn"] = turn + 1
         v_roar = _intent_val(self.name, "primordial_roar", 16)

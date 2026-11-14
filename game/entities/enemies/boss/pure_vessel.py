@@ -86,7 +86,7 @@ class BossPureVesselTemplate(EnemyTemplate):
         engine._log_event(run, get_locale_text("i18n_enemy_boss.pure_vessel_log_awaken", enemy_name=enemy.name))
         engine._log_event(run, get_locale_text("i18n_enemy_boss.pure_vessel_log_awaken_quote"))
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         cfg = self._config()
         turn = run.node_data.get("pure_vessel_turn", 1)
         cycle = (turn - 1) % 4 + 1

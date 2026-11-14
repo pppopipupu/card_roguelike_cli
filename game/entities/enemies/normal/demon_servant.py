@@ -5,7 +5,7 @@ from ....data.locale_data import get_locale_text
 
 @register_enemy("狂暴魔仆")
 class DemonServantTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("狂暴魔仆", {})

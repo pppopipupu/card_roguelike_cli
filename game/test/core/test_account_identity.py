@@ -1,11 +1,11 @@
 import asyncio
-import json
 import os
 import tempfile
 import unittest
 
 from game.core.api.headless_server import HeadlessGameServer
 from game.data.account_config import RENAME_COST_GP
+from game.json_codec import dumps
 from game.test.core.base import CorePlugin, run_command
 
 
@@ -55,8 +55,8 @@ class TestAccountIdentity(unittest.TestCase):
         root = self.tmp.name
         for uid, player_name in (("legacy_a", "旧玩家"), ("legacy_b", "旧玩家")):
             path = os.path.join(root, f"stats_{uid}.json")
-            with open(path, "w", encoding="utf-8") as handle:
-                json.dump({"player_name": player_name}, handle, ensure_ascii=False)
+            with open(path, "wb") as handle:
+                handle.write(dumps({"player_name": player_name}))
         server = HeadlessGameServer(root)
         first = server.save_manager.load_stats("legacy_a")
         second = server.save_manager.load_stats("legacy_b")

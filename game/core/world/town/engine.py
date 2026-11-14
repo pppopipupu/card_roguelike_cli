@@ -1,8 +1,8 @@
 import os
-import json
 import random
 from typing import Optional, List, Dict, Any, Tuple
 from ....models.state import UserStats, GameRun, PlayerState, EnemyState, BuffState
+from ....json_codec import load
 from ....entities import ALL_CARDS
 from ....entities.cards.market import MARKET_SHELF_CARDS, is_card_available
 from ....data.locale_data import get_locale_text
@@ -30,7 +30,7 @@ class TownEngine:
             return {"id": room_id, "name_key": room_id, "exits": {}, "npcs": [], "items": [], "interactive": {}}
         try:
             with open(data_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+                data = load(f)
             if room_id == "alley":
                 from ....models.state import get_user_id
                 uid = get_user_id()

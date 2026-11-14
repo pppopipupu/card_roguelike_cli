@@ -1,5 +1,4 @@
 import os
-import json
 from typing import List, Dict, Any
 from ..models.state import UserStats
 from ..entities import ALL_CARDS

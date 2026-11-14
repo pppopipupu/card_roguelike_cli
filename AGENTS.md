@@ -3,6 +3,8 @@
 ## 1. 基础约束
 
 - Python 源码、测试脚本与 JSON 配置中禁止任何注释和 docstring。
+- 本项目统一使用 Python 3.15：`py`、`.venv`、`pyproject.toml` 与 Pyright 的 `pythonVersion` 均以 3.15 为准，源码采用 3.15 兼容语法，不保留 3.12 兼容写法。
+- AstrBot 客户端插件使用 Python 3.12，以兼容 AstrBot 运行时；除该插件外不得为 3.12 降级本仓库语法或依赖。
 - 所有文本文件读写必须显式指定 UTF-8。
 - 第一开发语言为中文；中文文案必须语法纯正，禁止中英混杂介词。
 - 临时分析脚本只能放在 `scratch/`（已被 gitignore，不提交）或会话脑区，禁止留在 `game/`、`server/` 等工作区目录。
@@ -22,6 +24,8 @@
 - 上帝类红线：非二进制文件超过 500 行应考虑重构，超过 1000 行必须立即重构；无论用户是否要求，均须执行。
 - 复用：通用判断、数值缩放、排版与流程使用基类模板方法或共享工具函数，禁止复制粘贴相似逻辑。
 - 状态：实体状态使用 `models/state.py` 中的 Dataclass，持久化统一走 `models/manager.py` 的 SaveManager。卡牌堆中的卡牌必须是 `CardState`，禁止使用裸字符串。新代码禁止 `from_cid`；禁止修改卡牌 id 或追加后缀，升级、宝石、重放等状态只改属性。重放、易碎等修饰不得写入卡牌名称，只追加到描述末尾。
+- 序列化：Python 代码禁止 `import json`；JSON 读写与 HTTP 响应统一走 `game/json_codec.py` 与 `server/responses.py`（orjson）。
+- 事件循环：服务端在 Linux 与 macOS 使用 uvloop，Windows 回退 asyncio；业务代码禁止自行创建事件循环或替换运行中的循环。
 - 后端：只暴露 `POST /api/v1/action` 与 `/healthz`；单进程、单 worker、每用户串行锁、原子写存档。JWT 通过 Supabase JWKS 校验；禁止使用 Supabase service_role；密钥只从环境变量读取。
 - 输出：游戏交互文本除非用户明确要求的场合否则禁止Markdown、LaTeX 和解释性括号；除查询模式可附英文 ID 外，禁止裸露未翻译的实体 ID。玩家昵称只在需要的界面通过显式变量格式化，禁止全局替换“玩家”。
 
@@ -35,3 +39,4 @@
 - 测试目录：`game/test/core/` 覆盖核心游戏逻辑与主要交互，`game/test/server/` 覆盖后端账号、认证与接口，`game/test/check_refactor_gates.py` 是重构门禁扫描。
 - 回归测试只验证核心游戏逻辑、跨回合/跨节点不变量与玩家可观察行为是否因改动受损；禁止通过直接调用 `card.execute`、`event_bus.dispatch`、`router._execute_sub_action` 或断言静态配置常量/源码文本编写白盒或冒烟测试，必须通过真实命令或接口驱动完整流程。
 - 核心测试：PYTHONPATH="." PYTHONIOENCODING="utf-8" py -m unittest discover -s game/test/core -t . -p "test_*.py"；后端测试：PYTHONPATH="." PYTHONIOENCODING="utf-8" .venv/Scripts/python.exe -m unittest discover -s game/test/server -t . -p "test_*.py"；后端启动必须单 worker。
+- 静态检查：`.venv/Scripts/pyright.exe`，配置见 `pyproject.toml` 的 `[tool.pyright]`；新增未定义名称、未绑定变量或无法解析的导入会直接报错。

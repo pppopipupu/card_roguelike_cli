@@ -1,4 +1,3 @@
-import json
 import os
 import random
 import tempfile
@@ -9,6 +8,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from .state import GameRun, ensure_card_state
+from ..json_codec import dumps, load
 from ..data.corpse_config import CorpseConfig
 from ..data.locale_data import get_locale_text
 
@@ -25,8 +25,8 @@ def _atomic_write_json(path: str, data) -> None:
         os.makedirs(directory, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(prefix=".rogue-corpse-", suffix=".tmp", dir=directory or None)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            json.dump(data, handle, ensure_ascii=False, indent=2)
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(dumps(data, indent=True))
         os.replace(tmp_path, path)
     except BaseException:
         try:
@@ -45,7 +45,7 @@ class CorpseRegistry:
             return {"corpses": []}
         try:
             with open(self.path, "r", encoding="utf-8") as handle:
-                data = json.load(handle)
+                data = load(handle)
             if not isinstance(data, dict):
                 return {"corpses": []}
             if not isinstance(data.get("corpses"), list):

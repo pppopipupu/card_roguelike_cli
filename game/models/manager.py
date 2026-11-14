@@ -1,5 +1,4 @@
 import os
-import json
 import logging
 import tempfile
 from dataclasses import asdict
@@ -8,6 +7,7 @@ from .state import GameRun, UserStats
 from .corpse_registry import CorpseRegistry
 from .save_codec import SaveCodecMixin
 from .settlement import SettlementMixin
+from ..json_codec import dumps, load
 from ..core.social.player_names import fallback_player_name, unique_handle
 from ..data.locale_data import get_locale_text
 from ..data.starting_deck_config import LOCK_SLOT_LIMIT
@@ -20,8 +20,8 @@ def _atomic_write_json(path: str, data, indent: int = 2) -> None:
         os.makedirs(directory, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(prefix=".rogue-", suffix=".tmp", dir=directory or None)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=indent)
+        with os.fdopen(fd, "wb") as f:
+            f.write(dumps(data, indent=indent > 0))
         os.replace(tmp_path, path)
     except BaseException:
         try:
@@ -81,7 +81,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return UserStats()
         try:
             with open(path, "r", encoding="utf-8") as f:
-                d = json.load(f)
+                d = load(f)
             locked_cards = d.get("locked_cards", [])
             if not isinstance(locked_cards, list):
                 locked_cards = []
@@ -153,7 +153,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 achievement_stats=achievement_stats,
                 hired_mercenaries=list(d.get("hired_mercenaries", []))
             )
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_stats_failed", user_id=user_id, error=exc))
             return UserStats()
 
@@ -163,7 +163,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             d = asdict(stats)
             _atomic_write_json(path, d)
             return True
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_stats_failed", user_id=user_id, error=exc))
             return False
 
@@ -197,8 +197,8 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return {}
         try:
             with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+                return load(f)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_duel_registry_failed", error=exc))
             return {}
 
@@ -207,7 +207,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         try:
             _atomic_write_json(path, reg)
             return True
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_duel_registry_failed", error=exc))
             return False
 
@@ -237,8 +237,8 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return {}
         try:
             with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+                return load(f)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_duel_decks_failed", user_id=user_id, error=exc))
             return {}
 
@@ -247,7 +247,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         try:
             _atomic_write_json(path, decks)
             return True
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_duel_decks_failed", user_id=user_id, error=exc))
             return False
 
@@ -263,7 +263,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return None
         try:
             with open(path, "r", encoding="utf-8") as f:
-                d = json.load(f)
+                d = load(f)
             run = self.from_dict(d)
             if run:
                 if user_id in run.players:
@@ -275,7 +275,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 apply_view(run, user_id)
                 scope_view(run, user_id)
             return run
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_save_failed", user_id=user_id, error=exc))
             return None
 
@@ -315,7 +315,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             d = self.to_dict(run)
             _atomic_write_json(path, d)
             return True
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_save_failed", user_id=save_uid, error=exc))
             return False
         finally:
@@ -332,7 +332,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             try:
                 os.remove(path)
                 return True
-            except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            except (OSError, ValueError, KeyError, TypeError) as exc:
                 logger.warning(get_locale_text("i18n_models.manager.delete_save_failed", user_id=user_id, error=exc))
                 return False
         return False
@@ -343,7 +343,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return None
         try:
             with open(path, "r", encoding="utf-8") as f:
-                d = json.load(f)
+                d = load(f)
             run = self.from_dict(d)
             if run and user_id in run.players:
                 run.player = run.players[user_id]
@@ -354,7 +354,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 apply_view(run, user_id)
                 scope_view(run, user_id)
             return run
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_coop_save_failed", user_id=user_id, coop_id=coop_id, error=exc))
             return None
 
@@ -370,7 +370,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             d = self.to_dict(run)
             _atomic_write_json(path, d)
             return True
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_coop_save_failed", user_id=user_id, coop_id=run.coop_id, error=exc))
             return False
 
@@ -380,7 +380,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             try:
                 os.remove(path)
                 return True
-            except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            except (OSError, ValueError, KeyError, TypeError) as exc:
                 logger.warning(get_locale_text("i18n_models.manager.delete_coop_save_failed", coop_id=coop_id, error=exc))
                 return False
         return False
@@ -391,9 +391,9 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return {}
         try:
             with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+                data = load(f)
             return data if isinstance(data, dict) else {}
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_lobbies_failed", error=exc))
             return {}
 
@@ -401,7 +401,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         try:
             _atomic_write_json(self.get_lobbies_path(), lobbies)
             return True
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_lobbies_failed", error=exc))
             return False
 
@@ -432,9 +432,9 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             uid = name[len("stats_"):-len(".json")]
             try:
                 with open(path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
+                    data = load(f)
                 mtime = os.path.getmtime(path)
-            except (OSError, ValueError, json.JSONDecodeError) as exc:
+            except (OSError, ValueError) as exc:
                 logger.warning(get_locale_text("i18n_models.manager.read_profile_failed", user_id=uid, error=exc))
                 continue
             if not isinstance(data, dict):
@@ -468,7 +468,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             uid = name[len("stats_"):-len(".json")]
             try:
                 with open(path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
+                    data = load(f)
                 if not isinstance(data, dict):
                     continue
                 profiles.append({
@@ -484,7 +484,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                     "in_town": data.get("in_town", False),
                     "mtime": os.path.getmtime(path)
                 })
-            except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            except (OSError, ValueError, KeyError, TypeError) as exc:
                 logger.warning(get_locale_text("i18n_models.manager.read_profile_failed", user_id=uid, error=exc))
                 continue
         return profiles
@@ -498,7 +498,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return None
         try:
             with open(path, "r", encoding="utf-8") as f:
-                d = json.load(f)
+                d = load(f)
             run = self.from_dict(d)
             if run:
                 p2_id = run.node_data.get("player2_id")
@@ -506,7 +506,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                     run.player, run.player2 = run.player2, run.player
                     run.user_id = user_id
             return run
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_duel_save_failed", user_id=user_id, error=exc))
             return None
 
@@ -526,7 +526,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 run.user_id = user_id
             _atomic_write_json(path, d)
             return True
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_duel_save_failed", user_id=user_id, error=exc))
             if p2_id == user_id:
                 run.player, run.player2 = run.player2, run.player
@@ -543,7 +543,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             try:
                 os.remove(path)
                 return True
-            except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+            except (OSError, ValueError, KeyError, TypeError) as exc:
                 logger.warning(get_locale_text("i18n_models.manager.delete_duel_save_failed", user_id=user_id, error=exc))
                 return False
         return False
@@ -557,8 +557,8 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return {"final_boss": "random"}
         try:
             with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+                return load(f)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_admin_config_failed", error=exc))
             return {"final_boss": "random"}
 
@@ -567,6 +567,6 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         try:
             _atomic_write_json(path, cfg)
             return True
-        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_admin_config_failed", error=exc))
             return False

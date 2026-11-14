@@ -5,7 +5,7 @@ from ....data.locale_data import get_locale_text
 
 @register_enemy("邪教徒咔咔")
 class CultistKakaTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         cfg = ENEMY_CONFIG.get("邪教徒咔咔", {})
         intents = cfg.get("intents", [])

@@ -31,7 +31,7 @@ class FacelessDreamweaverTemplate(EnemyTemplate):
             return
         engine._add_buff_to(enemy, "dream_eater_passive", get_locale_text("i18n_buffs.dream_eater_passive_name"), get_locale_text("i18n_buffs.dream_eater_passive_desc"), 1)
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         cfg = ENEMY_CONFIG.get(self.name, {})
         intents = cfg.get("intents", [])

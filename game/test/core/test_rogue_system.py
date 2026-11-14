@@ -1,6 +1,7 @@
 import os
 import unittest
 import asyncio
+from game.json_codec import dumps
 from game.test.core.base import *
 
 class TestRogueSystem(unittest.TestCase):
@@ -514,7 +515,6 @@ class TestRogueSystem(unittest.TestCase):
         if os.path.exists(stats_path):
             os.remove(stats_path)
             
-        import json
         old_data = {
             "user_id": user_id,
             "gp": 500,
@@ -522,8 +522,8 @@ class TestRogueSystem(unittest.TestCase):
             "unlocked_classes": []
         }
         os.makedirs(os.path.dirname(stats_path), exist_ok=True)
-        with open(stats_path, "w", encoding="utf-8") as f:
-            json.dump(old_data, f)
+        with open(stats_path, "wb") as f:
+            f.write(dumps(old_data))
             
         stats = plugin.save_manager.load_stats(user_id)
         self.assertFalse(hasattr(stats, "killed_yog_sothoth") or "killed_yog_sothoth" in stats.__dict__)

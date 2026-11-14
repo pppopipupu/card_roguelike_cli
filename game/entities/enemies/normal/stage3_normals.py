@@ -74,7 +74,7 @@ def _damage_player(run, engine, enemy, dmg: int, damage_type: str) -> str:
 
 @register_enemy("黑曜石巨人")
 class ObsidianGiantTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         return _roll_pool(self.name, _intent_ids(self.name), enemy.actions, enemy.bonus_actions)
 
     def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
@@ -107,7 +107,7 @@ class ObsidianGiantTemplate(EnemyTemplate):
 
 @register_enemy("暗影刺客")
 class ShadowAssassinTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         main_ids = [i for i in ("throat_slit", "shadow_ambush") if i in _intent_ids(self.name)]
         bonus_ids = [i for i in ("smoke_screen",) if i in _intent_ids(self.name)]
         return _roll_pool(self.name, main_ids, enemy.actions, 0) + _roll_pool(self.name, bonus_ids, 0, enemy.bonus_actions)
@@ -131,7 +131,7 @@ class ShadowAssassinTemplate(EnemyTemplate):
 
 @register_enemy("虚空行者")
 class VoidWalkerTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         return _roll_pool(self.name, _intent_ids(self.name), enemy.actions, enemy.bonus_actions)
 
     def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
@@ -160,7 +160,7 @@ class VoidWalkerTemplate(EnemyTemplate):
 @register_enemy("DeepSeek V4.1 Flash")
 @register_enemy("DeepSeek")
 class DeepSeekFlashTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         if not run.node_data.get(f"deepseek_baguwen:{enemy.name}"):
             return [_make_intent(DEEPSEEK_CONFIG_NAME, "baguwen_prep")]
         ablation = getattr(enemy, "ablation_mode", False) or bool(run.node_data.get(f"deepseek_ablation:{enemy.name}"))

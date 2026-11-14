@@ -11,7 +11,7 @@ class BeastMasterTemplate(EnemyTemplate):
     def _living_hounds(self, run, hound_name: str) -> List:
         return [e for e in run.enemies if e.hp > 0 and hound_name and e.name.startswith(hound_name)]
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("狂暴兽王", {})

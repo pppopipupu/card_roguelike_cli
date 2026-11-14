@@ -5,7 +5,7 @@ from ....data.locale_data import get_locale_text
 
 @register_enemy("骷髅兵")
 class SkeletonMinionTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         intents = ENEMY_CONFIG.get("骷髅兵", {}).get("intents", [])

@@ -31,7 +31,7 @@ class ShroudShadowTemplate(EnemyTemplate):
             return
         engine._add_buff_to(enemy, "shroud_time_warp", get_locale_text("i18n_buffs.shroud_time_warp_name"), get_locale_text("i18n_buffs.shroud_time_warp_desc"), 0)
 
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         cfg = ENEMY_CONFIG.get(self.name, {})
         intents = cfg.get("intents", [])

@@ -1,4 +1,3 @@
-import json
 import os
 import re
 import sqlite3
@@ -15,6 +14,7 @@ import jwt
 from fastapi.testclient import TestClient
 
 from game.data.account_config import GITHUB_BIND_REWARD_GP, RENAME_COST_GP
+from game.json_codec import dumps, loads
 from server.accounts import AccountStore
 from server.app import create_app
 from server.config import Settings
@@ -754,23 +754,20 @@ class ServerTests(unittest.TestCase):
             root = Path(temp)
             legacy = root / "legacy"
             legacy.mkdir()
-            (legacy / "stats_legacy-user.json").write_text(
-                json.dumps({"player_name": "旧玩家", "gp": 77}, ensure_ascii=False),
-                encoding="utf-8",
+            (legacy / "stats_legacy-user.json").write_bytes(
+                dumps({"player_name": "旧玩家", "gp": 77})
             )
-            (legacy / "user_legacy-user.json").write_text(
-                json.dumps({"screen": "menu"}, ensure_ascii=False),
-                encoding="utf-8",
+            (legacy / "user_legacy-user.json").write_bytes(
+                dumps({"screen": "menu"})
             )
-            (legacy / "duel_decks_legacy-user.json").write_text(
-                json.dumps({"deck": ["a"]}, ensure_ascii=False),
-                encoding="utf-8",
+            (legacy / "duel_decks_legacy-user.json").write_bytes(
+                dumps({"deck": ["a"]})
             )
-            (legacy / "duel_registry.json").write_text(
-                json.dumps({"legacy-user": "duel-1"}), encoding="utf-8"
+            (legacy / "duel_registry.json").write_bytes(
+                dumps({"legacy-user": "duel-1"})
             )
-            (legacy / "duel_duel-1.json").write_text(
-                json.dumps({"state": "x"}), encoding="utf-8"
+            (legacy / "duel_duel-1.json").write_bytes(
+                dumps({"state": "x"})
             )
             db = root / "accounts.sqlite3"
             players = root / "players"
@@ -810,8 +807,8 @@ class ServerTests(unittest.TestCase):
             self.assertTrue((players / f"stats_{player_uuid}.json").exists())
             self.assertTrue((players / f"duel_decks_{player_uuid}.json").exists())
             self.assertTrue((players / "duel_duel-1.json").exists())
-            registry = json.loads(
-                (players / "duel_registry.json").read_text(encoding="utf-8")
+            registry = loads(
+                (players / "duel_registry.json").read_bytes()
             )
             self.assertEqual(registry[player_uuid], "duel-1")
 

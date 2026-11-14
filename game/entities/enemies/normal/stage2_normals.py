@@ -12,7 +12,7 @@ def _intent_config(enemy_name: str, intent_type: str) -> dict:
 
 @register_enemy("幽灵法师")
 class GhostMageTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         intents = ENEMY_CONFIG.get(self.name, {}).get("intents", [])
@@ -60,7 +60,7 @@ class GhostMageTemplate(EnemyTemplate):
 
 @register_enemy("剧毒蜘蛛")
 class VenomSpiderTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         intents = ENEMY_CONFIG.get(self.name, {}).get("intents", [])
@@ -108,7 +108,7 @@ class VenomSpiderTemplate(EnemyTemplate):
 
 @register_enemy("幻梦境潜猎者")
 class DreamlandsProwlerTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         intents = ENEMY_CONFIG.get(self.name, {}).get("intents", [])

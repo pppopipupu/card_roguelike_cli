@@ -5,7 +5,7 @@ from ....data.locale_data import get_locale_text
 
 @register_enemy("夺心魔")
 class MindFlayerTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("夺心魔", {})
@@ -101,7 +101,7 @@ class MindFlayerTemplate(EnemyTemplate):
 
 @register_enemy("夺心魔奥术师")
 class MindFlayerArcanistTemplate(EnemyTemplate):
-    def roll_intents(self, run, engine, enemy) -> List['EnemyIntentState']:
+    def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         import random
         cfg = ENEMY_CONFIG.get("夺心魔奥术师", {})
