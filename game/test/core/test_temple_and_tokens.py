@@ -42,6 +42,14 @@ class TestTempleAndTokens(unittest.TestCase):
             stats.yog_sothoth_kill_count = 1
             self.sm.save_stats(uid, stats)
 
+            pre_quest = self._run(".rogue 任务", uid)
+            self.assertIn("前往中心广场，向向导长老报告你击败了尤格-索托斯", pre_quest)
+            self.assertNotIn("西大门", pre_quest)
+            self.assertNotIn("死灵之书", pre_quest)
+            self.assertNotIn("欧吕尔", pre_quest)
+            self.assertNotIn("\u0336", pre_quest)
+            self.assertNotIn("✔", pre_quest)
+
             talk_res = self._run(".rogue talk 向导长老", uid)
             self.assertIn("告诉向导长老：我击败了尤格-索托斯", talk_res)
             self.assertNotIn("欧吕尔", talk_res)
@@ -69,9 +77,12 @@ class TestTempleAndTokens(unittest.TestCase):
             self._run(f".rogue {leave_num}", uid)
             quest_res = self._run(".rogue 任务", uid)
             self.assertIn("尤格索托斯之死？", quest_res)
+            self.assertIn("从西大门出城，进入尤格索托斯神殿", quest_res)
+            self.assertNotIn("前往中心广场，向向导长老报告", quest_res)
+            self.assertNotIn("死灵之书", quest_res)
             self.assertNotIn("欧吕尔", quest_res)
             self.assertNotIn("冰封少女", quest_res)
-
+            self.assertNotIn("\u0336", quest_res)
             self._run(".rogue a", uid)
             self._run(".rogue a", uid)
             enter_res = self._run(".rogue 神殿", uid)
@@ -103,12 +114,23 @@ class TestTempleAndTokens(unittest.TestCase):
                 self.assertNotIn("欧吕尔", step_res)
                 self.assertNotIn("『", step_res)
                 self.assertNotIn("』", step_res)
+                if expected_room == "镜廊":
+                    mid_quest = self._run(".rogue 任务", uid)
+                    self.assertIn("从左侧回廊潜入了神殿内部", mid_quest)
+                    self.assertIn("带着骨钥匙穿过神殿内殿", mid_quest)
+                    self.assertNotIn("欧吕尔", mid_quest)
+                    self.assertNotIn("\u0336", mid_quest)
 
             throne_res = self._run(".rogue 2", uid)
             self.assertIn("主殿王座厅", throne_res)
             self.assertIn("冰封少女·欧吕尔的化身", throne_res)
             self.assertIn("这里不归星辉教团管了", throne_res)
             self.assertNotIn("『", throne_res)
+
+            throne_quest = self._run(".rogue 任务", uid)
+            self.assertIn("冰封少女·欧吕尔的化身强行闯进了这座神殿", throne_quest)
+            self.assertIn("击退强行闯入王座厅的冰封少女·欧吕尔化身", throne_quest)
+            self.assertNotIn("\u0336", throne_quest)
 
             leave_res = self._run(".rogue 撤离", uid)
             self.assertIn("先古主城", leave_res)
@@ -194,6 +216,65 @@ class TestTempleAndTokens(unittest.TestCase):
             self.assertIn("安的巨大英灵", play_res)
             self.assertIn("卓越暴击", play_res)
             self.assertIn("衍生物/token", play_res)
+        finally:
+            self._cleanup(uid)
+    def test_crpg_quest_branch_progression(self):
+        uid = "test_crpg_quest_branch_user"
+        self._cleanup(uid)
+        try:
+            self._run(".rogue 主城", uid)
+            self._run(".rogue d", uid)
+            self._run(".rogue d", uid)
+            self._run(".rogue w", uid)
+            self._run(".rogue talk Bartender_Jack", uid)
+            self._run(".rogue 3", uid)
+            self._run(".rogue exit", uid)
+
+            q1 = self._run(".rogue 任务", uid)
+            self.assertIn("在主城内打听并设法获取虚空草药", q1)
+            self.assertNotIn("许愿喷泉", q1)
+            self.assertNotIn("\u0336", q1)
+
+            self._run(".rogue s", uid)
+            self._run(".rogue a", uid)
+            self._run(".rogue a", uid)
+            self._run(".rogue a", uid)
+            from game.data.locale_data import get_locale_text
+            stats = self.sm.load_stats(uid)
+            guard_room = stats.town_flags.get("pos_Town_Guard", "square")
+            guard_room_name = get_locale_text(f"rooms.{guard_room}.name")
+            self._run(f".rogue tp {guard_room_name}", uid)
+            self._run(".rogue talk 巡逻卫兵", uid)
+            self._run(".rogue 2", uid)
+            self._run(".rogue exit", uid)
+
+            q2 = self._run(".rogue 任务", uid)
+            self.assertIn("向卫兵举报了非法倒卖草药的推销员", q2)
+            self.assertIn("前往许愿喷泉，用泉水清洗虚空草药", q2)
+            self.assertNotIn("在主城内打听并设法获取虚空草药", q2)
+            self.assertNotIn("\u0336", q2)
+
+            self._run(".rogue tp 许愿喷泉", uid)
+            self._run(".rogue talk Fountain", uid)
+            self._run(".rogue 1", uid)
+            self._run(".rogue exit", uid)
+
+            q3 = self._run(".rogue 任务", uid)
+            self.assertIn("天外甘露草正散发着微光", q3)
+            self.assertIn("将天外甘露草带回酒馆交给酒保杰克", q3)
+            self.assertNotIn("\u0336", q3)
+
+            self._run(".rogue d", uid)
+            self._run(".rogue talk 神秘店主", uid)
+            self._run(".rogue 3", uid)
+            self._run(".rogue exit", uid)
+
+            q4 = self._run(".rogue 任务", uid)
+            self.assertIn("已完成", q4)
+            self.assertIn("高价卖给了主城商店的神秘店主", q4)
+            self.assertNotIn("当前目标：", q4)
+            self.assertNotIn("\u0336", q4)
+            self.assertNotIn("✔", q4)
         finally:
             self._cleanup(uid)
 

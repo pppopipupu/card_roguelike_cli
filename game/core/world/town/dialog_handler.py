@@ -556,6 +556,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
 
     if action == "give_wishing_dew":
         stats.town_flags["quest_brew_state"] = "completed"
+        stats.town_flags["quest_brew_outcome"] = "bartender"
         stats.town_inventory.remove("wishing_dew")
         stats.gp += 1500
         stats.town_health_bonus = getattr(stats, "town_health_bonus", 0) + 5
@@ -577,6 +578,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
 
     if action == "quest_hammer_return_real":
         stats.town_flags["quest_hammer_state"] = "completed"
+        stats.town_flags["quest_hammer_outcome"] = "real"
         stats.town_inventory.remove("smith_hammer")
         stats.gp += 1500
         stats.town_health_bonus = getattr(stats, "town_health_bonus", 0) + 5
@@ -585,6 +587,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
 
     if action == "quest_hammer_return_fake":
         stats.town_flags["quest_hammer_state"] = "completed"
+        stats.town_flags["quest_hammer_outcome"] = "fake"
         stats.town_inventory.remove("fake_hammer")
         stats.gp += 200
         save()
@@ -592,13 +595,15 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
 
     if action == "quest_hammer_return_force":
         stats.town_flags["quest_hammer_state"] = "completed"
+        stats.town_flags["quest_hammer_outcome"] = "force"
         stats.gp += 1200
         save()
         return get_locale_text("global.quest_hammer_force_success") + "\n\n" + rerender()
 
     if action == "ask_hammer":
+        stats.town_flags["hammer_asked_bard"] = True
+        save()
         return get_locale_text("global.lost_bard_tell_clue") + "\n\n" + rerender()
-
     if action == "give_beer":
         stats.town_inventory.remove("beer")
         stats.town_inventory.append("smith_hammer")
@@ -641,6 +646,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
 
     if action == "sell_wishing_dew":
         stats.town_flags["quest_brew_state"] = "completed"
+        stats.town_flags["quest_brew_outcome"] = "shopkeeper"
         stats.town_inventory.remove("wishing_dew")
         stats.gp += 2000
         save()
