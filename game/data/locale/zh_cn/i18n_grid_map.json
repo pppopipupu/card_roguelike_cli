@@ -23,6 +23,7 @@
   "legend_title": "📌 图例：",
   "revealed_facilities": "🧭 已发现设施：",
   "talk_hint": "💬 当前格子有设施可交互，输入 talk 触发。",
+  "tunnel_hint": "🌀 厅中显现【下降隧道】，输入 touch 下降隧道 领取先古赐福并下楼，也可输入 talk 交互。",
   "controls_hint": "🎮 w/a/s/d 移动 | tp 传送 | m 地图 | bag 背包 | f 折叠",
   "guide_folded": "🎮 f 展开提示",
   "choose_hint": "💡 c <序号> (或直接输入数字) | leave 离开 | f 折叠",
@@ -69,7 +70,11 @@
     "life_merchant": "生命商人",
     "boss": "首领",
     "downstairs": "下楼",
-    "secret_boss": "隐秘首领"
+    "secret_boss": "隐秘首领",
+    "event": "事件",
+    "empty": "空房",
+    "spawn": "出生点",
+    "corpse": "遗骸"
   },
   "room_name": {
     "spawn": "出生点",
@@ -88,7 +93,13 @@
     "secret_boss": "隐秘首领",
     "corpse": "遗骸",
     "wall": "黑墙",
-    "obstacle": "障碍"
+    "obstacle": "障碍",
+    "event": "事件",
+    "cleared": "已清空",
+    "fog": "迷雾",
+    "player": "自己",
+    "teammate": "队友",
+    "unknown": "未探明"
   },
   "battle_prompt": {
     "title": "⚔️ 遭遇敌群（{coord}）",
@@ -173,16 +184,8 @@
   "downstairs": {
     "title": "🪜 第 {floor} 层下楼回廊",
     "desc": "守关首领已伏诛。前方石阶通往第 {next_floor} 层「{nxt_name}」，可先领取一份先古赐福：",
-    "opt_vitality": "先古活力赐福（最大生命 +6 并回复 12 点生命，SP +3）",
-    "opt_fortune": "先古财富赐福（获得 45 金币）",
-    "opt_wisdom": "先古智慧赐福（随机强化牌组中 1 张卡牌）",
-    "opt_leave": "暂留本层",
     "left_msg": "🪜 暂留本层，随时可再次交互下楼。",
-    "arrived_floor": "🪜 踏入第 {floor} 层 · 【{name}】！体力已恢复，力竭减轻 1 级。",
-    "msg": "✨ 领取了先古赐福【{blessing}】！\n{arrived}",
-    "msg_blessing_vitality": "✨ 领取了【先古活力赐福】：全员最大生命 +10 并回复 15 点生命！",
-    "msg_blessing_fortune": "✨ 领取了【先古财富赐福】：全员获得 80 金币！",
-    "msg_blessing_wisdom": "✨ 领取了【先古智慧赐福】：全员 SP 上限 +2 并恢复满 SP！"
+    "arrived_floor": "🪜 踏入第 {floor} 层 · 【{name}】！体力已恢复，力竭减轻 1 级。"
   },
   "rest_sp_suffix": "，恢复 {sp_gain} 点 SP 并减轻 {exhaustion_cured} 级力竭",
   "cafe_counter_hint": "☕ [1] 点一杯先古浓缩咖啡（花费 {price} 金币，恢复 {sp} 点 SP 并减轻 1 级力竭）",

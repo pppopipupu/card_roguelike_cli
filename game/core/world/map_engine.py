@@ -362,48 +362,6 @@ class MapEngine:
         return self.explore_engine.gem_insert_cancel(run)
 
     def _init_ancient_node(self, run: GameRun):
-        p = run.player
+        from .ancient_reward import build_ancient_options
         run.node_type = "ancient"
-        stats = self.save_manager.load_stats(run.user_id) if hasattr(self.save_manager, "load_stats") else None
-        p_class = getattr(stats, "selected_class", "法师")
-        admin_cfg = self.save_manager.load_admin_config() if hasattr(self.save_manager, "load_admin_config") else {}
-        icerainboww_enabled = admin_cfg.get("icerainboww_enabled", True)
-        if p_class == "战士":
-            style = random.choice(["default", "abyss"])
-        else:
-            style = random.choice(["default", "abyss", "glacier"])
-        if p_class == "战士":
-            if style == "default":
-                legends_pool = ["demon_form", "impervious"]
-                relics_pool = ["ancient_eye", "gold_compass", "dragon_blood", "energy_core", "heavy_armor"]
-            else:
-                legends_pool = ["abyss_collapse", "demon_contract", "abyss_erosion", "abyss_altar"]
-                relics_pool = ["abyss_whisper", "gold_compass", "dragon_blood", "abyss_contract"]
-        else:
-            if style == "default":
-                legends_pool = ["doomsday_judgment", "time_warp", "magic_network", "meteor_swarm", "archmage_wish"]
-                relics_pool = ["ancient_eye", "gold_compass", "dragon_blood", "energy_core", "heavy_armor"]
-            elif style == "abyss":
-                legends_pool = ["abyss_collapse", "demon_contract", "abyss_erosion", "abyss_altar"]
-                relics_pool = ["abyss_whisper", "gold_compass", "dragon_blood", "abyss_contract"]
-            else:
-                legends_pool = ["frost_nova", "glacier_fortress", "glacier_tempest"]
-                relics_pool = ["frost_blade", "energy_core", "heavy_armor", "glacier_core"]
-        legends_pool.append("break_limits")
-        legends_pool.append("unmined_gem")
-        if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
-            legends_pool.append("minion_icerainboww")
-        available_relics = [r for r in relics_pool if r not in p.relics]
-        if not available_relics:
-            available_relics = relics_pool.copy()
-        random.shuffle(legends_pool)
-        random.shuffle(available_relics)
-        options = []
-        from ...models.state import check_and_replace_fireball
-        for i in range(MAP_ANCIENT_OPTION_SLOTS):
-            options.append({
-                "type": "blessing",
-                "card": check_and_replace_fireball(run, legends_pool[i % len(legends_pool)]),
-                "relic": available_relics[i % len(available_relics)],
-            })
-        run.node_data = {"options": options, "style": style}
+        run.node_data = build_ancient_options(run, self.save_manager)

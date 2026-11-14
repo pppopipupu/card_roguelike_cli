@@ -98,11 +98,21 @@ def touch_in_room(save_manager, run, query: str) -> str:
     room, coord = get_current_room(run)
     if room is None:
         return get_locale_text("i18n_grid_map.err_no_floor_map")
+    if room.room_type == "downstairs":
+        from ..landmark_system import ensure_descent_tunnel
+        ensure_descent_tunnel(room)
     prop_id = resolve_prop_in_room(room, q)
     if not prop_id:
         return get_locale_text("i18n_room_interact.touch.not_found", target=q)
     cfg = ROOM_PROPS.get(prop_id, {})
     pname = get_locale_text(cfg["name_key"]) if cfg.get("name_key") else prop_id
+    if prop_id == "descent_tunnel":
+        from ..landmark_system import open_room_talk
+        from ....renderer import GameRenderer
+        err = open_room_talk(save_manager, run, run.user_id)
+        if err:
+            return err
+        return GameRenderer.render_game(run)
     done = room.interacted_props
     if prop_id in done:
         return get_locale_text("i18n_room_interact.touch.already_done", name=pname)

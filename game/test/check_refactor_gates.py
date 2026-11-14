@@ -194,6 +194,80 @@ def scan_locale_keys():
                         break
                 if not found:
                     missing.append(f"{relative(path)}: {key}")
+    from game.data.grid_map_config import (
+        DIRECT_REVEAL_ADJACENT_TYPES,
+        LANDMARK_CONFIGS,
+        PASSABLE_ROOM_TYPES,
+        PERMANENT_ICON_TYPES,
+        QUEST_RELIC_CONFIG,
+        ROOM_ICONS,
+        SECRET_RITUAL_PROTOCOLS,
+    )
+    from game.data.room_interact_data import OBSTACLE_STYLES, ROGUE_ITEMS, ROOM_ENVIRONMENTS, ROOM_NPCS, ROOM_PROPS
+    from game.core.cli import command_router
+    from game.core.cli.base import CommandHandler
+
+    def _has_key(key_path):
+        cur = data
+        for part in key_path.split("."):
+            if isinstance(cur, dict) and part in cur:
+                cur = cur[part]
+            else:
+                return False
+        return True
+
+    room_types = set(ROOM_ICONS) | set(PASSABLE_ROOM_TYPES) | set(DIRECT_REVEAL_ADJACENT_TYPES) | set(PERMANENT_ICON_TYPES)
+    for rtype in sorted(room_types):
+        for prefix in ("i18n_grid_map.room_name", "i18n_grid_map.legend"):
+            k = f"{prefix}.{rtype}"
+            if not _has_key(k):
+                missing.append(f"dynamic_config: {k}")
+
+    for qcfg in QUEST_RELIC_CONFIG.values():
+        for fld in ("name_key", "desc_key"):
+            if not _has_key(qcfg[fld]):
+                missing.append(f"dynamic_config: {qcfg[fld]}")
+    for lcfg in LANDMARK_CONFIGS.values():
+        for fld in ("name_key", "desc_key", "npc_key"):
+            if not _has_key(lcfg[fld]):
+                missing.append(f"dynamic_config: {lcfg[fld]}")
+    for proto in (*SECRET_RITUAL_PROTOCOLS, "awakened_compass"):
+        k = f"i18n_grid_map.ritual_protocol.{proto}"
+        if not _has_key(k):
+            missing.append(f"dynamic_config: {k}")
+
+    for envs in ROOM_ENVIRONMENTS.values():
+        for env_id in envs:
+            k = f"i18n_room_interact.env.{env_id}"
+            if not _has_key(k):
+                missing.append(f"dynamic_config: {k}")
+    for pid, pcfg in ROOM_PROPS.items():
+        for k in (pcfg["name_key"], f"i18n_room_interact.props.{pid}.scene", f"i18n_room_interact.props.{pid}.done_scene"):
+            if not _has_key(k):
+                missing.append(f"dynamic_config: {k}")
+    for ncfg in ROOM_NPCS.values():
+        if not _has_key(ncfg["name_key"]):
+            missing.append(f"dynamic_config: {ncfg['name_key']}")
+    for ocfg in OBSTACLE_STYLES.values():
+        if not _has_key(ocfg["name_key"]):
+            missing.append(f"dynamic_config: {ocfg['name_key']}")
+    for icfg in ROGUE_ITEMS.values():
+        for fld in ("name_key", "desc_key"):
+            if not _has_key(icfg[fld]):
+                missing.append(f"dynamic_config: {icfg[fld]}")
+
+    for cls in set(CommandHandler.registry.values()):
+        for st in getattr(cls, "allowed_states", []):
+            k = f"i18n_help.state_{st}"
+            if not _has_key(k):
+                missing.append(f"dynamic_config: {k}")
+        hk = getattr(cls, "help_key", None)
+        if hk:
+            for sub in ("name", "usage", "brief", "desc", "example"):
+                k = f"i18n_help.commands.{hk}.{sub}"
+                if not _has_key(k):
+                    missing.append(f"dynamic_config: {k}")
+
     return missing
 
 

@@ -174,7 +174,7 @@
       },
       "astral_strike": {
         "invalid_target": "❌ 请指定敌方目标（例如：p 卡牌序号 e1）。",
-        "result": "你引导星辰砸落！{res}"
+        "result": "你引导星辰砸落！"
       },
       "hero_anthem": {
         "result": "你唱响了【英雄赞歌】，身体洋溢着金色的气场（获得了 {shield} 点护盾，并抽了 1 张牌）！"

@@ -222,24 +222,13 @@ def handle_start_ancient(engine, run, option_idx, target=None) -> str | None:
 
 
 def handle_ancient(engine, run, option_idx, target=None) -> str | None:
-    p = run.player
     if run.node_data.get("coop_done"):
         return get_locale_text("i18n_coop_explore.coop_done_waiting")
     options = run.node_data.get("options", [])
     if option_idx < 1 or option_idx > len(options):
         return get_locale_text("err_invalid_option_idx")
-    chosen = options[option_idx - 1]
-    rid = chosen["relic"]
-    cid = chosen.get("card")
-    from ..inventory.relic_service import grant_relic
-    grant_relic(p, rid)
-    if cid:
-        from ...models.state import ensure_card_state
-        p.deck.append(ensure_card_state(cid))
-        bonus_str = get_locale_text("i18n_explore_core.ancient_blessing_card_relic", card_name=ALL_CARDS[cid].name, relic_name=get_relic_name(rid))
-    else:
-        bonus_str = get_locale_text("i18n_explore_core.ancient_blessing_relic", relic_name=get_relic_name(rid))
-    msg = get_locale_text("i18n_explore_core.ancient_blessing", bonus=bonus_str)
+    from .ancient_reward import grant_ancient_blessing
+    msg = grant_ancient_blessing(run, options[option_idx - 1])
     return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
 
 def handle_treasure(engine, run, option_idx, target=None) -> str | None:

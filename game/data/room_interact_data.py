@@ -230,6 +230,11 @@ ROOM_PROPS = {
         "desc_key": "i18n_room_interact.props.dusty_bookshelf.desc",
         "aliases": ["书架", "古书架", "bookshelf"],
     },
+    "descent_tunnel": {
+        "name_key": "i18n_room_interact.props.descent_tunnel.name",
+        "desc_key": "i18n_room_interact.props.descent_tunnel.desc",
+        "aliases": ["隧道", "下降隧道", "下降通道", "tunnel", "descent"],
+    },
 }
 
 DUNGEON_PROP_POOL = [

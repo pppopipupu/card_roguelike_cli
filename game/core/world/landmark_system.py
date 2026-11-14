@@ -1,6 +1,8 @@
 import random
 from ...data.grid_map_config import FLOOR_CONFIGS, LANDMARK_CONFIGS, QUEST_RELIC_CONFIG, SP_CONFIG
 from ...data.locale_data import get_locale_text
+from ...entities import ALL_CARDS, get_relic_name
+from .ancient_reward import build_ancient_options, grant_ancient_blessing
 from ...models.state import ensure_card_state
 from .grid_map_generator import coord_to_xy, xy_to_coord
 from ..party.session import SessionContextScoper
@@ -115,16 +117,39 @@ def build_landmark_options(run, uid: str) -> dict:
     return {"title": title, "desc": desc, "landmark_id": lm_id, "coord": coord, "options": options}
 
 
-def build_downstairs_data(run) -> dict:
+def ensure_descent_tunnel(room):
+    if room is None:
+        return
+    if "descent_tunnel" not in room.props:
+        room.props = list(room.props or []) + ["descent_tunnel"]
+    room.env_id = "downstairs_hall"
+
+
+def build_downstairs_data(run, save_manager, uid) -> dict:
     fm = run.floor_map
     nxt = fm.floor_index + 1
     nxt_name = get_locale_text(FLOOR_CONFIGS.get(nxt, FLOOR_CONFIGS[4])["name_key"])
-    options = [
-        {"action": "blessing_vitality", "text": get_locale_text("i18n_grid_map.downstairs.opt_vitality")},
-        {"action": "blessing_fortune", "text": get_locale_text("i18n_grid_map.downstairs.opt_fortune")},
-        {"action": "blessing_wisdom", "text": get_locale_text("i18n_grid_map.downstairs.opt_wisdom")},
-        {"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")},
-    ]
+    coord = fm.player_coords.get(uid, "")
+    room = fm.rooms.get(coord)
+    store = room.shared_payload.setdefault("descent_options_by_uid", {}) if room is not None else {}
+    options = store.get(uid)
+    if not options:
+        options = []
+        for opt in build_ancient_options(run, save_manager)["options"]:
+            options.append({
+                "action": "ancient_pick",
+                "type": opt["type"],
+                "card": opt["card"],
+                "relic": opt["relic"],
+                "text": get_locale_text(
+                    "i18n_explore_core.ancient_blessing_card_relic",
+                    card_name=ALL_CARDS[opt["card"]].name,
+                    relic_name=get_relic_name(opt["relic"]),
+                ),
+            })
+        options.append({"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")})
+        if room is not None:
+            store[uid] = options
     return {
         "title": get_locale_text("i18n_grid_map.downstairs.title", floor=fm.floor_index),
         "desc": get_locale_text("i18n_grid_map.downstairs.desc", next_floor=nxt, nxt_name=nxt_name),
@@ -141,7 +166,8 @@ def open_room_talk(save_manager, run, uid: str) -> str:
     if room is None:
         return get_locale_text("i18n_grid_map.no_talk_target")
     if room.room_type == "downstairs":
-        data = build_downstairs_data(run)
+        ensure_descent_tunnel(room)
+        data = build_downstairs_data(run, save_manager, uid)
         SessionContextScoper.create_session(run, coord, "downstairs", [uid], node_data=data)
         save_manager.save_save(uid, run)
         return ""
@@ -302,27 +328,22 @@ def execute_downstairs_option(save_manager, map_engine, run, idx: int) -> str:
     options = run.node_data.get("options", [])
     if idx < 0 or idx >= len(options):
         return get_locale_text("err_invalid_option_idx")
-    action = options[idx].get("action", "")
+    chosen = options[idx]
+    action = chosen.get("action", "")
     uid = run.user_id
     if action == "downstairs_leave":
         map_engine.complete_session(run, mark_cleared=False)
         save_manager.save_save(uid, run)
         return get_locale_text("i18n_grid_map.downstairs.left_msg")
-    blessing_msgs = []
+    if action != "ancient_pick":
+        return get_locale_text("err_invalid_option_idx")
+    reward_msg = ""
     for pid in run.all_human_uids():
         pl = run.players.get(pid)
         if pl is None:
             continue
-        if action == "blessing_vitality":
-            pl.max_hp += 10
-            pl.hp = min(pl.max_hp, pl.hp + 15)
-        elif action == "blessing_fortune":
-            pl.gold += 80
-        elif action == "blessing_wisdom":
-            pl.max_sp += 2
-            pl.sp = pl.max_sp
-    blessing_msgs.append(get_locale_text(f"i18n_grid_map.downstairs.msg_{action}"))
+        reward_msg = grant_ancient_blessing(run, chosen, player=pl)
     map_engine.complete_session(run, mark_cleared=False)
     advance_msg = map_engine.advance_to_next_floor(run)
     save_manager.save_save(uid, run)
-    return "\n".join(blessing_msgs + [advance_msg])
+    return "\n".join([reward_msg, advance_msg])

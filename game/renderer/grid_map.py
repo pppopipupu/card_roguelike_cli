@@ -152,7 +152,9 @@ def render_grid_map(run: GameRun) -> str:
     cur_room = fm.rooms.get(viewer_coord)
     if cur_room is not None:
         lines.extend(_render_room_details(fm, cur_room, viewer_coord, p))
-        if cur_room.room_type in ("landmark", "downstairs") or (viewer_coord == fm.ritual_coord and not fm.secret_unlocked):
+        if cur_room.room_type == "downstairs":
+            lines.append(get_locale_text("i18n_grid_map.tunnel_hint"))
+        elif cur_room.room_type == "landmark" or (viewer_coord == fm.ritual_coord and not fm.secret_unlocked):
             lines.append(get_locale_text("i18n_grid_map.talk_hint"))
 
     if p.fold_guide:

@@ -73,6 +73,18 @@ class TestGridMapAndBladesong(unittest.TestCase):
         after_spawn = self.plugin.save_manager.load_save("gm_nav")
         self.assertEqual(after_spawn.player.sp, after_spawn.player.max_sp)
 
+        event_coord = next((c for c, r in after_spawn.floor_map.rooms.items() if r.room_type == "event"), None)
+        if event_coord is None:
+            event_coord = next(c for c, r in after_spawn.floor_map.rooms.items() if r.room_type == "empty")
+            after_spawn.floor_map.rooms[event_coord].room_type = "event"
+        after_spawn.floor_map.rooms[event_coord].explored = True
+        if event_coord not in after_spawn.floor_map.revealed_coords:
+            after_spawn.floor_map.revealed_coords.append(event_coord)
+        self.plugin.save_manager.save_save("gm_nav", after_spawn)
+        tp_with_event = self.run_cmd("tp", "gm_nav")
+        self.assertIn(f"{event_coord} · 事件", tp_with_event)
+        self.assertNotIn("i18n_", tp_with_event)
+
     def test_obstacle_sp_and_forced_exhaustion_overdraft(self):
         run = self._start_solo("gm_obs")
         fm = run.floor_map
@@ -306,21 +318,42 @@ class TestGridMapAndBladesong(unittest.TestCase):
         unlocked.player.sp = 3
         unlocked.player.exhaustion = 2
         ds_coord = unlocked.floor_map.boss_coord
-        unlocked.floor_map.rooms[ds_coord].room_type = "downstairs"
-        unlocked.floor_map.rooms[ds_coord].cleared = True
-        unlocked.floor_map.rooms[ds_coord].explored = True
+        ds_room = unlocked.floor_map.rooms[ds_coord]
+        ds_room.room_type = "downstairs"
+        ds_room.cleared = False
+        ds_room.explored = True
         unlocked.floor_map.player_coords["gm_lm"] = ds_coord
         self.plugin.save_manager.save_save("gm_lm", unlocked)
+        before_relics = len(unlocked.player.relics)
+        before_deck = len(unlocked.player.deck)
 
-        ds_open = self.run_cmd("talk", "gm_lm")
+        step_res = self.run_cmd(f"tp {ds_coord}", "gm_lm")
+        self.assertIn("下降隧道", step_res)
+        stepped = self.plugin.save_manager.load_save("gm_lm")
+        self.assertEqual(stepped.node_type, "grid_map")
+        self.assertIn("descent_tunnel", stepped.floor_map.rooms[ds_coord].props)
+
+        ds_open = self.run_cmd("touch 下降隧道", "gm_lm")
         self.assertIn("下楼回廊", ds_open)
+        self.assertIn("传奇卡牌", ds_open)
+        touched = self.plugin.save_manager.load_save("gm_lm")
+        self.assertEqual(touched.node_type, "downstairs")
+        first_options = [o["text"] for o in touched.node_data["options"]]
+        self.run_cmd("c 4", "gm_lm")
+        self.run_cmd("touch 下降隧道", "gm_lm")
+        re_touched = self.plugin.save_manager.load_save("gm_lm")
+        self.assertEqual([o["text"] for o in re_touched.node_data["options"]], first_options)
+
         ds_res = self.run_cmd("c 1", "gm_lm")
         self.assertIn("第 2 层", ds_res)
+        self.assertIn("先古赐福", ds_res)
         floor2 = self.plugin.save_manager.load_save("gm_lm")
         self.assertEqual(floor2.floor_map.floor_index, 2)
         self.assertEqual(floor2.player.sp, floor2.player.max_sp)
         self.assertEqual(floor2.player.exhaustion, 1)
         self.assertEqual(floor2.player.stage, FLOOR_CONFIGS[2]["stage_min"])
+        self.assertEqual(len(floor2.player.relics), before_relics + 1)
+        self.assertEqual(len(floor2.player.deck), before_deck + 1)
 
 
 if __name__ == "__main__":

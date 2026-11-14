@@ -121,6 +121,8 @@ class SessionContextScoper:
                     room.room_type = "downstairs"
                     room.cleared = False
                     room.explored = True
+                    from ..world.landmark_system import ensure_descent_tunnel
+                    ensure_descent_tunnel(room)
                 elif room.room_type == "secret_boss":
                     room.cleared = True
                     room.explored = True

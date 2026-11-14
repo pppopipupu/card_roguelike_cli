@@ -11,7 +11,7 @@ from ...data.grid_map_config import (
 from ...data.locale_data import get_locale_text
 from ...data.balance_config import MAP_GHOST_DEFAULT_MAX_HP
 from .grid_map_generator import compute_effective_stage, coord_to_xy, xy_to_coord
-from .landmark_system import build_downstairs_data, build_landmark_options
+from .landmark_system import build_landmark_options, ensure_descent_tunnel
 from ..party.coordinator import apply_and_scope, restore_player, swap_player
 from ..party.session import SessionContextScoper
 from .sp_system import check_exhaustion_death, consume_sp
@@ -52,6 +52,8 @@ TP_TYPE_ALIASES = {
     "downstairs": "downstairs",
     "隐秘首领": "secret_boss",
     "secret_boss": "secret_boss",
+    "事件": "event",
+    "event": "event",
 }
 
 
@@ -314,10 +316,9 @@ class GridMapService:
             return GameRenderer.render_game(run)
 
         if room.room_type == "downstairs":
-            data = build_downstairs_data(run)
-            SessionContextScoper.create_session(run, coord, "downstairs", [uid], node_data=data)
+            ensure_descent_tunnel(room)
             self.save_manager.save_save(uid, run)
-            return GameRenderer.render_game(run)
+            return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
 
         if room.room_type == "cafe":
             existing_sid = self._find_session_at(fm, coord, "cafe")

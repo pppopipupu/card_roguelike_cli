@@ -390,13 +390,7 @@ class BaguwenRestrictionBuff(BuffImpl):
         if card is None:
             return
         if card.id == required.get("id") and bool(card.upgraded) == bool(required.get("upgraded", False)):
-            success_key = "i18n_buffs.baguwen_success_log"
-            success_text = get_locale_text(success_key)
-            if success_text == success_key:
-                fallback_key = "i18n_buffs.baguwen_passed_log"
-                success_text = get_locale_text(fallback_key)
-                if success_text == fallback_key:
-                    success_text = ""
+            success_text = get_locale_text("i18n_buffs.baguwen_passed_log")
             if success_text:
                 event.engine._log_event(run, success_text)
             return

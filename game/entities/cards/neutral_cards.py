@@ -206,8 +206,8 @@ class AstralStrikeCard(Card):
             target = "e1"
         if not target.startswith("e"):
             return get_locale_text("i18n_cards_neutral.neutral.cards.astral_strike.invalid_target")
-        res = engine.combat_resolver.damage_target(run, target, dmg, source="p0", damage_type="force", card=self)
-        return get_locale_text("i18n_cards_neutral.neutral.cards.astral_strike.result", res=res)
+        engine.combat_resolver.damage_target(run, target, dmg, source="p0", damage_type="force", card=self)
+        return get_locale_text("i18n_cards_neutral.neutral.cards.astral_strike.result")
 
 @register_card("neutral_hero_anthem")
 class HeroAnthemCard(Card):
