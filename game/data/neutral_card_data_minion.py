@@ -72,6 +72,32 @@ NEUTRAL_CARD_MINIONS = {
         "feedback_success": "在格子 [{grid}] 召唤了【{name}】。",
         "feedback_fail": "战场已满，召唤失败。"
     },
+    "manaeria_queen_anne": {
+        "name": "马纳历亚女王‧安",
+        "color": "wizard",
+        "type": "minion",
+        "cost_a": 0,
+        "cost_ba": 0,
+        "desc": "免费。生命 21，攻击 6 点火焰伤害。入场曲：随机使弃牌堆与抽牌堆中的 2 张卡牌消失（消失的卡牌不进入消耗堆，也不会从牌组中永久移除）；若消失前两堆合计少于 5 张，召唤【安的巨大英灵】并将珍奇法术牌【卓越暴击】加入手牌。技能（消耗 1 点动作点）：随机使 1 张卡牌消失，并对所有存活敌人随机分配 20 点火焰伤害。",
+        "rarity": "epic",
+        "minion_hp": 21,
+        "minion_atk": 6,
+        "feedback_success": "在格子 [{grid}] 召唤了【{name}】。",
+        "feedback_fail": "战场已满，召唤失败。"
+    },
+    "holy_celestial_millika": {
+        "name": "神圣天体‧弥莉卡",
+        "color": "wizard",
+        "type": "minion",
+        "cost_a": 0,
+        "cost_ba": 1,
+        "desc": "消耗 1BA。生命 20，攻击 5 点光耀伤害。守护。自己的回合中，若这张卡牌因能力从抽牌堆或弃牌堆中消失，则将 1 张【神圣天体‧弥莉卡】加入手牌。入场曲：若抽牌堆与弃牌堆合计 11 张以上，随机使其中 2 张卡牌消失；若为 10 张以下，则自身获得 +20 生命与 +10 攻击。",
+        "rarity": "rare",
+        "minion_hp": 20,
+        "minion_atk": 5,
+        "feedback_success": "在格子 [{grid}] 召唤了【{name}】。",
+        "feedback_fail": "战场已满，召唤失败。"
+    },
     "neutral_tau": {
         "name": "Tau",
         "color": "neutral",

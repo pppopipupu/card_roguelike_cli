@@ -37,6 +37,8 @@ from .neutral_special import (
     BardEpicCard,
     JackBrewCard,
 )
+from .anna import AnneMinionCard, ExcellentCritCard
+from .millika import MillikaMinionCard
 
 __all__ = [
     "SpellDamageCard",
@@ -72,4 +74,6 @@ __all__ = [
     "MerchantCollectionCard",
     "BardEpicCard",
     "JackBrewCard",
+    "AnneMinionCard",
+    "ExcellentCritCard",
 ]

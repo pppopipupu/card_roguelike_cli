@@ -93,7 +93,19 @@ COLLECTION_CARDS = {
         "required": 2,
         "unlock_card": "elf_archer_xiaomei",
         "desc": "集换章达到 2 枚后解锁。"
+    },
+    "manaeria_queen_anne": {
+        "name": "马纳历亚女王‧安",
+        "required": 2,
+        "unlock_card": "manaeria_queen_anne",
+        "desc": "集换章达到 2 枚后解锁。"
+    },
+    "holy_celestial_millika": {
+        "name": "神圣天体‧弥莉卡",
+        "required": 2,
+        "unlock_card": "holy_celestial_millika",
+        "desc": "集换章达到 2 枚后解锁。"
     }
 }
 
-COLLECTION_ORDER = ["elf_archer_xiaomei"]
+COLLECTION_ORDER = ["elf_archer_xiaomei", "manaeria_queen_anne", "holy_celestial_millika"]

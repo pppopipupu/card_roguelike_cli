@@ -1,0 +1,15 @@
+{
+  "names_joiner": "】、【",
+  "unknown_card": "未知卡牌",
+  "fanfare": "✨ [入场曲] 【{name}】令【{cards}】消失。这些卡牌不进入消耗堆，也不会从牌组中永久移除。",
+  "fanfare_empty": "✨ [入场曲] 【{name}】试图令卡牌消失，但抽牌堆与弃牌堆已空。",
+  "spirit_summon": "🌟 消失前抽牌堆与弃牌堆合计不足 {threshold} 张，【{spirit}】在格子 [{grid}] 降临，并将珍奇法术牌【{card}】加入手牌！",
+  "spirit_summon_full": "🌟 消失前抽牌堆与弃牌堆合计不足 {threshold} 张，但战场已满，【{spirit}】无法降临；珍奇法术牌【{card}】仍已加入手牌。",
+  "spirit_enter": "⚔️ 【{name}】额外获得 {aa} 点攻击动作点与【守护】，并会在自己的回合开始时消散。",
+  "spirit_death": "💀 【{name}】在自己的回合开始时消散离场。",
+  "skill_result": "🔥 【{name}】令【{cards}】消失，并将 {damage} 点火焰伤害随机分配给所有存活敌人。",
+  "skill_result_empty": "🔥 【{name}】试图令卡牌消失，但抽牌堆与弃牌堆已空；仍将 {damage} 点火焰伤害随机分配给所有存活敌人。",
+  "crit_result": "💥 【{card}】对【{ally}】与【{enemy}】各造成 {force} 点力场伤害与 {true} 点真实伤害（抽牌堆与弃牌堆合计 {pile} 张）。",
+  "crit_result_no_enemy": "💥 【{card}】对【{ally}】造成 {force} 点力场伤害与 {true} 点真实伤害，场上没有可供选取的敌方目标（抽牌堆与弃牌堆合计 {pile} 张）。",
+  "crit_need_ally_target": "❌ 需要指定一个己方目标：自己的随从、队友或队友的随从。"
+}

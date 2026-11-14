@@ -116,8 +116,8 @@ class GameRenderer:
         return format_output_numbers(GameRenderer._render_game_raw(run))
 
     @staticmethod
-    def render_query_info(query_str: str, user_id: str | None = None) -> str:
-        return format_output_numbers(render_query_info(query_str, user_id))
+    def render_query_info(query_str: str, user_id: str | None = None, run=None) -> str:
+        return format_output_numbers(render_query_info(query_str, user_id, run))
 
     @staticmethod
     def render_detailed_battle(run: GameRun) -> str:

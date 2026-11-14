@@ -5,6 +5,7 @@ from enum import Enum
 
 from ..data.locale_data import get_locale_text
 from ..data.card_alias_data import resolve_card_id
+from ..data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 
 current_user_id = ContextVar("current_user_id", default="")
 
@@ -408,7 +409,7 @@ class PlayerState:
     persistent_buffs: List[BuffState] = field(default_factory=list)
     quest_relics: List[str] = field(default_factory=list)
     bag_items: List[str] = field(default_factory=list)
-    bag_max_weight: int = 10
+    bag_max_weight: int = BAG_DEFAULT_MAX_WEIGHT
 
     @property
     def exhaustion(self) -> int:

@@ -15,6 +15,8 @@ from .observers import RelicTriggerHandler, BuffTriggerHandler, AmuletTriggerHan
 from .instant_summon import InstantSummonHandler
 from .exhaustion_observer import ExhaustionObserver
 from .daily_blessing import DailyBlessingHandler
+from .anna_handler import AnnaCardHandler
+from .millika_handler import MillikaCardHandler
 from ..inventory.deck_service import DeckService
 from ...models.stats_tracker import StatsTracker
 
@@ -38,6 +40,8 @@ class BattleEngine(BaseBattleEngine):
         from ..party.mercenary import MercenaryVoiceHandler
         self.mercenary_voice_handler = MercenaryVoiceHandler(self.event_bus, self)
         self.exhaustion_observer = ExhaustionObserver(self.event_bus, self)
+        self.anna_handler = AnnaCardHandler(self.event_bus, self)
+        self.millika_handler = MillikaCardHandler(self.event_bus, self)
 
     def _log_event(self, run: Optional[GameRun], msg: str):
         if run is None:

@@ -44,7 +44,7 @@ class QueryCommand(CommandHandler, names=["查询", "query", "info", "i"], allow
                 else:
                     yield GameRenderer.render_enemy_graveyard(run)
             else:
-                yield GameRenderer.render_query_info(" ".join(parts[1:]).strip(), user_id)
+                yield GameRenderer.render_query_info(" ".join(parts[1:]).strip(), user_id, run)
         else:
             if not run:
                 yield get_locale_text("i18n_cli_general_b.query_no_game_hint")

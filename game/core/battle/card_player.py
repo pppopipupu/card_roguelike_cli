@@ -9,6 +9,7 @@ from ..inventory.deck_service import DeckService
 from ...data.locale_data import get_locale_text
 from ...data.buff_data import BUFF_CONFIG
 from ...data.gem_data import GEM_CONFIG
+from ...data.minion_data import MINION_CONFIG
 
 from ...entities import ALL_CARDS, ALL_MINIONS
 from ...models.events import (
@@ -577,7 +578,8 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
             return get_locale_text("i18n_battle_core.enemy_grid_invalid", target=opp_grid)
         enemy = run.enemies[opp_idx]
         opp_grid = f"e{opp_idx+1}"
-        self.engine._damage_target(run, opp_grid, m.atk, source=f"p{my_grid}", damage_type="bludgeoning", is_attack=True)
+        dtype = MINION_CONFIG.get(m.id, {}).get("attack_damage_type", "bludgeoning")
+        self.engine._damage_target(run, opp_grid, m.atk, source=f"p{my_grid}", damage_type=dtype, is_attack=True)
         res = get_locale_text("i18n_battle_core.minion_attack_log", minion=m.name, enemy=enemy.name)
         self.engine.save_manager.save_save(run.user_id, run)
         res = self._post_battle_action_check(run, initial_status, res, p)

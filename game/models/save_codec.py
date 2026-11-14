@@ -1,6 +1,7 @@
 from dataclasses import asdict
 
 from .state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, BuffState, RoomState, EncounterSession, FloorMapState
+from ..data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 
 
 class SaveCodecMixin:
@@ -93,6 +94,9 @@ class SaveCodecMixin:
                     enemy_gy.append(item[len("enemy:"):])
                 else:
                     enemy_gy.append(item)
+        bag_max_weight = int(p_data.get("bag_max_weight", BAG_DEFAULT_MAX_WEIGHT) or BAG_DEFAULT_MAX_WEIGHT)
+        if bag_max_weight < BAG_DEFAULT_MAX_WEIGHT:
+            bag_max_weight = BAG_DEFAULT_MAX_WEIGHT
         player = PlayerState(
             hp=p_data["hp"],
             max_hp=p_data["max_hp"],
@@ -131,7 +135,7 @@ class SaveCodecMixin:
             persistent_buffs=p_persistent_buffs,
             quest_relics=list(p_data.get("quest_relics", []) or []),
             bag_items=list(p_data.get("bag_items", []) or []),
-            bag_max_weight=int(p_data.get("bag_max_weight", 10) or 10),
+            bag_max_weight=bag_max_weight,
         )
         legacy_ex = int(p_data.get("exhaustion", 0) or 0)
         if not p_persistent_buffs and legacy_ex > 0:

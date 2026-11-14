@@ -38,6 +38,7 @@ from .officer_minions import (
     ValiantHeraldSignal,
     ValiantHeraldTemplate,
 )
+from .anna_minions import AnneVanishSkill
 
 ALL_MINIONS = {
     "mercenary": MercenaryTemplate(
@@ -163,6 +164,23 @@ ALL_MINIONS = {
     "elf_archer_xiaomei": CardsPlayedEntryDamageTemplate(
         "elf_archer_xiaomei",
         MINION_CONFIG["elf_archer_xiaomei"]["name"],
+        []
+    ),
+    "manaeria_queen_anne": MinionTemplate(
+        "manaeria_queen_anne",
+        MINION_CONFIG["manaeria_queen_anne"]["name"],
+        [
+            AnneVanishSkill(
+                MINION_CONFIG["manaeria_queen_anne"]["skills"][0]["name"],
+                MINION_CONFIG["manaeria_queen_anne"]["skills"][0]["cost_a"],
+                MINION_CONFIG["manaeria_queen_anne"]["skills"][0]["cost_ba"],
+                MINION_CONFIG["manaeria_queen_anne"]["skills"][0]["desc"],
+            )
+        ]
+    ),
+    "holy_celestial_millika": MinionTemplate(
+        "holy_celestial_millika",
+        MINION_CONFIG["holy_celestial_millika"]["name"],
         []
     ),
     "officer_recruit_vanguard": RecruitVanguardTemplate(

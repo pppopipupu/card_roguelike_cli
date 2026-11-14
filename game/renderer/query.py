@@ -10,16 +10,13 @@ from ..data.potion_data import POTION_CONFIG
 from .menu import get_card_cost_str, append_card_subtype
 from ..data.locale_data import get_locale_text
 
-def render_query_info(query_str: str, user_id: str | None = None) -> str:
+def render_query_info(query_str: str, user_id: str | None = None, run=None) -> str:
     from ..models.manager import SaveManager
     boss_cfg = SaveManager().load_admin_config()
     icerainboww_enabled = boss_cfg.get("icerainboww_enabled", True)
     
-    killed_yog = False
-    if user_id:
-        stats = SaveManager().load_stats(user_id)
-        if stats and getattr(stats, "yog_sothoth_kill_count", 0) > 0:
-            killed_yog = True
+    stats = SaveManager().load_stats(user_id) if user_id else None
+    killed_yog = bool(stats and getattr(stats, "yog_sothoth_kill_count", 0) > 0)
     
     query_str_lower = query_str.strip().lower()
     if not query_str_lower:
@@ -369,6 +366,11 @@ def render_query_info(query_str: str, user_id: str | None = None) -> str:
                         lines.append(get_locale_text("renderer_menu.bullet_line", text=t))
                 lines.append("")
                 
+    from .item_query import render_item_lore
+    item_block = render_item_lore(q_search, stats, run)
+    if item_block:
+        found = True
+        lines.append(item_block)
     if not found:
         lines.append(get_locale_text("renderer_menu.query_not_found"))
         lines.append("")

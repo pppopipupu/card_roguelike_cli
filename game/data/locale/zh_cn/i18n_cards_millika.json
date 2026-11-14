@@ -1,0 +1,7 @@
+{
+  "names_joiner": "】、【",
+  "fanfare_vanish": "✨ [入场曲] 抽牌堆与弃牌堆合计 {pile} 张，达到 {threshold} 张以上，【{name}】令【{cards}】消失。这些卡牌不进入消耗堆，也不会从牌组中永久移除。",
+  "fanfare_vanish_empty": "✨ [入场曲] 【{name}】试图令卡牌消失，但抽牌堆与弃牌堆已空。",
+  "fanfare_buff": "🌟 [入场曲] 抽牌堆与弃牌堆合计 {pile} 张，未达到 {threshold} 张，【{name}】获得 +{hp} 生命与 +{atk} 攻击。",
+  "replenish": "🌟 自己的回合中，【{name}】因能力从抽牌堆或弃牌堆消失，已将 {count} 张【{name}】加入手牌。"
+}

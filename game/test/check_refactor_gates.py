@@ -256,6 +256,20 @@ def scan_locale_keys():
             if not _has_key(icfg[fld]):
                 missing.append(f"dynamic_config: {icfg[fld]}")
 
+    from game.data.item_lore_data import ITEM_LORE
+    from game.core.inventory.item_lore import REVEAL_RULES
+    for ilore in ITEM_LORE.values():
+        if not _has_key(ilore["intro_key"]):
+            missing.append(f"dynamic_config: {ilore['intro_key']}")
+        secret_cfg = ilore.get("secret")
+        if secret_cfg:
+            for fld in ("hint_key", "reveal_key"):
+                if not _has_key(secret_cfg[fld]):
+                    missing.append(f"dynamic_config: {secret_cfg[fld]}")
+        for rule in (ilore.get("hidden"), (secret_cfg or {}).get("reveal")):
+            if rule and rule not in REVEAL_RULES:
+                missing.append(f"dynamic_config: reveal rule {rule}")
+
     for cls in set(CommandHandler.registry.values()):
         for st in getattr(cls, "allowed_states", []):
             k = f"i18n_help.state_{st}"

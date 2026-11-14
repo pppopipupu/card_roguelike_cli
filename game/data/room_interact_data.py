@@ -1,4 +1,4 @@
-BAG_DEFAULT_MAX_WEIGHT = 10
+BAG_DEFAULT_MAX_WEIGHT = 100
 
 OBSTACLE_STYLES = {
     "collapsed_boulders": {
@@ -42,7 +42,7 @@ ROGUE_ITEMS = {
     "espresso_beans": {
         "name_key": "i18n_room_interact.items.espresso_beans.name",
         "desc_key": "i18n_room_interact.items.espresso_beans.desc",
-        "weight": 1,
+        "weight": 4,
         "carryover": True,
         "usable": True,
         "sp_gain": 2,
@@ -51,7 +51,7 @@ ROGUE_ITEMS = {
     "rusty_pickaxe": {
         "name_key": "i18n_room_interact.items.rusty_pickaxe.name",
         "desc_key": "i18n_room_interact.items.rusty_pickaxe.desc",
-        "weight": 3,
+        "weight": 35,
         "carryover": True,
         "usable": True,
         "aliases": ["矿镐", "锈蚀矿镐", "镐", "pickaxe"],
@@ -59,7 +59,7 @@ ROGUE_ITEMS = {
     "glowing_runestone": {
         "name_key": "i18n_room_interact.items.glowing_runestone.name",
         "desc_key": "i18n_room_interact.items.glowing_runestone.desc",
-        "weight": 2,
+        "weight": 25,
         "carryover": True,
         "usable": True,
         "reveal_count": 2,
@@ -68,7 +68,7 @@ ROGUE_ITEMS = {
     "field_bandage": {
         "name_key": "i18n_room_interact.items.field_bandage.name",
         "desc_key": "i18n_room_interact.items.field_bandage.desc",
-        "weight": 1,
+        "weight": 3,
         "carryover": False,
         "usable": True,
         "heal": 8,
@@ -77,7 +77,7 @@ ROGUE_ITEMS = {
     "ancient_notes": {
         "name_key": "i18n_room_interact.items.ancient_notes.name",
         "desc_key": "i18n_room_interact.items.ancient_notes.desc",
-        "weight": 1,
+        "weight": 2,
         "carryover": True,
         "usable": True,
         "aliases": ["残页", "先古残页", "笔记", "notes"],
@@ -85,7 +85,7 @@ ROGUE_ITEMS = {
     "skeleton_key": {
         "name_key": "i18n_room_interact.items.skeleton_key.name",
         "desc_key": "i18n_room_interact.items.skeleton_key.desc",
-        "weight": 2,
+        "weight": 6,
         "carryover": True,
         "usable": True,
         "sp_gain": 3,
@@ -94,7 +94,7 @@ ROGUE_ITEMS = {
     "sugar_cube_pack": {
         "name_key": "i18n_room_interact.items.sugar_cube_pack.name",
         "desc_key": "i18n_room_interact.items.sugar_cube_pack.desc",
-        "weight": 1,
+        "weight": 5,
         "carryover": False,
         "usable": True,
         "sp_gain": 3,
@@ -104,7 +104,7 @@ ROGUE_ITEMS = {
     "smuggler_token": {
         "name_key": "i18n_room_interact.items.smuggler_token.name",
         "desc_key": "i18n_room_interact.items.smuggler_token.desc",
-        "weight": 2,
+        "weight": 8,
         "carryover": True,
         "usable": True,
         "gold_gain": 35,
@@ -113,7 +113,7 @@ ROGUE_ITEMS = {
     "merchant_ledger": {
         "name_key": "i18n_room_interact.items.merchant_ledger.name",
         "desc_key": "i18n_room_interact.items.merchant_ledger.desc",
-        "weight": 2,
+        "weight": 18,
         "carryover": True,
         "usable": True,
         "gold_gain": 45,
@@ -122,7 +122,7 @@ ROGUE_ITEMS = {
     "barista_seal": {
         "name_key": "i18n_room_interact.items.barista_seal.name",
         "desc_key": "i18n_room_interact.items.barista_seal.desc",
-        "weight": 1,
+        "weight": 10,
         "carryover": True,
         "usable": True,
         "sp_gain": 4,

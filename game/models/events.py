@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
-from .state import GameRun, Card, MinionState, EnemyState
+from .state import GameRun, Card, MinionState, EnemyState, CardState
 
 @dataclass
 class GameEvent:
@@ -158,4 +158,10 @@ class CardSelectInitEvent(GameEvent):
 class CardObtainEvent(GameEvent):
     run: GameRun
     card_state: Any
+
+
+@dataclass
+class CardVanishEvent(GameEvent):
+    run: GameRun
+    card_states: List[CardState]
 

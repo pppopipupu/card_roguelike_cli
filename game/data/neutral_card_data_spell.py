@@ -612,6 +612,17 @@ NEUTRAL_CARD_SPELLS = {
         "life_merchant_only": True,
         "feedback": "施展了【寿来✋😡✋】！"
     },
+    "excellent_crit": {
+        "name": "卓越暴击",
+        "color": "wizard",
+        "type": "spell",
+        "cost_a": 1,
+        "cost_ba": 0,
+        "desc": "选择己方一个目标（自己的随从、队友或队友的随从），对该目标与一个随机敌方目标各造成 10 点力场伤害与 10 点真实伤害；若抽牌堆与弃牌堆合计少于 8 张则改为 20 点，少于 5 张改为 40 点，少于 3 张改为 80 点，等于 0 张改为 200 点。",
+        "rarity": "epic",
+        "target_type": "any_other",
+        "feedback": "发动了【卓越暴击】！"
+    },
     "curse_shou_hui": {
         "name": "寿回✋😡✋",
         "color": "neutral",
