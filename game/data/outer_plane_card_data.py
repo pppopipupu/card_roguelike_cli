@@ -8,5 +8,6 @@ OUTER_PLANE_CARDS = {
         "desc": "未知的神秘卡牌，你不知道有什么用",
         "rarity": "legendary",
         "exhaust": True,
+        "event_only": True,
     },
 }

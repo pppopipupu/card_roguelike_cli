@@ -81,6 +81,7 @@
     "unlock_missing": "❌ 移除失败：你的锁定列表中没有卡牌【{name}】。",
     "card_not_found": "❌ 未找到名为【{name}】的卡牌信息。",
     "lock_rarity_denied": "❌ 锁定失败：无法锁定【{rarity}】稀有度的卡牌。",
+    "lock_token_denied": "❌ 锁定失败：无法锁定衍生物或特殊限定卡牌【{name}】。",
     "lock_already": "❌ 锁定失败：卡牌【{name}】已经在你的锁定列表中了。",
     "lock_limit": "❌ 锁定失败：最多只能同时锁定 {limit} 张卡牌。",
     "lock_no_gp": "❌ 锁定失败：锁定卡牌需要 {price} GP，当前仅有 {gp} GP。",

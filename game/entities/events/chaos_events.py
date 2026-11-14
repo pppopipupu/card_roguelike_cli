@@ -19,7 +19,7 @@ class ReadVoidTomeOption(EventOption, action="read_void_tome", text=get_locale_t
         killed_yog = False
         if stats and getattr(stats, "yog_sothoth_kill_count", 0) > 0:
             killed_yog = True
-        legends = [cid for cid, c in ALL_CARDS.items() if c.rarity in ("legendary", "mythic", "artifact") and not cid.startswith("curse_") and not getattr(c, "life_merchant_only", False)]
+        legends = [cid for cid, c in ALL_CARDS.items() if not cid.endswith("+") and c.rarity in ("legendary", "mythic", "artifact") and not cid.startswith("curse_") and not getattr(c, "life_merchant_only", False) and not getattr(c, "token", False) and not getattr(c, "event_only", False)]
         if not killed_yog:
             legends = [cid for cid in legends if cid != "neutral_button_magic"]
         got_card = random.choice(legends) if legends else "doomsday_judgment"

@@ -61,17 +61,17 @@ def get_card_cost_str(card) -> str:
     return cost_str.strip() or t("renderer_menu.free_cost")
 
 def append_card_subtype(type_ch: str, cid: str, ctype: str) -> str:
-    if ctype != "spell":
-        return type_ch
-    from ..data.card_subtype_data import ATTACK_SPELL_IDS, SKILL_SPELL_IDS
+    from ..data.card_data import CARD_CONFIG
     base_cid = cid.rstrip("+")
-    if base_cid in ATTACK_SPELL_IDS:
-        subtype_ch = t("renderer_menu.subtype_attack")
-    elif base_cid in SKILL_SPELL_IDS:
-        subtype_ch = t("renderer_menu.subtype_skill")
-    else:
-        return type_ch
-    return t("renderer_menu.card_type_with_subtype", type_ch=type_ch, subtype_ch=subtype_ch)
+    if ctype == "spell":
+        from ..data.card_subtype_data import ATTACK_SPELL_IDS, SKILL_SPELL_IDS
+        if base_cid in ATTACK_SPELL_IDS:
+            type_ch = t("renderer_menu.card_type_with_subtype", type_ch=type_ch, subtype_ch=t("renderer_menu.subtype_attack"))
+        elif base_cid in SKILL_SPELL_IDS:
+            type_ch = t("renderer_menu.card_type_with_subtype", type_ch=type_ch, subtype_ch=t("renderer_menu.subtype_skill"))
+    if CARD_CONFIG.get(base_cid, {}).get("token", False):
+        type_ch = t("renderer_menu.card_type_with_token", type_ch=type_ch)
+    return type_ch
 
 def get_rogue_card_library_items(user_id: str | None = None) -> list:
     from ..cards import ALL_CARDS

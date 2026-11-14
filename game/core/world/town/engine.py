@@ -318,9 +318,9 @@ class TownEngine:
         if self.outer_plane_engine.apply_max_hp_zero(stats):
             hp = 0
             max_hp = 0
-        commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and is_card_available(cid, stats)]
-        rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and is_card_available(cid, stats)]
-        epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and is_card_available(cid, stats)]
+        commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and not getattr(c, "token", False) and not getattr(c, "event_only", False) and not getattr(c, "life_merchant_only", False) and is_card_available(cid, stats)]
+        rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and not getattr(c, "token", False) and not getattr(c, "event_only", False) and not getattr(c, "life_merchant_only", False) and is_card_available(cid, stats)]
+        epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and not getattr(c, "token", False) and not getattr(c, "event_only", False) and not getattr(c, "life_merchant_only", False) and is_card_available(cid, stats)]
         locked_cards = list(getattr(stats, "locked_cards", []) or [])[:LOCK_SLOT_LIMIT]
         g_card = getattr(stats, "guaranteed_card", None)
         if g_card:

@@ -273,12 +273,14 @@ MINION_OFFICER_CONFIG = {
         "name": "步兵轻卒",
         "hp": 3,
         "atk": 1,
-        "skills": []
+        "skills": [],
+        "token": True
     },
     "officer_soldier_token+": {
         "name": "步兵轻卒+",
         "hp": 4,
         "atk": 2,
-        "skills": []
+        "skills": [],
+        "token": True
     }
 }

@@ -198,12 +198,16 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
         if q_search == mid.lower() or q_search in cfg.get("name", "").lower():
             found = True
             mname = cfg.get("name", mid)
-            lines.append(get_locale_text("renderer_menu.minion_title", name=mname, id=mid))
+            is_token = bool(cfg.get("token", False) or CARD_CONFIG.get(mid.rstrip("+"), {}).get("token", False))
+            title_key = "renderer_menu.minion_title_token" if is_token else "renderer_menu.minion_title"
+            lines.append(get_locale_text(title_key, name=mname, id=mid))
             card_cfg = CARD_CONFIG.get(mid)
             if card_cfg:
                 hp = card_cfg.get("minion_hp", 0)
                 atk = card_cfg.get("minion_atk", 0)
                 lines.append(get_locale_text("renderer_menu.minion_stats_line", hp=hp, atk=atk))
+            elif "hp" in cfg and "atk" in cfg:
+                lines.append(get_locale_text("renderer_menu.minion_stats_line", hp=cfg["hp"], atk=cfg["atk"]))
             skills = cfg.get("skills", [])
             if skills:
                 lines.append(get_locale_text("renderer_menu.skills_title"))
@@ -271,9 +275,11 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
         if match_keyword:
             found = True
             aname = cfg.get("name", aid)
+            is_token_amulet = bool(cfg.get("token", False) or CARD_CONFIG.get(aid.rstrip("+"), {}).get("token", False))
+            amulet_title_key = "renderer_menu.amulet_title_token" if is_token_amulet else "renderer_menu.amulet_title"
+            lines.append(get_locale_text(amulet_title_key, name=aname, id=aid))
             desc = cfg.get("desc", "")
             cd = cfg.get("countdown", 1)
-            lines.append(get_locale_text("renderer_menu.amulet_title", name=aname, id=aid))
             lines.append(get_locale_text("renderer_menu.amulet_countdown_line", countdown=cd))
             lines.append(get_locale_text("renderer_menu.effect_line", desc=desc))
             lines.append("")

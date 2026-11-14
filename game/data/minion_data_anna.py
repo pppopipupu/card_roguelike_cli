@@ -36,5 +36,6 @@ ANNA_MINION_CONFIG = {
         "attack_damage_type": ANNE_SPIRIT_CONFIG["attack_damage_type"],
         "ward": ANNE_SPIRIT_CONFIG["ward"],
         "skills": [],
+        "token": True,
     },
 }

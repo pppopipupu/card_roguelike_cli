@@ -118,6 +118,9 @@ class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解�
         if r in ("legendary", "mythic", "artifact", "curse"):
             yield get_locale_text("i18n_cli_general_a.lock.lock_rarity_denied", rarity=rarity_map.get(r, r))
             return
+        if getattr(c_obj, "token", False) or getattr(c_obj, "event_only", False) or getattr(c_obj, "life_merchant_only", False) or getattr(c_obj, "coop_only", False):
+            yield get_locale_text("i18n_cli_general_a.lock.lock_token_denied", name=c_obj.name)
+            return
 
         if target_cid in stats.locked_cards:
             yield get_locale_text("i18n_cli_general_a.lock.lock_already", name=c_obj.name)

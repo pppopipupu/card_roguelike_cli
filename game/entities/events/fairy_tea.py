@@ -32,7 +32,7 @@ class EatCookieOption(EventOption, action="eat_cookie", text=get_locale_text("i1
 class ListenMusicOption(EventOption, action="listen_music", text=get_locale_text("i18n_events_a.fairy_music_text")):
     def _run_effect(self, run, engine) -> str:
         p = run.player
-        agile_cards = [cid for cid, c in ALL_CARDS.items() if getattr(c, "agile", False) and not cid.startswith("curse_")]
+        agile_cards = [cid for cid, c in ALL_CARDS.items() if not cid.endswith("+") and getattr(c, "agile", False) and not cid.startswith("curse_") and not getattr(c, "token", False) and not getattr(c, "event_only", False) and not getattr(c, "life_merchant_only", False)]
         got_card = random.choice(agile_cards) if agile_cards else "agile_strike"
         DeckService.add_card_to_deck(p, got_card)
         engine.enter_next_stage(run)

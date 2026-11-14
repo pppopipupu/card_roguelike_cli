@@ -260,7 +260,7 @@ class TacticalBarrackAmulet(AmuletTemplate):
         shield = self.upgraded_shield_on_death if is_upgraded else self.shield_on_death
         engine._gain_shield(run, "p0", shield)
         from ..cards.base import ALL_CARDS
-        minion_pool = [cid for cid, card in ALL_CARDS.items() if card.color == "warrior" and card.type == "minion"]
+        minion_pool = [cid for cid, card in ALL_CARDS.items() if card.color == "warrior" and card.type == "minion" and not cid.endswith("+") and not getattr(card, "token", False) and not getattr(card, "event_only", False)]
         import random
         if minion_pool:
             minion_state = DeckService.new_state(random.choice(minion_pool), upgraded=is_upgraded)

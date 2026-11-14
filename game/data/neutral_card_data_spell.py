@@ -582,6 +582,7 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "校准非欧几里得星轨，推进【拉莱耶的群星封印】解谜进度。保留。",
         "rarity": "artifact",
         "retain": True,
+        "token": True,
         "gem_slots": 0,
         "feedback": "转动了【拉莱耶星盘】。"
     },
@@ -620,6 +621,7 @@ NEUTRAL_CARD_SPELLS = {
         "cost_ba": 0,
         "desc": "选择己方一个目标（自己的随从、队友或队友的随从），对该目标与一个随机敌方目标各造成 10 点力场伤害与 10 点真实伤害；若抽牌堆与弃牌堆合计少于 8 张则改为 20 点，少于 5 张改为 40 点，少于 3 张改为 80 点，等于 0 张改为 200 点。",
         "rarity": "epic",
+        "token": True,
         "target_type": "any_other",
         "feedback": "发动了【卓越暴击】！"
     },

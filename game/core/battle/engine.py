@@ -470,7 +470,7 @@ class BattleEngine(BaseBattleEngine):
         card_pool = []
         for cid, card_obj in ALL_CARDS.items():
             if not cid.startswith("duel_") and not cid.startswith("curse_") and not cid.endswith("+"):
-                if not getattr(card_obj, "unplayable", False) and not getattr(card_obj, "coop_only", False) and getattr(card_obj, "color", "") != "mercenary" and is_card_available(cid, stats):
+                if not getattr(card_obj, "unplayable", False) and not getattr(card_obj, "coop_only", False) and not getattr(card_obj, "token", False) and not getattr(card_obj, "event_only", False) and not getattr(card_obj, "life_merchant_only", False) and getattr(card_obj, "color", "") != "mercenary" and is_card_available(cid, stats):
                     card_pool.append(cid)
         drawn = []
         if card_pool and exhausted_count > 0:

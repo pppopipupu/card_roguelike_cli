@@ -190,6 +190,8 @@ def render_battle(run: GameRun) -> str:
                     "curse": t("renderer.battle.rarity_curse")
                 }
                 rname = rarity_map.get(getattr(card, "rarity", "common"), t("renderer.battle.rarity_common"))
+                if getattr(card, "token", False):
+                    rname = f"{rname} | {t('renderer_menu.token_label')}"
                 c_name = card.name
                 c_desc = render_card_description(card, run)
                 if run.node_data.get("is_void_corrupted"):

@@ -81,7 +81,7 @@ def _yog_death_quest(stats: UserStats) -> Dict[str, Any]:
         {"text": get_locale_text("i18n_temple.quest.goal_2"), "done": bool(flags.get(TEMPLE_VISITED_KEY))},
         {"text": get_locale_text("i18n_temple.quest.goal_3"), "done": bool(inner.get("cultists_defeated") or inner.get("temple_boss_defeated"))},
         {"text": get_locale_text("i18n_temple.quest.goal_4"), "done": bool(inner.get("temple_boss_defeated"))},
-        {"text": get_locale_text("i18n_temple.quest.goal_5"), "done": state == "completed"},
+        {"text": get_locale_text("i18n_temple.quest.goal_5"), "done": state in ("outer_plane", "completed")},
         {"text": get_locale_text("i18n_temple.quest.goal_6"), "done": state == "completed"},
     ]
     return {

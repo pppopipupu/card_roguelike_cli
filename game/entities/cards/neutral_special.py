@@ -35,18 +35,28 @@ class MerchantCollectionCard(Card):
         stats = engine.save_manager.load_stats(run.user_id)
         class_cards = [
             cid for cid in card_pool
-            if ALL_CARDS[cid].rarity in ("legendary", "mythic")
+            if not cid.endswith("+")
+            and ALL_CARDS[cid].rarity in ("legendary", "mythic")
             and not cid.startswith("curse_")
             and not cid.startswith("duel_")
+            and not getattr(ALL_CARDS[cid], "token", False)
+            and not getattr(ALL_CARDS[cid], "event_only", False)
+            and not getattr(ALL_CARDS[cid], "life_merchant_only", False)
+            and not getattr(ALL_CARDS[cid], "coop_only", False)
             and ALL_CARDS[cid].color == target_color
             and is_card_available(cid, stats)
         ]
         if not class_cards:
             class_cards = [
                 cid for cid in card_pool
-                if ALL_CARDS[cid].rarity in ("legendary", "mythic")
+                if not cid.endswith("+")
+                and ALL_CARDS[cid].rarity in ("legendary", "mythic")
                 and not cid.startswith("curse_")
                 and not cid.startswith("duel_")
+                and not getattr(ALL_CARDS[cid], "token", False)
+                and not getattr(ALL_CARDS[cid], "event_only", False)
+                and not getattr(ALL_CARDS[cid], "life_merchant_only", False)
+                and not getattr(ALL_CARDS[cid], "coop_only", False)
             ]
         import random
         max_count = getattr(self, "hit_count", 2)

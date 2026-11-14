@@ -5,14 +5,16 @@ AMULET_CONFIG = {
         "desc": "谢幕曲：你获得 1A 1BA。",
         "actions": 1,
         "upgraded_actions": 2,
-        "bonus_actions": 1
+        "bonus_actions": 1,
+        "token": True
     },
     "energy_core+": {
         "name": "能量核心+",
         "countdown": 1,
         "desc": "谢幕曲：你获得 2A 1BA。",
         "actions": 2,
-        "bonus_actions": 1
+        "bonus_actions": 1,
+        "token": True
     },
     "lucky_coin": {
         "name": "幸运金币",
@@ -80,17 +82,20 @@ AMULET_CONFIG = {
     "abyss_altar_awaken": {
         "name": "苏醒的深渊祭坛",
         "countdown": 1,
-        "desc": "谢幕曲：召唤【汇集的深渊祭坛】。"
+        "desc": "谢幕曲：召唤【汇集的深渊祭坛】。",
+        "token": True
     },
     "abyss_altar_converge": {
         "name": "汇集的深渊祭坛",
         "countdown": 1,
-        "desc": "谢幕曲：召唤【爆发的深渊祭坛】。"
+        "desc": "谢幕曲：召唤【爆发的深渊祭坛】。",
+        "token": True
     },
     "abyss_altar_burst": {
         "name": "爆发的深渊祭坛",
         "countdown": 1,
-        "desc": "谢幕曲：召唤【终结的深渊祭坛】。"
+        "desc": "谢幕曲：召唤【终结的深渊祭坛】。",
+        "token": True
     },
     "abyss_altar_end": {
         "name": "终结的深渊祭坛",
@@ -99,7 +104,8 @@ AMULET_CONFIG = {
         "enemy_damage": 500,
         "upgraded_enemy_damage": 600,
         "player_damage": 10,
-        "upgraded_player_damage": 5
+        "upgraded_player_damage": 5,
+        "token": True
     },
     "tactical_barrack": {
         "name": "战术兵营",

@@ -397,6 +397,8 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         c_obj = ALL_CARDS[target_cid]
         if getattr(c_obj, "rarity", "common") in ("legendary", "mythic", "artifact", "curse"):
             return get_locale_text("global.card_lock_failed_legendary")
+        if getattr(c_obj, "token", False) or getattr(c_obj, "event_only", False) or getattr(c_obj, "life_merchant_only", False) or getattr(c_obj, "coop_only", False):
+            return get_locale_text("global.card_lock_failed_special")
         if target_cid in getattr(stats, "locked_cards", []):
             return get_locale_text("i18n_town.card_lock_already", choice=choice)
         if len(getattr(stats, "locked_cards", [])) >= LOCK_SLOT_LIMIT:

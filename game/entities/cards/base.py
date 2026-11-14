@@ -326,6 +326,7 @@ class CardRegistryDict(dict):
             inst.coop_only = cfg.get("coop_only", False)
             inst.life_merchant_only = cfg.get("life_merchant_only", False)
             inst.event_only = cfg.get("event_only", False)
+            inst.token = cfg.get("token", False)
             fragile_val = cfg.get("fragile", 0)
             if fragile_val > 0:
                 from ...entities.tags import FragileTag
@@ -630,6 +631,7 @@ for cid, cfg in _get_card_config().items():
     inst.coop_only = cfg.get("coop_only", False)
     inst.life_merchant_only = cfg.get("life_merchant_only", False)
     inst.event_only = cfg.get("event_only", False)
+    inst.token = cfg.get("token", False)
     fragile_val = cfg.get("fragile", 0)
     if fragile_val > 0:
         from ...entities.tags import FragileTag

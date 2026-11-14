@@ -20,6 +20,8 @@ def _pick_random_card(card_filter: str, stats):
     for cid, card in ALL_CARDS.items():
         if cid.endswith("+") or cid.startswith("curse_") or cid.startswith("duel_") or is_coop_only(cid):
             continue
+        if getattr(card, "token", False) or getattr(card, "event_only", False) or getattr(card, "life_merchant_only", False):
+            continue
         if not is_card_available(cid, stats):
             continue
         if card_filter == "rare_minion":
@@ -38,6 +40,9 @@ def _pick_random_card(card_filter: str, stats):
             and not cid.startswith("curse_")
             and not cid.startswith("duel_")
             and not is_coop_only(cid)
+            and not getattr(card, "token", False)
+            and not getattr(card, "event_only", False)
+            and not getattr(card, "life_merchant_only", False)
             and is_card_available(cid, stats)
         ]
     return random.choice(candidates) if candidates else None

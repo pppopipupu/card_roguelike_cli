@@ -60,6 +60,7 @@ NEUTRAL_CARD_AMULETS = {
         "cost_ba": 1,
         "desc": "(消耗: 1A 1BA) 部署【苏醒的深渊祭坛】（吟唱 1）。谢幕曲：在此格子部署【汇集的深渊祭坛】。",
         "rarity": "legendary",
+        "token": True,
         "countdown": 1,
         "amulet_desc": "谢幕曲：在此格子部署【汇集的深渊祭坛】。",
         "feedback_success": "在格子 [{grid}] 部署了【{name}】。"
@@ -72,6 +73,7 @@ NEUTRAL_CARD_AMULETS = {
         "cost_ba": 1,
         "desc": "(消耗: 1A 1BA) 部署【汇集的深渊祭坛】（吟唱 1）。谢幕曲：在此格子部署【爆发的深渊祭坛】。",
         "rarity": "legendary",
+        "token": True,
         "countdown": 1,
         "amulet_desc": "谢幕曲：在此格子部署【爆发的深渊祭坛】。",
         "feedback_success": "在格子 [{grid}] 部署了【{name}】。"
@@ -84,6 +86,7 @@ NEUTRAL_CARD_AMULETS = {
         "cost_ba": 1,
         "desc": "(消耗: 1A 1BA) 部署【爆发的深渊祭坛】（吟唱 1）。谢幕曲：在此格子部署【终结的深渊祭坛】。",
         "rarity": "legendary",
+        "token": True,
         "countdown": 1,
         "amulet_desc": "谢幕曲：在此格子部署【终结的深渊祭坛】。",
         "feedback_success": "在格子 [{grid}] 部署了【{name}】。"
@@ -96,6 +99,7 @@ NEUTRAL_CARD_AMULETS = {
         "cost_ba": 1,
         "desc": "(消耗: 1A 1BA) 部署【终结的深渊祭坛】（吟唱 1）。谢幕曲对场上所有敌人造成 500 点真实伤害，你受到 10 点真实伤害。",
         "rarity": "legendary",
+        "token": True,
         "countdown": 1,
         "base_dmg": 500,
         "self_hp_cost": 10,
