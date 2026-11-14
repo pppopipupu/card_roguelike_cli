@@ -24,7 +24,7 @@
 - 上帝类红线：非二进制文件超过 500 行应考虑重构，超过 1000 行必须立即重构；无论用户是否要求，均须执行。
 - 复用：通用判断、数值缩放、排版与流程使用基类模板方法或共享工具函数，禁止复制粘贴相似逻辑。
 - 状态：实体状态使用 `models/state.py` 中的 Dataclass，持久化统一走 `models/manager.py` 的 SaveManager。卡牌堆中的卡牌必须是 `CardState`，禁止使用裸字符串。新代码禁止 `from_cid`；禁止修改卡牌 id 或追加后缀，升级、宝石、重放等状态只改属性。重放、易碎等修饰不得写入卡牌名称，只追加到描述末尾。
-- 序列化：Python 代码禁止 `import json`；JSON 读写与 HTTP 响应统一走 `game/json_codec.py` 与 `server/responses.py`（orjson）。
+- 序列化：JSON 读写与 HTTP 响应以 orjson 为主，统一走 `game/json_codec.py` 与 `server/responses.py`；仅 `json_codec` 允许标准库回退，用于兼容超出 64 位整数或 Infinity 的旧存档。
 - 事件循环：服务端在 Linux 与 macOS 使用 uvloop，Windows 回退 asyncio；业务代码禁止自行创建事件循环或替换运行中的循环。
 - 后端：只暴露 `POST /api/v1/action` 与 `/healthz`；单进程、单 worker、每用户串行锁、原子写存档。JWT 通过 Supabase JWKS 校验；禁止使用 Supabase service_role；密钥只从环境变量读取。
 - 输出：游戏交互文本除非用户明确要求的场合否则禁止Markdown、LaTeX 和解释性括号；除查询模式可附英文 ID 外，禁止裸露未翻译的实体 ID。玩家昵称只在需要的界面通过显式变量格式化，禁止全局替换“玩家”。
