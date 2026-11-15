@@ -168,7 +168,7 @@ class HeadlessGameServer:
         _, exists = CommandHandler.resolve(first_word, curr_state)
         if exists:
             is_game_cmd = True
-        if curr_state in ("temple", "outer_plane") and first_word.isdigit():
+        if curr_state == "outer_plane" and first_word.isdigit():
             is_game_cmd = True
         if curr_state == "dialog":
             if first_word.isdigit() or first_word in ("离开", "退出", "返回", "exit", "quit"):

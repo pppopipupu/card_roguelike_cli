@@ -117,6 +117,11 @@ class GridMapService:
         if room is None or room.room_type == "wall" or (room.room_type == "secret_boss" and not fm.secret_unlocked):
             fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
             return get_locale_text("i18n_grid_map.err_blocked_wall")
+        if room.locked:
+            boss_room = fm.rooms.get(fm.boss_coord) if fm.boss_coord else None
+            if not (boss_room is not None and boss_room.cleared):
+                fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
+                return get_locale_text("i18n_yog_quest.room_locked")
 
         p = run.player
         pending_map = fm.floor_flags.setdefault("pending_obstacle", {})
@@ -190,7 +195,25 @@ class GridMapService:
         self._sync_stage_for_coord(run, p, target_coord)
         return self._enter_room(run, uid, target_coord)
 
+    def _update_quest_zone(self, run, room) -> None:
+        from ...data.yog_quest_config import YOG_QUEST_ZONE_KEY
+        if room.room_type == "boss":
+            zone = 2
+        elif room.landmark_id == "yog_necronomicon":
+            zone = 3
+        else:
+            return
+        stats = self.save_manager.load_stats(run.user_id)
+        if stats.town_flags.get(YOG_QUEST_ZONE_KEY) == zone:
+            return
+        stats.town_flags[YOG_QUEST_ZONE_KEY] = zone
+        self.save_manager.save_stats(run.user_id, stats)
+
     def _room_display_label(self, room) -> str:
+        shared = getattr(room, "shared_payload", None) or {}
+        name_key = shared.get("name_key")
+        if name_key:
+            return get_locale_text(name_key)
         if room.room_type == "landmark" and room.landmark_id:
             from ...data.grid_map_config import LANDMARK_CONFIGS
             lcfg = LANDMARK_CONFIGS.get(room.landmark_id, {})
@@ -272,6 +295,8 @@ class GridMapService:
         fm = run.floor_map
         room = fm.rooms[coord]
         p = run.player
+        if fm.floor_flags.get("yog_quest"):
+            self._update_quest_zone(run, room)
 
         if room.room_type in ("empty", "spawn"):
             room.cleared = True
@@ -431,6 +456,10 @@ class GridMapService:
             })
         SessionContextScoper.create_session(run, coord, "battle", participants, node_data=node_data)
         self.map_engine.battle_engine._init_battle_node(run, difficulty)
+        if room.shared_payload.get("yog_encounter"):
+            from .yog_quest.floor import apply_quest_encounter
+            apply_quest_encounter(run, room)
+            self.map_engine.battle_engine.enemy_controller.roll_enemy_intent(run)
         self.save_manager.save_save(caller, run)
         from .rooms.interact import format_room_extras
         hazard_loss = room.shared_payload.get("hazard_loss", 0)

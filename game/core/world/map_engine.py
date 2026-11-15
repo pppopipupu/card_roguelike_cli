@@ -270,6 +270,30 @@ class MapEngine:
 
     def advance_to_next_floor(self, run: GameRun) -> str:
         cur_floor = run.floor_map.floor_index if run.floor_map else 1
+        if run.floor_map is not None and run.floor_map.floor_flags.get("yog_quest"):
+            from .yog_quest.floor import generate_yog_quest_floor
+            from ...data.yog_quest_config import YOG_FLOOR_TEMPLE, YOG_QUEST_ZONE_KEY
+            if cur_floor >= YOG_FLOOR_TEMPLE:
+                return get_locale_text("i18n_yog_quest.gate.no_further")
+            next_floor = YOG_FLOOR_TEMPLE
+            cfg = FLOOR_CONFIGS[next_floor]
+            run.floor_map = generate_yog_quest_floor(run, next_floor)
+            SessionContextScoper.ensure_full_party_order(run)
+            for uid in run.all_human_uids():
+                p = run.players.get(uid)
+                if p is None:
+                    continue
+                p.sp = p.max_sp
+                reduce_exhaustion(p, 1)
+                p.stage = int(cfg["stage_min"])
+            run.node_type = "grid_map"
+            run.enemies.clear()
+            run.node_data = {}
+            stats = self.save_manager.load_stats(run.user_id)
+            stats.town_flags[YOG_QUEST_ZONE_KEY] = 1
+            self.save_manager.save_stats(run.user_id, stats)
+            floor_name = get_locale_text(cfg["name_key"])
+            return get_locale_text("i18n_yog_quest.gate.arrived", floor=next_floor, name=floor_name)
         next_floor = min(4, cur_floor + 1)
         cfg = FLOOR_CONFIGS.get(next_floor, FLOOR_CONFIGS[4])
         run.floor_map = generate_floor_map(run, next_floor, save_manager=self.save_manager)

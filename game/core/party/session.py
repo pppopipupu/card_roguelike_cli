@@ -118,11 +118,15 @@ class SessionContextScoper:
             if mark_cleared and session.coord and session.coord in fm.rooms:
                 room = fm.rooms[session.coord]
                 if room.room_type == "boss":
-                    room.room_type = "downstairs"
-                    room.cleared = False
-                    room.explored = True
-                    from ..world.landmark_system import ensure_descent_tunnel
-                    ensure_descent_tunnel(room)
+                    if fm.floor_flags.get("yog_quest"):
+                        room.cleared = True
+                        room.explored = True
+                    else:
+                        room.room_type = "downstairs"
+                        room.cleared = False
+                        room.explored = True
+                        from ..world.landmark_system import ensure_descent_tunnel
+                        ensure_descent_tunnel(room)
                 elif room.room_type == "secret_boss":
                     room.cleared = True
                     room.explored = True

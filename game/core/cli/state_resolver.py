@@ -1,4 +1,3 @@
-from ...data.temple_config import TEMPLE_ACTIVE_FLAG
 from ...data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
 
 def resolve_game_state(run, stats) -> str:
@@ -11,8 +10,6 @@ def resolve_game_state(run, stats) -> str:
             return "cafe"
         return "explore"
     if stats is not None and stats.in_town:
-        if stats.town_flags.get(TEMPLE_ACTIVE_FLAG):
-            return "temple"
         if stats.town_flags.get(OUTER_PLANE_ACTIVE_FLAG):
             return "outer_plane"
         if stats.town_flags.get("current_dialog"):

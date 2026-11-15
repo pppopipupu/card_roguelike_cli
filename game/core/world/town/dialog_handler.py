@@ -6,7 +6,7 @@ from ....cards import ALL_CARDS
 from ....entities.cards.market import get_market_price
 from ....data.locale_data import get_locale_text
 from ....data.starting_deck_config import LOCK_PRICE_GP, LOCK_SLOT_LIMIT
-from ....data.temple_config import TEMPLE_QUEST_FLAG, TEMPLE_SIGIL_ITEM
+from ....data.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
 
 
 def _option(action: Optional[str], label: Any, condition: Optional[Callable[[UserStats], bool]] = None, target: Any = None, prefix: bool = True, selectable: bool = True) -> Dict[str, Any]:
@@ -82,8 +82,8 @@ def _normal_specs(npc_id: str) -> List[Dict[str, Any]]:
         specs.append(_option("quest_accept", _npc_label("option_quest_accept"), condition=lambda s: s.town_flags.get("quest_town_tour_state", "unstarted") == "unstarted"))
         specs.append(_option("quest_status", _npc_label("option_quest_status"), condition=lambda s: s.town_flags.get("quest_town_tour_state", "unstarted") == "started" and len(s.town_flags.get("quest_town_tour_visited", [])) < 11))
         specs.append(_option("quest_complete", _npc_label("option_quest_complete"), condition=lambda s: s.town_flags.get("quest_town_tour_state", "unstarted") == "started" and len(s.town_flags.get("quest_town_tour_visited", [])) >= 11))
-        specs.append(_option("temple_info", _text_label(get_locale_text("i18n_temple.npc.elder_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and not s.town_flags.get("temple_info_received")))
-        specs.append(_option("temple_hint", _text_label(get_locale_text("i18n_temple.npc.elder_hint_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and bool(s.town_flags.get("temple_info_received")) and s.town_flags.get("quest_yog_death_state") != "completed"))
+        specs.append(_option("yog_info", _text_label(get_locale_text("i18n_yog_quest.npc.elder_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and not s.town_flags.get(YOG_INFO_FLAG)))
+        specs.append(_option("yog_hint", _text_label(get_locale_text("i18n_yog_quest.npc.elder_hint_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and bool(s.town_flags.get(YOG_INFO_FLAG)) and s.town_flags.get(YOG_QUEST_FLAG) != "completed"))
     elif npc_id == "Bartender_Jack":
         specs.append(_option("gift_glass", _npc_label("option_gift_glass"), condition=lambda s: "wine_glass" in s.town_inventory and not s.town_flags.get("jack_gift_given", 0)))
         specs.append(_option("buy_beer", _npc_label("option_buy_beer")))
@@ -118,7 +118,7 @@ def _normal_specs(npc_id: str) -> List[Dict[str, Any]]:
         specs.append(_option("wish", _npc_label("option_wish"), condition=lambda s: "lucky_coin" in s.town_inventory))
         specs.append(_option("wash_herb", _npc_label("option_wash_herb"), condition=lambda s: s.town_flags.get("quest_brew_state", "unstarted") == "started" and "void_herb" in s.town_inventory))
     elif npc_id == "West_Gate":
-        specs.append(_option("enter_temple", _text_label(get_locale_text("i18n_temple.npc.gate_option")), condition=lambda s: TEMPLE_SIGIL_ITEM in (getattr(s, "town_inventory", None) or []) and s.town_flags.get(TEMPLE_QUEST_FLAG) not in ("completed", "outer_plane")))
+        specs.append(_option("enter_quest", _text_label(get_locale_text("i18n_yog_quest.npc.gate_option")), condition=lambda s: YOG_SIGIL_ITEM in (getattr(s, "town_inventory", None) or []) and s.town_flags.get(YOG_QUEST_FLAG) != "completed"))
         specs.append(_option("knock", _npc_label("option_knock")))
     elif npc_id in ("Dummy", "NoobSlayer99", "xXx_SniperElite_xXx", "pppopipupu"):
         specs.append(_option("challenge", _npc_label("option_challenge")))
@@ -289,16 +289,18 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
     def save() -> None:
         town_engine.save_manager.save_stats(user_id, stats)
 
-    if action == "temple_info":
-        stats.town_flags["temple_info_received"] = True
-        town_engine.temple_engine.ensure_sigil(stats)
+    if action == "yog_info":
+        from ..yog_quest.service import ensure_sigil
+        stats.town_flags[YOG_INFO_FLAG] = True
+        ensure_sigil(stats)
         save()
-        return get_locale_text("i18n_temple.npc.elder_reply") + "\n\n" + get_locale_text("i18n_temple.ui.quest_notice") + "\n\n" + rerender()
+        return get_locale_text("i18n_yog_quest.npc.elder_reply") + "\n\n" + get_locale_text("i18n_yog_quest.ui.quest_notice") + "\n\n" + rerender()
 
-    if action == "temple_hint":
-        if town_engine.temple_engine.ensure_sigil(stats):
+    if action == "yog_hint":
+        from ..yog_quest.service import ensure_sigil
+        if ensure_sigil(stats):
             save()
-        return get_locale_text("i18n_temple.npc.elder_hint") + "\n\n" + rerender()
+        return get_locale_text("i18n_yog_quest.npc.elder_hint") + "\n\n" + rerender()
 
     if action == "leave":
         stats.town_flags.pop("current_dialog", None)
@@ -526,10 +528,10 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         save()
         return res + "\n\n" + rerender()
 
-    if action == "enter_temple":
+    if action == "enter_quest":
         stats.town_flags.pop("current_dialog", None)
         save()
-        return town_engine.temple_engine.enter(user_id, stats)
+        return town_engine.engine.start_quest_run(user_id)
 
     if action == "knock":
         count = stats.town_flags.get("knock_count", 0) + 1

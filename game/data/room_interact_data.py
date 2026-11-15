@@ -82,6 +82,22 @@ ROGUE_ITEMS = {
         "usable": True,
         "aliases": ["残页", "先古残页", "笔记", "notes"],
     },
+    "frost_offering": {
+        "name_key": "i18n_room_interact.items.frost_offering.name",
+        "desc_key": "i18n_room_interact.items.frost_offering.desc",
+        "weight": 2,
+        "carryover": False,
+        "usable": False,
+        "aliases": ["霜刃", "祭品", "霜之祭品", "offering"],
+    },
+    "cult_pages": {
+        "name_key": "i18n_room_interact.items.cult_pages.name",
+        "desc_key": "i18n_room_interact.items.cult_pages.desc",
+        "weight": 1,
+        "carryover": True,
+        "usable": False,
+        "aliases": ["教典", "教团书页", "pages"],
+    },
     "skeleton_key": {
         "name_key": "i18n_room_interact.items.skeleton_key.name",
         "desc_key": "i18n_room_interact.items.skeleton_key.desc",
@@ -246,6 +262,11 @@ ROOM_PROPS = {
         "name_key": "i18n_room_interact.props.descent_tunnel.name",
         "desc_key": "i18n_room_interact.props.descent_tunnel.desc",
         "aliases": ["隧道", "下降隧道", "下降通道", "tunnel", "descent"],
+    },
+    "temple_gate": {
+        "name_key": "i18n_room_interact.props.temple_gate.name",
+        "desc_key": "i18n_room_interact.props.temple_gate.desc",
+        "aliases": ["神殿大门", "大门", "石门", "殿门", "gate", "door"],
     },
 }
 

@@ -3,8 +3,20 @@ from ...base import CommandHandler
 from .....renderer import GameRenderer
 from .....data.locale_data import get_locale_text
 
-class ChooseCommand(CommandHandler, names=["选择", "c"], allowed_states=["menu", "explore", "battle", "cafe"], help_key="choose"):
+class ChooseCommand(CommandHandler, names=["选择", "c"], allowed_states=["menu", "explore", "battle", "cafe", "outer_plane"], help_key="choose"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
+        run = router.save_manager.load_save(user_id)
+        state = router._get_current_state(user_id, run)
+        if state == "outer_plane":
+            stats = router.save_manager.load_stats(user_id)
+            token = " ".join(parts[1:]).strip()
+            if token.lower() in ("取消", "离开", "返回", "cancel", "leave", "back", "0", "q"):
+                yield router.town_engine.outer_plane_engine.leave(user_id, stats)
+            elif not token:
+                yield get_locale_text("i18n_cli_general_b.err_invalid_option_index")
+            else:
+                yield router.town_engine.outer_plane_engine.choose(user_id, stats, token)
+            return
         run = router.save_manager.load_save(user_id)
         if run is not None and run.node_type == "cafe":
             val = parts[1] if len(parts) > 1 else parts[0]

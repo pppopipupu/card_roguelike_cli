@@ -33,8 +33,8 @@ class TestTempleAndTokens(unittest.TestCase):
     def _run(self, cmd, uid):
         return asyncio.run(run_command(self.plugin, cmd, uid))
 
-    def test_temple_quest_causality_and_no_early_spoilers(self):
-        uid = "test_temple_causality_user"
+    def test_yog_quest_starts_as_snowfield_grid_run(self):
+        uid = "test_yog_quest_grid_user"
         self._cleanup(uid)
         try:
             self._run(".rogue 主城", uid)
@@ -43,121 +43,43 @@ class TestTempleAndTokens(unittest.TestCase):
             self.sm.save_stats(uid, stats)
 
             pre_quest = self._run(".rogue 任务", uid)
-            self.assertIn("前往中心广场，向向导长老报告你击败了尤格-索托斯", pre_quest)
-            self.assertNotIn("西大门", pre_quest)
+            self.assertIn("尤格索托斯死了吗？", pre_quest)
+            self.assertIn("先与向导长老谈一谈", pre_quest)
             self.assertNotIn("死灵之书", pre_quest)
             self.assertNotIn("欧吕尔", pre_quest)
-            self.assertNotIn("\u0336", pre_quest)
-            self.assertNotIn("✔", pre_quest)
 
             talk_res = self._run(".rogue talk 向导长老", uid)
-            self.assertIn("告诉向导长老：我击败了尤格-索托斯", talk_res)
-            self.assertNotIn("欧吕尔", talk_res)
-            self.assertNotIn("冰封少女", talk_res)
-
+            self.assertIn("询问尤格索托斯的死讯", talk_res)
             report_num = None
             for line in talk_res.splitlines():
-                if "告诉向导长老：我击败了尤格-索托斯" in line:
+                if "询问尤格索托斯的死讯" in line and "." in line:
                     report_num = line.split(".", 1)[0].strip()
                     break
             self.assertIsNotNone(report_num)
 
             reply_res = self._run(f".rogue {report_num}", uid)
-            self.assertIn("西大门外一直藏着一座隐秘的尤格-索托斯神殿", reply_res)
-            self.assertIn("符印", reply_res)
-            self.assertNotIn("欧吕尔", reply_res)
-            self.assertNotIn("冰封少女", reply_res)
+            self.assertIn("星形符印", reply_res)
             stats = self.sm.load_stats(uid)
             self.assertIn("star_sigil", stats.town_inventory)
-            bag_res = self._run(".rogue bag t", uid)
-            self.assertIn("星辉符印", bag_res)
+            self._run(".rogue exit", uid)
 
-            leave_num = None
-            for line in reply_res.splitlines():
-                if "离开" in line and "." in line:
-                    leave_num = line.split(".", 1)[0].strip()
-                    break
-            self.assertIsNotNone(leave_num)
-            self._run(f".rogue {leave_num}", uid)
-            quest_res = self._run(".rogue 任务", uid)
-            self.assertIn("尤格索托斯之死？", quest_res)
-            self.assertIn("在西大门使用【星辉符印】出城，进入尤格索托斯神殿", quest_res)
-            self.assertNotIn("前往中心广场，向向导长老报告", quest_res)
-            self.assertNotIn("死灵之书", quest_res)
-            self.assertNotIn("欧吕尔", quest_res)
-            self.assertNotIn("冰封少女", quest_res)
-            self.assertNotIn("\u0336", quest_res)
             self._run(".rogue a", uid)
             self._run(".rogue a", uid)
             gate_talk = self._run(".rogue talk 西大门", uid)
-            self.assertIn("出示星辉符印", gate_talk)
+            self.assertIn("出城前往雪原", gate_talk)
             enter_res = self._run(".rogue use 星辉符印", uid)
-            self.assertIn("尤格索托斯神殿", enter_res)
-            self.assertNotIn("欧吕尔", enter_res)
+            self.assertIn("雾隐雪原", enter_res)
+            self.assertIn("B11", enter_res)
+            self.assertNotIn("尤格索托斯神殿", enter_res)
+            run = self.sm.load_save(uid)
+            self.assertEqual(run.node_type, "grid_map")
+            self.assertEqual(run.floor_map.floor_index, 5)
+            self.assertTrue(run.floor_map.floor_flags.get("yog_quest"))
 
-            sigil_res = self._run(".rogue 1", uid)
-            self.assertIn("长老派你来的", sigil_res)
-            self.assertNotIn("欧吕尔", sigil_res)
-            self.assertNotIn("姑娘", sigil_res)
-            self.assertNotIn("『", sigil_res)
-
-            steps = [
-                ("2", "左侧回廊"),
-                ("3", "地下墓道"),
-                ("2", "镜廊"),
-                ("2", "教徒营房"),
-                ("2", "仪式厅"),
-                ("2", "关押室"),
-                ("1", "旧祭坛"),
-                ("2", "下行石阶"),
-                ("3", "星门礼拜堂"),
-                ("1", "裂隙石桥"),
-                ("1", "守卫厅"),
-            ]
-            for cmd, expected_room in steps:
-                step_res = self._run(f".rogue {cmd}", uid)
-                self.assertIn(expected_room, step_res)
-                self.assertNotIn("欧吕尔", step_res)
-                self.assertNotIn("『", step_res)
-                self.assertNotIn("』", step_res)
-                if expected_room == "镜廊":
-                    mid_quest = self._run(".rogue 任务", uid)
-                    self.assertIn("从左侧回廊潜入了神殿内部", mid_quest)
-                    self.assertIn("带着骨钥匙穿过神殿内殿", mid_quest)
-                    self.assertNotIn("欧吕尔", mid_quest)
-                    self.assertNotIn("\u0336", mid_quest)
-
-            throne_res = self._run(".rogue 2", uid)
-            self.assertIn("主殿王座厅", throne_res)
-            self.assertIn("冰封少女·欧吕尔的化身", throne_res)
-            self.assertIn("这里不归星辉教团管了", throne_res)
-            self.assertNotIn("『", throne_res)
-
-            throne_quest = self._run(".rogue 任务", uid)
-            self.assertIn("冰封少女·欧吕尔的化身强行闯进了这座神殿", throne_quest)
-            self.assertIn("击退强行闯入王座厅的冰封少女·欧吕尔化身", throne_quest)
-            self.assertNotIn("\u0336", throne_quest)
-
-            leave_res = self._run(".rogue 撤离", uid)
-            self.assertIn("先古主城", leave_res)
-        finally:
-            self._cleanup(uid)
-
-    def test_legacy_temple_info_grants_sigil(self):
-        uid = "test_legacy_temple_sigil_user"
-        self._cleanup(uid)
-        try:
-            self._run(".rogue 主城", uid)
-            stats = self.sm.load_stats(uid)
-            stats.yog_sothoth_kill_count = 1
-            stats.town_flags["temple_info_received"] = True
-            stats.town_pos = "west_gate"
-            stats.town_inventory = []
-            self.sm.save_stats(uid, stats)
-            res = self._run(".rogue use 星辉符印", uid)
-            self.assertIn("尤格索托斯神殿", res)
-            stats = self.sm.load_stats(uid)
-            self.assertIn("star_sigil", stats.town_inventory)
+            quest_res = self._run(".rogue 任务", uid)
+            self.assertIn("穿过雾隐雪原，找到神殿大门", quest_res)
+            move_res = self._run(".rogue d", uid)
+            self.assertIn("C11", move_res)
         finally:
             self._cleanup(uid)
 

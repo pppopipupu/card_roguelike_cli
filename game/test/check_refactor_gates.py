@@ -270,44 +270,49 @@ def scan_locale_keys():
             if rule and rule not in REVEAL_RULES:
                 missing.append(f"dynamic_config: reveal rule {rule}")
 
-    from game.data.temple_config import ENDING_BRANCH_FLAGS, TEMPLE_ENCOUNTERS, TEMPLE_ROOMS, ZONE_NAME_KEYS
-    for zone_key in ZONE_NAME_KEYS.values():
-        if not _has_key(zone_key):
-            missing.append(f"dynamic_config: {zone_key}")
-    for room_id, tcfg in TEMPLE_ROOMS.items():
-        for suffix in ("name", "desc"):
-            k = f"i18n_temple.room.{room_id}.{suffix}"
-            if not _has_key(k):
-                missing.append(f"dynamic_config: {k}")
-        for opt in tcfg["options"]:
-            k = f"i18n_temple.opt.{opt['id']}"
-            if not _has_key(k):
-                missing.append(f"dynamic_config: {k}")
-    for enc_id in TEMPLE_ENCOUNTERS:
-        for suffix in ("scene", "win"):
-            k = f"i18n_temple.encounter.{enc_id}.{suffix}"
-            if not _has_key(k):
-                missing.append(f"dynamic_config: {k}")
-    for suffix in ("title", "intro", "goal_1", "goal_2", "goal_3", "goal_4", "goal_5"):
-        k = f"i18n_temple.quest.{suffix}"
+    from game.data.yog_quest_config import YOG_ENDING_BRANCH_FLAGS, YOG_LANDMARKS, YOG_MAPS
+    from game.data.grid_map_config import FLOOR_CONFIGS
+    for floor_index in (5, 6):
+        cfg = FLOOR_CONFIGS[floor_index]
+        if not _has_key(cfg["name_key"]):
+            missing.append(f"dynamic_config: {cfg['name_key']}")
+    for map_cfg in YOG_MAPS.values():
+        for room_cfg in map_cfg["rooms"].values():
+            name_key = room_cfg.get("name_key")
+            if name_key and not _has_key(name_key):
+                missing.append(f"dynamic_config: {name_key}")
+    for lm_id, lcfg in YOG_LANDMARKS.items():
+        for fld in ("name_key", "desc_key"):
+            if not _has_key(lcfg[fld]):
+                missing.append(f"dynamic_config: {lcfg[fld]}")
+        for opt in lcfg["options"]:
+            for fld in ("text_key", "result_key"):
+                if not _has_key(opt[fld]):
+                    missing.append(f"dynamic_config: {opt[fld]}")
+    for suffix in ("title", "intro", "goal_1", "goal_2", "goal_3", "goal_4", "goal_5", "done_butcher", "done_standard"):
+        k = f"i18n_yog_quest.quest.{suffix}"
         if not _has_key(k):
             missing.append(f"dynamic_config: {k}")
-    for suffix in ("open", "faint", "outer_plane", "yog_arrive", "yog_reveal", "kick", "wake", "finale"):
-        k = f"i18n_temple.ending.{suffix}"
+    for idx in range(4):
+        k = f"i18n_yog_quest.quest.intro_zone_{idx}"
         if not _has_key(k):
             missing.append(f"dynamic_config: {k}")
-    for flag in ENDING_BRANCH_FLAGS:
-        k = f"i18n_temple.ending.branch.{flag}"
+    for suffix in ("open", "faint", "arrive", "reveal", "detain"):
+        k = f"i18n_yog_quest.ending.{suffix}"
+        if not _has_key(k):
+            missing.append(f"dynamic_config: {k}")
+    for flag in YOG_ENDING_BRANCH_FLAGS:
+        k = f"i18n_yog_quest.ending.branch.{flag}"
         if not _has_key(k):
             missing.append(f"dynamic_config: {k}")
     for suffix in ("ember", "chant", "ward"):
         for group in ("cultist_intent", "cultist_log"):
-            k = f"i18n_temple.{group}.{suffix}"
+            k = f"i18n_yog_quest.{group}.{suffix}"
             if not _has_key(k):
                 missing.append(f"dynamic_config: {k}")
     for suffix in ("frost_lance", "winter_veil", "aurora_gaze", "absolute_zero"):
         for group in ("boss_intent", "boss_log"):
-            k = f"i18n_temple.{group}.{suffix}"
+            k = f"i18n_yog_quest.{group}.{suffix}"
             if not _has_key(k):
                 missing.append(f"dynamic_config: {k}")
 

@@ -11,155 +11,58 @@ def _load_zh_cn() -> Dict[str, Any]:
     from ..core.i18n.locale_manager import LocaleManager
     return LocaleManager.get_all_translations()
 
-def get_display_width(s: str) -> int:
-    width = 0
-    for c in s:
-        if ord(c) > 127:
-            width += 2
-        else:
-            width += 1
-    return width
+def render_town_map(stats: UserStats, current_id: str) -> str:
+    from ..data.town_map_config import (
+        TOWN_EMPTY_ICON,
+        TOWN_ICON_ORDER,
+        TOWN_MAP_HEIGHT,
+        TOWN_MAP_WIDTH,
+        TOWN_PLAYER_ICON,
+        TOWN_ROOM_COORDS,
+        TOWN_ROOM_ICONS,
+        TOWN_UNKNOWN_ICON,
+    )
+    from .world_grid import render_grid_view
 
-def render_town_map_classic(current_id: str) -> str:
-    emoji_map = {
-        "watch_tower": "🗼",
-        "west_gate": "⛩️",
-        "range": "🎯",
-        "alley": "🛣️",
-        "square": "🏟️",
-        "fountain": "⛲",
-        "shop": "🏪",
-        "market": "🪙",
-        "tavern": "🍺",
-        "vip_room": "🛋️",
-        "blacksmith": "⚒️"
-    }
-    
-    grid = [
-        ["watch_tower", None, "range", None, "tavern", "vip_room"],
-        ["west_gate", "alley", "square", "fountain", "shop", None],
-        [None, "blacksmith", "market", None, None, None]
-    ]
-    
-    lines = [t("renderer_town.map_title")]
-    for row in grid:
-        row_strs = []
-        for rid in row:
-            if rid is None:
-                row_strs.append("🧱")
-            elif rid == current_id:
-                row_strs.append("📍")
-            else:
-                row_strs.append(emoji_map.get(rid, "🧱"))
-        lines.append("".join(row_strs))
-        
-    lines.append("")
-    lines.append(t("renderer_town.legend_title"))
-    
-    def get_leg(rid: str, name_key: str) -> str:
-        emo = "📍" if rid == current_id else emoji_map.get(rid, "🧱")
-        return f"{emo} {t(name_key)}"
-        
-    lines.append(t(
-        "renderer_town.legend_row_1",
-        watch_tower=get_leg("watch_tower", "renderer_town.room_watch_tower"),
-        west_gate=get_leg("west_gate", "renderer_town.room_west_gate"),
-        range=get_leg("range", "renderer_town.room_range")
-    ))
-    lines.append(t(
-        "renderer_town.legend_row_2",
-        alley=get_leg("alley", "renderer_town.room_alley"),
-        square=get_leg("square", "renderer_town.room_square"),
-        fountain=get_leg("fountain", "renderer_town.room_fountain")
-    ))
-    lines.append(t(
-        "renderer_town.legend_row_3",
-        shop=get_leg("shop", "renderer_town.room_shop"),
-        tavern=get_leg("tavern", "renderer_town.room_tavern"),
-        vip_room=get_leg("vip_room", "renderer_town.room_vip_room")
-    ))
-    lines.append(t(
-        "renderer_town.legend_row_4",
-        blacksmith=get_leg("blacksmith", "renderer_town.room_blacksmith"),
-        market=get_leg("market", "renderer_town.room_market"),
-        wall=t("renderer_town.legend_wall")
-    ))
-    
+    coord = TOWN_ROOM_COORDS.get(current_id, "C2")
+    coord_rooms = {c: rid for rid, c in TOWN_ROOM_COORDS.items()}
+    visited = set(stats.town_flags.get("visited_rooms") or [])
+    visited.add(current_id)
+
+    def icon_for(cell: str) -> str:
+        rid = coord_rooms.get(cell)
+        if rid is None:
+            return TOWN_EMPTY_ICON
+        if rid == current_id:
+            return TOWN_PLAYER_ICON
+        if rid not in visited:
+            return TOWN_UNKNOWN_ICON
+        return TOWN_ROOM_ICONS.get(rid, TOWN_UNKNOWN_ICON)
+
+    grid_lines, seen = render_grid_view(
+        TOWN_MAP_WIDTH,
+        TOWN_MAP_HEIGHT,
+        coord,
+        icon_for,
+        show_viewport=False,
+    )
+    lines = [get_locale_text("i18n_world_grid.town_title", coord=coord)]
+    lines.extend(grid_lines)
+    legend_parts = []
+    for rid in TOWN_ICON_ORDER:
+        icon = TOWN_PLAYER_ICON if rid == current_id else TOWN_ROOM_ICONS[rid]
+        if rid not in visited:
+            continue
+        name = get_locale_text(f"global.rooms.{rid}.name")
+        legend_parts.append(f"{icon}{name}")
+    if TOWN_UNKNOWN_ICON in seen:
+        legend_parts.append(f"{TOWN_UNKNOWN_ICON}{get_locale_text('i18n_world_grid.town_unknown')}")
+    if TOWN_EMPTY_ICON in seen:
+        legend_parts.append(f"{TOWN_EMPTY_ICON}{get_locale_text('renderer_town.legend_wall')}")
+    if legend_parts:
+        lines.append(get_locale_text("renderer_town.legend_title") + " ".join(legend_parts))
+    lines.append(get_locale_text("i18n_world_grid.town_hint"))
     return "\n".join(lines)
-
-def render_town_map_radar(current_id: str, zh_cn: Dict[str, Any], room_data: Dict[str, Any]) -> str:
-    exits = room_data.get("exits", {})
-    rooms_loc = zh_cn.get("rooms", {})
-    
-    def get_room_name(rid: str) -> str:
-        if not rid:
-            return ""
-        return rooms_loc.get(rid, {}).get("name", rid)
-        
-    curr_name = get_room_name(current_id)
-    
-    north_id = exits.get("w")
-    south_id = exits.get("s")
-    west_id = exits.get("a")
-    east_id = exits.get("d")
-    
-    north_str = f"[{get_room_name(north_id)}]" if north_id else ""
-    south_str = f"[{get_room_name(south_id)}]" if south_id else ""
-    west_str = f"[{get_room_name(west_id)}]" if west_id else ""
-    east_str = f"[{get_room_name(east_id)}]" if east_id else ""
-    
-    curr_str = f"📍{curr_name}"
-    curr_len = get_display_width(curr_str)
-    
-    lines = []
-    
-    if north_str:
-        left_prefix_len = get_display_width(west_str) + 4 if west_str else 6
-        curr_center_offset = curr_len // 2
-        total_offset = left_prefix_len + curr_center_offset
-        
-        north_len = get_display_width(north_str)
-        north_start = total_offset - (north_len // 2)
-        if north_start < 0:
-            north_start = 0
-            
-        lines.append(" " * north_start + north_str)
-        lines.append(" " * total_offset + "▲")
-        lines.append(" " * total_offset + "│")
-        
-    mid_parts = []
-    if west_str:
-        mid_parts.append(f"{west_str} ◄─ ")
-    else:
-        mid_parts.append("      ")
-    mid_parts.append(curr_str)
-    if east_str:
-        mid_parts.append(f" ─► {east_str}")
-    lines.append("".join(mid_parts))
-    
-    if south_str:
-        left_prefix_len = get_display_width(west_str) + 4 if west_str else 6
-        curr_center_offset = curr_len // 2
-        total_offset = left_prefix_len + curr_center_offset
-        
-        south_len = get_display_width(south_str)
-        south_start = total_offset - (south_len // 2)
-        if south_start < 0:
-            south_start = 0
-            
-        lines.append(" " * total_offset + "│")
-        lines.append(" " * total_offset + "▼")
-        lines.append(" " * south_start + south_str)
-        
-    return "\n".join(lines)
-
-def render_town_map(current_id: str, zh_cn: Dict[str, Any], room_data: Dict[str, Any] = None, stats: UserStats = None) -> str:
-    style = "classic"
-    if stats:
-        style = stats.town_flags.get("map_style", "classic")
-    if style == "radar" and room_data:
-        return render_town_map_radar(current_id, zh_cn, room_data)
-    return render_town_map_classic(current_id)
 
 def get_npc_quest_indicator(npc_id: str, stats: UserStats) -> str:
     q_tour = stats.town_flags.get("quest_town_tour_state", "unstarted")
@@ -218,7 +121,7 @@ def get_npc_quest_indicator(npc_id: str, stats: UserStats) -> str:
 def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
     zh_cn = _load_zh_cn()
     current_id = stats.town_pos
-    map_str = render_town_map(current_id, zh_cn, room_data, stats)
+    map_str = render_town_map(stats, current_id)
 
     name_key = room_data.get("name_key", current_id)
     room_loc = zh_cn.get("rooms", {}).get(name_key, {})

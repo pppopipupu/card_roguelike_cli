@@ -12,7 +12,7 @@ from ...data.achievement_data import (
     HIDDEN_ACHIEVEMENT_RARITIES,
 )
 from ...data.locale_data import get_locale_text
-from ...data.temple_config import TEMPLE_QUEST_FLAG
+from ...data.yog_quest_config import YOG_QUEST_FLAG
 
 _PENDING_NOTICES: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
 
@@ -144,7 +144,7 @@ def _check_fusion_overclock(stats) -> bool:
 
 
 def _check_temple_awakening(stats) -> bool:
-    return stats.town_flags.get(TEMPLE_QUEST_FLAG) == "completed"
+    return stats.town_flags.get(YOG_QUEST_FLAG) == "completed"
 
 
 ACHIEVEMENT_EVALUATORS = {

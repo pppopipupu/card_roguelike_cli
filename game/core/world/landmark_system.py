@@ -1,6 +1,7 @@
 import random
 from ...data.grid_map_config import FLOOR_CONFIGS, LANDMARK_CONFIGS, QUEST_RELIC_CONFIG, SP_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.locale_data import get_locale_text, get_locale_raw
+from ...data.yog_quest_config import YOG_ENDING_BRANCH_FLAGS, YOG_LANDMARKS
 from ...entities import ALL_CARDS, get_relic_name
 from .ancient_reward import build_ancient_options, grant_ancient_blessing
 from ...models.state import ensure_card_state
@@ -48,6 +49,25 @@ def build_landmark_options(run, uid: str) -> dict:
     title = ""
     desc = ""
 
+    if lm_id in YOG_LANDMARKS:
+        cfg = YOG_LANDMARKS[lm_id]
+        title = get_locale_text(cfg["name_key"])
+        desc = get_locale_text(cfg["desc_key"])
+        done = fm.floor_flags.setdefault("yog_done_options", {})
+        for opt in cfg["options"]:
+            if opt.get("once") and done.get(opt["id"]):
+                continue
+            options.append({
+                "action": "yog_landmark",
+                "landmark_id": lm_id,
+                "option_id": opt["id"],
+                "text": get_locale_text(opt["text_key"]),
+            })
+        options.append({
+            "action": "landmark_leave",
+            "text": get_locale_text("i18n_grid_map.opt_leave"),
+        })
+        return {"title": title, "desc": desc, "landmark_id": lm_id, "coord": coord, "options": options}
     if lm_id == "observatory":
         title = get_locale_text(LANDMARK_CONFIGS["observatory"]["name_key"])
         desc = get_locale_text(LANDMARK_CONFIGS["observatory"]["desc_key"])
@@ -120,6 +140,8 @@ def build_landmark_options(run, uid: str) -> dict:
 def ensure_descent_tunnel(room):
     if room is None:
         return
+    if "temple_gate" in (room.props or []):
+        return
     if "descent_tunnel" not in room.props:
         room.props = list(room.props or []) + ["descent_tunnel"]
     room.env_id = "downstairs_hall"
@@ -127,6 +149,15 @@ def ensure_descent_tunnel(room):
 
 def build_downstairs_data(run, save_manager, uid) -> dict:
     fm = run.floor_map
+    if fm.floor_flags.get("yog_quest"):
+        return {
+            "title": get_locale_text("i18n_yog_quest.gate.title"),
+            "desc": get_locale_text("i18n_yog_quest.gate.desc"),
+            "options": [
+                {"action": "yog_descend", "text": get_locale_text("i18n_yog_quest.gate.option")},
+                {"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")},
+            ],
+        }
     nxt = fm.floor_index + 1
     nxt_name = get_locale_text(FLOOR_CONFIGS.get(nxt, FLOOR_CONFIGS[4])["name_key"])
     coord = fm.player_coords.get(uid, "")
@@ -179,6 +210,72 @@ def open_room_talk(save_manager, run, uid: str) -> str:
     return get_locale_text("i18n_grid_map.no_talk_target")
 
 
+def _yog_ending_text(flags: dict) -> str:
+    parts = [
+        get_locale_text("i18n_yog_quest.ending.open"),
+        get_locale_text("i18n_yog_quest.ending.faint"),
+        get_locale_text("i18n_yog_quest.ending.arrive"),
+        get_locale_text("i18n_yog_quest.ending.reveal"),
+        get_locale_text("i18n_yog_quest.ending.detain"),
+    ]
+    for name in YOG_ENDING_BRANCH_FLAGS:
+        if not flags.get(name):
+            continue
+        key = f"i18n_yog_quest.ending.branch.{name}"
+        if get_locale_raw(key) is not None:
+            parts.append(get_locale_text(key))
+    return "\n\n".join(parts)
+
+
+def _execute_yog_landmark(save_manager, map_engine, run, chosen: dict) -> str:
+    from ..inventory.bag_service import add_bag_item, get_item_display_name
+    lm_id = chosen.get("landmark_id", "")
+    option_id = chosen.get("option_id", "")
+    cfg = YOG_LANDMARKS.get(lm_id, {})
+    opt = next((item for item in cfg.get("options", []) if item.get("id") == option_id), None)
+    if opt is None:
+        return get_locale_text("err_invalid_option_idx")
+    p = run.player
+    fm = run.floor_map
+    require_item = opt.get("requires_item")
+    if require_item:
+        bag = getattr(p, "bag_items", None) or []
+        if require_item not in bag:
+            return get_locale_text("i18n_yog_quest.option.need_item", name=get_item_display_name(require_item))
+        if opt.get("consume_item"):
+            bag.remove(require_item)
+    notices = []
+    if opt.get("heal"):
+        before = p.hp
+        p.hp = min(p.max_hp, p.hp + int(opt["heal"]))
+        notices.append(get_locale_text("i18n_yog_quest.option.heal", amount=p.hp - before))
+    if opt.get("gp"):
+        p.gold += int(opt["gp"])
+        notices.append(get_locale_text("i18n_yog_quest.option.gain_gp", gp=opt["gp"]))
+    if opt.get("item"):
+        ok, msg = add_bag_item(p, opt["item"])
+        notices.append(msg if ok else get_locale_text("i18n_yog_quest.option.bag_full", name=get_item_display_name(opt["item"])))
+    flags = fm.floor_flags.setdefault("yog_flags", {})
+    for name, value in (opt.get("set") or {}).items():
+        flags[name] = value
+    if opt.get("reveal_all"):
+        for coord, room in fm.rooms.items():
+            if room.room_type != "wall" and coord not in fm.revealed_coords:
+                fm.revealed_coords.append(coord)
+    if opt.get("once"):
+        fm.floor_flags.setdefault("yog_done_options", {})[option_id] = True
+    result = get_locale_text(opt.get("result_key", cfg.get("desc_key", "")))
+    if opt.get("ending"):
+        from .yog_quest.service import finish_quest
+        outer = finish_quest(save_manager, map_engine, run)
+        parts = [result, _yog_ending_text(flags)]
+        if outer:
+            parts.append(outer)
+        return "\n\n".join(part for part in parts if part)
+    save_manager.save_save(run.user_id, run)
+    return "\n".join([result] + notices)
+
+
 def execute_landmark_option(save_manager, map_engine, run, idx: int) -> str:
     options = run.node_data.get("options", [])
     if idx < 0 or idx >= len(options):
@@ -187,6 +284,9 @@ def execute_landmark_option(save_manager, map_engine, run, idx: int) -> str:
     p = run.player
     fm = run.floor_map
     uid = run.user_id
+
+    if action == "yog_landmark":
+        return _execute_yog_landmark(save_manager, map_engine, run, options[idx])
 
     if action == "landmark_leave":
         map_engine.complete_session(run, mark_cleared=False)
@@ -335,6 +435,11 @@ def execute_downstairs_option(save_manager, map_engine, run, idx: int) -> str:
         map_engine.complete_session(run, mark_cleared=False)
         save_manager.save_save(uid, run)
         return get_locale_text("i18n_grid_map.downstairs.left_msg")
+    if action == "yog_descend":
+        map_engine.complete_session(run, mark_cleared=False)
+        advance_msg = map_engine.advance_to_next_floor(run)
+        save_manager.save_save(uid, run)
+        return advance_msg
     if action != "ancient_pick":
         return get_locale_text("err_invalid_option_idx")
     reward_msg = ""

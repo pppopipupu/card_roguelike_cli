@@ -9,6 +9,7 @@ from ..data.grid_map_config import (
 from ..data.locale_data import get_locale_text
 from ..models.state import GameRun
 from .formatters import format_persistent_buff_bar, format_relic_bar
+from .world_grid import render_grid_view
 def _visible_cell_icon(fm, coord: str, viewer_coord: str, other_coords: set[str], adj_set: set[str]) -> str:
     room = fm.rooms.get(coord)
     if room is None:
@@ -100,17 +101,13 @@ def render_grid_map(run: GameRun) -> str:
         lines.append(render_party_status(run))
     lines.append("")
 
-    col_headers = "   " + " ".join(chr(ord("A") + x) for x in range(fm.width))
-    lines.append(col_headers)
-    seen_icons = set()
-    for y in range(fm.height):
-        row_cells = []
-        for x in range(fm.width):
-            c = xy_to_coord(x, y)
-            icon = _visible_cell_icon(fm, c, viewer_coord, other_coords, adj_set)
-            seen_icons.add(icon)
-            row_cells.append(icon)
-        lines.append(f"{y + 1:>2} " + "".join(row_cells))
+    grid_lines, seen_icons = render_grid_view(
+        fm.width,
+        fm.height,
+        viewer_coord,
+        lambda c: _visible_cell_icon(fm, c, viewer_coord, other_coords, adj_set),
+    )
+    lines.extend(grid_lines)
     lines.append("")
 
     legend_order = [
@@ -153,7 +150,10 @@ def render_grid_map(run: GameRun) -> str:
     if cur_room is not None:
         lines.extend(_render_room_details(fm, cur_room, viewer_coord, p))
         if cur_room.room_type == "downstairs":
-            lines.append(get_locale_text("i18n_grid_map.tunnel_hint"))
+            if fm.floor_flags.get("yog_quest"):
+                lines.append(get_locale_text("i18n_yog_quest.gate.hint"))
+            else:
+                lines.append(get_locale_text("i18n_grid_map.tunnel_hint"))
         elif cur_room.room_type == "landmark" or (viewer_coord == fm.ritual_coord and not fm.secret_unlocked):
             lines.append(get_locale_text("i18n_grid_map.talk_hint"))
 
@@ -253,7 +253,10 @@ def _render_room_details(fm, cur_room, viewer_coord: str, player) -> list[str]:
     from ..core.world.rooms.interact import format_room_env_with_props
     from ..data.potion_data import POTION_SLOT_LIMIT
     from ..data.room_interact_data import ROOM_NPCS
-    out = [format_room_env_with_props(cur_room, include_cleared_suffix=True)]
+    shared = getattr(cur_room, "shared_payload", None) or {}
+    name_key = shared.get("name_key")
+    out = [get_locale_text(name_key)] if name_key else []
+    out.append(format_room_env_with_props(cur_room, include_cleared_suffix=True))
 
     cx, cy = coord_to_xy(viewer_coord)
     dirs = [

@@ -1,7 +1,6 @@
 from typing import Dict, Any, List
 from ....models.state import UserStats
-from ....data.outer_plane_config import OUTER_PLANE_FLAGS_KEY
-from ....data.temple_config import TEMPLE_FLAGS_KEY, TEMPLE_INFO_FLAG, TEMPLE_QUEST_FLAG, TEMPLE_VISITED_KEY
+from ....data.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_QUEST_ROUTE_KEY, YOG_QUEST_ZONE_KEY
 from ....data.locale_data import get_locale_text
 
 
@@ -114,99 +113,33 @@ def _yog_death_quest(stats: UserStats) -> Dict[str, Any]:
     if int(getattr(stats, "yog_sothoth_kill_count", 0) or 0) <= 0:
         return {}
     flags = stats.town_flags
-    inner = flags.get(TEMPLE_FLAGS_KEY) or {}
-    outer = flags.get(OUTER_PLANE_FLAGS_KEY) or {}
-    visited = flags.get(TEMPLE_VISITED_KEY) or []
-    state = flags.get(TEMPLE_QUEST_FLAG, "unstarted")
-    title = get_locale_text("i18n_temple.quest.title")
-
+    state = flags.get(YOG_QUEST_FLAG, "unstarted")
+    title = get_locale_text("i18n_yog_quest.quest.title")
     if state == "completed":
-        if inner.get("butcher_path") or outer.get("butcher_path"):
-            intro = get_locale_text("i18n_temple.quest.done_butcher")
+        if flags.get(YOG_QUEST_ROUTE_KEY) == "butcher":
+            intro = get_locale_text("i18n_yog_quest.quest.done_butcher")
         else:
-            intro = get_locale_text("i18n_temple.quest.done_standard")
+            intro = get_locale_text("i18n_yog_quest.quest.done_standard")
         return {"state": state, "title": title, "intro": intro, "objectives": []}
-
-    if state == "outer_plane":
-        has_shift = bool(outer.get("has_plane_shift"))
-        has_calm = bool(outer.get("has_calm_mind"))
-        if outer.get("butcher_path"):
-            intro = get_locale_text("i18n_temple.quest.intro_outer_butcher")
-            goal = get_locale_text("i18n_temple.quest.goal_6_butcher")
-        else:
-            intro = get_locale_text("i18n_temple.quest.intro_outer_default")
-            if has_shift and has_calm:
-                goal = get_locale_text("i18n_temple.quest.goal_6_forge")
-            elif has_shift:
-                goal = get_locale_text("i18n_temple.quest.goal_6_need_calm")
-            elif has_calm:
-                goal = get_locale_text("i18n_temple.quest.goal_6_need_shift")
-            else:
-                goal = get_locale_text("i18n_temple.quest.goal_6")
-        return {"state": state, "title": title, "intro": intro, "objectives": [goal]}
-
-    if not flags.get(TEMPLE_INFO_FLAG):
+    if not flags.get(YOG_INFO_FLAG):
         return {
             "state": state,
             "title": title,
-            "intro": get_locale_text("i18n_temple.quest.intro"),
-            "objectives": [get_locale_text("i18n_temple.quest.goal_1")],
+            "intro": get_locale_text("i18n_yog_quest.quest.intro"),
+            "objectives": [get_locale_text("i18n_yog_quest.quest.goal_1")],
         }
-
-    if not visited:
+    if state == "unstarted":
         return {
             "state": state,
             "title": title,
-            "intro": get_locale_text("i18n_temple.quest.intro_info"),
-            "objectives": [get_locale_text("i18n_temple.quest.goal_2")],
+            "intro": get_locale_text("i18n_yog_quest.quest.intro_info"),
+            "objectives": [get_locale_text("i18n_yog_quest.quest.goal_gate")],
         }
-
-    if inner.get("temple_boss_defeated") or "necronomicon_chamber" in visited:
-        return {
-            "state": state,
-            "title": title,
-            "intro": get_locale_text("i18n_temple.quest.intro_book"),
-            "objectives": [get_locale_text("i18n_temple.quest.goal_5")],
-        }
-
-    if "frozen_throne" in visited:
-        return {
-            "state": state,
-            "title": title,
-            "intro": get_locale_text("i18n_temple.quest.intro_throne"),
-            "objectives": [get_locale_text("i18n_temple.quest.goal_4")],
-        }
-
-    deep_rooms = ("cage_of_scholars", "altar_of_frost", "frozen_stair", "auril_shrine", "blizzard_bridge", "sentinel_hall")
-    if inner.get("cultists_defeated") or inner.get("side_door_used") or any(r in visited for r in deep_rooms):
-        if inner.get("butcher_path"):
-            intro = get_locale_text("i18n_temple.quest.intro_deep_butcher")
-        elif inner.get("side_door_used"):
-            intro = get_locale_text("i18n_temple.quest.intro_deep_stealth")
-        else:
-            intro = get_locale_text("i18n_temple.quest.intro_deep_combat")
-        return {
-            "state": state,
-            "title": title,
-            "intro": intro,
-            "objectives": [get_locale_text("i18n_temple.quest.goal_3_deep")],
-        }
-
-    if inner.get("butcher_path"):
-        intro = get_locale_text("i18n_temple.quest.intro_temple_butcher")
-    elif inner.get("forced_entry"):
-        intro = get_locale_text("i18n_temple.quest.intro_temple_forced")
-    elif inner.get("path_sneak"):
-        intro = get_locale_text("i18n_temple.quest.intro_temple_sneak")
-    else:
-        intro = get_locale_text("i18n_temple.quest.intro_temple_default")
-
-    if inner.get("spy_intel"):
-        goal = get_locale_text("i18n_temple.quest.goal_3_spy")
-    elif inner.get("bone_key"):
-        goal = get_locale_text("i18n_temple.quest.goal_3_key")
-    else:
-        goal = get_locale_text("i18n_temple.quest.goal_3")
+    zone = int(flags.get(YOG_QUEST_ZONE_KEY, 0) or 0)
+    zone = max(0, min(zone, 3))
+    goal_keys = ("goal_2", "goal_3", "goal_4", "goal_5")
+    intro = get_locale_text(f"i18n_yog_quest.quest.intro_zone_{zone}")
+    goal = get_locale_text(f"i18n_yog_quest.quest.{goal_keys[zone]}")
     return {"state": state, "title": title, "intro": intro, "objectives": [goal]}
 
 

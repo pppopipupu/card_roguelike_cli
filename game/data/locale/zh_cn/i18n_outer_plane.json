@@ -122,7 +122,7 @@
     "lucidity": " 意识：{lucidity} / {max}",
     "options_header": " 可行动作：",
     "option_row": "  {num}. {label}",
-    "footer": " 输入序号或 go <序号> 抉择；看 重新显示；撤离 返回；攻击 对眼前的存在出手。",
+    "footer": " 输入序号抉择；看 重新显示；选择 取消 返回；攻击 对眼前的存在出手。",
     "invalid_option": " ✦ 这里没有这个选项。",
     "not_in_outer_plane": " ✦ 你当前不在外层位面。",
     "no_attack": " ✦ 周围没有可以攻击的目标。",

@@ -9,14 +9,12 @@ from ....data.locale_data import get_locale_text
 from ....data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
 from ...inventory.bag_service import get_item_display_name
 
-from ....data.temple_config import TEMPLE_ACTIVE_FLAG, TEMPLE_SIGIL_ITEM
+from ....data.yog_quest_config import YOG_SIGIL_ITEM
 
 class TownEngine:
     def __init__(self, save_manager, engine):
         self.save_manager = save_manager
         self.engine = engine
-        from ..temple.engine import TempleEngine
-        self.temple_engine = TempleEngine(save_manager, engine, self)
         from ..outer_plane.engine import OuterPlaneEngine
         self.outer_plane_engine = OuterPlaneEngine(save_manager, engine, self)
 
@@ -72,14 +70,13 @@ class TownEngine:
         return list(stats.town_flags.get("visited_rooms", []))
 
     def render_current_room(self, user_id: str, stats: UserStats) -> str:
-        if stats.town_flags.get(TEMPLE_ACTIVE_FLAG):
-            return self.temple_engine.render(user_id, stats)
         from ....data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
         if stats.town_flags.get(OUTER_PLANE_ACTIVE_FLAG):
             return self.outer_plane_engine.render(user_id, stats)
+        from ..yog_quest.service import ensure_sigil
         zh_cn = self._load_zh_cn()
         dirty = self.record_visited_room(stats)
-        if self.temple_engine.ensure_sigil(stats):
+        if ensure_sigil(stats):
             dirty = True
         if stats.town_pos == "market":
             self._get_market_shelf(stats)
@@ -123,18 +120,28 @@ class TownEngine:
         return shelf
 
     def move(self, user_id: str, direction: str) -> str:
+        from ....data.town_map_config import TOWN_ROOM_COORDS
+        from ..grid_map_generator import coord_to_xy, xy_to_coord
         stats = self.save_manager.load_stats(user_id)
-        room_data = self._load_room_data(stats.town_pos)
-        exits = room_data.get("exits", {})
         dir_map = {"up": "w", "down": "s", "left": "a", "right": "d"}
-        dir_key = direction.lower()
-        dir_key = dir_map.get(dir_key, dir_key)
-
-        if dir_key not in exits:
-            return get_locale_text("global.move_no_way", exits=', '.join(exits.keys()).upper())
+        dir_key = dir_map.get(direction.lower(), direction.lower())
+        deltas = {"w": (0, -1), "s": (0, 1), "a": (-1, 0), "d": (1, 0)}
+        if dir_key not in deltas:
+            return get_locale_text("global.move_no_way", exits="W, S, A, D")
+        coord = TOWN_ROOM_COORDS.get(stats.town_pos, "C2")
+        x, y = coord_to_xy(coord)
+        dx, dy = deltas[dir_key]
+        target_coord = xy_to_coord(x + dx, y + dy)
+        target_room = next((rid for rid, c in TOWN_ROOM_COORDS.items() if c == target_coord), None)
+        if target_room is None:
+            available = [
+                dk.upper()
+                for dk, (ddx, ddy) in deltas.items()
+                if xy_to_coord(x + ddx, y + ddy) in TOWN_ROOM_COORDS.values()
+            ]
+            return get_locale_text("global.move_no_way", exits=", ".join(available))
 
         self.record_visited_room(stats, stats.town_pos)
-        target_room = exits[dir_key]
         stats.town_pos = target_room
         self.record_visited_room(stats, target_room)
 
@@ -156,6 +163,7 @@ class TownEngine:
         return render_town(stats, target_room_data)
 
     def teleport(self, user_id: str, target_query: str) -> str:
+        from ....data.town_map_config import TOWN_ROOM_COORDS
         from ...cli.base import find_entry_by_query
         stats = self.save_manager.load_stats(user_id)
         dirty = self.record_visited_room(stats)
@@ -163,27 +171,46 @@ class TownEngine:
         zh_cn = self._load_zh_cn()
         rooms_loc = zh_cn.get("rooms", {})
         sep = get_locale_text("renderer_town.list_separator")
-        visited_entries = [(rid, rooms_loc.get(rid, {}).get("name", rid)) for rid in visited if rid in rooms_loc]
+        visited_entries = [
+            (rid, f"{rooms_loc.get(rid, {}).get('name', rid)}({TOWN_ROOM_COORDS.get(rid, '?')})")
+            for rid in visited
+            if rid in rooms_loc
+        ]
         visited_names = sep.join(name for _, name in visited_entries)
         query = str(target_query or "").strip()
         if not query:
             if dirty:
                 self.save_manager.save_stats(user_id, stats)
             return get_locale_text("i18n_cli_commands.town_tp_usage", visited=visited_names)
-        target_room = find_entry_by_query(visited_entries, query)
-        if not target_room:
-            if dirty:
-                self.save_manager.save_stats(user_id, stats)
-            unvisited_entries = [
-                (rid, info.get("name", rid))
-                for rid, info in rooms_loc.items()
-                if rid not in visited and isinstance(info, dict)
-            ]
-            unvisited_room = find_entry_by_query(unvisited_entries, query)
-            if unvisited_room:
-                unvisited_name = rooms_loc.get(unvisited_room, {}).get("name", unvisited_room)
-                return get_locale_text("i18n_cli_commands.town_tp_unvisited", name=unvisited_name)
-            return get_locale_text("i18n_cli_commands.town_tp_not_found", query=query, visited=visited_names)
+        coord = query.upper()
+        is_coord = len(coord) >= 2 and coord[0].isalpha() and coord[1:].isdigit()
+        target_room = None
+        if is_coord:
+            target_room = next((rid for rid, c in TOWN_ROOM_COORDS.items() if c == coord), None)
+            if target_room is None:
+                if dirty:
+                    self.save_manager.save_stats(user_id, stats)
+                return get_locale_text("i18n_cli_commands.town_tp_coord_not_found", query=query, visited=visited_names)
+            if target_room not in visited:
+                if dirty:
+                    self.save_manager.save_stats(user_id, stats)
+                name = rooms_loc.get(target_room, {}).get("name", target_room)
+                return get_locale_text("i18n_cli_commands.town_tp_unvisited", name=name)
+        else:
+            target_room = find_entry_by_query(visited_entries, query)
+            if not target_room:
+                if dirty:
+                    self.save_manager.save_stats(user_id, stats)
+                unvisited_entries = [
+                    (rid, info.get("name", rid))
+                    for rid, info in rooms_loc.items()
+                    if rid not in visited and isinstance(info, dict)
+                ]
+                unvisited_room = find_entry_by_query(unvisited_entries, query)
+                if unvisited_room:
+                    unvisited_name = rooms_loc.get(unvisited_room, {}).get("name", unvisited_room)
+                    return get_locale_text("i18n_cli_commands.town_tp_unvisited", name=unvisited_name)
+                return get_locale_text("i18n_cli_commands.town_tp_not_found", query=query, visited=visited_names)
         stats.town_pos = target_room
         self.record_visited_room(stats, target_room)
         quest_state = stats.town_flags.get("quest_town_tour_state", "unstarted")
@@ -194,7 +221,11 @@ class TownEngine:
         self.save_manager.save_stats(user_id, stats)
         target_name = rooms_loc.get(target_room, {}).get("name", target_room)
         rendered = self.render_current_room(user_id, stats)
-        return get_locale_text("i18n_cli_commands.town_tp_success", name=target_name) + "\n\n" + rendered
+        return get_locale_text(
+            "i18n_cli_commands.town_tp_success",
+            name=target_name,
+            coord=TOWN_ROOM_COORDS.get(target_room, "?"),
+        ) + "\n\n" + rendered
 
     def _visible_entity_ids(self, stats: UserStats, room_data: Dict[str, Any]) -> List[str]:
         visible = list(room_data.get("npcs", []))
@@ -220,7 +251,8 @@ class TownEngine:
         return None
 
     def _open_dialog(self, user_id: str, stats: UserStats, target_id: str) -> str:
-        self.temple_engine.ensure_sigil(stats)
+        from ..yog_quest.service import ensure_sigil
+        ensure_sigil(stats)
         stats.town_flags["current_dialog"] = target_id
         stats.town_flags.pop("market_sub_menu", None)
         self.save_manager.save_stats(user_id, stats)
@@ -320,8 +352,9 @@ class TownEngine:
         return get_locale_text("global.take_success", target=get_item_display_name(target_id))
 
     def use_item(self, user_id: str, item_name: str) -> str:
+        from ..yog_quest.service import ensure_sigil
         stats = self.save_manager.load_stats(user_id)
-        if self.temple_engine.ensure_sigil(stats):
+        if ensure_sigil(stats):
             self.save_manager.save_stats(user_id, stats)
         zh_cn = self._load_zh_cn()
 
@@ -336,10 +369,8 @@ class TownEngine:
         if not target_id or target_id not in stats.town_inventory:
             return get_locale_text("global.use_not_found", target=item_name)
 
-        if target_id == TEMPLE_SIGIL_ITEM:
-            if stats.town_pos != "west_gate":
-                return get_locale_text("i18n_temple.enter.need_gate")
-            return self.temple_engine.enter(user_id, stats)
+        if target_id == YOG_SIGIL_ITEM:
+            return self.engine.start_quest_run(user_id)
 
         if target_id == "lost_notebook":
             return get_locale_text("global.lost_notebook_use_desc")

@@ -173,6 +173,8 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
             target = parts[2] if len(parts) > 2 else None
             res = router.engine.choose_option(run, idx, target)
             success = "❌" not in res
+            if run.node_data.get("yog_finished"):
+                return res, True, success
             if run.player.hp <= 0:
                 settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
                 return get_locale_text("i18n_cli_core.death_down", res=res, settle_msg=settle_msg), True, success

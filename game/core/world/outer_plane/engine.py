@@ -30,7 +30,6 @@ from ....renderer.outer_plane import render_outer_plane
 from ...progress.achievement_service import AchievementService
 from ...text.events import LocaleText, RenderedText, ScreenText, TextDocument
 from ...text.pipeline import render_text
-from ..butcher_bonus import apply_butcher_bonus
 
 OUTER_PLANE_SCREEN = "outer_plane"
 
@@ -307,7 +306,6 @@ class OuterPlaneEngine:
             ))
         p_state = self.town_engine.build_combat_player(
             user_id, stats, hp=OUTER_PLANE_START_HP, max_hp=OUTER_PLANE_START_HP)
-        apply_butcher_bonus(p_state, flags)
         random.shuffle(p_state.draw_pile)
         for _ in range(min(5, len(p_state.draw_pile))):
             p_state.hand.append(p_state.draw_pile.pop(0))
@@ -394,8 +392,8 @@ class OuterPlaneEngine:
         stats.town_flags[OUTER_PLANE_PHASE_KEY] = ""
         stats.town_flags[OUTER_PLANE_ROOM_KEY] = ""
         stats.town_flags.pop(OUTER_PLANE_PENDING_KEY, None)
-        from ....data.temple_config import TEMPLE_FLAGS_KEY, TEMPLE_QUEST_FLAG
-        stats.town_flags[TEMPLE_QUEST_FLAG] = "completed"
+        from ....data.yog_quest_config import YOG_QUEST_FLAG, YOG_QUEST_ROUTE_KEY
+        stats.town_flags[YOG_QUEST_FLAG] = "completed"
         if NECRONOMICON_ITEM not in stats.town_inventory:
             stats.town_inventory.append(NECRONOMICON_ITEM)
         stats.in_town = True
@@ -403,9 +401,9 @@ class OuterPlaneEngine:
         self._save(user_id, stats)
         ach = AchievementService(self.save_manager)
         ach.unlock(user_id, "temple_awakening", stats=stats)
-        temple_flags = stats.town_flags.get(TEMPLE_FLAGS_KEY) or {}
         plane_flags = stats.town_flags.get(OUTER_PLANE_FLAGS_KEY) or {}
-        if temple_flags.get("butcher_path") or plane_flags.get("butcher_path"):
+        if plane_flags.get("butcher_path"):
+            stats.town_flags[YOG_QUEST_ROUTE_KEY] = "butcher"
             ach.unlock(user_id, "silent_passage", stats=stats)
         self._save(user_id, stats)
         document: TextDocument = [

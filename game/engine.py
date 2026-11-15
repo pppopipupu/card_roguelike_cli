@@ -159,6 +159,13 @@ class GameEngine:
             return None
         return self.start_party_game([user_id], user_id, shared_save=False)
 
+    def build_player_state(self, user_id: str) -> PlayerState:
+        return self._build_player_state(user_id)
+
+    def start_quest_run(self, user_id: str) -> Optional[str]:
+        from .core.world.yog_quest.service import start_quest_run
+        return start_quest_run(self.save_manager, self, user_id)
+
     def enter_next_stage(self, run: GameRun):
         self.map_engine.enter_next_stage(run)
 

@@ -175,13 +175,13 @@ ACHIEVEMENTS_CONFIG = {
     "temple_awakening": {
         "name": "先古主城·启程",
         "rarity": "legendary",
-        "desc": "完成【尤格索托斯之死？】，在外层位面见过真正的尤格-索托斯。",
+        "desc": "完成【尤格索托斯死了吗？】，在神殿密室中翻开死灵之书。",
         "gp_reward": 3000,
     },
     "silent_passage": {
         "name": "一路无话",
         "rarity": "epic",
-        "desc": "以出手代替交谈的方式完成【尤格索托斯之死？】。",
+        "desc": "以献祭或亵渎祭坛的方式完成【尤格索托斯死了吗？】。",
         "gp_reward": 2500,
     },
 }

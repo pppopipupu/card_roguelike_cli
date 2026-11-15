@@ -247,7 +247,7 @@ def touch_in_room(save_manager, run, query: str) -> str:
         return get_locale_text("i18n_room_interact.touch.not_found", target=q)
     cfg = ROOM_PROPS.get(prop_id, {})
     pname = get_locale_text(cfg["name_key"]) if cfg.get("name_key") else prop_id
-    if prop_id == "descent_tunnel":
+    if prop_id in ("descent_tunnel", "temple_gate"):
         from ..landmark_system import open_room_talk
         from ....renderer import GameRenderer
         err = open_room_talk(save_manager, run, run.user_id)
