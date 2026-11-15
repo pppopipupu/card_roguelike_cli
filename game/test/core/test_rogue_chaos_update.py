@@ -262,11 +262,11 @@ class TestRogueChaosUpdate(unittest.TestCase):
         ge.play_card(run, 1, None)
         self.assertEqual(run.node_data["state_stack"][-1]["type"], "overload_star_select")
         self.assertEqual(len(player.exhaust_pile), 0)
-        has_copy = any("neutral_emperor_eye" in (cid.id if hasattr(cid, "id") else cid) for cid in player.hand)
+        has_copy = any(getattr(cid, "id", cid) == "neutral_emperor_eye" for cid in player.hand)
         self.assertFalse(has_copy)
         ge.execute_emperor_eye_resolve(run, 0, False)
         self.assertEqual(len(player.exhaust_pile), 2)
-        has_copy_after = any("neutral_emperor_eye" in (cid.id if hasattr(cid, "id") else cid) for cid in player.hand)
+        has_copy_after = any(getattr(cid, "id", cid) == "neutral_emperor_eye" for cid in player.hand)
         self.assertTrue(has_copy_after)
 
     def test_discover_suspend_and_resolve(self):

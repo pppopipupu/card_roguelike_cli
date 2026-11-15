@@ -1,6 +1,10 @@
 from dataclasses import asdict
+from typing import Optional
+
+import msgspec
 
 from .state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, BuffState, RoomState, EncounterSession, FloorMapState
+from ..core.text.events import TextNode
 from ..data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 
 
@@ -16,9 +20,8 @@ class SaveCodecMixin:
         logs = None
         owners = None
         if run.node_data is not None:
-            if run.player_count() <= 1:
-                logs = run.node_data.pop("battle_logs", None)
-                owners = run.node_data.pop("battle_log_owners", None)
+            logs = run.node_data.pop("battle_logs", None)
+            owners = run.node_data.pop("battle_log_owners", None)
         try:
             res = asdict(run)
         finally:
@@ -29,9 +32,18 @@ class SaveCodecMixin:
                     run.node_data["battle_logs"] = logs
                 if owners is not None:
                     run.node_data["battle_log_owners"] = owners
+        if run.player_count() > 1:
+            node_data = res.setdefault("node_data", {})
+            if logs is not None:
+                node_data["battle_logs"] = [
+                    msgspec.to_builtins(item) if isinstance(item, TextNode) else item
+                    for item in logs
+                ]
+            if owners is not None:
+                node_data["battle_log_owners"] = owners
         return res
 
-    def _parse_player_state(self, p_data: dict) -> PlayerState:
+    def _parse_player_state(self, p_data: dict) -> Optional[PlayerState]:
         if not p_data:
             return None
         p_minions = {}
@@ -255,7 +267,7 @@ class SaveCodecMixin:
             floor_flags=dict(fm_data.get("floor_flags") or {}),
         )
 
-    def from_dict(self, d: dict) -> GameRun:
+    def from_dict(self, d: dict) -> Optional[GameRun]:
         if not d:
             return None
         player = self._parse_player_state(d["player"])

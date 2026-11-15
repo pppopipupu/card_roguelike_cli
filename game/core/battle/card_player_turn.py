@@ -3,10 +3,18 @@ from ...models.state import GameRun, ensure_card_state
 from ...data.locale_data import get_locale_text
 from ...entities import ALL_CARDS, ALL_AMULETS
 from ...models.events import TurnEndEvent, TurnStartEvent, CardExhaustEvent
+from ..text.events import JoinedText, LocaleText, RenderedText, TextDocument, locale_text
+from ..text.pipeline import render_text
 
 
 class CardPlayerTurnMixin:
+    def _render_events(self, document: TextDocument) -> str:
+        return render_text(document, "battle")
+
     def _end_player_phase(self, run: GameRun, p) -> str:
+        return self._render_events(self._end_player_phase_events(run, p))
+
+    def _end_player_phase_events(self, run: GameRun, p) -> TextDocument:
         evt_end = TurnEndEvent(run, is_player=True)
         self.engine.event_bus.dispatch(evt_end)
         retain_key = run.turn_key("temp_retain_cards", p)
@@ -21,13 +29,19 @@ class CardPlayerTurnMixin:
                 temp_retains.remove(c_state)
             elif card and card.id == "curse_dimensional_tear":
                 p.exhaust_pile.append(c_state)
-                self.engine._log_event(run, get_locale_text("i18n_battle_core.dimensional_tear_log", name=card.name, player=run.player.name))
+                self.engine._log_event(run, locale_text(
+                    "i18n_battle_core.dimensional_tear_log",
+                    params={"name": card.name, "player": run.player.name},
+                ))
                 self.engine.combat_resolver.damage_target(run, "p0", 3, source="curse", damage_type="true")
                 exhaust_evt = CardExhaustEvent(run, c_state, "curse_dimensional_tear")
                 self.engine.event_bus.dispatch(exhaust_evt)
             elif card and getattr(card, "ethereal", False):
                 p.exhaust_pile.append(c_state)
-                self.engine._log_event(run, get_locale_text("i18n_battle_core.ethereal_exhaust_log", name=card.name))
+                self.engine._log_event(run, locale_text(
+                    "i18n_battle_core.ethereal_exhaust_log",
+                    params={"name": card.name},
+                ))
                 exhaust_evt = CardExhaustEvent(run, c_state, "ethereal")
                 self.engine.event_bus.dispatch(exhaust_evt)
             else:
@@ -50,28 +64,37 @@ class CardPlayerTurnMixin:
                     is_upgraded = av.id.endswith("+")
                     lw_msg = template.on_death(run, ak, is_upgraded, self.engine)
                 if lw_msg:
-                    self.engine._log_event(run, get_locale_text("i18n_battle_core.amulet_requiem_death_log", name=av.name, effect=lw_msg))
+                    self.engine._log_event(run, locale_text(
+                        "i18n_battle_core.amulet_requiem_death_log",
+                        params={"name": av.name, "effect": lw_msg},
+                    ))
                 else:
-                    self.engine._log_event(run, get_locale_text("i18n_battle_core.amulet_requiem_log", name=av.name))
-        return get_locale_text("i18n_battle_core.end_player_phase_log", name=p.name)
+                    self.engine._log_event(run, locale_text(
+                        "i18n_battle_core.amulet_requiem_log",
+                        params={"name": av.name},
+                    ))
+        return [locale_text(key="i18n_battle_core.end_player_phase_log", params={"name": p.name})]
 
     def _begin_player_phase(self, run: GameRun, p, advance_global: bool = True) -> str:
-        decay_msgs = []
+        return self._render_events(self._begin_player_phase_events(run, p, advance_global))
+
+    def _begin_player_phase_events(self, run: GameRun, p, advance_global: bool = True) -> TextDocument:
+        decay_entries: list[LocaleText] = []
         has_barricade = any(b.id.startswith("barricade") for b in p.buffs)
         if p.shield > 0 and not has_barricade:
             lost = p.shield - (p.shield // 2)
             p.shield = p.shield // 2
             if lost > 0:
-                decay_msgs.append(get_locale_text("i18n_battle_core.shield_decay_entry", name=p.name, lost=lost))
+                decay_entries.append(locale_text(
+                    "i18n_battle_core.shield_decay_entry",
+                    params={"name": p.name, "lost": lost},
+                ))
                 from ...models.events import ShieldDecayEvent
                 self.engine.event_bus.dispatch(ShieldDecayEvent(run, "p0", lost))
         elif p.shield > 0 and has_barricade:
             pass
         else:
             p.shield = 0
-        decay_info = ""
-        if decay_msgs:
-            decay_info = get_locale_text("i18n_battle_core.player_shield_decay_line", entries="，".join(decay_msgs))
         p.actions = 2
         p.bonus_actions = 1
         evt_start = TurnStartEvent(run, is_player=True)
@@ -79,7 +102,7 @@ class CardPlayerTurnMixin:
         if getattr(p, "subclass", "") == "时序法师":
             if random.random() < 0.25:
                 p.bonus_actions += 1
-                self.engine._log_event(run, get_locale_text("i18n_battle_core.time_shift_turn_log"))
+                self.engine._log_event(run, locale_text(key="i18n_battle_core.time_shift_turn_log"))
         from ...data.minion_data import MINION_CONFIG
         for mk, mv in p.minions.items():
             if MINION_CONFIG.get(mv.id, {}).get("no_attack_actions"):
@@ -117,7 +140,10 @@ class CardPlayerTurnMixin:
                     self.engine._discard_card(run, discarded)
             p.buffs.remove(discard_buff)
             if discarded_names:
-                self.engine._log_event(run, get_locale_text("i18n_battle_core.discard_start_turn_log", cards=', '.join(discarded_names)))
+                self.engine._log_event(run, locale_text(
+                    "i18n_battle_core.discard_start_turn_log",
+                    params={"cards": ', '.join(discarded_names)},
+                ))
         if any(b.id == "baguwen_restriction" for b in p.buffs):
             required_key = run.turn_key("baguwen_required_card", p)
             checked_key = run.turn_key("baguwen_checked", p)
@@ -135,7 +161,10 @@ class CardPlayerTurnMixin:
             if candidates:
                 state, card = random.choice(candidates)
                 run.node_data[required_key] = {"id": state.id, "upgraded": bool(state.upgraded)}
-                self.engine._log_event(run, get_locale_text("i18n_buffs.baguwen_required_log", card_name=card.name))
+                self.engine._log_event(run, locale_text(
+                    "i18n_buffs.baguwen_required_log",
+                    params={"card_name": card.name},
+                ))
             else:
                 run.node_data.pop(required_key, None)
             run.node_data[checked_key] = False
@@ -144,11 +173,32 @@ class CardPlayerTurnMixin:
         self._reindex_minions(p)
         if advance_global:
             run.node_data["turn_count"] = run.node_data.get("turn_count", 1) + 1
-        return get_locale_text("i18n_battle_core.begin_player_phase_log", decay_info=decay_info, name=p.name)
+        events: TextDocument = []
+        if decay_entries:
+            events.append(locale_text(
+                "i18n_battle_core.player_shield_decay_line",
+                params={"entries": JoinedText(parts=decay_entries, separator="，")},
+            ))
+        events.append(locale_text(key="i18n_battle_core.begin_player_phase_log", params={"name": p.name}))
+        return events
 
     def end_turn(self, run: GameRun) -> str:
+        return self._render_events(self._end_turn_events(run))
+
+    def _finish_turn(self, run: GameRun, document: TextDocument, save_uid: str) -> TextDocument:
+        result = list(document) + self.engine._take_battle_logs(run)
+        self.engine.save_manager.save_save(save_uid, run)
+        return result
+
+    def _victory_events(self, enemy_events: TextDocument) -> TextDocument:
+        return [locale_text(
+            "i18n_explore_core.battle_victory_log",
+            params={"enemy_logs": JoinedText(parts=enemy_events)},
+        )]
+
+    def _end_turn_events(self, run: GameRun) -> TextDocument:
         if run.node_type != "battle":
-            return get_locale_text("i18n_battle_core.not_in_battle_end_turn")
+            return [locale_text(key="i18n_battle_core.not_in_battle_end_turn")]
         from .party_battle import alive_uids, assign_enemy_targets, is_all_downed
         multi = run.player_count() > 1
         if not run.player or run.player.downed:
@@ -157,25 +207,24 @@ class CardPlayerTurnMixin:
                     run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(run.user_id, run, is_victory=False)
                 if multi:
-                    return get_locale_text("i18n_explore_core.coop_wipe_simple", settle_msg=settle_msg)
-                return get_locale_text("i18n_battle_core.adventure_defeat", enemy_actions="", settle_msg=settle_msg)
-            return get_locale_text("i18n_explore_core.downed_spectate")
+                    return [locale_text(key="i18n_explore_core.coop_wipe_simple", params={"settle_msg": settle_msg})]
+                return [locale_text(key="i18n_battle_core.adventure_defeat", params={"enemy_actions": "", "settle_msg": settle_msg})]
+            return [locale_text(key="i18n_explore_core.downed_spectate")]
         viewer = run.player
         viewer_uid = run.user_id
         uid = run.uid_for(viewer)
-        end_msg = self._end_player_phase(run, viewer)
+        end_events = self._end_player_phase_events(run, viewer)
         if self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
                     run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
-                    return get_locale_text("i18n_explore_core.coop_wipe_simple", settle_msg=settle_msg)
-                return get_locale_text("i18n_battle_core.adventure_defeat", enemy_actions="", settle_msg=settle_msg)
+                    return [locale_text(key="i18n_explore_core.coop_wipe_simple", params={"settle_msg": settle_msg})]
+                return [locale_text(key="i18n_battle_core.adventure_defeat", params={"enemy_actions": "", "settle_msg": settle_msg})]
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
-            self.engine.save_manager.save_save(viewer_uid, run)
-            return self.engine._append_logs_to_res(run, get_locale_text("i18n_battle_core.battle_victory"))
+            return self._finish_turn(run, [locale_text(key="i18n_battle_core.battle_victory")], viewer_uid)
         ready = run.node_data.setdefault("turn_ready", {})
         ready[uid] = True
         alive = alive_uids(run)
@@ -183,15 +232,17 @@ class CardPlayerTurnMixin:
         if waiting:
             ready_uids = [u for u in alive if ready.get(u, False)]
             names = get_locale_text("i18n_explore_core.list_delimiter").join(run.players[u].name for u in ready_uids)
+            log_nodes = self.engine._take_battle_logs(run)
             self.engine.save_manager.save_save(uid, run)
-            logs_text = self.engine._append_logs_to_res(run, end_msg or "")
-            return get_locale_text(
+            return [locale_text(
                 "i18n_explore_core.turn_waiting_others",
-                logs=logs_text,
-                count=len(ready_uids),
-                total=len(alive),
-                names=names,
-            )
+                params={
+                    "logs": JoinedText(parts=end_events + log_nodes),
+                    "count": len(ready_uids),
+                    "total": len(alive),
+                    "names": names,
+                },
+            )]
         run.node_data["turn_ready"] = {
             member: run.players[member].downed or getattr(run.players[member], "is_mercenary", False)
             for member in run.party_order
@@ -200,50 +251,68 @@ class CardPlayerTurnMixin:
         from ..party.mercenary import run_mercenaries_for_timing
         from ...data.mercenary_data import MERCENARY_TIMING_AFTER, MERCENARY_TIMING_BEFORE
         merc_after_logs = run_mercenaries_for_timing(self.engine, run, MERCENARY_TIMING_AFTER)
+        merc_after_events: TextDocument = []
+        if merc_after_logs:
+            merc_after_events.append(RenderedText(text=merc_after_logs))
         if self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
                     run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
-                    return get_locale_text("i18n_explore_core.coop_wipe_enemy_log", enemy_logs=merc_after_logs, settle_msg=settle_msg)
-                return get_locale_text("i18n_battle_core.adventure_defeat", enemy_actions=merc_after_logs, settle_msg=settle_msg)
+                    return [locale_text(key="i18n_explore_core.coop_wipe_enemy_log", params={
+                        "enemy_logs": JoinedText(parts=merc_after_events),
+                        "settle_msg": settle_msg,
+                    })]
+                return [locale_text(key="i18n_battle_core.adventure_defeat", params={
+                    "enemy_actions": JoinedText(parts=merc_after_events),
+                    "settle_msg": settle_msg,
+                })]
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
-            self.engine.save_manager.save_save(viewer_uid, run)
-            if multi:
-                return self.engine._append_logs_to_res(run, get_locale_text("i18n_explore_core.battle_victory_log", enemy_logs=merc_after_logs))
-            return self.engine._append_logs_to_res(run, f"{merc_after_logs}\n{get_locale_text('i18n_battle_core.battle_victory_emoji')}")
+            return self._finish_turn(run, self._victory_events(merc_after_events), viewer_uid)
         extra_turns = run.node_data.get("extra_turns_left", 0)
         if extra_turns > 0:
             run.node_data["extra_turns_left"] = extra_turns - 1
-            enemy_actions = get_locale_text("i18n_battle_core.time_stop_extra_turn", count=extra_turns - 1)
+            enemy_events: TextDocument = [locale_text(
+                "i18n_battle_core.time_stop_extra_turn",
+                params={"count": extra_turns - 1},
+            )]
         else:
             assign_enemy_targets(run)
-            enemy_actions = self.engine._enemy_turn(run)
-        if merc_after_logs:
-            enemy_actions = f"{merc_after_logs}\n{enemy_actions}".strip()
+            enemy_events = self.engine._enemy_turn_events(run)
+        if merc_after_events:
+            enemy_events = merc_after_events + enemy_events
         if self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
                     run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
-                    return get_locale_text("i18n_explore_core.coop_wipe_enemy_log", enemy_logs=enemy_actions, settle_msg=settle_msg)
-                return get_locale_text("i18n_battle_core.adventure_defeat", enemy_actions=enemy_actions, settle_msg=settle_msg)
+                    return [locale_text(key="i18n_explore_core.coop_wipe_enemy_log", params={
+                        "enemy_logs": JoinedText(parts=enemy_events),
+                        "settle_msg": settle_msg,
+                    })]
+                return [locale_text(key="i18n_battle_core.adventure_defeat", params={
+                    "enemy_actions": JoinedText(parts=enemy_events),
+                    "settle_msg": settle_msg,
+                })]
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
-            self.engine.save_manager.save_save(viewer_uid, run)
-            if multi:
-                return self.engine._append_logs_to_res(run, get_locale_text("i18n_explore_core.battle_victory_log", enemy_logs=enemy_actions))
-            return self.engine._append_logs_to_res(run, f"{enemy_actions}\n{get_locale_text('i18n_battle_core.battle_victory_emoji')}")
+            return self._finish_turn(run, self._victory_events(enemy_events), viewer_uid)
         if is_all_downed(run):
             if multi:
                 run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
             settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
             if multi:
-                return get_locale_text("i18n_explore_core.coop_wipe_enemy_log", enemy_logs=enemy_actions, settle_msg=settle_msg)
-            return get_locale_text("i18n_battle_core.adventure_defeat", enemy_actions=enemy_actions, settle_msg=settle_msg)
+                return [locale_text(key="i18n_explore_core.coop_wipe_enemy_log", params={
+                    "enemy_logs": JoinedText(parts=enemy_events),
+                    "settle_msg": settle_msg,
+                })]
+            return [locale_text(key="i18n_battle_core.adventure_defeat", params={
+                "enemy_actions": JoinedText(parts=enemy_events),
+                "settle_msg": settle_msg,
+            })]
         from ..party.mercenary import end_unended_mercenary_phases
         end_unended_mercenary_phases(self.engine, run)
         if self.engine.is_battle_won(run):
@@ -252,15 +321,18 @@ class CardPlayerTurnMixin:
                     run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
-                    return get_locale_text("i18n_explore_core.coop_wipe_enemy_log", enemy_logs=enemy_actions, settle_msg=settle_msg)
-                return get_locale_text("i18n_battle_core.adventure_defeat", enemy_actions=enemy_actions, settle_msg=settle_msg)
+                    return [locale_text(key="i18n_explore_core.coop_wipe_enemy_log", params={
+                        "enemy_logs": JoinedText(parts=enemy_events),
+                        "settle_msg": settle_msg,
+                    })]
+                return [locale_text(key="i18n_battle_core.adventure_defeat", params={
+                    "enemy_actions": JoinedText(parts=enemy_events),
+                    "settle_msg": settle_msg,
+                })]
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
-            self.engine.save_manager.save_save(viewer_uid, run)
-            if multi:
-                return self.engine._append_logs_to_res(run, get_locale_text("i18n_explore_core.battle_victory_log", enemy_logs=enemy_actions))
-            return self.engine._append_logs_to_res(run, f"{enemy_actions}\n{get_locale_text('i18n_battle_core.battle_victory_emoji')}")
-        turn_logs = []
+            return self._finish_turn(run, self._victory_events(enemy_events), viewer_uid)
+        turn_logs: TextDocument = []
         first_alive = True
         for member in run.party_order:
             player = run.players.get(member)
@@ -268,7 +340,7 @@ class CardPlayerTurnMixin:
                 continue
             run.player = player
             run.user_id = member
-            turn_logs.append(self._begin_player_phase(run, player, advance_global=first_alive))
+            turn_logs.extend(self._begin_player_phase_events(run, player, advance_global=first_alive))
             first_alive = False
         run.player = viewer
         run.user_id = viewer_uid
@@ -276,36 +348,47 @@ class CardPlayerTurnMixin:
         assign_enemy_targets(run)
         merc_before_logs = run_mercenaries_for_timing(self.engine, run, MERCENARY_TIMING_BEFORE)
         if merc_before_logs:
-            turn_logs.append(merc_before_logs)
-        joined = "\n".join(log for log in turn_logs if log)
+            turn_logs.append(RenderedText(text=merc_before_logs))
         if self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
                     run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
-                    return get_locale_text("i18n_explore_core.coop_wipe_joined", enemy_logs=enemy_actions, joined=joined, settle_msg=settle_msg)
-                return get_locale_text("i18n_battle_core.adventure_defeat", enemy_actions=f"{enemy_actions}\n{joined}", settle_msg=settle_msg)
+                    return [locale_text(key="i18n_explore_core.coop_wipe_joined", params={
+                        "enemy_logs": JoinedText(parts=enemy_events),
+                        "joined": JoinedText(parts=turn_logs),
+                        "settle_msg": settle_msg,
+                    })]
+                return [locale_text(key="i18n_battle_core.adventure_defeat", params={
+                    "enemy_actions": JoinedText(parts=enemy_events + turn_logs),
+                    "settle_msg": settle_msg,
+                })]
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
-            self.engine.save_manager.save_save(viewer_uid, run)
-            if multi:
-                return self.engine._append_logs_to_res(run, get_locale_text("i18n_explore_core.battle_victory_log", enemy_logs=f"{enemy_actions}\n{joined}"))
-            return self.engine._append_logs_to_res(run, f"{enemy_actions}\n{joined}\n{get_locale_text('i18n_battle_core.battle_victory_emoji')}")
+            return self._finish_turn(run, self._victory_events(enemy_events + turn_logs), viewer_uid)
         if is_all_downed(run):
             if multi:
                 run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
             settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
             if multi:
-                return get_locale_text("i18n_explore_core.coop_wipe_joined", enemy_logs=enemy_actions, joined=joined, settle_msg=settle_msg)
-            return get_locale_text("i18n_battle_core.adventure_defeat", enemy_actions=f"{enemy_actions}\n{joined}", settle_msg=settle_msg)
-        self.engine.save_manager.save_save(viewer_uid, run)
+                return [locale_text(key="i18n_explore_core.coop_wipe_joined", params={
+                    "enemy_logs": JoinedText(parts=enemy_events),
+                    "joined": JoinedText(parts=turn_logs),
+                    "settle_msg": settle_msg,
+                })]
+            return [locale_text(key="i18n_battle_core.adventure_defeat", params={
+                "enemy_actions": JoinedText(parts=enemy_events + turn_logs),
+                "settle_msg": settle_msg,
+            })]
         if multi:
-            result = get_locale_text(
+            result = locale_text(
                 "i18n_explore_core.turn_all_ready",
-                enemy_logs=enemy_actions,
-                joined=joined,
-                turn_count=run.node_data["turn_count"],
+                params={
+                    "enemy_logs": JoinedText(parts=enemy_events),
+                    "joined": JoinedText(parts=turn_logs),
+                    "turn_count": run.node_data["turn_count"],
+                },
             )
-            return self.engine._append_logs_to_res(run, result)
-        return self.engine._append_logs_to_res(run, f"{enemy_actions}\n{joined}")
+            return self._finish_turn(run, [result], viewer_uid)
+        return self._finish_turn(run, enemy_events + turn_logs, viewer_uid)

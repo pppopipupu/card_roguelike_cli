@@ -29,10 +29,14 @@ class TestRogueCorpse(unittest.TestCase):
                 corpse = plugin.save_manager.corpses.create_from_run(
                     corpse_seed, "被【测试敌人】击败"
                 )
+                if corpse is None:
+                    self.fail("corpse fixture missing")
                 self.assertEqual(corpse["gp_pool"], 0)
                 await run_command(plugin, ".rogue 开启", sender_id=user_id)
                 await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
                 run = plugin.save_manager.load_save(user_id)
+                if run is None or run.floor_map is None:
+                    self.fail("map run missing")
                 corpse_coords = [
                     c for c, r in run.floor_map.rooms.items()
                     if r.room_type == "corpse" and r.shared_payload.get("corpse_id") == corpse["id"]

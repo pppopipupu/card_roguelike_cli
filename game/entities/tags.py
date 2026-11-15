@@ -20,13 +20,12 @@ class FragileTag(CardTag):
     def handle_post_play(self, card: Card, run: GameRun, cid: str, source: str, engine) -> bool:
         p = run.player
         from ..models.state import ensure_card_state
-        cid = ensure_card_state(cid)
-        base_cid = cid.id
-        curr_fragile = cid.fragile
+        card_state = ensure_card_state(cid)
+        curr_fragile = card_state.fragile
         if curr_fragile <= 0:
             curr_fragile = self.value
 
-        match_state = copy.copy(cid)
+        match_state = copy.copy(card_state)
         match_state.replay = 0
         match_state.fragile = 0
 
@@ -52,7 +51,7 @@ class FragileTag(CardTag):
             engine._log_event(run, get_locale_text("i18n_buffs.fragile_break_log", card=card.name))
         else:
             next_fragile = curr_fragile - getattr(self, "break_step", 1)
-            next_cid = copy.copy(cid)
+            next_cid = copy.copy(card_state)
             next_cid.fragile = next_fragile
 
             from ..entities.cards import ALL_CARDS

@@ -51,7 +51,7 @@ class WarriorBashCard(Card):
         name = engine._get_target_name(run, target)
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         engine._damage_target(run, target, dmg, damage_type="bludgeoning", card=self, damage_ready=True)
-        if target.startswith("e"):
+        if target and target.startswith("e"):
             try:
                 idx = int(target[1:]) - 1
                 if 0 <= idx < len(run.enemies):
@@ -147,7 +147,7 @@ class UppercutCard(Card):
         name = engine._get_target_name(run, target)
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         engine._damage_target(run, target, dmg, damage_type="bludgeoning", card=self, damage_ready=True)
-        if target.startswith("e"):
+        if target and target.startswith("e"):
             try:
                 idx = int(target[1:]) - 1
                 if 0 <= idx < len(run.enemies):
@@ -164,7 +164,7 @@ class SpotWeaknessCard(Card):
         strength_gain = getattr(self, "strength_gain", 4 if self.upgraded else 3)
         name = engine._get_target_name(run, target)
         is_attack = False
-        if target.startswith("e"):
+        if target and target.startswith("e"):
             try:
                 idx = int(target[1:]) - 1
                 if 0 <= idx < len(run.enemies):
@@ -215,7 +215,7 @@ class FeedCard(Card):
         name = engine._get_target_name(run, target)
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         enemy_to_attack = None
-        if target.startswith("e"):
+        if target and target.startswith("e"):
             try:
                 idx = int(target[1:]) - 1
                 if 0 <= idx < len(run.enemies):

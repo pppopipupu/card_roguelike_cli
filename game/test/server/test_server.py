@@ -807,6 +807,8 @@ class ServerTests(unittest.TestCase):
             try:
                 account = store.get_by_im("legacy-user")
                 self.assertIsNotNone(account)
+                if account is None:
+                    self.fail("legacy account missing")
                 player_uuid = account["uuid"]
                 self.assertEqual(account["display_name"], "旧玩家")
             finally:
@@ -818,6 +820,8 @@ class ServerTests(unittest.TestCase):
             registry = loads(
                 (players / "duel_registry.json").read_bytes()
             )
+            if not isinstance(registry, dict):
+                self.fail("duel registry is not an object")
             self.assertEqual(registry[player_uuid], "duel-1")
 
 

@@ -2,7 +2,7 @@ import unittest
 
 import msgspec
 
-from game.core.text.events import LocaleText, RenderedText, ScreenText, TextDocument
+from game.core.text.events import JoinedText, LocaleText, RenderedText, ScreenText, TextDocument
 from game.core.text.pipeline import render_text
 from game.data.locale_data import get_locale_text
 
@@ -53,10 +53,40 @@ class TestTextPipeline(unittest.TestCase):
             get_locale_text("i18n_outer_plane.ui.card_gain", name="甲"),
         )
 
+    def test_nested_joined_params_render_in_battle_layout(self):
+        document: TextDocument = [
+            LocaleText(
+                key="i18n_explore_core.turn_waiting_others",
+                params={
+                    "logs": JoinedText(parts=[
+                        LocaleText(
+                            key="i18n_battle_core.end_player_phase_log",
+                            params={"name": "甲"},
+                        )
+                    ]),
+                    "count": 1,
+                    "total": 2,
+                    "names": "甲",
+                },
+            )
+        ]
+
+        text = render_text(document, "battle")
+
+        expected = get_locale_text(
+            "i18n_explore_core.turn_waiting_others",
+            logs=get_locale_text("i18n_battle_core.end_player_phase_log", name="甲"),
+            count=1,
+            total=2,
+            names="甲",
+        )
+        self.assertEqual(text, expected)
+
     def test_document_round_trips_through_msgspec(self):
         document: TextDocument = [
             LocaleText(key="i18n_outer_plane.ending.arrive", section="ending"),
             RenderedText(text="RAW", section="body"),
+            JoinedText(parts=[RenderedText(text="A"), RenderedText(text="B")]),
             ScreenText(screen="outer_plane", section="screen"),
         ]
         payload = msgspec.json.encode(document)

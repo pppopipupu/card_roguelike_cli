@@ -67,6 +67,10 @@ class TestTempleAndTokens(unittest.TestCase):
             self.assertIn("符印", reply_res)
             self.assertNotIn("欧吕尔", reply_res)
             self.assertNotIn("冰封少女", reply_res)
+            stats = self.sm.load_stats(uid)
+            self.assertIn("star_sigil", stats.town_inventory)
+            bag_res = self._run(".rogue bag t", uid)
+            self.assertIn("星辉符印", bag_res)
 
             leave_num = None
             for line in reply_res.splitlines():
@@ -77,7 +81,7 @@ class TestTempleAndTokens(unittest.TestCase):
             self._run(f".rogue {leave_num}", uid)
             quest_res = self._run(".rogue 任务", uid)
             self.assertIn("尤格索托斯之死？", quest_res)
-            self.assertIn("从西大门出城，进入尤格索托斯神殿", quest_res)
+            self.assertIn("在西大门使用【星辉符印】出城，进入尤格索托斯神殿", quest_res)
             self.assertNotIn("前往中心广场，向向导长老报告", quest_res)
             self.assertNotIn("死灵之书", quest_res)
             self.assertNotIn("欧吕尔", quest_res)
@@ -85,7 +89,9 @@ class TestTempleAndTokens(unittest.TestCase):
             self.assertNotIn("\u0336", quest_res)
             self._run(".rogue a", uid)
             self._run(".rogue a", uid)
-            enter_res = self._run(".rogue 神殿", uid)
+            gate_talk = self._run(".rogue talk 西大门", uid)
+            self.assertIn("出示星辉符印", gate_talk)
+            enter_res = self._run(".rogue use 星辉符印", uid)
             self.assertIn("尤格索托斯神殿", enter_res)
             self.assertNotIn("欧吕尔", enter_res)
 
@@ -134,6 +140,24 @@ class TestTempleAndTokens(unittest.TestCase):
 
             leave_res = self._run(".rogue 撤离", uid)
             self.assertIn("先古主城", leave_res)
+        finally:
+            self._cleanup(uid)
+
+    def test_legacy_temple_info_grants_sigil(self):
+        uid = "test_legacy_temple_sigil_user"
+        self._cleanup(uid)
+        try:
+            self._run(".rogue 主城", uid)
+            stats = self.sm.load_stats(uid)
+            stats.yog_sothoth_kill_count = 1
+            stats.town_flags["temple_info_received"] = True
+            stats.town_pos = "west_gate"
+            stats.town_inventory = []
+            self.sm.save_stats(uid, stats)
+            res = self._run(".rogue use 星辉符印", uid)
+            self.assertIn("尤格索托斯神殿", res)
+            stats = self.sm.load_stats(uid)
+            self.assertIn("star_sigil", stats.town_inventory)
         finally:
             self._cleanup(uid)
 

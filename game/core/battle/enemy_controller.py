@@ -2,6 +2,9 @@ from ...models.state import GameRun, EnemyState
 from ...models.events import TurnStartEvent, TurnEndEvent
 from ...entities import get_enemy_template
 from ...data.locale_data import get_locale_text
+from ..text.events import JoinedText, LocaleText, RenderedText, TextDocument, locale_text
+from ..text.pipeline import render_text
+
 
 class EnemyTurnController:
     def __init__(self, engine):
@@ -132,7 +135,10 @@ class EnemyTurnController:
             self.sync_enemy_intents(enemy)
 
     def enemy_turn(self, run: GameRun) -> str:
-        logs = []
+        return render_text(self.enemy_turn_events(run), "battle")
+
+    def enemy_turn_events(self, run: GameRun) -> TextDocument:
+        logs: list[LocaleText | RenderedText | str] = []
         pending = run.node_data.get("pending_transitions", {})
         if pending:
             for enemy in list(run.enemies):
@@ -140,21 +146,29 @@ class EnemyTurnController:
                     target_phase = pending.pop(enemy.name)
                     template = get_enemy_template(enemy.name)
                     if hasattr(template, "apply_phase_transition"):
-                        template.apply_phase_transition(run, enemy, target_phase, self.engine, logs)
+                        transition_logs: list[str] = []
+                        template.apply_phase_transition(run, enemy, target_phase, self.engine, transition_logs)
+                        logs.extend(RenderedText(text=item) for item in transition_logs if item)
             run.node_data["pending_transitions"] = pending
-        decay_enemies = []
+        decay_entries: list[LocaleText] = []
         for idx, enemy in enumerate(run.enemies):
             if enemy.hp > 0 and enemy.shield > 0:
                 lost = enemy.shield - (enemy.shield // 2)
                 enemy.shield = enemy.shield // 2
                 if lost > 0:
-                    decay_enemies.append(get_locale_text("i18n_battle_core.shield_decay_entry", name=enemy.name, lost=lost))
+                    decay_entries.append(locale_text(
+                        "i18n_battle_core.shield_decay_entry",
+                        params={"name": enemy.name, "lost": lost},
+                    ))
                     from ...models.events import ShieldDecayEvent
                     self.engine.event_bus.dispatch(ShieldDecayEvent(run, f"e{idx+1}", lost))
             else:
                 enemy.shield = 0
-        if decay_enemies:
-            logs.append(get_locale_text("i18n_battle_core.enemy_shield_decay_line", entries="，".join(decay_enemies)))
+        if decay_entries:
+            logs.append(locale_text(
+                "i18n_battle_core.enemy_shield_decay_line",
+                params={"entries": JoinedText(parts=decay_entries, separator="，")},
+            ))
         self.engine.event_bus.dispatch(TurnStartEvent(run, is_player=False))
         from .party_battle import alive_uids, is_all_downed, pick_enemy_target
         viewer = run.player
@@ -171,19 +185,28 @@ class EnemyTurnController:
                 if it.cancelled:
                     continue
                 if it.cost_a > 0 and enemy.actions < it.cost_a:
-                    logs.append(get_locale_text("i18n_battle_core.cancel_intent_no_a_log", enemy=enemy.name, intent=it.desc))
+                    logs.append(locale_text(
+                        "i18n_battle_core.cancel_intent_no_a_log",
+                        params={"enemy": enemy.name, "intent": it.desc},
+                    ))
                     it.cancelled = True
                     it.cancelled_desc = get_locale_text("i18n_battle_core.cancelled_desc")
                     continue
                 if it.cost_ba > 0 and enemy.bonus_actions < it.cost_ba:
-                    logs.append(get_locale_text("i18n_battle_core.cancel_intent_no_ba_log", enemy=enemy.name, intent=it.desc))
+                    logs.append(locale_text(
+                        "i18n_battle_core.cancel_intent_no_ba_log",
+                        params={"enemy": enemy.name, "intent": it.desc},
+                    ))
                     it.cancelled = True
                     it.cancelled_desc = get_locale_text("i18n_battle_core.cancelled_desc")
                     continue
                 enemy.actions = max(0, enemy.actions - it.cost_a)
                 enemy.bonus_actions = max(0, enemy.bonus_actions - it.cost_ba)
                 if it.type == "phase_transition":
-                    logs.append(get_locale_text("i18n_battle_core.phase_transition_log", enemy=enemy.name, intent=it.desc.split(' (')[0]))
+                    logs.append(locale_text(
+                        "i18n_battle_core.phase_transition_log",
+                        params={"enemy": enemy.name, "intent": it.desc.split(' (')[0]},
+                    ))
                     continue
                 target = pick_enemy_target(run, index, it, viewer_uid)
                 if target == "ALL":
@@ -198,15 +221,17 @@ class EnemyTurnController:
                     run.node_data["coop_damage_target_uid"] = uid
                     run.node_data["coop_damage_aoe"] = target == "ALL"
                     run.node_data["current_acting_enemy_idx"] = run.enemies.index(enemy) if enemy in run.enemies else index - 1
+                    template_logs: list[str] = []
                     try:
-                        template.execute_intent(run, self.engine, enemy, it, logs)
+                        template.execute_intent(run, self.engine, enemy, it, template_logs)
                     finally:
                         run.node_data.pop("current_acting_enemy_idx", None)
                         run.player = viewer
                         run.user_id = viewer_uid
+                    logs.extend(RenderedText(text=item) for item in template_logs if item)
                 if is_all_downed(run):
                     if run.player_count() > 1:
-                        logs.append(get_locale_text("i18n_battle_core.coop_all_downed_log"))
+                        logs.append(locale_text(key="i18n_battle_core.coop_all_downed_log"))
                     break
             if is_all_downed(run):
                 break
@@ -218,4 +243,7 @@ class EnemyTurnController:
         for enemy in run.enemies:
             enemy.actions = enemy.max_actions
             enemy.bonus_actions = enemy.max_bonus_actions
-        return "\n".join(logs)
+        document: TextDocument = []
+        for item in logs:
+            document.append(RenderedText(text=item) if isinstance(item, str) else item)
+        return document

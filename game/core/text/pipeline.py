@@ -2,16 +2,31 @@ from typing import Callable, Dict, Optional
 
 from ...data.locale_data import get_locale_text
 from ...data.text_layout_data import TEXT_LAYOUTS
-from .events import LocaleText, RenderedText, ScreenText, TextDocument, TextNode
+from .events import JoinedText, LocaleText, RenderedText, ScreenText, TextDocument, TextNode, coerce_text_node
 
 ScreenRenderer = Callable[[str, str], str]
 
 
+def _render_param(value, screens: Dict[str, ScreenRenderer], layout: dict):
+    value = coerce_text_node(value)
+    if isinstance(value, TextNode):
+        return _render_node(value, screens, layout)
+    return value
+
+
 def _render_node(node: TextNode, screens: Dict[str, ScreenRenderer], layout: dict) -> str:
     if isinstance(node, LocaleText):
-        return get_locale_text(node.key, **node.params)
+        params = {
+            key: _render_param(value, screens, layout)
+            for key, value in node.params.items()
+        }
+        return get_locale_text(node.key, **params)
     if isinstance(node, RenderedText):
         return node.text
+    if isinstance(node, JoinedText):
+        return node.separator.join(
+            text for text in (_render_node(item, screens, layout) for item in node.parts) if text
+        )
     if isinstance(node, ScreenText):
         screen_layout = layout.get("screen", {})
         scene_separator = screen_layout.get("scene_separator", "\n\n")
@@ -27,6 +42,12 @@ def _render_node(node: TextNode, screens: Dict[str, ScreenRenderer], layout: dic
             raise KeyError(f"text screen renderer missing: {node.screen}")
         return renderer(scene, notice)
     raise TypeError(type(node).__name__)
+
+
+def render_text_node(node: TextNode | str) -> str:
+    if isinstance(node, str):
+        return node
+    return _render_node(node, {}, {})
 
 
 def render_text(document: TextDocument, layout_name: str, screens: Optional[Dict[str, ScreenRenderer]] = None) -> str:

@@ -163,7 +163,7 @@ class NeutralShouLaiCard(Card):
         kind, payload, _, _, _ = resolved
         if kind == "self":
             return get_locale_text("i18n_cards_neutral.neutral.cards.neutral_shou_lai.err_self_target")
-        if kind == "ally_player" and payload[0] == run.uid_for(run.player):
+        if kind == "ally_player" and isinstance(payload, (list, tuple)) and payload and payload[0] == run.uid_for(run.player):
             return get_locale_text("i18n_cards_neutral.neutral.cards.neutral_shou_lai.err_self_target")
         return None
 
@@ -174,7 +174,7 @@ class NeutralShouLaiCard(Card):
         if resolved is None:
             return get_locale_text("i18n_cards_neutral.neutral.cards.neutral_shou_lai.err_no_target")
         kind, payload, obj, target_key, target_name = resolved
-        if kind == "self" or (kind == "ally_player" and payload[0] == run.uid_for(p)):
+        if kind == "self" or (kind == "ally_player" and isinstance(payload, (list, tuple)) and payload and payload[0] == run.uid_for(p)):
             return get_locale_text("i18n_cards_neutral.neutral.cards.neutral_shou_lai.err_self_target")
         absorb = int(getattr(self, "absorb_amount", 8 if self.upgraded else 6))
         if kind == "ally_player":

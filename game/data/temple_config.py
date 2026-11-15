@@ -8,6 +8,7 @@ TEMPLE_PENDING_KEY = "temple_pending_option"
 TEMPLE_COMBAT_FLAG = "temple_encounter"
 TEMPLE_INFO_FLAG = "temple_info_received"
 TEMPLE_ACTIVE_FLAG = "temple_active"
+TEMPLE_SIGIL_ITEM = "star_sigil"
 
 TEMPLE_START_HP = 120
 TEMPLE_WIN_HEAL = 15

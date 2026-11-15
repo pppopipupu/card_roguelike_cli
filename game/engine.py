@@ -153,7 +153,7 @@ class GameEngine:
         self.map_engine.init_new_run_map(run)
         self.save_manager.save_save(leader, run)
         return run
-    def start_new_game(self, user_id: str) -> GameRun:
+    def start_new_game(self, user_id: str) -> Optional[GameRun]:
         stats = self.save_manager.load_stats(user_id)
         if getattr(stats, "active_coop_id", "") or getattr(stats, "active_lobby_id", ""):
             return None
@@ -180,7 +180,7 @@ class GameEngine:
     def end_turn(self, run: GameRun) -> str:
         return self.battle_engine.end_turn(run)
 
-    def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str:
+    def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str | None:
         return self.map_engine.choose_option(run, option_idx, target)
 
 

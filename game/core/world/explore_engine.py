@@ -321,7 +321,7 @@ class ExploreEngine:
         }
         apply_and_scope(run, run.user_id)
 
-    def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str:
+    def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str | None:
         handler = resolve_node_handler(run.node_type)
         if handler is None:
             return get_locale_text("i18n_explore_core.err_unknown_action")

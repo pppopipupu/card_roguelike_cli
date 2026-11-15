@@ -19,6 +19,9 @@ from .anna_handler import AnnaCardHandler
 from .millika_handler import MillikaCardHandler
 from ..inventory.deck_service import DeckService
 from ...models.stats_tracker import StatsTracker
+from ..text.events import RenderedText, TextDocument, TextNode, coerce_text_node, locale_text
+from ..text.pipeline import render_text_node
+
 
 class BattleEngine(BaseBattleEngine):
     def __init__(self, save_manager):
@@ -43,12 +46,16 @@ class BattleEngine(BaseBattleEngine):
         self.anna_handler = AnnaCardHandler(self.event_bus, self)
         self.millika_handler = MillikaCardHandler(self.event_bus, self)
 
-    def _log_event(self, run: Optional[GameRun], msg: str):
+    def _effective_log_uid(self, run: GameRun) -> str:
+        effective_uid = run.user_id
+        if run.player is not None and getattr(run.player, "is_mercenary", False):
+            effective_uid = getattr(run.player, "mercenary_owner", "") or effective_uid
+        return effective_uid
+
+    def _log_event(self, run: Optional[GameRun], msg: str | TextNode):
         if run is None:
             return
-        owner_uid = run.user_id
-        if run.player is not None and getattr(run.player, "is_mercenary", False):
-            owner_uid = getattr(run.player, "mercenary_owner", "") or owner_uid
+        owner_uid = self._effective_log_uid(run)
         logs = run.node_data.setdefault("battle_logs", [])
         owners = run.node_data.get("battle_log_owners")
         if not isinstance(owners, list):
@@ -60,30 +67,37 @@ class BattleEngine(BaseBattleEngine):
             del owners[len(logs):]
         owners.append(owner_uid)
         logs.append(msg)
+
+    def _take_battle_logs(self, run: GameRun, effective_uid: Optional[str] = None) -> TextDocument:
+        target_uid = effective_uid or self._effective_log_uid(run)
+        logs = run.node_data.pop("battle_logs", [])
+        owners = run.node_data.pop("battle_log_owners", [])
+        own_logs: TextDocument = []
+        remaining = []
+        remaining_owners = []
+        for index, msg in enumerate(logs):
+            owner = owners[index] if index < len(owners) else target_uid
+            if owner == target_uid:
+                node = coerce_text_node(msg)
+                if isinstance(node, str):
+                    own_logs.append(RenderedText(text=node))
+                elif isinstance(node, TextNode):
+                    own_logs.append(node)
+            else:
+                remaining.append(msg)
+                remaining_owners.append(owner)
+        if remaining:
+            run.node_data["battle_logs"] = remaining
+            run.node_data["battle_log_owners"] = remaining_owners
+        return own_logs
+
     def _append_logs_to_res(self, run: GameRun, res: str) -> str:
-        effective_uid = run.user_id
-        if run.player is not None and getattr(run.player, "is_mercenary", False):
-            effective_uid = getattr(run.player, "mercenary_owner", "") or effective_uid
-        if "battle_logs" in run.node_data:
-            logs = run.node_data.pop("battle_logs", [])
-            owners = run.node_data.pop("battle_log_owners", [])
-            own_logs = []
-            remaining = []
-            remaining_owners = []
-            for index, msg in enumerate(logs):
-                owner = owners[index] if index < len(owners) else effective_uid
-                if owner == effective_uid:
-                    own_logs.append(msg)
-                else:
-                    remaining.append(msg)
-                    remaining_owners.append(owner)
-            if remaining:
-                run.node_data["battle_logs"] = remaining
-                run.node_data["battle_log_owners"] = remaining_owners
-            if own_logs:
-                res = res.rstrip() + "\n" + "\n".join(own_logs)
-        else:
-            run.node_data.pop("battle_log_owners", None)
+        effective_uid = self._effective_log_uid(run)
+        nodes = self._take_battle_logs(run, effective_uid)
+        if nodes:
+            log_text = "\n".join(text for text in (render_text_node(node) for node in nodes) if text)
+            if log_text:
+                res = res.rstrip() + "\n" + log_text
         self.save_manager.save_save(effective_uid, run)
         return res
     def is_battle_won(self, run: GameRun) -> bool:
@@ -240,7 +254,7 @@ class BattleEngine(BaseBattleEngine):
         if getattr(p, "subclass", "") == "时序法师":
             if random.random() < 0.25:
                 p.bonus_actions += 1
-                self._log_event(run, get_locale_text("i18n_battle_core.time_shift_initial_log"))
+                self._log_event(run, locale_text(key="i18n_battle_core.time_shift_initial_log"))
         if getattr(p, "subclass", "") == "秘钥学者":
             self._add_buff_to(p, "key_scholar_passive", get_locale_text("i18n_battle_core.key_scholar_buff_name"), get_locale_text("i18n_battle_core.key_scholar_buff_desc"))
         init_draw = 6
@@ -320,9 +334,9 @@ class BattleEngine(BaseBattleEngine):
                 else:
                     challenge_count = 1
                 if challenge_count == 1:
-                    self._log_event(run, get_locale_text("i18n_battle_core.yog_sothoth_intro_first"))
+                    self._log_event(run, locale_text(key="i18n_battle_core.yog_sothoth_intro_first"))
                 else:
-                    self._log_event(run, get_locale_text("i18n_battle_core.yog_sothoth_intro_repeat", name=run.player.name))
+                    self._log_event(run, locale_text(key="i18n_battle_core.yog_sothoth_intro_repeat", params={"name": run.player.name}))
             else:
                 run.node_data["boss_name"] = boss_name
         elif difficulty == "secret_boss":
@@ -425,6 +439,10 @@ class BattleEngine(BaseBattleEngine):
         self.current_run = run
         return self.enemy_controller.enemy_turn(run)
 
+    def _enemy_turn_events(self, run: GameRun) -> TextDocument:
+        self.current_run = run
+        return self.enemy_controller.enemy_turn_events(run)
+
     def _handle_battle_win(self, run: GameRun):
         self.current_run = run
         self.card_player.handle_battle_win(run)
@@ -461,7 +479,7 @@ class BattleEngine(BaseBattleEngine):
             DeckService.add_card_to_exhaust(p, cid)
             card_obj = ALL_CARDS.get(cid)
             cname = card_obj.name if card_obj else cid
-            self._log_event(run, get_locale_text("i18n_battle_core.exhaust_to_pile_log", name=cname))
+            self._log_event(run, locale_text(key="i18n_battle_core.exhaust_to_pile_log", params={"name": cname}))
             self.event_bus.dispatch(CardExhaustEvent(run, cid, "emperor_eye"))
             exhausted_count += 1
         from ...entities.cards.market import is_card_available

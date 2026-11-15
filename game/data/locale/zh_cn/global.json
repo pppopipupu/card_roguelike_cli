@@ -57,6 +57,15 @@
       "死灵之书",
       "necronomicon",
       "秘典"
+    ],
+    "star_sigil": [
+      "星辉符印",
+      "star_sigil",
+      "符印",
+      "符文",
+      "神殿符印",
+      "星辉印记",
+      "sigil"
     ]
   },
   "item_descs": {
@@ -71,7 +80,8 @@
     "wishing_dew": "在清泉中涤净的虚空草药，变成了充满生机的水晶甘露草。酒保杰克急需它来酿酒。",
     "promotional_agreement": "一份独家推广协议。由酒保杰克草拟，可用来在加密巨鳄处证明合作关系。",
     "beer": "一杯散发着醇厚麦芽香气的冰镇黑麦酒。能让口渴的旅人精神一振。",
-    "necronomicon": "以未知皮革装帧的厚书。翻开它，书页会把你带去没有地面的地方。"
+    "necronomicon": "以未知皮革装帧的厚书。翻开它，书页会把你带去没有地面的地方。",
+    "star_sigil": "向导长老交给你的旧铜片，正面刻着星形印记。站在西大门使用它，即可出城前往尤格索托斯神殿。"
   },
   "global": {
     "interact_not_found": "❌ 房间里没有叫【{target}】的居民或交互物。",
@@ -141,6 +151,8 @@
     "help_take": "💡 拿取 (TAKE)：拿取/捡起/take/pick <物品>",
     "help_use": "💡 使用 (USE)：使用/use <物品>",
     "help_talk": "💡 对话 (TALK)：对话/talk/interact/talk_to <名字>",
+    "help_touch": "💡 触摸 (TOUCH)：触摸/touch/调查/inspect <目标>",
+    "help_attack": "💡 攻击 (ATTACK)：攻击/attack/atk <目标>",
     "help_system": "💡 系统 (SYSTEM)：退出/exit/quit | 回城/home | 传送/tp <地点>",
     "combat_quit": "💀 你已退出了切磋，回到了靶场房间。",
     "combat_won_banner": "🎉 战斗胜利！{bonus}",
@@ -148,7 +160,7 @@
     "take_missing_param": "❌ 请提供物品名字，例如：take 幸运硬币",
     "use_missing_param": "❌ 请指定使用的物品，例如：use 遗失的笔记本",
     "talk_missing_param": "❌ 请指定对话的目标，例如：对话 向导长老",
-    "town_help_prompt": "🔮 主城探索中。输入 退出/exit 回到主菜单，输入 W/A/S/D 移动，或输入 传送/tp <地点> 快速传送。输入 对话 <目标> 开启互动。",
+    "town_help_prompt": "🔮 主城探索中。输入 退出/exit 回到主菜单，输入 W/A/S/D 移动，或输入 传送/tp <地点> 快速传送。输入 对话/touch/attack <目标> 开启互动。",
     "unlocked_status": "已解锁",
     "already_unlocked_error": "❌ 你已经解锁了【{name}】。",
     "shop_buy_success": "🎉 购买成功！已成功解锁【{name}】。已扣除 {price} GP。",

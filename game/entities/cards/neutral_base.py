@@ -25,7 +25,7 @@ class SpellDamageCard(Card):
         dtype = "true" if (is_upgraded_card(self, "agile_strike") and is_agile) else self.damage_type
         
         target_enemy = None
-        if target.startswith("e"):
+        if target and target.startswith("e"):
             try:
                 idx = int(target[1:]) - 1
                 if 0 <= idx < len(run.enemies):

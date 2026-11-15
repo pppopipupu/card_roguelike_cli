@@ -338,6 +338,8 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
         get_locale_text("global.help_take"),
         get_locale_text("global.help_use"),
         get_locale_text("global.help_talk"),
+        get_locale_text("global.help_touch"),
+        get_locale_text("global.help_attack"),
         get_locale_text("global.help_system"),
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     ]

@@ -16,6 +16,7 @@ from ....data.temple_config import (
     TEMPLE_QUEST_FLAG,
     TEMPLE_ROOM_FLAG,
     TEMPLE_ROOMS,
+    TEMPLE_SIGIL_ITEM,
     TEMPLE_START_HP,
     TEMPLE_VISITED_KEY,
     TEMPLE_WIN_HEAL,
@@ -125,12 +126,29 @@ class TempleEngine:
             return False, _line("i18n_temple.enter.need_kill")
         if not stats.town_flags.get(TEMPLE_INFO_FLAG):
             return False, _line("i18n_temple.enter.need_info")
+        if TEMPLE_SIGIL_ITEM not in (getattr(stats, "town_inventory", None) or []):
+            return False, _line("i18n_temple.enter.need_sigil")
         if stats.town_pos != "west_gate":
             return False, _line("i18n_temple.enter.need_gate")
         return True, None
 
+    def ensure_sigil(self, stats) -> bool:
+        if not stats.town_flags.get(TEMPLE_INFO_FLAG):
+            return False
+        inventory = getattr(stats, "town_inventory", None)
+        if not isinstance(inventory, list):
+            inventory = []
+            stats.town_inventory = inventory
+        if TEMPLE_SIGIL_ITEM in inventory:
+            return False
+        inventory.append(TEMPLE_SIGIL_ITEM)
+        return True
+
     def enter(self, user_id: str, stats) -> str:
+        granted = self.ensure_sigil(stats)
         ok, msg = self.can_enter(stats)
+        if granted:
+            self._save(user_id, stats)
         if not ok:
             return self._render_document(user_id, stats, [msg] if msg else [])
         flags = self._flags(stats)
@@ -143,6 +161,7 @@ class TempleEngine:
         elif not stats.town_flags.get(TEMPLE_ROOM_FLAG):
             stats.town_flags[TEMPLE_ROOM_FLAG] = TEMPLE_ENTER_ROOM
         stats.town_flags[TEMPLE_ACTIVE_FLAG] = True
+        stats.town_flags.pop("current_dialog", None)
         self._mark_visited(stats, self._room(stats))
         self._save(user_id, stats)
         return self._render_document(user_id, stats, [

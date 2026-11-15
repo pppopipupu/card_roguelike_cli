@@ -156,8 +156,10 @@ def _resolve_coop_event(engine, run, option_idx):
             res = executor.execute(run, proxy)
         finally:
             if index > 0:
-                run.node_data = snapshot
-                run.node_type = saved_type
+                if snapshot is not None:
+                    run.node_data = snapshot
+                if saved_type is not None:
+                    run.node_type = saved_type
             restore_player(run, previous, previous_user)
         if index == 0:
             first_result = res or ""

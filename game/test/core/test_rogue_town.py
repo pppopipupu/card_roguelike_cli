@@ -6,6 +6,26 @@ from game.test.core.base import *
 from game.entities.cards.market import MARKET_SHELF_CARDS
 
 class TestRogueTown(unittest.TestCase):
+    def test_town_touch_and_attack_commands(self):
+        plugin = MyPlugin(DummyContext())
+        uid = "town_touch_attack_user"
+
+        async def run_test():
+            plugin.save_manager.delete_save(uid)
+            stats_path = plugin.save_manager.get_stats_path(uid)
+            if os.path.exists(stats_path):
+                os.remove(stats_path)
+            await run_command(plugin, ".rogue 主城", uid)
+            touch_res = await run_command(plugin, ".rogue touch 向导长老", uid)
+            self.assertIn("与向导长老闲聊", touch_res)
+            await run_command(plugin, ".rogue exit", uid)
+            await run_command(plugin, ".rogue up", uid)
+            attack_res = await run_command(plugin, ".rogue attack 训练假人", uid)
+            self.assertIn("训练假人", attack_res)
+            self.assertIn("战斗", attack_res)
+
+        asyncio.run(run_test())
+
     def test_town_full_loop(self):
         plugin = MyPlugin(DummyContext())
         save_manager = SaveManager()

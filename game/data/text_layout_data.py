@@ -1,4 +1,10 @@
 TEXT_LAYOUTS = {
+    "battle": {
+        "separator": "\n",
+        "sections": {
+            "body": {"order": 10, "separator": "\n"},
+        },
+    },
     "temple": {
         "separator": "\n\n",
         "screen": {

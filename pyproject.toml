@@ -31,19 +31,19 @@ typeCheckingMode = "basic"
 pythonVersion = "3.15"
 venvPath = "."
 venv = ".venv"
-# 代码库大量使用无类型字典与动态属性，Basic 推断噪声不作为门禁；
-# 保留未定义名称、未绑定变量与导入解析等会导致运行时失败的检查。
+# 无类型字典与动态属性保留三项推断豁免，其余可稳定收敛的类型检查作为门禁。
+# 未定义名称、未绑定变量与导入解析始终报错。
 reportAttributeAccessIssue = "none"
 reportOptionalMemberAccess = "none"
 reportArgumentType = "none"
-reportOptionalSubscript = "none"
-reportOptionalOperand = "none"
-reportOperatorIssue = "none"
-reportIndexIssue = "none"
-reportCallIssue = "none"
-reportGeneralTypeIssues = "none"
-reportAssignmentType = "none"
-reportReturnType = "none"
+reportOptionalSubscript = "error"
+reportOptionalOperand = "error"
+reportOperatorIssue = "error"
+reportIndexIssue = "error"
+reportCallIssue = "error"
+reportGeneralTypeIssues = "error"
+reportAssignmentType = "error"
+reportReturnType = "error"
 
 [project.scripts]
 rogue-server = "server.app:run"

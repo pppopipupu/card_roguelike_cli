@@ -9,7 +9,7 @@ from ....data.locale_data import get_locale_text
 from ....data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
 from ...inventory.bag_service import get_item_display_name
 
-from ....data.temple_config import TEMPLE_ACTIVE_FLAG
+from ....data.temple_config import TEMPLE_ACTIVE_FLAG, TEMPLE_SIGIL_ITEM
 
 class TownEngine:
     def __init__(self, save_manager, engine):
@@ -32,6 +32,8 @@ class TownEngine:
         try:
             with open(data_path, "r", encoding="utf-8") as f:
                 data = load(f)
+            if not isinstance(data, dict):
+                raise ValueError("room data must be a mapping")
             if room_id == "alley":
                 from ....models.state import get_user_id
                 uid = get_user_id()
@@ -77,6 +79,8 @@ class TownEngine:
             return self.outer_plane_engine.render(user_id, stats)
         zh_cn = self._load_zh_cn()
         dirty = self.record_visited_room(stats)
+        if self.temple_engine.ensure_sigil(stats):
+            dirty = True
         if stats.town_pos == "market":
             self._get_market_shelf(stats)
             dirty = True
@@ -192,41 +196,78 @@ class TownEngine:
         rendered = self.render_current_room(user_id, stats)
         return get_locale_text("i18n_cli_commands.town_tp_success", name=target_name) + "\n\n" + rendered
 
-    def talk_npc(self, user_id: str, target_name: str) -> str:
-        stats = self.save_manager.load_stats(user_id)
-        current_room = stats.town_pos
-        room_data = self._load_room_data(current_room)
+    def _visible_entity_ids(self, stats: UserStats, room_data: Dict[str, Any]) -> List[str]:
+        visible = list(room_data.get("npcs", []))
+        for npc_id in ("Gamer_Boy", "Crypto_Whale", "Lost_Bard", "Town_Guard", "Naughty_Child"):
+            if stats.town_flags.get(f"pos_{npc_id}", "square") == stats.town_pos and npc_id not in visible:
+                visible.append(npc_id)
+        return visible
+
+    def _resolve_visible_entity(self, stats: UserStats, room_data: Dict[str, Any], target_name: str) -> Optional[str]:
+        target_lower = (target_name or "").strip().lower()
+        if not target_lower:
+            return None
         zh_cn = self._load_zh_cn()
-
-        visible_ids = []
-        for n in room_data.get("npcs", []):
-            visible_ids.append(n)
-
-        wandering_npcs_config = ["Gamer_Boy", "Crypto_Whale", "Lost_Bard", "Town_Guard", "Naughty_Child"]
-        for npc_id in wandering_npcs_config:
-            npc_pos = stats.town_flags.get(f"pos_{npc_id}", "square")
-            if npc_pos == current_room:
-                visible_ids.append(npc_id)
-
-        target_id = None
-        target_lower = target_name.lower()
         entities = zh_cn.get("interactive_entities", {})
         from ....data.mercenary_data import MERCENARY_CONFIG
-        for ent_id in visible_ids:
+        for ent_id in self._visible_entity_ids(stats, room_data):
             ent_data = entities.get(ent_id, {})
-            names = [ent_id.lower(), ent_data.get("name", "").lower()]
+            names = [ent_id.lower(), str(ent_data.get("name", "")).lower()]
             if ent_id == "Harry_Du_Bois":
                 names.extend(a.lower() for a in MERCENARY_CONFIG["harry_du_bois"].get("aliases", []))
             if target_lower in names:
-                target_id = ent_id
-                break
-        if not target_id:
-            return get_locale_text("global.interact_not_found", target=target_name)
+                return ent_id
+        return None
 
+    def _open_dialog(self, user_id: str, stats: UserStats, target_id: str) -> str:
+        self.temple_engine.ensure_sigil(stats)
         stats.town_flags["current_dialog"] = target_id
         stats.town_flags.pop("market_sub_menu", None)
         self.save_manager.save_stats(user_id, stats)
-        return self._render_dialog_window(stats, target_id, zh_cn)
+        return self._render_dialog_window(stats, target_id, self._load_zh_cn())
+
+    def talk_npc(self, user_id: str, target_name: str) -> str:
+        stats = self.save_manager.load_stats(user_id)
+        room_data = self._load_room_data(stats.town_pos)
+        target_id = self._resolve_visible_entity(stats, room_data, target_name)
+        if not target_id:
+            return get_locale_text("global.interact_not_found", target=target_name)
+        return self._open_dialog(user_id, stats, target_id)
+
+    def touch_target(self, user_id: str, target_name: str) -> str:
+        stats = self.save_manager.load_stats(user_id)
+        room_data = self._load_room_data(stats.town_pos)
+        target_id = self._resolve_visible_entity(stats, room_data, target_name)
+        if target_id:
+            return self._open_dialog(user_id, stats, target_id)
+        from ...inventory.bag_service import get_item_desc, resolve_item_query
+        items = [
+            item_id
+            for item_id in room_data.get("items", [])
+            if not stats.town_flags.get(f"taken_{item_id}", 0)
+        ]
+        item_id = resolve_item_query(target_name, items)
+        if item_id:
+            return get_locale_text(
+                "i18n_town.touch_item",
+                name=get_item_display_name(item_id),
+                desc=get_item_desc(item_id),
+            )
+        return get_locale_text("global.interact_not_found", target=target_name)
+
+    def attack_target(self, user_id: str, target_name: str) -> str:
+        stats = self.save_manager.load_stats(user_id)
+        room_data = self._load_room_data(stats.town_pos)
+        target_id = self._resolve_visible_entity(stats, room_data, target_name)
+        if not target_id:
+            return get_locale_text("global.interact_not_found", target=target_name)
+        if target_id in ("Dummy", "NoobSlayer99", "xXx_SniperElite_xXx", "pppopipupu"):
+            stats.town_flags.pop("current_dialog", None)
+            self.save_manager.save_stats(user_id, stats)
+            return self.challenge_npc(user_id, target_id)
+        zh_cn = self._load_zh_cn()
+        name = zh_cn.get("interactive_entities", {}).get(target_id, {}).get("name", target_id)
+        return get_locale_text("i18n_town.attack_not_challengeable", name=name)
 
     def handle_dialog_input(self, user_id: str, choice: str) -> str:
         stats = self.save_manager.load_stats(user_id)
@@ -280,6 +321,8 @@ class TownEngine:
 
     def use_item(self, user_id: str, item_name: str) -> str:
         stats = self.save_manager.load_stats(user_id)
+        if self.temple_engine.ensure_sigil(stats):
+            self.save_manager.save_stats(user_id, stats)
         zh_cn = self._load_zh_cn()
 
         target_id = None
@@ -292,6 +335,11 @@ class TownEngine:
 
         if not target_id or target_id not in stats.town_inventory:
             return get_locale_text("global.use_not_found", target=item_name)
+
+        if target_id == TEMPLE_SIGIL_ITEM:
+            if stats.town_pos != "west_gate":
+                return get_locale_text("i18n_temple.enter.need_gate")
+            return self.temple_engine.enter(user_id, stats)
 
         if target_id == "lost_notebook":
             return get_locale_text("global.lost_notebook_use_desc")

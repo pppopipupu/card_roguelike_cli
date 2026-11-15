@@ -277,6 +277,13 @@ class TestRoomInteractAndShop(unittest.TestCase):
         town_bag = self.run_cmd("bag t", uid)
         self.assertIn("先古主城行囊", town_bag)
         self.assertIn("无限", town_bag)
+        stats = self.plugin.save_manager.load_stats(uid)
+        stats.town_inventory = ["merchant_ledger", "merchant_ledger", "ancient_notes"]
+        self.plugin.save_manager.save_stats(uid, stats)
+        stacked_bag = self.run_cmd("bag t", uid)
+        self.assertIn("【行商账册】 ×2", stacked_bag)
+        self.assertEqual(stacked_bag.count("【行商账册】"), 1)
+        self.assertEqual(stacked_bag.count("记录着秘密货源"), 1)
         rogue_explicit = self.run_cmd("bag r", uid)
         self.assertIn("秘境冒险行囊", rogue_explicit)
         bad_bag = self.run_cmd("bag xyz", uid)

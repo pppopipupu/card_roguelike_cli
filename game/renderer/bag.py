@@ -72,9 +72,16 @@ def render_bag(stats: UserStats, run: Optional[GameRun] = None, mode: Optional[s
         "",
     ]
     lines.append(get_locale_text("renderer_menu.bag_items_section"))
-    if stats.town_inventory:
-        for item_id in stats.town_inventory:
-            lines.append(get_locale_text("renderer_menu.bag_item_line", name=get_item_display_name(item_id)))
+    town_inventory = list(getattr(stats, "town_inventory", []) or [])
+    if town_inventory:
+        item_counts: dict[str, int] = {}
+        for item_id in town_inventory:
+            item_counts[item_id] = item_counts.get(item_id, 0) + 1
+        for item_id, count in item_counts.items():
+            if count > 1:
+                lines.append(get_locale_text("renderer_menu.bag_item_stacked_line", name=get_item_display_name(item_id), count=count))
+            else:
+                lines.append(get_locale_text("renderer_menu.bag_item_line", name=get_item_display_name(item_id)))
             lines.append(get_locale_text("renderer_menu.bag_item_desc_line", desc=get_item_desc(item_id)))
     else:
         lines.append(get_locale_text("renderer_menu.bag_empty_items"))

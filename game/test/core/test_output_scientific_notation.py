@@ -82,6 +82,8 @@ class TestOutputScientificNotation(unittest.TestCase):
         from game.json_codec import load
         with open(self.plugin.save_manager.get_stats_path(uid), "r", encoding="utf-8") as handle:
             raw = load(handle)
+        if not isinstance(raw, dict):
+            self.fail("stats payload is not an object")
         self.assertIsInstance(raw["total_damage"], str)
         self.assertEqual(int(raw["total_damage"]), 10 ** 400)
         self.assertEqual(self.plugin.save_manager.load_stats(uid).total_damage, 10 ** 400)

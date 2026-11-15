@@ -408,7 +408,7 @@ class OuterPlaneEngine:
         if temple_flags.get("butcher_path") or plane_flags.get("butcher_path"):
             ach.unlock(user_id, "silent_passage", stats=stats)
         self._save(user_id, stats)
-        document = [
+        document: TextDocument = [
             _line("i18n_outer_plane.ending.wake_town"),
             _line("i18n_outer_plane.ending.quest_done"),
         ]

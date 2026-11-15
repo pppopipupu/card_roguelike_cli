@@ -338,7 +338,7 @@ class MapEngine:
     def _init_treasure_node(self, run: GameRun):
         self.explore_engine._init_treasure_node(run)
 
-    def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str:
+    def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str | None:
         if run.node_type == "battle":
             return get_locale_text("i18n_map_cafe.err_cannot_choose_in_battle")
         if run.node_type == "battle_prompt":

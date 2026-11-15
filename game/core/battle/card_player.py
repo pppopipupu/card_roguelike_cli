@@ -617,6 +617,8 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         if needs_target:
             if target is None:
                 target = self.engine._get_first_alive_enemy(run)
+            if target is None:
+                return get_locale_text("i18n_battle_core.enemy_target_missing", target="")
             if isinstance(target, str) and target.isdigit():
                 target = f"e{target}"
             if target == "0" or target == "e0":

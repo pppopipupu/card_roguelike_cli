@@ -52,7 +52,9 @@ COMMAND_SECTION_ORDER = {
         "map_style",
         "take",
         "town_use",
-        "town_talk"
+        "town_talk",
+        "town_touch",
+        "town_attack"
     ),
     "cafe": (
         "cafe_look",

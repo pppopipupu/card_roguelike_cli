@@ -287,6 +287,20 @@
       "desc": "开启指定对话，进入对话后可以直接输入数字选择选项，输入 leave 结束对话。",
       "example": "对话 商人"
     },
+    "town_touch": {
+      "name": "触摸调查",
+      "usage": "touch <目标>",
+      "brief": "查看主城人物、设施或地面物品",
+      "desc": "触摸主城中的交互对象并打开其互动菜单；对未拾取的地面物品则显示名称与描述。",
+      "example": "touch 西大门"
+    },
+    "town_attack": {
+      "name": "攻击切磋",
+      "usage": "attack <目标>",
+      "brief": "向主城中的可切磋对象发起战斗",
+      "desc": "对训练假人、NoobSlayer99、精英狙击手或 pppopipupu 发起切磋，进入真实战斗；其他居民不可攻击。",
+      "example": "attack 训练假人"
+    },
     "cafe_look": {
       "name": "环顾咖啡厅",
       "usage": "look",

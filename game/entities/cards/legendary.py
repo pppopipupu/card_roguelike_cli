@@ -116,8 +116,9 @@ class BreakLimitsCard(Card):
             if not is_debuff(b.id):
                 if b.stacks <= threshold:
                     b.stacks *= multiplier
-                    if getattr(b, "stacks2", None) is not None:
-                        b.stacks2 *= multiplier
+                    stacks2 = getattr(b, "stacks2", None)
+                    if stacks2 is not None:
+                        b.stacks2 = stacks2 * multiplier
                     doubled_count += 1
         p.actions += gain_a
         if self.upgraded:
@@ -198,7 +199,7 @@ class AbyssErosionCard(Card):
         weakness_stacks = getattr(self, "buff_stacks", 5 if self.upgraded else 3)
         engine._damage_target(run, target, dmg, damage_type="necrotic", card=self, damage_ready=True)
         enemy_state = None
-        if target.startswith("e"):
+        if target and target.startswith("e"):
             try:
                 idx = int(target[1:]) - 1
                 if 0 <= idx < len(run.enemies):

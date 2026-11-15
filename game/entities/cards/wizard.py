@@ -13,7 +13,7 @@ class MagicMissileCard(Card):
         count = getattr(self, "hit_count", getattr(self, "count", 4 if self.upgraded else 3))
         total = 0
         name = engine._get_target_name(run, target)
-        if target.startswith("e"):
+        if target and target.startswith("e"):
             try:
                 idx = int(target[1:]) - 1
                 if idx < 0:
@@ -223,7 +223,7 @@ class ChainLightningCard(Card):
                 return " ".join(parts[:-1])
             return n
         base_target_name = ""
-        if target.startswith("e"):
+        if target and target.startswith("e"):
             try:
                 idx = int(target[1:]) - 1
                 if idx < 0:
@@ -378,7 +378,7 @@ class WizardTimeRavageCard(Card):
         dmg = getattr(self, "base_dmg", 25 if self.upgraded else 15)
         debuff_layers = getattr(self, "buff_stacks", 3 if self.upgraded else 2)
         engine._damage_target(run, target, dmg, damage_type="true", card=self)
-        if target.startswith("e"):
+        if target and target.startswith("e"):
             try:
                 idx = int(target[1:]) - 1
                 if 0 <= idx < len(run.enemies):

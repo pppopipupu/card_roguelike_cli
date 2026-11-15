@@ -217,7 +217,8 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return {}
         try:
             with open(path, "r", encoding="utf-8") as f:
-                return load(f)
+                data = load(f)
+            return data if isinstance(data, dict) else {}
         except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_duel_registry_failed", error=exc))
             return {}
@@ -257,7 +258,8 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return {}
         try:
             with open(path, "r", encoding="utf-8") as f:
-                return load(f)
+                data = load(f)
+            return data if isinstance(data, dict) else {}
         except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_duel_decks_failed", user_id=user_id, error=exc))
             return {}
@@ -271,7 +273,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             logger.warning(get_locale_text("i18n_models.manager.save_duel_decks_failed", user_id=user_id, error=exc))
             return False
 
-    def load_save(self, user_id: str) -> GameRun:
+    def load_save(self, user_id: str) -> Optional[GameRun]:
         stats = self.load_stats(user_id)
         coop_id = getattr(stats, "active_coop_id", "")
         if coop_id:
@@ -357,7 +359,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 return False
         return False
 
-    def load_coop_save(self, user_id: str, coop_id: str) -> GameRun:
+    def load_coop_save(self, user_id: str, coop_id: str) -> Optional[GameRun]:
         path = self.get_coop_save_path(coop_id)
         if not os.path.exists(path):
             return None
@@ -425,7 +427,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             logger.warning(get_locale_text("i18n_models.manager.save_lobbies_failed", error=exc))
             return False
 
-    def get_lobby(self, lobby_id: str) -> dict:
+    def get_lobby(self, lobby_id: str) -> Optional[dict]:
         lobbies = self.load_lobbies()
         return lobbies.get(lobby_id)
 
@@ -509,7 +511,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 continue
         return profiles
 
-    def load_duel_save(self, user_id: str) -> GameRun:
+    def load_duel_save(self, user_id: str) -> Optional[GameRun]:
         game_id = self.get_duel_game_id(user_id)
         if not game_id:
             return None
@@ -577,7 +579,8 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return {"final_boss": "random"}
         try:
             with open(path, "r", encoding="utf-8") as f:
-                return load(f)
+                data = load(f)
+            return data if isinstance(data, dict) else {"final_boss": "random"}
         except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_admin_config_failed", error=exc))
             return {"final_boss": "random"}

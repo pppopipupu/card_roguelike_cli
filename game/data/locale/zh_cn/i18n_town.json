@@ -1,6 +1,8 @@
 {
   "player_default_name": "玩家",
   "dummy_enemy_name": "训练假人",
+  "touch_item": "🔍 你查看了【{name}】：{desc}",
+  "attack_not_challengeable": "❌ 【{name}】不是可切磋的目标。",
   "option_buy_subclass": "购买新子职业/门之钥匙...",
   "riddle_soda": "汽水",
   "riddle_salary": "薪水",

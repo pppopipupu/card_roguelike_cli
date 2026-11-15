@@ -232,7 +232,8 @@ class TestEnemyRework(unittest.TestCase):
         with patch("random.choice", side_effect=lambda seq: seq[0]):
             engine.card_player._begin_player_phase(run, player)
         required = run.node_data.get(run.turn_key("baguwen_required_card", player))
-        self.assertIsInstance(required, dict)
+        if not isinstance(required, dict):
+            self.fail("baguwen requirement missing")
         self.assertTrue(required.get("id"))
         self.assertFalse(run.node_data.get(run.turn_key("baguwen_checked", player), True))
         play_idx = None
