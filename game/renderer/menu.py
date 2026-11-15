@@ -2,6 +2,7 @@ from ..models.state import GameRun, UserStats
 from ..entities.cards.base import get_card_color_icon
 from ..cards import ALL_CARDS
 from ..data.locale_data import t
+from .formatters import format_large_int
 
 def render_menu(stats: UserStats = None) -> str:
     subclass_str = t("renderer_menu.none")
@@ -361,7 +362,7 @@ def render_stats(stats: UserStats, include_mode: bool = True) -> str:
         t("renderer_menu.separator"),
         t("renderer_menu.stats_title"),
         "",
-        t("renderer_menu.stats_damage", damage=stats.total_damage),
+        t("renderer_menu.stats_damage", damage=format_large_int(stats.total_damage)),
         t("renderer_menu.stats_kills", kills=stats.total_kills),
         t("renderer_menu.stats_stages", stages=stats.total_stages),
         *mode_line,

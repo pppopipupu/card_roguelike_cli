@@ -1,5 +1,6 @@
 import os
 import logging
+import math
 import tempfile
 from dataclasses import asdict
 from typing import Optional, Tuple, Dict, List
@@ -13,6 +14,24 @@ from ..data.locale_data import get_locale_text
 from ..data.starting_deck_config import LOCK_SLOT_LIMIT
 
 logger = logging.getLogger(__name__)
+
+def _parse_total_damage(value) -> int:
+    if isinstance(value, bool):
+        return 0
+    if isinstance(value, int):
+        parsed = value
+    elif isinstance(value, float):
+        if not math.isfinite(value):
+            return 0
+        parsed = int(value)
+    elif isinstance(value, str):
+        try:
+            parsed = int(value.strip() or "0")
+        except ValueError:
+            return 0
+    else:
+        return 0
+    return parsed if parsed > 0 else 0
 
 def _atomic_write_json(path: str, data, indent: int = 2) -> None:
     directory = os.path.dirname(path)
@@ -102,7 +121,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             if not isinstance(achievement_stats, dict):
                 achievement_stats = {}
             return UserStats(
-                total_damage=d.get("total_damage", 0),
+                total_damage=_parse_total_damage(d.get("total_damage", 0)),
                 total_kills=d.get("total_kills", 0),
                 total_stages=d.get("total_stages", 0),
                 rogue_mode=d.get("rogue_mode", False),
@@ -161,6 +180,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         path = self.get_stats_path(user_id)
         try:
             d = asdict(stats)
+            d["total_damage"] = str(int(stats.total_damage))
             _atomic_write_json(path, d)
             return True
         except (OSError, ValueError, KeyError, TypeError) as exc:

@@ -1051,6 +1051,7 @@ class ServerTests(unittest.TestCase):
         ).json()
         self.assertIn("1.00e+13", web_stat["text"])
         self.assertEqual(web_stat["state"]["stats"]["gp"], 12345678901234)
+        self.assertEqual(web_stat["state"]["stats"]["total_damage"], "1.00e+13")
 
         myid = self.post(
             {"command": "我的id", "channel": "im", "force": True},

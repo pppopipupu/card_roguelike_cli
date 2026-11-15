@@ -74,6 +74,18 @@ class TestOutputScientificNotation(unittest.TestCase):
         self.assertIn("999999999999", stat_out)
         self.assertNotIn("98765432109876", stat_out)
 
+    def test_total_damage_saved_as_string_and_loaded_as_int(self):
+        uid = "sci_save_user"
+        stats = self.plugin.save_manager.load_stats(uid)
+        stats.total_damage = 10 ** 400
+        self.assertTrue(self.plugin.save_manager.save_stats(uid, stats))
+        from game.json_codec import load
+        with open(self.plugin.save_manager.get_stats_path(uid), "r", encoding="utf-8") as handle:
+            raw = load(handle)
+        self.assertIsInstance(raw["total_damage"], str)
+        self.assertEqual(int(raw["total_damage"]), 10 ** 400)
+        self.assertEqual(self.plugin.save_manager.load_stats(uid).total_damage, 10 ** 400)
+
 
 if __name__ == "__main__":
     unittest.main()
