@@ -243,10 +243,11 @@ class CardPlayerRewardsMixin:
             return
         run.enemies.clear()
         ach = AchievementService(self.engine.save_manager)
-        if stage in (MapConfig.FINAL_BOSS_STAGE, MapConfig.GATE_BOSS_STAGE):
+        is_stage_boss = difficulty == "boss"
+        if is_stage_boss and stage in (MapConfig.FINAL_BOSS_STAGE, MapConfig.GATE_BOSS_STAGE):
             roll_battle_gold(difficulty)
             roll_potion(self.engine.save_manager.load_stats(run.user_id), difficulty)
-        if stage == MapConfig.FINAL_BOSS_STAGE:
+        if is_stage_boss and stage == MapConfig.FINAL_BOSS_STAGE:
             boss_name = run.node_data.get("boss_name", get_locale_text("i18n_explore_core.final_boss_name"))
             run.node_type = "victory"
             run.node_data = {"coop_node_type": "victory", "boss_name": boss_name}
@@ -262,7 +263,7 @@ class CardPlayerRewardsMixin:
                 self.engine.save_manager.save_stats(uid, stats)
             self.engine.save_manager.save_save(run.user_id, run)
             return
-        if stage == MapConfig.GATE_BOSS_STAGE:
+        if is_stage_boss and stage == MapConfig.GATE_BOSS_STAGE:
             has_gatekey = all(
                 getattr(self.engine.save_manager.load_stats(uid), "unlocked_gatekey", False)
                 for uid in run.all_human_uids()

@@ -1,6 +1,6 @@
 from ..models.state import GameRun, UserStats
 from ..data.locale_data import get_locale_text
-from .menu import render_menu, render_card_library, render_relic_library, render_deck, render_stats, render_tutorial, render_changelog
+from .menu import render_menu, render_card_library, render_relic_library, render_deck, render_stats, render_tutorial, render_changelog_page
 from .help import render_help_index, render_help_detail
 from .potion import render_potion_list
 from .battle import render_battle, render_detailed_battle, render_draw_pile, render_discard_pile, render_exhaust_pile, render_minion_graveyard, render_enemy_graveyard
@@ -45,9 +45,8 @@ class GameRenderer:
         return render_tutorial()
 
     @staticmethod
-    def render_changelog() -> str:
-        return render_changelog()
-
+    def render_changelog(page: int = 1) -> str:
+        return format_output_numbers(render_changelog_page(page))
 
     @staticmethod
     def render_card_library() -> str:

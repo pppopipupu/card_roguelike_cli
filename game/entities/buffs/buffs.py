@@ -60,8 +60,6 @@ class EchoFormBuff(BuffImpl):
                 played_evt = CardPlayedEvent(event.run, event.card, event.target, extra_res, is_extra=True)
                 event.engine.event_bus.dispatch(played_evt)
                 event.run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.echo_trigger_msg", res=played_evt.feedback))
-                if hasattr(event.card, "execute_tags"):
-                    event.card.execute_tags(event.run, event.target, event.engine)
 
     def on_card_played_legacy(self, run, card, target: str, engine) -> str:
         played_count = run.node_data.get(run.turn_key("cards_played_this_turn", run.player), 0)
@@ -79,8 +77,6 @@ class EchoFormBuff(BuffImpl):
                     break
                 extra_res = engine._execute_card_effect(run, card, target)
                 run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.echo_trigger_msg", res=extra_res))
-                if hasattr(card, "execute_tags"):
-                    card.execute_tags(run, target, engine)
         return ""
 
 class IronWillBuff(BuffImpl):

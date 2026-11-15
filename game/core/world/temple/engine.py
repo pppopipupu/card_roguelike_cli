@@ -20,16 +20,33 @@ from ....data.temple_config import (
     TEMPLE_VISITED_KEY,
     TEMPLE_WIN_HEAL,
 )
-from ....models.state import EnemyState, GameRun, UserStats
+from ....models.state import EnemyState, GameRun
 from ....renderer.temple import render_temple
+from ...text.events import LocaleText, RenderedText, ScreenText, TextDocument
+from ...text.pipeline import render_text
 from ..butcher_bonus import apply_butcher_bonus
 
+TEMPLE_SCREEN = "temple"
 
-def _scene(opt_id: str) -> str:
+
+def _line(key: str, section: str = "body", **params) -> LocaleText:
+    return LocaleText(key=key, params=params, section=section)
+
+
+def _scene_node(opt_id: str) -> LocaleText | None:
     key = f"i18n_temple.scene.{opt_id}"
     if get_locale_raw(key) is None:
-        return ""
-    return get_locale_text(key)
+        return None
+    return LocaleText(key=key, section="scene")
+
+
+def _screen_node(scene: LocaleText | None = None, notice: list[LocaleText] | None = None) -> ScreenText:
+    return ScreenText(
+        section="screen",
+        screen=TEMPLE_SCREEN,
+        scene=[scene] if scene else [],
+        notice=list(notice or []),
+    )
 
 
 class TempleEngine:
@@ -69,37 +86,53 @@ class TempleEngine:
                     return opt
         return None
 
+    def _render_document(self, user_id: str, stats, document: TextDocument) -> str:
+        return render_text(
+            document,
+            "temple",
+            {
+                TEMPLE_SCREEN: lambda scene, notice: self.render(
+                    user_id, stats, scene_text=scene, notice=notice
+                )
+            },
+        )
+
     def attack(self, user_id: str, stats) -> str:
         if not self.is_active(stats):
-            return get_locale_text("i18n_temple.ui.not_in_temple")
+            return self._render_document(user_id, stats, [
+                _line("i18n_temple.ui.not_in_temple"),
+            ])
         options = self._visible_options(stats)
         for _, opt in options:
             if opt.get("encounter"):
                 self._flags(stats)["butcher_path"] = True
-                return self._apply(user_id, stats, opt)
+                return self._render_document(user_id, stats, self._apply_events(user_id, stats, opt))
         for _, opt in options:
             if opt.get("to") or opt.get("ending"):
                 self._flags(stats)["butcher_path"] = True
-                return self._apply(user_id, stats, opt)
-        return get_locale_text("i18n_temple.ui.no_attack") + "\n\n" + self.render(user_id, stats)
+                return self._render_document(user_id, stats, self._apply_events(user_id, stats, opt))
+        return self._render_document(user_id, stats, [
+            _line("i18n_temple.ui.no_attack"),
+            _screen_node(),
+        ])
 
-    def can_enter(self, stats) -> Tuple[bool, str]:
+    def can_enter(self, stats) -> Tuple[bool, Optional[LocaleText]]:
         if stats.town_flags.get(TEMPLE_QUEST_FLAG) in ("completed", "outer_plane"):
-            return False, get_locale_text("i18n_temple.enter.finished")
+            return False, _line("i18n_temple.enter.finished")
         if self.is_active(stats):
-            return False, get_locale_text("i18n_temple.enter.already")
+            return False, _line("i18n_temple.enter.already")
         if int(getattr(stats, "yog_sothoth_kill_count", 0) or 0) <= 0:
-            return False, get_locale_text("i18n_temple.enter.need_kill")
+            return False, _line("i18n_temple.enter.need_kill")
         if not stats.town_flags.get(TEMPLE_INFO_FLAG):
-            return False, get_locale_text("i18n_temple.enter.need_info")
+            return False, _line("i18n_temple.enter.need_info")
         if stats.town_pos != "west_gate":
-            return False, get_locale_text("i18n_temple.enter.need_gate")
-        return True, ""
+            return False, _line("i18n_temple.enter.need_gate")
+        return True, None
 
     def enter(self, user_id: str, stats) -> str:
         ok, msg = self.can_enter(stats)
         if not ok:
-            return msg
+            return self._render_document(user_id, stats, [msg] if msg else [])
         flags = self._flags(stats)
         if not flags.get("initialized"):
             flags["initialized"] = True
@@ -112,7 +145,10 @@ class TempleEngine:
         stats.town_flags[TEMPLE_ACTIVE_FLAG] = True
         self._mark_visited(stats, self._room(stats))
         self._save(user_id, stats)
-        return get_locale_text("i18n_temple.enter.banner") + "\n\n" + self.render(user_id, stats)
+        return self._render_document(user_id, stats, [
+            _line("i18n_temple.enter.banner"),
+            _screen_node(),
+        ])
 
     def _visible_options(self, stats) -> List[Tuple[int, Dict[str, Any]]]:
         flags = self._flags(stats)
@@ -136,7 +172,9 @@ class TempleEngine:
 
     def choose(self, user_id: str, stats, raw: str) -> str:
         if not self.is_active(stats):
-            return get_locale_text("i18n_temple.ui.not_in_temple")
+            return self._render_document(user_id, stats, [
+                _line("i18n_temple.ui.not_in_temple"),
+            ])
         token = (raw or "").strip().lower()
         picked = None
         for num, opt in self._visible_options(stats):
@@ -144,55 +182,69 @@ class TempleEngine:
                 picked = opt
                 break
         if picked is None:
-            return get_locale_text("i18n_temple.ui.invalid_option") + "\n\n" + self.render(user_id, stats)
-        return self._apply(user_id, stats, picked)
+            return self._render_document(user_id, stats, [
+                _line("i18n_temple.ui.invalid_option"),
+                _screen_node(),
+            ])
+        return self._render_document(user_id, stats, self._apply_events(user_id, stats, picked))
 
     def read(self, user_id: str, stats) -> str:
         if not self.is_active(stats):
-            return get_locale_text("i18n_temple.ui.not_in_temple")
+            return self._render_document(user_id, stats, [
+                _line("i18n_temple.ui.not_in_temple"),
+            ])
         for _, opt in self._visible_options(stats):
             if opt.get("ending"):
-                return self._apply(user_id, stats, opt)
-        return get_locale_text("i18n_temple.ui.no_read") + "\n\n" + self.render(user_id, stats)
+                return self._render_document(user_id, stats, self._apply_events(user_id, stats, opt))
+        return self._render_document(user_id, stats, [
+            _line("i18n_temple.ui.no_read"),
+            _screen_node(),
+        ])
 
     def leave(self, user_id: str, stats) -> str:
+        return self._render_document(user_id, stats, self._leave_events(user_id, stats))
+
+    def _leave_events(self, user_id: str, stats) -> TextDocument:
         stats.town_flags[TEMPLE_ACTIVE_FLAG] = False
         stats.town_flags.pop(TEMPLE_PENDING_KEY, None)
         self._save(user_id, stats)
-        return get_locale_text("i18n_temple.ui.leave") + "\n\n" + self.town_engine.render_current_room(user_id, stats)
+        return [
+            _line("i18n_temple.ui.leave"),
+            RenderedText(text=self.town_engine.render_current_room(user_id, stats), section="body"),
+        ]
 
-    def _apply_gains(self, stats, opt) -> List[str]:
+    def _apply_gains(self, stats, opt) -> List[LocaleText]:
         notices = []
         if opt.get("heal"):
             hp = int(stats.town_flags.get(TEMPLE_HP_KEY, TEMPLE_START_HP) or TEMPLE_START_HP)
             max_hp = int(stats.town_flags.get(TEMPLE_MAX_HP_KEY, TEMPLE_START_HP) or TEMPLE_START_HP)
             stats.town_flags[TEMPLE_HP_KEY] = min(max_hp, hp + int(opt["heal"]))
-            notices.append(get_locale_text("i18n_temple.ui.hp_gain", heal=opt["heal"]))
+            notices.append(_line("i18n_temple.ui.hp_gain", "notice", heal=opt["heal"]))
         if opt.get("gp"):
             stats.gp = int(getattr(stats, "gp", 0) or 0) + int(opt["gp"])
-            notices.append(get_locale_text("i18n_temple.ui.gp_gain", gp=opt["gp"]))
+            notices.append(_line("i18n_temple.ui.gp_gain", "notice", gp=opt["gp"]))
         return notices
 
-    def _apply(self, user_id: str, stats, opt) -> str:
+    def _apply_events(self, user_id: str, stats, opt) -> TextDocument:
         flags = self._flags(stats)
         flags[f"opt_{opt['id']}"] = True
-        scene = _scene(opt["id"])
+        scene = _scene_node(opt["id"])
         notices = self._apply_gains(stats, opt)
         for name, value in opt.get("set", {}).items():
             flags[name] = value
         if opt.get("leave"):
-            return self.leave(user_id, stats)
+            return self._leave_events(user_id, stats)
         if opt.get("ending"):
-            return self._ending(user_id, stats, scene)
+            return self._ending_events(user_id, stats, scene)
         if opt.get("encounter"):
-            return self._start_encounter(user_id, stats, opt, scene, notices)
+            return self._start_encounter_events(user_id, stats, opt, scene, notices)
         if opt.get("to"):
             stats.town_flags[TEMPLE_ROOM_FLAG] = opt["to"]
             self._mark_visited(stats, opt["to"])
         self._save(user_id, stats)
-        return self.render(user_id, stats, scene_text=scene, notice="\n".join(notices))
+        return [_screen_node(scene, notices)]
 
-    def _start_encounter(self, user_id: str, stats, opt, scene: str, notices: List[str]) -> str:
+    def _start_encounter_events(self, user_id: str, stats, opt, scene: LocaleText | None, notices: List[LocaleText]) -> TextDocument:
         encounter_id = opt["encounter"]
         cfg = TEMPLE_ENCOUNTERS[encounter_id]
         flags = self._flags(stats)
@@ -238,14 +290,16 @@ class TempleEngine:
         stats.town_flags[TEMPLE_PENDING_KEY] = opt["id"]
         self._save(user_id, stats)
         from ....renderer import GameRenderer
-        parts = [get_locale_text(f"i18n_temple.encounter.{encounter_id}.scene"), GameRenderer.render_game(run)]
-        if scene:
-            parts.insert(0, scene)
-        if notices:
-            parts.append("\n".join(notices))
-        return "\n\n".join(parts)
+        document: TextDocument = [scene] if scene else []
+        document.append(_line(f"i18n_temple.encounter.{encounter_id}.scene", "encounter"))
+        document.append(RenderedText(text=GameRenderer.render_game(run), section="combat"))
+        document.extend(notices)
+        return document
 
     def on_battle_win(self, user_id: str, stats, run) -> str:
+        return self._render_document(user_id, stats, self._on_battle_win_events(user_id, stats, run))
+
+    def _on_battle_win_events(self, user_id: str, stats, run) -> TextDocument:
         flags = self._flags(stats)
         pending_id = run.node_data.get("temple_pending_option") or stats.town_flags.get(TEMPLE_PENDING_KEY)
         stats.town_flags.pop(TEMPLE_PENDING_KEY, None)
@@ -253,20 +307,24 @@ class TempleEngine:
         max_hp = int(stats.town_flags.get(TEMPLE_MAX_HP_KEY, TEMPLE_START_HP) or TEMPLE_START_HP)
         stats.town_flags[TEMPLE_HP_KEY] = min(max_hp, hp + TEMPLE_WIN_HEAL)
         encounter_id = run.node_data.get("temple_encounter", "")
-        notices = [get_locale_text("i18n_temple.combat.win_heal", msg=get_locale_text("i18n_temple.ui.hp_gain", heal=TEMPLE_WIN_HEAL))]
+        notices = [
+            _line("i18n_temple.combat.win_heal", "notice", heal=TEMPLE_WIN_HEAL)
+        ]
         opt = self._find_option(pending_id) if pending_id else None
         if opt:
             for name, value in opt.get("set", {}).items():
                 flags[name] = value
             if opt.get("gp"):
                 stats.gp = int(getattr(stats, "gp", 0) or 0) + int(opt["gp"])
-                notices.append(get_locale_text("i18n_temple.ui.gp_gain", gp=opt["gp"]))
+                notices.append(_line("i18n_temple.ui.gp_gain", "notice", gp=opt["gp"]))
             if opt.get("to"):
                 stats.town_flags[TEMPLE_ROOM_FLAG] = opt["to"]
                 self._mark_visited(stats, opt["to"])
         self._save(user_id, stats)
-        win_text = get_locale_text(f"i18n_temple.encounter.{encounter_id}.win")
-        return win_text + "\n\n" + self.render(user_id, stats, notice="\n".join(notices))
+        return [
+            _line(f"i18n_temple.encounter.{encounter_id}.win", "combat"),
+            _screen_node(None, notices),
+        ]
 
     def on_battle_lose(self, user_id: str, stats, run) -> str:
         stats.town_flags[TEMPLE_HP_KEY] = TEMPLE_START_HP
@@ -274,20 +332,23 @@ class TempleEngine:
         stats.town_flags[TEMPLE_ROOM_FLAG] = run.node_data.get("temple_room") or TEMPLE_ENTER_ROOM
         stats.town_flags.pop(TEMPLE_PENDING_KEY, None)
         self._save(user_id, stats)
-        return get_locale_text("i18n_temple.combat.lose") + "\n\n" + self.render(user_id, stats)
+        return self._render_document(user_id, stats, [
+            _line("i18n_temple.combat.lose", "combat"),
+            _screen_node(),
+        ])
 
-    def _ending(self, user_id: str, stats, scene: str) -> str:
+    def _ending_events(self, user_id: str, stats, scene: LocaleText | None) -> TextDocument:
         flags = self._flags(stats)
-        lines = [scene] if scene else []
+        document: TextDocument = [scene] if scene else []
         for key in ("open", "faint", "outer_plane", "yog_arrive", "yog_reveal"):
-            lines.append(get_locale_text(f"i18n_temple.ending.{key}"))
+            document.append(_line(f"i18n_temple.ending.{key}", "ending"))
         for name in ENDING_BRANCH_FLAGS:
             if not flags.get(name):
                 continue
             key = f"i18n_temple.ending.branch.{name}"
             if get_locale_raw(key) is not None:
-                lines.append(get_locale_text(key))
-        lines.append(get_locale_text("i18n_temple.ending.detain"))
+                document.append(_line(key, "ending"))
+        document.append(_line("i18n_temple.ending.detain", "ending"))
         stats.town_flags[TEMPLE_QUEST_FLAG] = "outer_plane"
         stats.town_flags[TEMPLE_ACTIVE_FLAG] = False
         stats.town_flags[TEMPLE_ROOM_FLAG] = ""
@@ -295,5 +356,8 @@ class TempleEngine:
         stats.in_town = True
         stats.town_pos = "square"
         self._save(user_id, stats)
-        ending = "\n\n".join(lines)
-        return ending + "\n\n" + self.town_engine.outer_plane_engine.enter_quest(user_id, stats)
+        document.append(RenderedText(
+            text=self.town_engine.outer_plane_engine.enter_quest(user_id, stats),
+            section="body",
+        ))
+        return document

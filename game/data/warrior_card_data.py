@@ -280,7 +280,7 @@ WARRIOR_CARD_CONFIG = {
         "name": "恶魔形态",
         "color": "warrior",
         "type": "ability",
-        "cost_a": 2,
+        "cost_a": 1,
         "cost_ba": 1,
         "desc": "本场战斗中，你在回合开始时获得 3 层力量。",
         "rarity": "legendary",

@@ -498,11 +498,19 @@ class TestRogueExplore(unittest.TestCase):
         engine._init_battle_node(run, "ghost")
         self.assertEqual(run.enemies[0].actions, 0)
         run.node_type = "battle"
+        run.node_data["difficulty"] = "normal"
+        player.stage = 32
+        engine.card_player.handle_battle_win(run)
+        self.assertEqual(run.node_type, "reward")
+        self.assertEqual(sm.stats.yog_sothoth_kill_count, 0)
+        run.node_type = "battle"
+        run.node_data = {"difficulty": "boss", "boss_name": "Icerainboww"}
         player.stage = 25
         sm.stats.unlocked_gatekey = False
         engine.card_player.handle_battle_win(run)
         self.assertEqual(run.node_type, "victory")
         run.node_type = "battle"
+        run.node_data = {"difficulty": "boss", "boss_name": "Icerainboww"}
         player.stage = 25
         sm.stats.unlocked_gatekey = True
         engine.card_player.handle_battle_win(run)
@@ -520,6 +528,7 @@ class TestRogueExplore(unittest.TestCase):
         engine.end_turn(run)
         self.assertTrue(any(b.id == "vulnerable_force" for b in enemy_test2.buffs))
         run.node_type = "battle"
+        run.node_data.update({"difficulty": "boss", "boss_name": "虚空之门·尤格-索托斯"})
         player.stage = 32
         engine.card_player.handle_battle_win(run)
         self.assertEqual(run.node_type, "victory")

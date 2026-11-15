@@ -161,15 +161,25 @@ def get_rogue_relic_library_items() -> list:
 
 
 
-def render_reader_page(stats: UserStats) -> str:
+def get_reader_page_size(stats: UserStats) -> int:
+    return 1 if getattr(stats, "reader_mode", "rogue") == "changelog" else 10
+
+
+def get_reader_total_pages(stats: UserStats) -> int:
     total_items = len(stats.reader_items)
-    page_size = 10
-    total_pages = max(1, (total_items + page_size - 1) // page_size)
+    page_size = get_reader_page_size(stats)
+    return max(1, (total_items + page_size - 1) // page_size)
+
+
+def render_reader_page(stats: UserStats, prompt_key: str = "renderer_menu.reader_prompt") -> str:
+    total_items = len(stats.reader_items)
+    page_size = get_reader_page_size(stats)
+    total_pages = get_reader_total_pages(stats)
     page = max(1, min(stats.reader_page, total_pages))
-    
+
     start_idx = (page - 1) * page_size
     end_idx = min(start_idx + page_size, total_items)
-    
+
     lines = [
         t("renderer_menu.separator"),
         t("renderer_menu.reader_title", title=stats.reader_title, page=page, total_pages=total_pages),
@@ -179,10 +189,13 @@ def render_reader_page(stats: UserStats) -> str:
         lines.append(t("renderer_menu.reader_empty"))
     else:
         for i in range(start_idx, end_idx):
-            lines.append(f"{i + 1}. {stats.reader_items[i]}")
-        
+            if getattr(stats, "reader_mode", "rogue") == "changelog":
+                lines.append(stats.reader_items[i])
+            else:
+                lines.append(f"{i + 1}. {stats.reader_items[i]}")
+
     lines.append("")
-    lines.append(t("renderer_menu.reader_prompt"))
+    lines.append(t(prompt_key, page=page, total_pages=total_pages))
     lines.append(t("renderer_menu.separator"))
     return "\n".join(lines)
 
@@ -404,6 +417,45 @@ def render_tutorial() -> str:
 
 def render_changelog() -> str:
     return render_root_document("CHANGELOG.md", "renderer_menu.changelog_missing", "renderer_menu.changelog_read_error")
+
+
+def paginate_changelog(text: str, max_chars: int = 1200, max_lines: int = 18) -> list[str]:
+    pages = []
+    current = []
+    current_chars = 0
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip()
+        while len(line) > max_chars:
+            if current:
+                pages.append("\n".join(current).strip("\n"))
+                current = []
+                current_chars = 0
+            pages.append(line[:max_chars])
+            line = line[max_chars:]
+        if current and (current_chars + len(line) + 1 > max_chars or len(current) >= max_lines):
+            pages.append("\n".join(current).strip("\n"))
+            current = []
+            current_chars = 0
+        current.append(line)
+        current_chars += len(line) + 1
+    if current:
+        pages.append("\n".join(current).strip("\n"))
+    valid_pages = [page for page in pages if page.strip()]
+    return valid_pages or [t("renderer_menu.reader_empty")]
+
+
+def get_changelog_pages() -> list[str]:
+    return paginate_changelog(render_changelog())
+
+
+def render_changelog_page(page: int = 1) -> str:
+    stats = UserStats(
+        reader_title=t("renderer_menu.changelog_title"),
+        reader_items=get_changelog_pages(),
+        reader_page=max(1, page),
+        reader_mode="changelog",
+    )
+    return render_reader_page(stats, prompt_key="renderer_menu.changelog_im_prompt")
 
 
 def render_shop(stats: UserStats) -> str:

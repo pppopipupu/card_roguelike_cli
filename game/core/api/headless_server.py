@@ -10,7 +10,7 @@ from ..cli.base.aliases import (
     NODE_EXIT_ALIASES, NODE_CANCEL_ALIASES,
     STATE_STACK_CANCEL_ALIASES, has_pending_node_cancel,
 )
-from ...renderer.menu import render_reader_page
+from ...renderer.menu import get_reader_total_pages, render_reader_page
 from ...renderer import GameRenderer, format_output_numbers
 from ...cards import resolve_card_id, ALL_CARDS
 from ...data.locale_data import get_locale_text
@@ -87,8 +87,7 @@ class HeadlessGameServer:
                         self.save_manager.save_stats(user_id, stats)
                         return get_locale_text("i18n_cli_core.reader_exited")
                     elif cmd in ("下一页", "n", "next"):
-                        total_items = len(stats.reader_items)
-                        total_pages = (total_items + 9) // 10
+                        total_pages = get_reader_total_pages(stats)
                         if stats.reader_page >= total_pages:
                             return get_locale_text("i18n_cli_core.reader_last_page")
                         stats.reader_page += 1

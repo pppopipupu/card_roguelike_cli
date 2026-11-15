@@ -9,7 +9,7 @@
       "lucky_coin"
     ],
     "rusty_key": [
-      "rusty_key",
+      "锈蚀的钥匙",
       "rusty_key",
       "锈蚀的钥匙"
     ],
@@ -136,6 +136,7 @@
     "room_npcs": "居民：{npcs}",
     "room_items": "物品：{items}",
     "room_inventory": "🎒 随身物品：{inv} | 💰 拥有 GP：{gp}",
+    "room_inventory_folded": "🎒 随身物品：共 {count} 件（已折叠，输入 bag 查看） | 💰 拥有 GP：{gp}",
     "help_move": "💡 移动 (MOVE)：W(北/UP) / A(西/LEFT) / S(南/DOWN) / D(东/RIGHT)",
     "help_take": "💡 拿取 (TAKE)：拿取/捡起/take/pick <物品>",
     "help_use": "💡 使用 (USE)：使用/use <物品>",

@@ -108,7 +108,7 @@ class BreakLimitsCard(Card):
         from ..buffs import is_debuff
         p = run.player
         doubled_count = 0
-        threshold = getattr(self, "threshold", 2000)
+        threshold = getattr(self, "threshold", 500)
         multiplier = getattr(self, "multiplier", 2)
         gain_a = getattr(self, "gain_a", 1)
         gain_ba = getattr(self, "gain_ba", 1)

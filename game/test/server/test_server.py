@@ -699,6 +699,14 @@ class ServerTests(unittest.TestCase):
         ).json()
         self.assertTrue(cl["handled"])
         self.assertIn("更新日志", cl["text"])
+        self.assertIn("第 1 /", cl["text"])
+
+        cl_next = self.post(
+            {"command": ".rogue cl 2", "channel": "im", "force": False},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(cl_next["handled"])
+        self.assertIn("第 2 /", cl_next["text"])
 
         lb = self.post(
             {"command": "leaderboard", "channel": "im", "force": True},

@@ -4,6 +4,8 @@ from ..models.state import UserStats
 from ..entities import ALL_CARDS
 from ..entities.cards.market import MARKET_SHELF_CARDS, get_market_price
 from ..data.locale_data import t, get_locale_text
+from ..data.balance_config import TOWN_INVENTORY_FOLD_THRESHOLD
+from ..core.inventory.bag_service import get_item_display_name
 
 def _load_zh_cn() -> Dict[str, Any]:
     from ..core.i18n.locale_manager import LocaleManager
@@ -244,12 +246,10 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
     none_label = get_locale_text("global.none")
     npc_str = get_locale_text("renderer_town.list_separator").join(visible_npcs) if visible_npcs else none_label
 
-    items_loc = zh_cn.get("items", {})
     visible_items = []
     for item_id in room_data.get("items", []):
         if not stats.town_flags.get(f"taken_{item_id}", 0):
-            item_name = items_loc.get(item_id, [item_id])[0]
-            visible_items.append(item_name)
+            visible_items.append(get_item_display_name(item_id))
     
     if current_id == "vip_room" and not stats.town_flags.get("box_opened", 0):
         chest_name = entities_loc.get("Chest", {}).get("name", t("renderer_town.chest_name"))
@@ -312,11 +312,13 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
     else:
         quest_str = zh_cn.get("global", {}).get("quest_tour_none", "")
 
-    town_inv = stats.town_inventory
-    inv_display = []
-    for item_id in town_inv:
-        inv_display.append(items_loc.get(item_id, [item_id])[0])
-    inv_str = get_locale_text("renderer_town.list_separator").join(inv_display) if inv_display else get_locale_text("global.empty")
+    town_inv = list(stats.town_inventory)
+    if len(town_inv) > TOWN_INVENTORY_FOLD_THRESHOLD:
+        inventory_line = get_locale_text("global.room_inventory_folded", count=len(town_inv), gp=stats.gp)
+    else:
+        inv_display = [get_item_display_name(item_id) for item_id in town_inv]
+        inv_str = get_locale_text("renderer_town.list_separator").join(inv_display) if inv_display else get_locale_text("global.empty")
+        inventory_line = get_locale_text("global.room_inventory", inv=inv_str, gp=stats.gp)
 
     lines = [
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
@@ -329,7 +331,7 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
         get_locale_text("global.room_npcs", npcs=npc_str),
         get_locale_text("global.room_items", items=item_str),
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-        get_locale_text("global.room_inventory", inv=inv_str, gp=stats.gp),
+        inventory_line,
         quest_str,
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
         get_locale_text("global.help_move"),

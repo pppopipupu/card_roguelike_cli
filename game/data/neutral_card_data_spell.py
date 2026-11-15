@@ -227,13 +227,13 @@ NEUTRAL_CARD_SPELLS = {
         "type": "spell",
         "cost_a": 2,
         "cost_ba": 1,
-        "desc": "使你的所有层数不高于 2000 的正面 Buff 计数器翻倍，并获得 1A。消耗。",
+        "desc": "使你的所有层数不高于 500 的正面 Buff 计数器翻倍，并获得 1A。消耗。",
         "rarity": "legendary",
         "exhaust": True,
-        "threshold": 2000,
+        "threshold": 500,
         "action_gain": 1,
         "gain_a": 1,
-        "feedback": "突破了极限！使层数不高于 2000 的正面 Buff 层数翻倍，并获得了 1A。"
+        "feedback": "突破了极限！使层数不高于 500 的正面 Buff 层数翻倍，并获得了 1A。"
     },
     "abyss_collapse": {
         "name": "深渊崩塌",
@@ -527,7 +527,7 @@ NEUTRAL_CARD_SPELLS = {
         "name": "Omega",
         "color": "neutral",
         "type": "spell",
-        "cost_a": 1,
+        "cost_a": 2,
         "cost_ba": 0,
         "desc": "以随机顺序打出目前手牌中的所有卡牌的复制品。消耗。",
         "rarity": "mythic",

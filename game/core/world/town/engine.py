@@ -7,6 +7,7 @@ from ....entities import ALL_CARDS
 from ....entities.cards.market import MARKET_SHELF_CARDS, is_card_available
 from ....data.locale_data import get_locale_text
 from ....data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
+from ...inventory.bag_service import get_item_display_name
 
 from ....data.temple_config import TEMPLE_ACTIVE_FLAG
 
@@ -275,8 +276,7 @@ class TownEngine:
         stats.town_flags[f"taken_{target_id}"] = 1
         self.save_manager.save_stats(user_id, stats)
         
-        display_name = items_config[target_id][0]
-        return get_locale_text("global.take_success", target=display_name)
+        return get_locale_text("global.take_success", target=get_item_display_name(target_id))
 
     def use_item(self, user_id: str, item_name: str) -> str:
         stats = self.save_manager.load_stats(user_id)

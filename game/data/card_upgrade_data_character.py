@@ -100,6 +100,8 @@ CARD_UPGRADE_CONFIG_CHARACTER = {
         "desc": "造成 42 点钝击伤害。"
     },
     "demon_form": {
+        "cost_a": 0,
+        "cost_ba": 1,
         "strength_gain": 4,
         "buff_stacks": 4,
         "action_gain": 1,
@@ -311,9 +313,9 @@ CARD_UPGRADE_CONFIG_CHARACTER = {
         "desc": "传送脱逃离开遭遇战，且获得 40 金币空间遗珍。在 25 层与 32 层 BOSS 战中禁用。即逝。"
     },
     "neutral_omega": {
-        "cost_a": 0,
+        "cost_a": 1,
         "cost_ba": 0,
-        "desc": "以随机顺序打出目前手牌中的所有卡牌的复制品。免费。消耗。"
+        "desc": "以随机顺序打出目前手牌中的所有卡牌的复制品。消耗 1A。消耗。"
     },
     "wizard_split_to_ten": {
         "buff_stacks": 2,

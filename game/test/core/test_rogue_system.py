@@ -233,6 +233,44 @@ class TestRogueSystem(unittest.TestCase):
             
         asyncio.run(go())
 
+    def test_changelog_reader_pages(self):
+        plugin = MyPlugin(DummyContext())
+        save_manager = SaveManager()
+        uid = "test_user_changelog_reader"
+        save_manager.delete_save(uid)
+
+        async def go():
+            stats = save_manager.load_stats(uid)
+            stats.rogue_mode = True
+            save_manager.save_stats(uid, stats)
+
+            res = await run_command(plugin, ".rogue changelog", sender_id=uid)
+            self.assertIn("更新日志", res)
+            self.assertIn("第 1 /", res)
+            stats = save_manager.load_stats(uid)
+            self.assertTrue(stats.reader_active)
+            self.assertEqual(stats.reader_mode, "changelog")
+            self.assertGreater(len(stats.reader_items), 1)
+            self.assertTrue(all(len(page) <= 1200 for page in stats.reader_items))
+
+            res2 = await run_command(plugin, "n", sender_id=uid)
+            self.assertIn("第 2 /", res2)
+            stats = save_manager.load_stats(uid)
+            self.assertEqual(stats.reader_page, 2)
+
+            res3 = await run_command(plugin, "b", sender_id=uid)
+            self.assertIn("第 1 /", res3)
+            stats = save_manager.load_stats(uid)
+            self.assertEqual(stats.reader_page, 1)
+
+            res4 = await run_command(plugin, "q", sender_id=uid)
+            self.assertIn("已退出阅读器", res4)
+            stats = save_manager.load_stats(uid)
+            self.assertFalse(stats.reader_active)
+            save_manager.delete_save(uid)
+
+        asyncio.run(go())
+
     def test_rogue_action_surge_execution(self):
         plugin = MyPlugin(DummyContext())
         save_manager = SaveManager()

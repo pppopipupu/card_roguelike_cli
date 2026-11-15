@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional
+from typing import Optional
 from ..models.state import UserStats, GameRun
 from ..entities import ALL_CARDS
 from ..data.locale_data import get_locale_text
@@ -13,15 +13,7 @@ from ..core.inventory.bag_service import (
 )
 
 
-def _load_zh_cn() -> Dict[str, Any]:
-    from ..core.i18n.locale_manager import LocaleManager
-    return LocaleManager.get_all_translations()
-
-
 def render_bag(stats: UserStats, run: Optional[GameRun] = None, mode: Optional[str] = None) -> str:
-    zh_cn = _load_zh_cn()
-    items_loc = zh_cn.get("items", {})
-    item_descs = zh_cn.get("item_descs", {})
     active_mode = mode or ("r" if (run is not None and run.player is not None) else "t")
 
     if active_mode == "r":
@@ -82,14 +74,8 @@ def render_bag(stats: UserStats, run: Optional[GameRun] = None, mode: Optional[s
     lines.append(get_locale_text("renderer_menu.bag_items_section"))
     if stats.town_inventory:
         for item_id in stats.town_inventory:
-            if item_id in items_loc:
-                ch_name = items_loc.get(item_id, [item_id])[0]
-                desc = item_descs.get(item_id, get_locale_text("renderer_menu.bag_default_item_desc"))
-            else:
-                ch_name = get_item_display_name(item_id)
-                desc = get_item_desc(item_id)
-            lines.append(get_locale_text("renderer_menu.bag_item_line", name=ch_name, item_id=item_id))
-            lines.append(get_locale_text("renderer_menu.bag_item_desc_line", desc=desc))
+            lines.append(get_locale_text("renderer_menu.bag_item_line", name=get_item_display_name(item_id)))
+            lines.append(get_locale_text("renderer_menu.bag_item_desc_line", desc=get_item_desc(item_id)))
     else:
         lines.append(get_locale_text("renderer_menu.bag_empty_items"))
     lines.append("")

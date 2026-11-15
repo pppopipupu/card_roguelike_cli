@@ -219,6 +219,36 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self.assertIn("布鲁诺", atk_barista)
         self.assertEqual(self.plugin.save_manager.load_save(uid).node_type, "battle")
 
+    def test_town_inventory_folds_and_uses_localized_names(self):
+        uid = "town_inventory_fold_user"
+        self.run_cmd("主城", uid)
+        stats = self.plugin.save_manager.load_stats(uid)
+        stats.town_inventory = [
+            "espresso_beans",
+            "merchant_ledger",
+            "ancient_notes",
+            "skeleton_key",
+            "smuggler_token",
+            "rusty_key",
+        ]
+        self.plugin.save_manager.save_stats(uid, stats)
+        folded = self.run_cmd("状态", uid)
+        self.assertIn("共 6 件", folded)
+        self.assertIn("已折叠", folded)
+        self.assertIn("输入 bag 查看", folded)
+        self.assertNotIn("浓缩咖啡豆", folded)
+        bag_out = self.run_cmd("bag t", uid)
+        for name in ("浓缩咖啡豆", "行商账册", "先古残页", "万能骷髅钥匙", "走私者徽记", "锈蚀的钥匙"):
+            self.assertIn(name, bag_out)
+        for raw_id in ("espresso_beans", "merchant_ledger", "ancient_notes", "skeleton_key", "smuggler_token", "rusty_key"):
+            self.assertNotIn(raw_id, bag_out)
+        stats = self.plugin.save_manager.load_stats(uid)
+        stats.town_inventory = stats.town_inventory[:5]
+        self.plugin.save_manager.save_stats(uid, stats)
+        unfolded = self.run_cmd("状态", uid)
+        self.assertIn("浓缩咖啡豆", unfolded)
+        self.assertNotIn("已折叠", unfolded)
+
     def test_combat_room_entry_shows_environment_intro(self):
         uid = "combat_env_intro_user"
         self._start_grid(uid)

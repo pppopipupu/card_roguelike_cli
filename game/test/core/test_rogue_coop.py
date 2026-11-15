@@ -932,6 +932,23 @@ class TestRogueCoop(unittest.TestCase):
         res = self.run_cmd("p 1", uids[1])
         self.assertIn("[回响触发]", res)
 
+    def test_echo_and_replay_extra_plays_are_additive(self):
+        uids = ["stack_leader", "stack_member"]
+        self.enter_coop_battle(uids)
+        from game.models.state import BuffState
+        uid = uids[0]
+        run = self.plugin.save_manager.load_save(uid)
+        run.player = run.players[uid]
+        player = run.players[uid]
+        player.buffs.append(BuffState("echo_form", "回响形态", 1, None, ""))
+        player.hand = [CardState(id="quick_strike", replay=1)]
+        player.actions = 3
+        player.bonus_actions = 3
+        self.plugin.save_manager.save_save(uid, run)
+        res = self.run_cmd("p 1", uid)
+        self.assertEqual(res.count("[回响触发]"), 1)
+        self.assertEqual(res.count("[重放触发]"), 1)
+
     def test_coop_minion_card_leaves_hand_and_stays(self):
         uids = ["minion_leader", "minion_member"]
         self.enter_coop_battle(uids)

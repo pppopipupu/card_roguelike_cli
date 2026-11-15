@@ -14,15 +14,18 @@
 ## 2. 架构与扩展
 
 - 数据驱动：卡牌、随从、敌人、护符、遗物、Buff、事件、文本与数值全部放入 `game/data/` 的独立配置；执行类不得硬编码文案或奖励数值。
-- 本地化：所有玩家可见文本（提示、日志、错误、选项、投影消息）必须通过 `get_locale_text` 与 `game/data/locale/zh_cn/` 中的本地化键名读取；执行类禁止硬编码展示文案。
+- 本地化：所有玩家可见文本（提示、日志、错误、选项、投影消息）最终必须通过 `get_locale_text` 与 `game/data/locale/zh_cn/` 中的本地化键名读取；执行类禁止硬编码展示文案。新代码按“文本管线”规则延迟烘焙，禁止在底层逻辑中提前调用 `get_locale_text`。
+- 文本管线：新编写的代码一律采用事件流架构。底层逻辑禁止拼接展示字符串或调用 `get_locale_text`，必须返回 `msgspec.Struct` 事件流（`LocaleText` 携带本地化键名与参数）；由 `game/core/text/pipeline.py` 按 `game/data/text_layout_data.py` 的配置聚合，统一在上层渲染边界完成本地化与拼接。`RenderedText` 仅允许包装其他渲染器已产出的最终 UI 片段；存量代码按改动范围逐步迁移。
 - 数值：所有玩法数值（伤害、生命、护盾、金币、概率、层数、数量、价格、倍率等）必须放入 `game/data/` 配置并具名引用；执行类禁止硬编码玩法数值。
 - 开闭原则：新增卡牌、遗物、Buff、事件或敌人机制时，不修改核心战斗引擎；通过订阅 `event_bus` 的原子事件实现。Boss 濒死、死亡拦截、形态转换由具体敌人模板订阅事件并取消结算。
+- 事件模型：`game/models/events.py` 中的所有战斗事件必须继承 `GameEvent`（`msgspec.Struct`，基类字段 `cancelled`、`engine` 为 keyword-only）；禁止使用 `@dataclass` 定义事件，禁止给事件实例动态追加未声明字段。新增事件只声明业务字段，并保持既有位置参数顺序。
 - 注册：卡牌、遗物、Buff、命令与事件分支使用装饰器或 `__init_subclass__` 自动注册；禁止硬编码注册字典和大型 if-else。
 - 命令模式：具体动作与命令拆为独立 Handler，由路由表分发。新增命令必须同时提供英文变体、至少一个快捷别名，并同步更新状态白名单与 allowed_states。
 - 更新日志：玩家通过 `changelog` 指令查看近期更改，内容取自仓库根目录 `CHANGELOG.md`；每个面向玩家的改动必须同步记入该文件，输出前经 `strip_markdown` 转为纯文本，避免向玩家展示 Markdown 标记。
 - 拆分：一个文件只承担一个职责；非二进制文件超过 1000 行必须物理拆分。核心引擎只做 Facade，具体逻辑委派给子组件。
 - 上帝类红线：非二进制文件超过 500 行应考虑重构，超过 1000 行必须立即重构；无论用户是否要求，均须执行。
 - 复用：通用判断、数值缩放、排版与流程使用基类模板方法或共享工具函数，禁止复制粘贴相似逻辑。
+- 文本管线：底层逻辑返回 `msgspec.Struct` 事件，经 `game/core/text/pipeline.py` 按 `game/data/text_layout_data.py` 聚合后，在渲染边界加载本地化键名。
 - 状态：实体状态使用 `models/state.py` 中的 Dataclass，持久化统一走 `models/manager.py` 的 SaveManager。卡牌堆中的卡牌必须是 `CardState`，禁止使用裸字符串。新代码禁止 `from_cid`；禁止修改卡牌 id 或追加后缀，升级、宝石、重放等状态只改属性。重放、易碎等修饰不得写入卡牌名称，只追加到描述末尾。
 - 序列化：JSON 读写与 HTTP 响应统一走 `game/json_codec.py` 与 `server/responses.py`（orjson），禁止直接 `import json`。
 - 大数统计：`total_damage` 等无界累计值在存档 JSON 中保存为字符串，展示时超过 12 位使用科学记数法。

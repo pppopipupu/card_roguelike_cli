@@ -28,14 +28,31 @@ from ....data.outer_plane_config import (
 from ....models.state import EnemyState, GameRun
 from ....renderer.outer_plane import render_outer_plane
 from ...progress.achievement_service import AchievementService
+from ...text.events import LocaleText, RenderedText, ScreenText, TextDocument
+from ...text.pipeline import render_text
 from ..butcher_bonus import apply_butcher_bonus
 
+OUTER_PLANE_SCREEN = "outer_plane"
 
-def _scene(opt_id: str) -> str:
+
+def _line(key: str, section: str = "ending", **params) -> LocaleText:
+    return LocaleText(key=key, params=params, section=section)
+
+
+def _scene_node(opt_id: str) -> LocaleText | None:
     key = f"i18n_outer_plane.scene.{opt_id}"
     if get_locale_raw(key) is None:
-        return ""
-    return get_locale_text(key)
+        return None
+    return LocaleText(key=key, section="scene")
+
+
+def _screen_node(scene: LocaleText | None = None, notice: list[LocaleText] | None = None) -> ScreenText:
+    return ScreenText(
+        section="screen",
+        screen=OUTER_PLANE_SCREEN,
+        scene=[scene] if scene else [],
+        notice=list(notice or []),
+    )
 
 
 class OuterPlaneEngine:
@@ -109,6 +126,17 @@ class OuterPlaneEngine:
             scene_text, notice,
         )
 
+    def _render_document(self, user_id: str, stats, document: TextDocument) -> str:
+        return render_text(
+            document,
+            "outer_plane",
+            {
+                OUTER_PLANE_SCREEN: lambda scene, notice: self.render(
+                    user_id, stats, scene_text=scene, notice=notice
+                )
+            },
+        )
+
     def enter_quest(self, user_id: str, stats) -> str:
         stats.town_flags[OUTER_PLANE_PHASE_KEY] = PHASE_QUEST
         stats.town_flags[OUTER_PLANE_ACTIVE_FLAG] = True
@@ -118,7 +146,10 @@ class OuterPlaneEngine:
         stats.town_flags.pop(OUTER_PLANE_PENDING_KEY, None)
         self._mark_visited(stats, OUTER_PLANE_START_ROOM)
         self._save(user_id, stats)
-        return get_locale_text("i18n_outer_plane.ending.arrive") + "\n\n" + self.render(user_id, stats)
+        return self._render_document(user_id, stats, [
+            _line("i18n_outer_plane.ending.arrive"),
+            _screen_node(),
+        ])
 
     def enter_wip(self, user_id: str, stats) -> str:
         stats.town_flags[OUTER_PLANE_PHASE_KEY] = PHASE_WIP
@@ -127,11 +158,16 @@ class OuterPlaneEngine:
         stats.town_flags[OUTER_PLANE_VISITED_KEY] = []
         self._mark_visited(stats, OUTER_PLANE_WIP_ROOM)
         self._save(user_id, stats)
-        return get_locale_text("i18n_outer_plane.ending.wip_arrive") + "\n\n" + self.render(user_id, stats)
+        return self._render_document(user_id, stats, [
+            _line("i18n_outer_plane.ending.wip_arrive"),
+            _screen_node(),
+        ])
 
     def choose(self, user_id: str, stats, raw: str) -> str:
         if not self.is_active(stats):
-            return get_locale_text("i18n_outer_plane.ui.not_in_outer_plane")
+            return self._render_document(user_id, stats, [
+                _line("i18n_outer_plane.ui.not_in_outer_plane"),
+            ])
         token = (raw or "").strip().lower()
         picked = None
         for num, opt in self._visible_options(stats):
@@ -139,12 +175,17 @@ class OuterPlaneEngine:
                 picked = opt
                 break
         if picked is None:
-            return get_locale_text("i18n_outer_plane.ui.invalid_option") + "\n\n" + self.render(user_id, stats)
+            return self._render_document(user_id, stats, [
+                _line("i18n_outer_plane.ui.invalid_option"),
+                _screen_node(),
+            ])
         return self._apply(user_id, stats, picked)
 
     def attack(self, user_id: str, stats) -> str:
         if not self.is_active(stats):
-            return get_locale_text("i18n_outer_plane.ui.not_in_outer_plane")
+            return self._render_document(user_id, stats, [
+                _line("i18n_outer_plane.ui.not_in_outer_plane"),
+            ])
         flags = self._flags(stats)
         for _, opt in self._visible_options(stats):
             if opt.get("butcher"):
@@ -167,44 +208,61 @@ class OuterPlaneEngine:
             if opt.get("fuse") or opt.get("to") or opt.get("leave") or opt.get("dream") or opt.get("wake"):
                 flags["butcher_path"] = True
                 return self._apply(user_id, stats, opt)
-        return get_locale_text("i18n_outer_plane.ui.no_attack") + "\n\n" + self.render(user_id, stats)
+        return self._render_document(user_id, stats, [
+            _line("i18n_outer_plane.ui.no_attack"),
+            _screen_node(),
+        ])
 
     def look(self, user_id: str, stats) -> str:
         if not self.is_active(stats):
-            return get_locale_text("i18n_outer_plane.ui.not_in_outer_plane")
+            return self._render_document(user_id, stats, [
+                _line("i18n_outer_plane.ui.not_in_outer_plane"),
+            ])
         return self.render(user_id, stats)
 
-    def leave(self, user_id: str, stats) -> str:
+    def _leave_events(self, user_id: str, stats) -> TextDocument:
         if self._phase(stats) == PHASE_QUEST:
-            return get_locale_text("i18n_outer_plane.ui.invalid_option") + "\n\n" + self.render(user_id, stats)
+            return [
+                _line("i18n_outer_plane.ui.invalid_option"),
+                _screen_node(),
+            ]
         if self._phase(stats) == PHASE_DREAM:
             self._flags(stats).pop("max_hp_zero", None)
             stats.town_flags[OUTER_PLANE_PHASE_KEY] = ""
         stats.town_flags[OUTER_PLANE_ACTIVE_FLAG] = False
         stats.town_flags.pop(OUTER_PLANE_PENDING_KEY, None)
         self._save(user_id, stats)
-        return get_locale_text("i18n_outer_plane.ui.leave") + "\n\n" + self.town_engine.render_current_room(user_id, stats)
+        return [
+            _line("i18n_outer_plane.ui.leave"),
+            RenderedText(text=self.town_engine.render_current_room(user_id, stats), section="body"),
+        ]
+
+    def leave(self, user_id: str, stats) -> str:
+        return self._render_document(user_id, stats, self._leave_events(user_id, stats))
 
     def _apply(self, user_id: str, stats, opt) -> str:
+        return self._render_document(user_id, stats, self._apply_events(user_id, stats, opt))
+
+    def _apply_events(self, user_id: str, stats, opt) -> TextDocument:
         flags = self._flags(stats)
         flags[f"opt_{opt['id']}"] = True
-        scene = _scene(opt["id"])
-        notices = []
+        scene = _scene_node(opt["id"])
+        notices: list[LocaleText] = []
         if opt.get("lucidity"):
             gain = int(opt["lucidity"])
             stats.town_flags[OUTER_PLANE_LUCIDITY_KEY] = min(
                 OUTER_PLANE_START_LUCIDITY, self._lucidity(stats) + gain)
-            notices.append(get_locale_text("i18n_outer_plane.ui.lucidity_gain", gain=gain))
+            notices.append(_line("i18n_outer_plane.ui.lucidity_gain", "notice", gain=gain))
         if opt.get("encounter"):
-            return self._start_encounter(user_id, stats, opt, scene, notices)
+            return self._start_encounter_events(user_id, stats, opt, scene, notices)
         if opt.get("fuse"):
-            return self._fuse(user_id, stats, scene, "\n".join(notices))
+            return self._fuse_events(user_id, stats, [scene] if scene else [], notices)
         if opt.get("dream"):
-            return self._enter_dream(user_id, stats, scene)
+            return self._enter_dream_events(user_id, stats, scene)
         if opt.get("wake"):
-            return self._wake(user_id, stats, scene)
+            return self._wake_events(user_id, stats, scene)
         if opt.get("leave"):
-            return self.leave(user_id, stats)
+            return self._leave_events(user_id, stats)
         for name, value in opt.get("set", {}).items():
             flags[name] = value
         if opt.get("to"):
@@ -213,23 +271,23 @@ class OuterPlaneEngine:
             self._spend_lucidity(stats, OUTER_PLANE_MOVE_COST)
         self._save(user_id, stats)
         if self._lucidity(stats) <= 0:
-            return self._blackout(user_id, stats)
-        return self.render(user_id, stats, scene_text=scene, notice="\n".join(notices))
+            return self._blackout_events(user_id, stats)
+        return [_screen_node(scene, notices)]
 
-    def _blackout(self, user_id: str, stats) -> str:
+    def _blackout_events(self, user_id: str, stats) -> TextDocument:
         flags = self._flags(stats)
         flags["blackouts"] = int(flags.get("blackouts", 0)) + 1
         stats.town_flags[OUTER_PLANE_ROOM_KEY] = OUTER_PLANE_START_ROOM
         stats.town_flags[OUTER_PLANE_LUCIDITY_KEY] = OUTER_PLANE_START_LUCIDITY
         self._mark_visited(stats, OUTER_PLANE_START_ROOM)
         self._save(user_id, stats)
-        text = "\n\n".join([
-            get_locale_text("i18n_outer_plane.ending.blackout"),
-            get_locale_text("i18n_outer_plane.ui.blackout_notice"),
-        ])
-        return text + "\n\n" + self.render(user_id, stats)
+        return [
+            _line("i18n_outer_plane.ending.blackout"),
+            _line("i18n_outer_plane.ui.blackout_notice"),
+            _screen_node(),
+        ]
 
-    def _start_encounter(self, user_id: str, stats, opt, scene: str, notices: List[str]) -> str:
+    def _start_encounter_events(self, user_id: str, stats, opt, scene: LocaleText | None, notices: list[LocaleText]) -> TextDocument:
         flags = self._flags(stats)
         encounter_id = opt["encounter"]
         cfg = OUTER_PLANE_ENCOUNTERS[encounter_id]
@@ -267,20 +325,24 @@ class OuterPlaneEngine:
         stats.town_flags[OUTER_PLANE_PENDING_KEY] = opt["id"]
         self._save(user_id, stats)
         from ....renderer import GameRenderer
-        parts = [get_locale_text(f"i18n_outer_plane.encounter.{encounter_id}.scene"), GameRenderer.render_game(run)]
+        document: TextDocument = []
         if scene:
-            parts.insert(0, scene)
-        if notices:
-            parts.append("\n".join(notices))
-        return "\n\n".join(parts)
+            document.append(scene)
+        document.append(_line(f"i18n_outer_plane.encounter.{encounter_id}.scene", "encounter"))
+        document.append(RenderedText(text=GameRenderer.render_game(run), section="combat"))
+        document.extend(notices)
+        return document
 
     def on_battle_win(self, user_id: str, stats, run) -> str:
+        return self._render_document(user_id, stats, self._on_battle_win_events(user_id, stats, run))
+
+    def _on_battle_win_events(self, user_id: str, stats, run) -> TextDocument:
         flags = self._flags(stats)
         pending_id = run.node_data.get(OUTER_PLANE_PENDING_KEY) or stats.town_flags.get(OUTER_PLANE_PENDING_KEY)
         stats.town_flags.pop(OUTER_PLANE_PENDING_KEY, None)
         encounter_id = run.node_data.get(OUTER_PLANE_COMBAT_FLAG, "")
         cfg = OUTER_PLANE_ENCOUNTERS.get(encounter_id, {})
-        notices = []
+        notices: list[LocaleText] = []
         reward_flag = cfg.get("reward_flag")
         reward_card = cfg.get("reward_card")
         if reward_flag and not flags.get(reward_flag):
@@ -289,21 +351,21 @@ class OuterPlaneEngine:
                 from ....entities.cards import ALL_CARDS
                 card = ALL_CARDS.get(reward_card)
                 name = card.name if card else reward_card
-                notices.append(get_locale_text("i18n_outer_plane.ui.card_gain", name=name))
+                notices.append(_line("i18n_outer_plane.ui.card_gain", "notice", name=name))
         opt = self._find_option(pending_id) if pending_id else None
         if opt:
             for name, value in opt.get("set", {}).items():
                 flags[name] = value
         self._save(user_id, stats)
-        win_text = get_locale_text(f"i18n_outer_plane.encounter.{encounter_id}.win")
+        win = _line(f"i18n_outer_plane.encounter.{encounter_id}.win")
         if flags.get("forged_by_force"):
-            return self._fuse(user_id, stats, win_text, "\n".join(notices))
+            return self._fuse_events(user_id, stats, [win], notices)
         if self._lucidity(stats) <= 0:
-            return win_text + "\n\n" + self._blackout(user_id, stats)
+            return [win, *self._blackout_events(user_id, stats)]
         stats.town_flags[OUTER_PLANE_ROOM_KEY] = OUTER_PLANE_START_ROOM
         self._mark_visited(stats, OUTER_PLANE_START_ROOM)
         self._save(user_id, stats)
-        return win_text + "\n\n" + self.render(user_id, stats, notice="\n".join(notices))
+        return [win, _screen_node(None, notices)]
 
     def on_battle_lose(self, user_id: str, stats, run) -> str:
         stats.town_flags[OUTER_PLANE_ROOM_KEY] = OUTER_PLANE_START_ROOM
@@ -313,17 +375,21 @@ class OuterPlaneEngine:
         stats.town_flags.pop(OUTER_PLANE_PENDING_KEY, None)
         self._mark_visited(stats, OUTER_PLANE_START_ROOM)
         self._save(user_id, stats)
-        return get_locale_text("i18n_outer_plane.combat.lose") + "\n\n" + self.render(user_id, stats)
+        return self._render_document(user_id, stats, [
+            _line("i18n_outer_plane.combat.lose"),
+            _screen_node(),
+        ])
 
-    def _fuse(self, user_id: str, stats, scene: str, notice: str = "") -> str:
+    def _fuse_events(self, user_id: str, stats, prefix: TextDocument, notices: list[LocaleText]) -> TextDocument:
         flags = self._flags(stats)
         flags["shard_forged"] = True
-        lines = [scene] if scene else []
-        lines.append(get_locale_text("i18n_outer_plane.ending.fuse_done"))
-        lines.append(get_locale_text("i18n_outer_plane.ending.return_book"))
-        return "\n\n".join(lines) + "\n\n" + self._finish(user_id, stats, notice)
+        document = list(prefix)
+        document.append(_line("i18n_outer_plane.ending.fuse_done"))
+        document.append(_line("i18n_outer_plane.ending.return_book"))
+        document.extend(self._finish_events(user_id, stats, notices))
+        return document
 
-    def _finish(self, user_id: str, stats, notice: str = "") -> str:
+    def _finish_events(self, user_id: str, stats, notices: list[LocaleText]) -> TextDocument:
         stats.town_flags[OUTER_PLANE_ACTIVE_FLAG] = False
         stats.town_flags[OUTER_PLANE_PHASE_KEY] = ""
         stats.town_flags[OUTER_PLANE_ROOM_KEY] = ""
@@ -342,27 +408,28 @@ class OuterPlaneEngine:
         if temple_flags.get("butcher_path") or plane_flags.get("butcher_path"):
             ach.unlock(user_id, "silent_passage", stats=stats)
         self._save(user_id, stats)
-        lines = [
-            get_locale_text("i18n_outer_plane.ending.wake_town"),
-            get_locale_text("i18n_outer_plane.ending.quest_done"),
+        document = [
+            _line("i18n_outer_plane.ending.wake_town"),
+            _line("i18n_outer_plane.ending.quest_done"),
         ]
-        if notice:
-            lines.append(notice)
-        return "\n\n".join(lines) + "\n\n" + self.town_engine.render_current_room(user_id, stats)
+        document.extend(notices)
+        document.append(RenderedText(text=self.town_engine.render_current_room(user_id, stats), section="body"))
+        return document
 
-    def _enter_dream(self, user_id: str, stats, scene: str) -> str:
+    def _enter_dream_events(self, user_id: str, stats, scene: LocaleText | None) -> TextDocument:
         flags = self._flags(stats)
         flags["max_hp_zero"] = True
         stats.town_flags[OUTER_PLANE_PHASE_KEY] = PHASE_DREAM
         stats.town_flags[OUTER_PLANE_ROOM_KEY] = OUTER_PLANE_DREAM_ROOM
         self._mark_visited(stats, OUTER_PLANE_DREAM_ROOM)
         self._save(user_id, stats)
-        lines = [scene] if scene else []
-        lines.append(get_locale_text("i18n_outer_plane.dream_shard.trigger"))
-        lines.append(get_locale_text("i18n_outer_plane.ending.zero_arrive"))
-        return "\n\n".join(lines) + "\n\n" + self.render(user_id, stats)
+        document: TextDocument = [scene] if scene else []
+        document.append(_line("i18n_outer_plane.dream_shard.trigger"))
+        document.append(_line("i18n_outer_plane.ending.zero_arrive"))
+        document.append(_screen_node())
+        return document
 
-    def _wake(self, user_id: str, stats, scene: str) -> str:
+    def _wake_events(self, user_id: str, stats, scene: LocaleText | None) -> TextDocument:
         self._flags(stats).pop("max_hp_zero", None)
         stats.town_flags[OUTER_PLANE_ACTIVE_FLAG] = False
         stats.town_flags[OUTER_PLANE_PHASE_KEY] = ""
@@ -370,11 +437,15 @@ class OuterPlaneEngine:
         stats.in_town = True
         stats.town_pos = "square"
         self._save(user_id, stats)
-        lines = [scene] if scene else []
-        lines.append(get_locale_text("i18n_outer_plane.ending.zero_wake"))
-        return "\n\n".join(lines) + "\n\n" + self.town_engine.render_current_room(user_id, stats)
+        document: TextDocument = [scene] if scene else []
+        document.append(_line("i18n_outer_plane.ending.zero_wake"))
+        document.append(RenderedText(text=self.town_engine.render_current_room(user_id, stats), section="body"))
+        return document
 
     def trigger_from_battle(self, user_id: str, stats) -> str:
+        return self._render_document(user_id, stats, self._trigger_from_battle_events(user_id, stats))
+
+    def _trigger_from_battle_events(self, user_id: str, stats) -> TextDocument:
         flags = self._flags(stats)
         flags["max_hp_zero"] = True
         stats.town_flags[OUTER_PLANE_PHASE_KEY] = PHASE_DREAM
@@ -382,10 +453,11 @@ class OuterPlaneEngine:
         stats.town_flags[OUTER_PLANE_ROOM_KEY] = OUTER_PLANE_DREAM_ROOM
         self._mark_visited(stats, OUTER_PLANE_DREAM_ROOM)
         self._save(user_id, stats)
-        return "\n\n".join([
-            get_locale_text("i18n_outer_plane.dream_shard.hidden_trigger"),
-            get_locale_text("i18n_outer_plane.ending.zero_arrive"),
-        ]) + "\n\n" + self.render(user_id, stats)
+        return [
+            _line("i18n_outer_plane.dream_shard.hidden_trigger"),
+            _line("i18n_outer_plane.ending.zero_arrive"),
+            _screen_node(),
+        ]
 
     def apply_max_hp_zero(self, stats) -> bool:
         return bool(self._flags(stats).get("max_hp_zero"))
