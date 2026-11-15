@@ -222,7 +222,6 @@ ROOM_ICONS = {
     "secret_boss": "👁️",
     "corpse": "❔",
     "player": "📍",
-    "teammate": "👥",
 }
 
 DIRECT_REVEAL_ADJACENT_TYPES = frozenset({

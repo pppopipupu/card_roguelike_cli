@@ -53,7 +53,6 @@
   "landmark_left": "🚶 离开了当前地标。",
   "legend": {
     "player": "自己",
-    "teammate": "队友",
     "fog": "迷雾",
     "wall": "黑墙",
     "obstacle": "障碍",
@@ -98,7 +97,6 @@
     "cleared": "已清空",
     "fog": "迷雾",
     "player": "自己",
-    "teammate": "队友",
     "unknown": "未探明"
   },
   "battle_prompt": {

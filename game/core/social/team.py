@@ -62,6 +62,8 @@ class SocialTeamMixin:
                 max_members=TEAM_MAX_MEMBERS,
             )
         )
+        if len(members) >= 2:
+            lines.append(get_locale_text("i18n_social.lobby_status.quest_hint"))
         return "\n".join(lines)
 
     def team_create(self, uid):

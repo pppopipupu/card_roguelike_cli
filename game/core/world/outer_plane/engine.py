@@ -27,6 +27,8 @@ from ....data.outer_plane_config import (
 )
 from ....models.state import EnemyState, GameRun
 from ....renderer.outer_plane import render_outer_plane
+from ....data.world_social_config import WORLD_OUTER_PLANE
+from ..presence import render_players, sync_active
 from ...progress.achievement_service import AchievementService
 from ...text.events import LocaleText, RenderedText, ScreenText, TextDocument
 from ...text.pipeline import render_text
@@ -115,14 +117,16 @@ class OuterPlaneEngine:
         return result
 
     def render(self, user_id: str, stats, scene_text: str = "", notice: str = "") -> str:
+        sync_active(user_id, stats=stats)
         options = [
             (num, get_locale_text(f"i18n_outer_plane.opt.{opt['id']}"))
             for num, opt in self._visible_options(stats)
         ]
+        world_players = render_players(WORLD_OUTER_PLANE, self._room(stats), user_id)
         return render_outer_plane(
             stats, self._room(stats), options,
             self._lucidity(stats), OUTER_PLANE_START_LUCIDITY,
-            scene_text, notice,
+            scene_text, notice, world_players,
         )
 
     def _render_document(self, user_id: str, stats, document: TextDocument) -> str:

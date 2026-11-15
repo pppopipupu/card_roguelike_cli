@@ -1,0 +1,49 @@
+{
+  "default_player_name": "玩家",
+  "system_name": "系统",
+  "dialog": {
+    "open": "🧑 你走近玩家【{name}】。\n职业：{class_text}\n直接输入任意文字即可交谈；输入 说 <内容> 发送；输入 对话 结束 结束交谈。\n添加好友：好友 add {name}",
+    "closed": "👋 你结束了这次交谈。",
+    "need_text": "❌ 请输入要发送的内容。",
+    "target_missing": "❌ 对方已经不在这个世界中。",
+    "sent": "📨 你对【{name}】说：{text}",
+    "no_target": "❌ 你当前没有正在交谈的玩家。先用 对话 <玩家名> 靠近对方。",
+    "target_left": "❌ 【{name}】已经离开，交谈结束。",
+    "here": "🧑 当前地点的玩家：{names}\n使用 对话 <玩家名> 开始交谈，使用 好友 add <玩家名> 添加好友。",
+    "here_empty": "🧑 当前地点没有其他玩家。",
+    "not_here": "❌ 当前地点没有找到玩家【{query}】。",
+    "no_world": "❌ 你当前不在可交谈的开放世界中。"
+  },
+  "inbox": {
+    "empty": "📭 你的消息信箱是空的。",
+    "header": "📬 消息信箱（共 {count} 条，显示最近 10 条）：",
+    "entry": "{marker}【{name}】{time}：{text}",
+    "unread_marker": "● ",
+    "hint": "💡 远程消息只能由好友通过 sendmsg 发送；面对面交谈会直接显示在对方的下一次画面上。",
+    "notify": "📬 你有 {count} 条新消息，输入 消息 查看。"
+  },
+  "world": {
+    "town_players": "🧑 此处的玩家：{names}",
+    "grid_players": "🧑 此处的玩家：{names}",
+    "outer_players": "🧑 此处的玩家：{names}",
+    "talk_hint": "与玩家交谈：对话 <名字>；添加好友：好友 add <名字>"
+  },
+  "team_quest": {
+    "not_leader": "❌ 只有队长可以使用星辉符印带队进入雪原。",
+    "member_not_town": "❌ 【{name}】不在主城，队伍无法一同出发。",
+    "member_busy": "❌ 【{name}】正在其他冒险或联机牌局中，队伍无法一同出发。",
+    "member_not_ready": "❌ 【{name}】尚未准备。",
+    "started": "队伍已进入雾隐雪原。",
+    "member_notice": "队伍已从西大门进入雾隐雪原。输入 w/a/s/d 或 看 查看当前地图。"
+  },
+  "remote": {
+    "usage": "❌ 用法：sendmsg <好友名> <内容>。远程消息只能发送给好友。",
+    "need_text": "❌ 请输入要发送的消息内容。",
+    "no_friends": "❌ 你还没有好友，无法发送远程消息。先用 好友 add <玩家名> 添加好友。",
+    "not_friend": "❌ 【{query}】不是你的好友，无法发送远程消息。",
+    "sent": "📨 已向好友【{name}】发送远程消息：{text}"
+  },
+  "live": {
+    "entry": "💬 【{name}】对你说：{text}"
+  }
+}

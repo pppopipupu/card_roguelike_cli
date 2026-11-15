@@ -289,9 +289,12 @@ class MapEngine:
             run.node_type = "grid_map"
             run.enemies.clear()
             run.node_data = {}
-            stats = self.save_manager.load_stats(run.user_id)
-            stats.town_flags[YOG_QUEST_ZONE_KEY] = 1
-            self.save_manager.save_stats(run.user_id, stats)
+            from .presence import sync_active
+            for uid in run.all_human_uids():
+                stats = self.save_manager.load_stats(uid)
+                stats.town_flags[YOG_QUEST_ZONE_KEY] = 1
+                self.save_manager.save_stats(uid, stats)
+                sync_active(uid, stats=stats, run=run)
             floor_name = get_locale_text(cfg["name_key"])
             return get_locale_text("i18n_yog_quest.gate.arrived", floor=next_floor, name=floor_name)
         next_floor = min(4, cur_floor + 1)

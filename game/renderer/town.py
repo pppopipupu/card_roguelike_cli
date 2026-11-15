@@ -1,6 +1,8 @@
 import os
 from typing import List, Dict, Any
-from ..models.state import UserStats
+from ..models.state import UserStats, get_user_id
+from ..core.world.presence import render_players
+from ..data.world_social_config import WORLD_PLAYER_ICON, WORLD_TOWN
 from ..entities import ALL_CARDS
 from ..entities.cards.market import MARKET_SHELF_CARDS, get_market_price
 from ..data.locale_data import t, get_locale_text
@@ -53,7 +55,7 @@ def render_town_map(stats: UserStats, current_id: str) -> str:
         icon = TOWN_PLAYER_ICON if rid == current_id else TOWN_ROOM_ICONS[rid]
         if rid not in visited:
             continue
-        name = get_locale_text(f"global.rooms.{rid}.name")
+        name = get_locale_text(f"rooms.{rid}.name")
         legend_parts.append(f"{icon}{name}")
     if TOWN_UNKNOWN_ICON in seen:
         legend_parts.append(f"{TOWN_UNKNOWN_ICON}{get_locale_text('i18n_world_grid.town_unknown')}")
@@ -118,9 +120,14 @@ def get_npc_quest_indicator(npc_id: str, stats: UserStats) -> str:
             return " ❓"
     return ""
 
-def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
+def render_town(stats: UserStats, room_data: Dict[str, Any], world_players: List[Dict[str, Any]] | None = None) -> str:
     zh_cn = _load_zh_cn()
     current_id = stats.town_pos
+    if world_players is None:
+        world_players = render_players(WORLD_TOWN, None, get_user_id())
+    from ..data.town_map_config import TOWN_ROOM_COORDS
+    coord = TOWN_ROOM_COORDS.get(stats.town_pos, "C2")
+    world_here = [entry for entry in world_players if str(entry.get("coord", "")) == coord]
     map_str = render_town_map(stats, current_id)
 
     name_key = room_data.get("name_key", current_id)
@@ -145,6 +152,9 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
             npc_name = entities_loc.get(npc_id, {}).get("name", npc_id)
             ind = get_npc_quest_indicator(npc_id, stats)
             visible_npcs.append(f"{npc_name}{ind}")
+
+    for entry in world_here:
+        visible_npcs.append(f"{WORLD_PLAYER_ICON}{entry.get('name', '')}")
 
     none_label = get_locale_text("global.none")
     npc_str = get_locale_text("renderer_town.list_separator").join(visible_npcs) if visible_npcs else none_label
@@ -233,6 +243,7 @@ def render_town(stats: UserStats, room_data: Dict[str, Any]) -> str:
         get_locale_text("global.room_exits", exits=exit_str),
         get_locale_text("global.room_npcs", npcs=npc_str),
         get_locale_text("global.room_items", items=item_str),
+        get_locale_text("i18n_world_social.world.talk_hint") if world_here else "",
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
         inventory_line,
         quest_str,

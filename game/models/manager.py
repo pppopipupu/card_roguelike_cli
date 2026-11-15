@@ -114,6 +114,10 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             team_log_history = d.get("team_log_history", [])
             if not isinstance(team_log_history, list):
                 team_log_history = []
+            world_mailbox = d.get("world_mailbox", [])
+            if not isinstance(world_mailbox, list):
+                world_mailbox = []
+            world_mailbox = [item for item in world_mailbox if isinstance(item, dict)][-50:]
             unlocked_achievements = d.get("unlocked_achievements", [])
             if not isinstance(unlocked_achievements, list):
                 unlocked_achievements = []
@@ -161,6 +165,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 friends=d.get("friends", []),
                 friend_requests_in=d.get("friend_requests_in", []),
                 friend_requests_out=d.get("friend_requests_out", []),
+                world_mailbox=world_mailbox,
                 active_lobby_id=d.get("active_lobby_id", ""),
                 active_coop_id=d.get("active_coop_id", ""),
                 projection_enabled=d.get("projection_enabled", True),

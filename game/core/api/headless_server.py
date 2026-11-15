@@ -14,6 +14,7 @@ from ...renderer.menu import get_reader_total_pages, render_reader_page
 from ...renderer import GameRenderer, format_output_numbers
 from ...cards import resolve_card_id, ALL_CARDS
 from ...data.locale_data import get_locale_text
+from ...data.world_social_config import WORLD_TALK_TARGET_KEY
 
 class HeadlessGameServer:
     def __init__(self, data_dir: Optional[str] = None):
@@ -55,11 +56,19 @@ class HeadlessGameServer:
     def _get_current_state(self, user_id: str, run, stats) -> str:
         return resolve_game_state(run, stats)
 
-    def is_game_command(self, message: str) -> bool:
+    def _has_world_talk_target(self, user_id: str) -> bool:
+        if not user_id:
+            return False
+        stats = self.save_manager.load_stats(user_id)
+        return bool(stats.town_flags.get(WORLD_TALK_TARGET_KEY))
+
+    def is_game_command(self, message: str, user_id: str = "") -> bool:
         parts = message.strip().split()
         if not parts:
             return False
-        return parts[0].lower().lstrip("/") in CommandHandler.registry_all
+        if parts[0].lower().lstrip("/") in CommandHandler.registry_all:
+            return True
+        return self._has_world_talk_target(user_id)
 
     async def handle_rogue_message(self, user_id: str, sender_name: str, message: str, shortcut_prefix: list[str] = None, enable_shortcut: bool = True, force_execute: bool = False, projection: bool = True) -> Optional[str]:
         set_user_id(user_id)
@@ -152,6 +161,16 @@ class HeadlessGameServer:
         if not enable_shortcut:
             return None
 
+        if self._has_world_talk_target(user_id):
+            parts = message_str.split()
+            if parts:
+                lock = self._get_user_lock(user_id)
+                async with lock:
+                    res_list = list(self.cli_router.handle_command(user_id, parts, project=projection))
+                    if res_list:
+                        return "\n".join(res_list)
+                    return ""
+
         rogue_mode = stats.rogue_mode if stats else False
         if not rogue_mode:
             return None
@@ -190,6 +209,8 @@ class HeadlessGameServer:
                     elif first_word in NODE_CANCEL_ALIASES and has_pending_node_cancel(run):
                         is_game_cmd = True
 
+        if not is_game_cmd and self._has_world_talk_target(user_id):
+            is_game_cmd = True
         if is_game_cmd:
             lock = self._get_user_lock(user_id)
             async with lock:

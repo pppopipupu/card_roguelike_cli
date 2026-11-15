@@ -64,7 +64,7 @@
     "header": "👥 好友列表({count} 人):",
     "entry": " {index}. 【{name}】{class_text} | {online}",
     "id_line": "    ID:{player_id}",
-    "hint": "💡 组队邀请：friend invite <好友昵称或ID>"
+    "hint": "💡 组队邀请：friend invite <好友昵称或ID>；远程消息：sendmsg <好友昵称或ID> <内容>"
   },
   "friend_requests": {
     "header": "📬 好友申请：",
@@ -83,7 +83,8 @@
     "not_ready": "⬜ 未准备",
     "member_entry": " - {name}{marker} | {class_text} | {ready_text}",
     "invited": "📨 待接受邀请：{names}",
-    "member_count": "👥 人数：{count}/{max_members}"
+    "member_count": "👥 人数：{count}/{max_members}",
+    "quest_hint": "❄️ 组队任务：队长走到西大门并使用星辉符印，可带全队进入雾隐雪原与神殿。"
   },
   "team_create": {
     "already_in_team": "❌ 你已在队伍 {lobby_id} 中。\n{lobby_status}",

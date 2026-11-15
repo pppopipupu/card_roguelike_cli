@@ -10,11 +10,15 @@ from ....data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT,
 from ...inventory.bag_service import get_item_display_name
 
 from ....data.yog_quest_config import YOG_SIGIL_ITEM
+from ....data.world_social_config import WORLD_TOWN
+from ....data.town_map_config import TOWN_ROOM_COORDS
+from ..presence import sync_active
 
 class TownEngine:
     def __init__(self, save_manager, engine):
         self.save_manager = save_manager
         self.engine = engine
+        self.world_social: Any = None
         from ..outer_plane.engine import OuterPlaneEngine
         self.outer_plane_engine = OuterPlaneEngine(save_manager, engine, self)
 
@@ -73,6 +77,7 @@ class TownEngine:
         from ....data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
         if stats.town_flags.get(OUTER_PLANE_ACTIVE_FLAG):
             return self.outer_plane_engine.render(user_id, stats)
+        sync_active(user_id, stats=stats)
         from ..yog_quest.service import ensure_sigil
         zh_cn = self._load_zh_cn()
         dirty = self.record_visited_room(stats)
@@ -158,6 +163,7 @@ class TownEngine:
                     stats.town_flags[f"pos_{npc}"] = random.choice(wandering_rooms)
 
         self.save_manager.save_stats(user_id, stats)
+        sync_active(user_id, stats=stats)
         target_room_data = self._load_room_data(target_room)
         from ....renderer.town import render_town
         return render_town(stats, target_room_data)
@@ -261,6 +267,11 @@ class TownEngine:
     def talk_npc(self, user_id: str, target_name: str) -> str:
         stats = self.save_manager.load_stats(user_id)
         room_data = self._load_room_data(stats.town_pos)
+        if self.world_social is not None:
+            coord = TOWN_ROOM_COORDS.get(stats.town_pos, "C2")
+            target_entry, _ = self.world_social.resolve_target(WORLD_TOWN, coord, target_name, user_id)
+            if target_entry is not None:
+                return self.world_social.say_to_world(user_id, WORLD_TOWN, coord, target_name)
         target_id = self._resolve_visible_entity(stats, room_data, target_name)
         if not target_id:
             return get_locale_text("global.interact_not_found", target=target_name)

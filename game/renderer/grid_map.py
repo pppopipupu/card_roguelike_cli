@@ -1,4 +1,5 @@
 from ..core.world.grid_map_generator import coord_to_xy, neighbors_4, xy_to_coord
+from ..core.world.presence import render_players
 from ..data.grid_map_config import (
     DIRECT_REVEAL_ADJACENT_TYPES,
     FLOOR_CONFIGS,
@@ -7,18 +8,18 @@ from ..data.grid_map_config import (
     ROOM_ICONS,
 )
 from ..data.locale_data import get_locale_text
+from ..data.world_social_config import WORLD_PLAYER_ICON, WORLD_SNOWFIELD
+from ..data.yog_quest_config import YOG_FLOOR_WILDS
 from ..models.state import GameRun
 from .formatters import format_persistent_buff_bar, format_relic_bar
 from .world_grid import render_grid_view
-def _visible_cell_icon(fm, coord: str, viewer_coord: str, other_coords: set[str], adj_set: set[str]) -> str:
+def _visible_cell_icon(fm, coord: str, viewer_coord: str, adj_set: set[str]) -> str:
     room = fm.rooms.get(coord)
     if room is None:
         return ROOM_ICONS["fog"]
     revealed = coord in fm.revealed_coords or room.explored
     if coord == viewer_coord:
         return ROOM_ICONS["player"]
-    if coord in other_coords:
-        return ROOM_ICONS["teammate"]
     if revealed:
         if room.room_type == "secret_boss":
             return ROOM_ICONS["secret_boss"] if fm.secret_unlocked else ROOM_ICONS["wall"]
@@ -67,10 +68,10 @@ def render_grid_map(run: GameRun) -> str:
     floor_name = get_locale_text(cfg["name_key"])
     uid = run.user_id
     viewer_coord = fm.player_coords.get(uid) or xy_to_coord(0, fm.height // 2)
-    other_coords = {
-        c for u, c in (fm.player_coords or {}).items()
-        if u != uid and u in run.players and not getattr(run.players[u], "is_mercenary", False)
-    }
+    world_entries = []
+    if fm.floor_flags.get("yog_quest") and fm.floor_index == YOG_FLOOR_WILDS:
+        world_entries = render_players(WORLD_SNOWFIELD, None, uid)
+    world_here = [entry for entry in world_entries if str(entry.get("coord", "")) == viewer_coord]
     adj_set = _adjacent_to_revealed(fm)
     relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     quest_str = ""
@@ -105,14 +106,13 @@ def render_grid_map(run: GameRun) -> str:
         fm.width,
         fm.height,
         viewer_coord,
-        lambda c: _visible_cell_icon(fm, c, viewer_coord, other_coords, adj_set),
+        lambda c: _visible_cell_icon(fm, c, viewer_coord, adj_set),
     )
     lines.extend(grid_lines)
     lines.append("")
 
     legend_order = [
         ("player", "i18n_grid_map.legend.player"),
-        ("teammate", "i18n_grid_map.legend.teammate"),
         ("fog", "i18n_grid_map.legend.fog"),
         ("wall", "i18n_grid_map.legend.wall"),
         ("obstacle", "i18n_grid_map.legend.obstacle"),
@@ -148,7 +148,9 @@ def render_grid_map(run: GameRun) -> str:
 
     cur_room = fm.rooms.get(viewer_coord)
     if cur_room is not None:
-        lines.extend(_render_room_details(fm, cur_room, viewer_coord, p))
+        lines.extend(_render_room_details(fm, cur_room, viewer_coord, p, world_here))
+        if world_here:
+            lines.append(get_locale_text("i18n_world_social.world.talk_hint"))
         if cur_room.room_type == "downstairs":
             if fm.floor_flags.get("yog_quest"):
                 lines.append(get_locale_text("i18n_yog_quest.gate.hint"))
@@ -248,7 +250,7 @@ def _describe_neighbor(fm, x: int, y: int) -> str:
     return get_locale_text("i18n_room_interact.dir.room_open", room_label=label)
 
 
-def _render_room_details(fm, cur_room, viewer_coord: str, player) -> list[str]:
+def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players: list[dict] | None = None) -> list[str]:
     from ..core.inventory.bag_service import get_bag_max_weight, get_bag_weight, get_item_display_name
     from ..core.world.rooms.interact import format_room_env_with_props
     from ..data.potion_data import POTION_SLOT_LIMIT
@@ -257,6 +259,10 @@ def _render_room_details(fm, cur_room, viewer_coord: str, player) -> list[str]:
     name_key = shared.get("name_key")
     out = [get_locale_text(name_key)] if name_key else []
     out.append(format_room_env_with_props(cur_room, include_cleared_suffix=True))
+    if world_players:
+        separator = get_locale_text("i18n_social.common.list_separator")
+        names = separator.join(f"{WORLD_PLAYER_ICON}{entry.get('name', '')}" for entry in world_players)
+        out.append(get_locale_text("i18n_world_social.world.grid_players", names=names))
 
     cx, cy = coord_to_xy(viewer_coord)
     dirs = [

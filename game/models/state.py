@@ -76,6 +76,7 @@ class UserStats:
     friends: List[str] = field(default_factory=list)
     friend_requests_in: List[Dict[str, Any]] = field(default_factory=list)
     friend_requests_out: List[str] = field(default_factory=list)
+    world_mailbox: List[Dict[str, Any]] = field(default_factory=list)
     active_lobby_id: str = ""
     active_coop_id: str = ""
     projection_enabled: bool = True

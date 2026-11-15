@@ -10,10 +10,14 @@ from .base.aliases import normalize_node_alias, STATE_STACK_CANCEL_ALIASES
 from ..world.town.engine import TownEngine
 from ..progress.checkin_service import CheckinService
 from ..social.service import SocialService
+from ..world.world_social import WorldSocialService
+from ..world.presence import set_active_service
 from ..telemetry.projection_service import ProjectionService
 from ..telemetry.log_service import LogService
 from ...data.locale_data import get_locale_text
 from ...data.outer_plane_config import OUTER_PLANE_COMBAT_FLAG, OUTER_PLANE_TRIGGER_FLAG
+from ...data.world_social_config import WORLD_TALK_TARGET_KEY
+from ...data.yog_quest_config import YOG_FLOOR_WILDS
 
 
 
@@ -26,7 +30,11 @@ class CLIRouter:
         self.queue_processor = QueueProcessor(save_manager, engine)
         self._action_handlers = ActionHandler.registry
         self._command_handlers = CommandHandler.registry
+        self.world_social = WorldSocialService(save_manager)
+        set_active_service(self.world_social.presence)
         self.town_engine = TownEngine(save_manager, engine)
+        self.town_engine.world_social = self.world_social
+        self.engine.map_engine.grid_map_service.world_social = self.world_social
         self.engine.map_engine.town_engine = self.town_engine
         self.checkin_service = CheckinService(save_manager)
         self.social_service = SocialService(save_manager, engine)
@@ -118,6 +126,8 @@ class CLIRouter:
 
     def handle_command(self, user_id: str, parts: list[str], project: bool = True) -> Generator[str, None, None]:
         command = " ".join(str(part) for part in parts).strip()
+        set_active_service(self.world_social.presence)
+        self.world_social.refresh(user_id)
         before_run = self.save_manager.load_save(user_id) if command else None
         kind = "battle" if before_run is not None and before_run.node_type == "battle" else "action"
         actor_name = before_run.player.name if before_run is not None and before_run.player else ""
@@ -126,6 +136,12 @@ class CLIRouter:
             formatted = format_output_numbers(res)
             results.append(formatted)
             yield formatted
+        live_messages = self.world_social.pop_live(user_id)
+        self.world_social.refresh(user_id)
+        for message in live_messages:
+            live_text = self.world_social.render_live(message)
+            results.append(live_text)
+            yield live_text
         if command:
             from ..progress.achievement_service import AchievementService
             ach = AchievementService(self.save_manager)
@@ -135,6 +151,10 @@ class CLIRouter:
                 notice_text = format_output_numbers(ach.format_notices(pending))
                 results.append(notice_text)
                 yield notice_text
+        mail_notice = self.world_social.notify(user_id)
+        if mail_notice:
+            results.append(mail_notice)
+            yield mail_notice
         if not command:
             return
         publish = project and self.projection_service.should_publish(command)
@@ -177,6 +197,9 @@ class CLIRouter:
                     return
                 if curr_state == "outer_plane" and parts[0].strip().isdigit():
                     yield self.town_engine.outer_plane_engine.choose(user_id, stats, parts[0].strip())
+                    return
+                if stats.town_flags.get(WORLD_TALK_TARGET_KEY):
+                    yield self.world_social.talk(user_id, " ".join(parts).strip())
                     return
                 if stats.town_flags.get("current_dialog"):
                     yield self.town_engine.handle_dialog_input(user_id, " ".join(parts).strip())
@@ -244,6 +267,16 @@ class CLIRouter:
                 return
         if exists:
             yield get_locale_text("i18n_cli_core.err_command_unavailable", cmd=sub)
+            return
+        stats = self.save_manager.load_stats(user_id)
+        floor_map = getattr(run, "floor_map", None)
+        if (
+            stats.town_flags.get(WORLD_TALK_TARGET_KEY)
+            and floor_map is not None
+            and floor_map.floor_flags.get("yog_quest")
+            and floor_map.floor_index == YOG_FLOOR_WILDS
+        ):
+            yield self.world_social.talk(user_id, " ".join(parts).strip())
             return
         res, term, success = self._execute_sub_action(user_id, run, parts)
         if is_town_combat:
