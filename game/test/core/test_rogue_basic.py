@@ -31,7 +31,7 @@ class TestRogueBasic(unittest.TestCase):
         asyncio.run(go())
 
     def test_class_command_aliases(self):
-        class DummySaveManagerLocal:
+        class DummySaveManagerLocal(DummySaveManagerBase):
             def __init__(self):
                 self.stats = UserStats()
                 self.stats.rogue_mode = True
@@ -80,7 +80,7 @@ class TestRogueBasic(unittest.TestCase):
 
         asyncio.run(go())
 
-        class DummySaveManagerWithSave:
+        class DummySaveManagerWithSave(DummySaveManagerBase):
             def __init__(self):
                 self.stats = UserStats()
                 self.stats.rogue_mode = True
@@ -187,7 +187,7 @@ class TestRogueBasic(unittest.TestCase):
         asyncio.run(go())
 
     def test_new_english_aliases(self):
-        class DummySaveManager:
+        class DummySaveManager(DummySaveManagerBase):
             def __init__(self):
                 self.stats = UserStats()
                 self.stats.rogue_mode = True
@@ -200,9 +200,10 @@ class TestRogueBasic(unittest.TestCase):
                 return True
             def load_save(self, user_id):
                 return self.saved_run
-            def save_save(self, user_id, run):
+            def save_save(self, user_id, run) -> bool:
                 self.saved_run = run
-            def settle_game_and_delete(self, user_id, run, is_victory=False):
+                return True
+            def settle_game_and_delete(self, user_id, run, is_victory=False, create_corpse=True, force=False) -> str:
                 self.saved_run = None
                 return "游戏已结算。"
         
@@ -250,7 +251,7 @@ class TestRogueBasic(unittest.TestCase):
     def test_play_card_by_pinyin_initials(self):
         from game.models.state import CardState
 
-        class DummySaveManager:
+        class DummySaveManager(DummySaveManagerBase):
             def __init__(self):
                 self.stats = UserStats()
                 self.stats.rogue_mode = True
@@ -262,9 +263,10 @@ class TestRogueBasic(unittest.TestCase):
                 return True
             def load_save(self, user_id):
                 return self.saved_run
-            def save_save(self, user_id, run):
+            def save_save(self, user_id, run) -> bool:
                 self.saved_run = run
-            def settle_game_and_delete(self, user_id, run, is_victory=False):
+                return True
+            def settle_game_and_delete(self, user_id, run, is_victory=False, create_corpse=True, force=False) -> str:
                 self.saved_run = None
                 return "游戏已结算。"
 
@@ -306,6 +308,7 @@ class TestRogueBasic(unittest.TestCase):
             for cmd in ("p ssxs", "p SSXS", "p sxs"):
                 plugin, mgr = build()
                 run = mgr.saved_run
+                assert run is not None, "run must exist"
                 res = await run_command(plugin, cmd)
                 self.assertNotIn("❌", res)
                 self.assertEqual(run.player.hp, 27)
@@ -316,6 +319,7 @@ class TestRogueBasic(unittest.TestCase):
 
             plugin, mgr = build()
             run = mgr.saved_run
+            assert run is not None, "run must exist"
             res = await run_command(plugin, "p lmb")
             self.assertNotIn("❌", res)
             self.assertEqual([c.id for c in run.player.hand], ["adrenaline", "adrenaline"])
@@ -323,6 +327,7 @@ class TestRogueBasic(unittest.TestCase):
 
             plugin, mgr = build()
             run = mgr.saved_run
+            assert run is not None, "run must exist"
             res = await run_command(plugin, "p zz")
             self.assertIn("❌", res)
             self.assertEqual(len(run.player.hand), 3)
@@ -330,6 +335,7 @@ class TestRogueBasic(unittest.TestCase):
 
             plugin, mgr = build()
             run = mgr.saved_run
+            assert run is not None, "run must exist"
             res = await run_command(plugin, "p 3")
             self.assertNotIn("❌", res)
             self.assertEqual(run.player.hp, 28)
@@ -337,6 +343,7 @@ class TestRogueBasic(unittest.TestCase):
 
             plugin, mgr = build()
             run = mgr.saved_run
+            assert run is not None, "run must exist"
             res = await run_command(plugin, "q [p ssxs, p lmb]")
             self.assertEqual([c.id for c in run.player.hand], ["adrenaline"])
 

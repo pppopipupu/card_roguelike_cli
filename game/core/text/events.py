@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any
 
 import msgspec
@@ -17,17 +18,18 @@ class RenderedText(TextNode, tag="rendered"):
 
 
 class JoinedText(TextNode, tag="joined"):
-    parts: list[LocaleText | RenderedText] = msgspec.field(default_factory=list)
+    parts: Sequence["TextPayload"] = msgspec.field(default_factory=list)
     separator: str = "\n"
 
 
 class ScreenText(TextNode, tag="screen"):
     screen: str = "screen"
-    scene: list[LocaleText] = msgspec.field(default_factory=list)
-    notice: list[LocaleText] = msgspec.field(default_factory=list)
+    scene: Sequence["TextPayload"] = msgspec.field(default_factory=list)
+    notice: Sequence["TextPayload"] = msgspec.field(default_factory=list)
 
 
-TextDocument = list[LocaleText | RenderedText | JoinedText | ScreenText]
+TextPayload = TextNode | LocaleText | RenderedText | JoinedText | ScreenText
+TextDocument = list[TextPayload]
 
 
 def locale_text(key: str, params: dict | None = None) -> LocaleText:

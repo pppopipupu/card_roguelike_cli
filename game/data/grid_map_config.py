@@ -1,4 +1,6 @@
-FLOOR_CONFIGS = {
+from typing import Any
+
+FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     1: {
         "width": 8,
         "height": 6,
@@ -80,6 +82,7 @@ FLOOR_CONFIGS = {
         "height": 12,
         "stage_min": 30,
         "stage_max": 38,
+        "display_floor": 1,
         "name_key": "i18n_yog_quest.map.frost_wilds",
         "has_cafe": False,
         "has_shop": False,
@@ -99,6 +102,7 @@ FLOOR_CONFIGS = {
         "height": 8,
         "stage_min": 38,
         "stage_max": 44,
+        "display_floor": 1,
         "name_key": "i18n_yog_quest.map.yog_temple",
         "has_cafe": False,
         "has_shop": False,
@@ -114,6 +118,14 @@ FLOOR_CONFIGS = {
         "event_count": 0,
     },
 }
+
+
+def get_display_floor(floor_index: int | float) -> int | float:
+    cfg = FLOOR_CONFIGS.get(floor_index)
+    if cfg is not None and "display_floor" in cfg:
+        return cfg["display_floor"]
+    return floor_index
+
 
 SP_CONFIG = {
     "default_max_sp": 10,

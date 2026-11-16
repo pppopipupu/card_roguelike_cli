@@ -1,8 +1,8 @@
 import random
 from typing import Optional
 from ...data.locale_data import get_locale_text
-from ...data.damage_type_data import is_physical_damage
-from ...models.state import GameRun, PlayerState, EnemyState, MinionState, Card, BuffState
+from ...data.damage_type_data import damage_type_value, is_physical_damage
+from ...models.state import GameRun, PlayerState, EnemyState, MinionState, Card, BuffState, DamageType
 from ...models.events import (
     BeforeDamageApplyEvent, DamageCalculateEvent, DamageTakeEvent, HealEvent, MinionDeathEvent, MinionSummonEvent, ShieldGainEvent, HealCalculateEvent, EnemyBeforeDeathEvent
 )
@@ -301,13 +301,14 @@ class CombatResolver:
             return grid
         return None
 
-    def damage_target(self, game_run_context: GameRun, target: str, dmg: int, source: str = "effect", damage_type: str = "effect", card: Optional[Card] = None, damage_ready: bool = False, is_attack: bool = False):
+    def damage_target(self, game_run_context: GameRun, target: str, dmg: int, source: str = "effect", damage_type: str | DamageType = "effect", card: Optional[Card] = None, damage_ready: bool = False, is_attack: bool = False):
         if self._redirect_ally(
             game_run_context,
             target,
             lambda inner: self.damage_target(game_run_context, inner, dmg, source, damage_type, card, damage_ready, is_attack),
         ):
             return
+        damage_type_str = damage_type_value(damage_type)
         target_name = self.get_target_name(game_run_context, target)
         if card is None:
             cid = game_run_context.node_data.get("current_playing_card_cid")
@@ -330,7 +331,7 @@ class CombatResolver:
         if damage_ready:
             final_dmg = dmg
         else:
-            calc_evt = DamageCalculateEvent(game_run_context, card, source, target, damage_type, dmg, dmg, is_attack)
+            calc_evt = DamageCalculateEvent(game_run_context, card, source, target, damage_type_str, dmg, dmg, is_attack)
             self.engine.event_bus.dispatch(calc_evt)
             final_dmg = max(0, calc_evt.modified_damage)
         p = game_run_context.player
@@ -340,24 +341,19 @@ class CombatResolver:
                 stacks = resonance_buff.stacks
                 final_dmg = final_dmg * (10 ** stacks)
         if target == "p0" and any(b.id == "antimagic_immune" for b in p.buffs):
-            dtype_str = damage_type.value if hasattr(damage_type, "value") else str(damage_type)
-            if not is_physical_damage(dtype_str):
+            if not is_physical_damage(damage_type_str):
                 final_dmg = 0
-        before_apply_evt = BeforeDamageApplyEvent(game_run_context, card, source, target, damage_type, final_dmg)
+        before_apply_evt = BeforeDamageApplyEvent(game_run_context, card, source, target, damage_type_str, final_dmg)
         self.engine.event_bus.dispatch(before_apply_evt)
         final_dmg = max(0, before_apply_evt.final_damage)
         is_fatal = False
         is_true = False
-        if damage_type == "true" or damage_type == "TRUE":
-            is_true = True
-        elif hasattr(damage_type, "value") and (damage_type.value == "true" or damage_type.value == "TRUE"):
+        if damage_type_str in ("true", "TRUE"):
             is_true = True
         if target == "p0" and final_dmg > 0:
             source_name = self.get_source_name(game_run_context, source)
             game_run_context.node_data["last_damage_source"] = source_name
-            game_run_context.node_data["last_damage_type"] = (
-                damage_type.value if hasattr(damage_type, "value") else str(damage_type)
-            )
+            game_run_context.node_data["last_damage_type"] = damage_type_str
         shield_dmg = 0
         hp_dmg = 0
         if target.startswith("e"):
@@ -391,7 +387,7 @@ class CombatResolver:
                         game_run_context.enemies.pop(idx)
                         death_evt = MinionDeathEvent(game_run_context, e.name, target, e.name, True)
                         self.engine.event_bus.dispatch(death_evt)
-                take_evt = DamageTakeEvent(game_run_context, source, target, final_dmg, is_fatal, damage_type)
+                take_evt = DamageTakeEvent(game_run_context, source, target, final_dmg, is_fatal, damage_type_str)
                 self.engine.event_bus.dispatch(take_evt)
         elif target == "p0":
             was_alive = p.hp > 0
@@ -435,7 +431,7 @@ class CombatResolver:
                         self.damage_target(game_run_context, source, ref_dmg, source="p0", damage_type="cold")
                         self.damage_target(game_run_context, source, ref_dmg, source="p0", damage_type="lightning")
                         self.damage_target(game_run_context, source, ref_dmg, source="p0", damage_type="poison")
-            take_evt = DamageTakeEvent(game_run_context, source, target, final_dmg, is_fatal, damage_type)
+            take_evt = DamageTakeEvent(game_run_context, source, target, final_dmg, is_fatal, damage_type_str)
             self.engine.event_bus.dispatch(take_evt)
         elif target.startswith("p"):
             grid = target[1:]
@@ -450,9 +446,8 @@ class CombatResolver:
                     death_evt = MinionDeathEvent(game_run_context, m.id, target, m.name, False)
                     self.engine.event_bus.dispatch(death_evt)
                     self.engine._reindex_minions(p)
-                take_evt = DamageTakeEvent(game_run_context, source, target, final_dmg, is_fatal, damage_type)
+                take_evt = DamageTakeEvent(game_run_context, source, target, final_dmg, is_fatal, damage_type_str)
                 self.engine.event_bus.dispatch(take_evt)
-        damage_type_str = damage_type.value if hasattr(damage_type, "value") else str(damage_type)
         type_key = DAMAGE_TYPE_KEYS.get(damage_type_str)
         if type_key is None:
             type_key = "i18n_battle_misc.damage_type_physical" if damage_type_str == "attack" else "i18n_battle_misc.damage_type_special"

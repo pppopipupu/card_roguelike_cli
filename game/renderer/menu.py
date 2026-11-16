@@ -1,10 +1,12 @@
+from typing import Optional
+
 from ..models.state import GameRun, UserStats
 from ..entities.cards.base import get_card_color_icon
 from ..cards import ALL_CARDS
 from ..data.locale_data import t
 from .formatters import format_large_int
 
-def render_menu(stats: UserStats = None) -> str:
+def render_menu(stats: Optional[UserStats] = None) -> str:
     subclass_str = t("renderer_menu.none")
     gp_val = 0
     selected_class = "法师"

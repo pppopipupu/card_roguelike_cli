@@ -5,7 +5,7 @@ import unittest
 
 from game.data.millika_card_config import MILLIKA_TURN_FLAG_KEY
 from game.models.state import CardState, EnemyState, GameRun, MinionState, PlayerState
-from game.test.core.base import CorePlugin, run_command
+from game.test.core.base import CorePlugin, load_run, run_command
 
 MILLIKA_ID = "holy_celestial_millika"
 ANNE_ID = "manaeria_queen_anne"
@@ -66,7 +66,7 @@ class TestMillikaCard(unittest.TestCase):
         res = self.run_cmd("p 1", uid)
         self.assertIn("加入手牌", res)
         self.assertIn("入场曲", res)
-        after = self.plugin.save_manager.load_save(uid)
+        after = load_run(self.plugin, uid)
         p = after.player
         self.assertEqual([c.id for c in p.hand], [MILLIKA_ID, MILLIKA_ID])
         self.assertEqual(self.pile_total(after), 9)
@@ -82,7 +82,7 @@ class TestMillikaCard(unittest.TestCase):
         self.build_battle(uid, [CardState(id=MILLIKA_ID)], piles, [], deck=list(piles))
         res = self.run_cmd("p 1", uid)
         self.assertIn("入场曲", res)
-        after = self.plugin.save_manager.load_save(uid)
+        after = load_run(self.plugin, uid)
         p = after.player
         self.assertEqual(self.pile_total(after), 5)
         self.assertEqual(p.hand, [])
@@ -98,7 +98,7 @@ class TestMillikaCard(unittest.TestCase):
         self.build_battle(uid, [], [CardState(id=MILLIKA_ID)], [], minions=minions)
         res = self.run_cmd("m 1 s 1", uid)
         self.assertIn("加入手牌", res)
-        after = self.plugin.save_manager.load_save(uid)
+        after = load_run(self.plugin, uid)
         self.assertEqual([c.id for c in after.player.hand], [MILLIKA_ID])
         self.assertEqual(self.pile_total(after), 0)
         self.assertEqual(after.enemies[0].hp, 480)
@@ -109,7 +109,7 @@ class TestMillikaCard(unittest.TestCase):
         self.build_battle(uid, [], [CardState(id="fire_bolt")], [], minions=minions)
         res = self.run_cmd("m 1 s 1", uid)
         self.assertNotIn("加入手牌", res)
-        after = self.plugin.save_manager.load_save(uid)
+        after = load_run(self.plugin, uid)
         self.assertEqual(after.player.hand, [])
 
     def test_no_replenish_outside_own_turn(self):
@@ -118,7 +118,7 @@ class TestMillikaCard(unittest.TestCase):
         self.build_battle(uid, [], [CardState(id=MILLIKA_ID)], [], minions=minions, node_data={MILLIKA_TURN_FLAG_KEY: {}})
         res = self.run_cmd("m 1 s 1", uid)
         self.assertNotIn("加入手牌", res)
-        after = self.plugin.save_manager.load_save(uid)
+        after = load_run(self.plugin, uid)
         self.assertEqual(after.player.hand, [])
 
     def test_minion_attack_uses_radiant_damage(self):
@@ -127,7 +127,7 @@ class TestMillikaCard(unittest.TestCase):
         self.build_battle(uid, [], [], [], minions=minions)
         res = self.run_cmd("m 1 a e1", uid)
         self.assertIn("光耀", res)
-        after = self.plugin.save_manager.load_save(uid)
+        after = load_run(self.plugin, uid)
         self.assertEqual(after.enemies[0].hp, 495)
 
     def test_query_card_is_available(self):

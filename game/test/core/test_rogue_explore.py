@@ -1,6 +1,7 @@
 import unittest
 import asyncio
 from game.test.core.base import *
+from game.models.state import CardState, UserStats
 
 class TestRogueExplore(unittest.TestCase):
     def test_inner_shop_flow(self):
@@ -11,10 +12,10 @@ class TestRogueExplore(unittest.TestCase):
         async def go():
             await run_command(plugin, ".rogue 开启", sender_id=user_id)
             await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
-            run = plugin.save_manager.load_save(user_id)
+            run = load_run(plugin, user_id)
             self.assertIsNotNone(run)
             from game.core.party.session import SessionContextScoper
-            shop_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "shop"), "A1")
+            shop_coord = next((c for c, r in floor_of(run).rooms.items() if r.room_type == "shop"), "A1")
             SessionContextScoper.create_session(run, shop_coord, "shop", [user_id])
             run.node_type = "shop"
             plugin.engine.map_engine.explore_engine._init_shop_node(run)
@@ -25,7 +26,7 @@ class TestRogueExplore(unittest.TestCase):
             self.assertIn("净化服务", status_output)
             self.assertIn("离开商店", status_output)
             
-            run = plugin.save_manager.load_save(user_id)
+            run = load_run(plugin, user_id)
             run.player.gold = 500
             plugin.save_manager.save_save(user_id, run)
             initial_gold = 500
@@ -41,7 +42,7 @@ class TestRogueExplore(unittest.TestCase):
             buy_res = await run_command(plugin, f".rogue 选择 {card_idx}", sender_id=user_id)
             self.assertIn("购买成功", buy_res)
             
-            run = plugin.save_manager.load_save(user_id)
+            run = load_run(plugin, user_id)
             self.assertEqual(len(run.player.deck), initial_deck_len + 1)
             self.assertLess(run.player.gold, initial_gold)
             
@@ -51,12 +52,12 @@ class TestRogueExplore(unittest.TestCase):
                     relic_idx = idx + 1
                     break
             if relic_idx != -1:
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 run.player.gold = 500
                 plugin.save_manager.save_save(user_id, run)
                 buy_relic_res = await run_command(plugin, f".rogue 选择 {relic_idx}", sender_id=user_id)
                 self.assertIn("购买成功", buy_relic_res)
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 relic_id = items[relic_idx - 1].get("relic_id")
                 self.assertIn(relic_id, run.player.relics)
                 
@@ -66,7 +67,7 @@ class TestRogueExplore(unittest.TestCase):
                     remove_idx = idx + 1
                     break
             if remove_idx != -1:
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 run.player.gold = 500
                 from game.core.party.session import SessionContextScoper
                 SessionContextScoper.create_session(run, "A1", "shop", [user_id])
@@ -77,18 +78,18 @@ class TestRogueExplore(unittest.TestCase):
                 plugin.save_manager.save_save(user_id, run)
                 remove_trigger_res = await run_command(plugin, f".rogue 选择 {remove_idx}", sender_id=user_id)
                 self.assertIn("净化服务已启动", remove_trigger_res)
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 self.assertTrue(run.node_data.get("pending_remove"))
                 cancel_res = await run_command(plugin, ".rogue 选择 取消", sender_id=user_id)
                 self.assertIn("已取消卡牌移除操作", cancel_res)
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 self.assertFalse(run.node_data.get("pending_remove"))
                 await run_command(plugin, f".rogue 选择 {remove_idx}", sender_id=user_id)
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 deck_before = len(run.player.deck)
                 remove_card_res = await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
                 self.assertIn("已成功从你的卡组中移除", remove_card_res)
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 self.assertEqual(len(run.player.deck), deck_before - 1)
                 self.assertFalse(run.node_data.get("pending_remove"))
 
@@ -100,7 +101,7 @@ class TestRogueExplore(unittest.TestCase):
             self.assertNotEqual(leave_idx, -1)
             leave_res = await run_command(plugin, f".rogue 选择 {leave_idx}", sender_id=user_id)
             self.assertIn("你离开了商店", leave_res)
-            run = plugin.save_manager.load_save(user_id)
+            run = load_run(plugin, user_id)
             self.assertNotEqual(run.node_type, "shop")
             
         asyncio.run(go())
@@ -112,7 +113,7 @@ class TestRogueExplore(unittest.TestCase):
             shield=0,
             gold=10,
             stage=4,
-            deck=["first_aid", "dagger_throw", "agile_strike"],
+            deck=[CardState(id="first_aid"), CardState(id="dagger_throw"), CardState(id="agile_strike")],
             draw_pile=[],
             discard_pile=[],
             exhaust_pile=[],
@@ -127,13 +128,17 @@ class TestRogueExplore(unittest.TestCase):
         )
         plugin = MyPlugin(DummyContext())
         map_engine = plugin.engine.map_engine
-        class DummySaveManager:
-            def save_save(self, user_id, run):
-                pass
-            def delete_save(self, user_id):
-                pass
+        class DummySaveManager(DummySaveManagerBase):
+            def save_save(self, user_id, run) -> bool:
+                return True
+            def delete_save(self, user_id) -> bool:
+                return True
             def record_stage_passed(self, user_id):
                 pass
+            def load_stats(self, user_id) -> UserStats:
+                return UserStats()
+            def save_stats(self, user_id, stats) -> bool:
+                return True
         map_engine.save_manager = DummySaveManager()
         map_engine._init_treasure_node(run)
         self.assertEqual(run.node_data.get("state"), "pending_remove")
@@ -172,7 +177,6 @@ class TestRogueExplore(unittest.TestCase):
         self.assertEqual(len(player.deck), 3)
 
     def test_card_upgrade_and_forge(self):
-        from game.models.state import CardState
         mhw = ALL_CARDS.get("mass_healing_word")
         mhw_plus = ALL_CARDS[CardState(id="mass_healing_word", upgraded=True)]
         self.assertIsNotNone(mhw)
@@ -199,8 +203,8 @@ class TestRogueExplore(unittest.TestCase):
         async def go():
             await run_command(plugin, ".rogue 开启 确认", sender_id="test_user_upg")
             await run_command(plugin, ".rogue 选择 1", sender_id="test_user_upg")
-            run = save_manager.load_save("test_user_upg")
-            rest_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "rest"), "A1")
+            run = require_run(save_manager.load_save("test_user_upg"))
+            rest_coord = next((c for c, r in floor_of(run).rooms.items() if r.room_type == "rest"), "A1")
             from game.core.party.session import SessionContextScoper
             SessionContextScoper.create_session(run, rest_coord, "rest", ["test_user_upg"])
             plugin.engine.map_engine.explore_engine._init_rest_node(run)
@@ -208,11 +212,11 @@ class TestRogueExplore(unittest.TestCase):
             self.assertEqual(run.node_type, "rest")
             res = await run_command(plugin, ".rogue 选择 3", sender_id="test_user_upg")
             self.assertIn("卡牌升级强化已启动", res)
-            run = save_manager.load_save("test_user_upg")
+            run = require_run(save_manager.load_save("test_user_upg"))
             self.assertTrue(run.node_data.get("pending_upgrade"))
             res_upg = await run_command(plugin, ".rogue 选择 1", sender_id="test_user_upg")
             self.assertIn("升级成功", res_upg)
-            run = save_manager.load_save("test_user_upg")
+            run = require_run(save_manager.load_save("test_user_upg"))
             self.assertTrue(any(card.upgraded for card in run.player.deck))
             from game.core.party.session import SessionContextScoper
             forge_data = {
@@ -230,12 +234,12 @@ class TestRogueExplore(unittest.TestCase):
             save_manager.save_save("test_user_upg", run)
             res_event_fire = await run_command(plugin, ".rogue 选择 1", sender_id="test_user_upg")
             self.assertIn("卡牌升级强化已启动", res_event_fire)
-            run = save_manager.load_save("test_user_upg")
+            run = require_run(save_manager.load_save("test_user_upg"))
             SessionContextScoper.create_session(run, "A1", "event", ["test_user_upg"], node_data=dict(forge_data))
             save_manager.save_save("test_user_upg", run)
             res_backfire = await run_command(plugin, ".rogue 选择 3", sender_id="test_user_upg")
             self.assertIn("炉温反噬", res_backfire)
-            run = save_manager.load_save("test_user_upg")
+            run = require_run(save_manager.load_save("test_user_upg"))
             self.assertTrue(any(b.id == "forge_backfire" for b in run.player.buffs))
             save_manager.delete_save("test_user_upg")
             
@@ -263,8 +267,8 @@ class TestRogueExplore(unittest.TestCase):
             shield=0,
             gold=20,
             stage=3,
-            deck=["fleeting_spark", "fleeting_spark"],
-            hand=["fleeting_spark", "fleeting_spark"],
+            deck=[CardState(id="fleeting_spark"), CardState(id="fleeting_spark")],
+            hand=[CardState(id="fleeting_spark"), CardState(id="fleeting_spark")],
             actions=2,
             bonus_actions=1
         )
@@ -309,7 +313,7 @@ class TestRogueExplore(unittest.TestCase):
         
         async def go():
             output_text = await run_command(plugin, "p 2", sender_id=user_id)
-            loaded_run = save_manager.load_save(user_id)
+            loaded_run = require_run(save_manager.load_save(user_id))
             state_stack = loaded_run.node_data.get("state_stack", [])
             self.assertNotIn("❌ 取消使用操作。", output_text)
             self.assertEqual(len(state_stack), 0)
@@ -331,8 +335,8 @@ class TestRogueExplore(unittest.TestCase):
             shield=0,
             gold=100,
             stage=1,
-            deck=["break_limits", "abyss_collapse", "demon_contract", "frost_nova", "glacier_fortress"],
-            hand=["break_limits", "abyss_collapse", "demon_contract", "frost_nova", "glacier_fortress"],
+            deck=[CardState(id="break_limits"), CardState(id="abyss_collapse"), CardState(id="demon_contract"), CardState(id="frost_nova"), CardState(id="glacier_fortress")],
+            hand=[CardState(id="break_limits"), CardState(id="abyss_collapse"), CardState(id="demon_contract"), CardState(id="frost_nova"), CardState(id="glacier_fortress")],
             actions=5,
             bonus_actions=5,
             buffs=[]
@@ -373,6 +377,7 @@ class TestRogueExplore(unittest.TestCase):
                         self.unlocked_gatekey = True
                         self.killed_icerainboww = True
                         self.killed_yog_sothoth = False
+                        self.pending_logs = []
                 return DummyStats()
             def save_stats(self, user_id, stats):
                 pass
@@ -385,7 +390,7 @@ class TestRogueExplore(unittest.TestCase):
             gold=100,
             stage=1,
             deck=[],
-            hand=["abyss_altar", "abyss_erosion", "glacier_tempest", "abyss_altar+"],
+            hand=[CardState(id="abyss_altar"), CardState(id="abyss_erosion"), CardState(id="glacier_tempest"), CardState(id="abyss_altar", upgraded=True)],
             actions=5,
             bonus_actions=5,
             buffs=[],
@@ -403,7 +408,7 @@ class TestRogueExplore(unittest.TestCase):
         engine.card_player.end_turn(run)
         self.assertEqual(enemies[0].hp, 595)
         self.assertEqual(player.shield, 10)
-        player.draw_pile = ["mass_healing_word"]
+        player.draw_pile = [CardState(id="mass_healing_word")]
         initial_hand_len = len(player.hand)
         engine._damage_target(run, "p0", 2, damage_type="true", source="test")
         self.assertEqual(len(player.hand), initial_hand_len + 1)
@@ -460,8 +465,8 @@ class TestRogueExplore(unittest.TestCase):
             shield=0,
             gold=100,
             stage=32,
-            deck=["arcane_torrent", "arcane_barrier"],
-            hand=["arcane_torrent", "arcane_barrier"],
+            deck=[CardState(id="arcane_torrent"), CardState(id="arcane_barrier")],
+            hand=[CardState(id="arcane_torrent"), CardState(id="arcane_barrier")],
             actions=3,
             bonus_actions=2,
             minion_graveyard=["mercenary"]
@@ -515,7 +520,7 @@ class TestRogueExplore(unittest.TestCase):
         sm.stats.unlocked_gatekey = True
         engine.card_player.handle_battle_win(run)
         self.assertEqual(run.node_type, "boss_chest")
-        player.hand = ["void_beacon"]
+        player.hand = [CardState(id="void_beacon")]
         player.actions = 2
         player.bonus_actions = 1
         player.amulets = {}
@@ -544,6 +549,7 @@ class TestRogueExplore(unittest.TestCase):
                         self.unlocked_gatekey = False
                         self.killed_icerainboww = False
                         self.killed_yog_sothoth = False
+                        self.pending_logs = []
                 return DummyStats()
             def save_stats(self, user_id, stats):
                 pass
@@ -555,8 +561,8 @@ class TestRogueExplore(unittest.TestCase):
             shield=20,
             gold=100,
             stage=1,
-            deck=["lucky_coin", "thorns_necklace"],
-            hand=["lucky_coin", "thorns_necklace"],
+            deck=[CardState(id="lucky_coin"), CardState(id="thorns_necklace")],
+            hand=[CardState(id="lucky_coin"), CardState(id="thorns_necklace")],
             actions=5,
             bonus_actions=5,
             buffs=[],
@@ -588,7 +594,7 @@ class TestRogueExplore(unittest.TestCase):
         self.assertEqual(player.gold, prev_gold + 13)
         res = engine.combat_resolver.recall_dead_minion(run, 999)
         self.assertIn("没有符合条件的随从", res)
-        player.hand = ["master_key"]
+        player.hand = [CardState(id="master_key")]
         player.actions = 2
         player.bonus_actions = 1
         card_thorns = ALL_CARDS["thorns_necklace"]
@@ -662,7 +668,7 @@ class TestRogueExplore(unittest.TestCase):
         async def go():
             player = PlayerState(
                 hp=30, max_hp=30, shield=0, gold=10, stage=4,
-                deck=["first_aid"], hand=[], draw_pile=[], discard_pile=[], exhaust_pile=[], graveyard=[]
+                deck=[CardState(id="first_aid")], hand=[], draw_pile=[], discard_pile=[], exhaust_pile=[], graveyard=[]
             )
             run = GameRun(
                 user_id=user_id, node_type="reward", player=player, enemies=[]
@@ -684,23 +690,22 @@ class TestRogueExplore(unittest.TestCase):
             res_take1 = await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
             self.assertIn("金币", res_take1)
             
-            run_after = plugin.save_manager.load_save(user_id)
+            run_after = load_run(plugin, user_id)
             self.assertIn("lucky_coin", run_after.player.relics)
             self.assertEqual(run_after.player.gold, 60)
             self.assertTrue(run_after.node_data["items"][0]["taken"])
             self.assertTrue(run_after.node_data["items"][1]["taken"])
             
             res_take_card = await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
-            run_after = plugin.save_manager.load_save(user_id)
+            run_after = load_run(plugin, user_id)
             self.assertEqual(run_after.node_type, "card_select")
             self.assertTrue(run_after.node_data["next_node_data"]["items"][2]["taken"])
             self.assertTrue(run_after.node_data["next_node_data"]["items"][3]["taken"])
             
             res_skip = await run_command(plugin, ".rogue 选择 2", sender_id=user_id)
-            run_after = plugin.save_manager.load_save(user_id)
+            run_after = load_run(plugin, user_id)
             self.assertEqual(run_after.player.stage, 5)
             
-            run_after.stage = 4
             run_after.player.stage = 4
             run_after.player.relics = ["trash_mountain"]
             run_after.node_type = "reward"
@@ -712,7 +717,7 @@ class TestRogueExplore(unittest.TestCase):
             plugin.save_manager.save_save(user_id, run_after)
             
             card_select_res = await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
-            run_after = plugin.save_manager.load_save(user_id)
+            run_after = load_run(plugin, user_id)
             self.assertEqual(run_after.node_type, "card_select")
             self.assertIn("造成 24 点", card_select_res)
             self.assertNotIn("造成 18 点", card_select_res)
@@ -721,12 +726,12 @@ class TestRogueExplore(unittest.TestCase):
             self.assertIn("由于遗物【垃圾山】的效果，你无法跳过", res_skip_err)
             
             await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
-            run_after = plugin.save_manager.load_save(user_id)
+            run_after = load_run(plugin, user_id)
             self.assertEqual(run_after.player.stage, 5)
             from game.models.state import ensure_card_state
             last_card = ensure_card_state(run_after.player.deck[-1])
             self.assertEqual(last_card.id, "fireball")
-            run_after = plugin.save_manager.load_save(user_id)
+            run_after = load_run(plugin, user_id)
             run_after.node_type = "rest"
             plugin.engine.map_engine.explore_engine._init_rest_node(run_after)
             plugin.save_manager.save_save(user_id, run_after)
@@ -748,9 +753,9 @@ class TestRogueExplore(unittest.TestCase):
                 plugin.save_manager.delete_save(user_id)
                 await run_command(plugin, ".rogue 开启", sender_id=user_id)
                 await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 from game.core.party.session import SessionContextScoper
-                rest_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "rest"), "A1")
+                rest_coord = next((c for c, r in floor_of(run).rooms.items() if r.room_type == "rest"), "A1")
                 SessionContextScoper.create_session(run, rest_coord, "rest", [user_id])
                 plugin.engine.map_engine.explore_engine._init_rest_node(run)
                 plugin.save_manager.save_save(user_id, run)
@@ -766,7 +771,7 @@ class TestRogueExplore(unittest.TestCase):
                 exit_res = await run_command(plugin, alias, sender_id=user_id)
                 self.assertNotEqual(exit_res, "")
                 self.assertIn("你离开了当前节点", exit_res)
-                run_after = plugin.save_manager.load_save(user_id)
+                run_after = load_run(plugin, user_id)
                 self.assertEqual(run_after.node_type, "grid_map")
 
             await setup_rest_node()
@@ -774,7 +779,7 @@ class TestRogueExplore(unittest.TestCase):
             self.assertIn("卡牌升级强化已启动", upgrade_res)
             cancel_res = await run_command(plugin, "取消", sender_id=user_id)
             self.assertIn("已取消卡牌升级操作", cancel_res)
-            run_after = plugin.save_manager.load_save(user_id)
+            run_after = load_run(plugin, user_id)
             self.assertFalse(run_after.node_data.get("pending_upgrade"))
             self.assertEqual(run_after.node_type, "rest")
             self.assertIn("🍖 休息", cancel_res)

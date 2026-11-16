@@ -80,7 +80,7 @@ class HealCalculateEvent(GameEvent):
 
 class CardDiscardEvent(GameEvent):
     run: GameRun
-    card_id: str
+    card: CardState
     source: str
 
 class MinionDeathEvent(GameEvent):
@@ -101,7 +101,7 @@ class MinionSummonEvent(GameEvent):
 
 class CardExhaustEvent(GameEvent):
     run: GameRun
-    card_id: str
+    card: CardState
     source: str
 
 class ShieldGainEvent(GameEvent):

@@ -1,6 +1,13 @@
+from typing import TYPE_CHECKING
 from .event_bus import EventBus
 
+if TYPE_CHECKING:
+    from ...engine import GameEngine
+    from ..world.map_engine import MapEngine
+
 class BaseBattleEngine:
+    game_engine: "GameEngine"
+    map_engine: "MapEngine"
     def __init__(self, save_manager):
         self.save_manager = save_manager
         self.event_bus = self._init_event_bus()

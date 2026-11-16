@@ -244,6 +244,19 @@ def touch_in_room(save_manager, run, query: str) -> str:
         ensure_descent_tunnel(room)
     prop_id = resolve_prop_in_room(room, q)
     if not prop_id:
+        from ....data.open_world_config import WORLD_YOG_TEMPLE
+        from ....data.world_social_config import WORLD_SNOWFIELD
+        from ....data.yog_quest_config import YOG_FLOOR_TEMPLE
+        from ..open_world.ghost_service import OpenWorldGhostService
+        from ..open_world.loadout_service import is_open_world_run
+
+        if is_open_world_run(run):
+            fm = getattr(run, "floor_map", None)
+            floor_idx = getattr(fm, "floor_index", 0) if fm is not None else 0
+            world = WORLD_YOG_TEMPLE if floor_idx == YOG_FLOOR_TEMPLE else WORLD_SNOWFIELD
+            ghost_msg = OpenWorldGhostService.try_inspect_ghost(save_manager, world, coord, q, is_touch=True)
+            if ghost_msg is not None:
+                return ghost_msg
         return get_locale_text("i18n_room_interact.touch.not_found", target=q)
     cfg = ROOM_PROPS.get(prop_id, {})
     pname = get_locale_text(cfg["name_key"]) if cfg.get("name_key") else prop_id

@@ -1,7 +1,7 @@
 import unittest
 
 from game.core.battle.engine import BattleEngine
-from game.models.state import BuffState, CardState, EnemyState, GameRun, PlayerState
+from game.models.state import BuffState, CardState, EnemyState, GameRun, PlayerState, UserStats
 
 
 class TestSpecialActionGemAffixes(unittest.TestCase):
@@ -13,6 +13,12 @@ class TestSpecialActionGemAffixes(unittest.TestCase):
 
             def delete_save(self, user_id):
                 pass
+
+            def load_stats(self, user_id) -> UserStats:
+                return UserStats()
+
+            def save_stats(self, user_id, stats) -> bool:
+                return True
 
         engine = BattleEngine(DummySaveManager())
         player = PlayerState(

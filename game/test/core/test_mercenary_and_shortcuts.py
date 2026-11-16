@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 from game.data.account_config import RENAME_COST_GP
-from game.test.core.base import CorePlugin, move_to_room, run_command
+from game.test.core.base import CorePlugin, load_run, move_to_room, run_command
 
 class TestMercenaryAndShortcuts(unittest.TestCase):
     def setUp(self):
@@ -57,7 +57,7 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
         explore_s = self.run_cmd("s", uid)
         self.assertIn("不可用", explore_s)
         explore_r = self.run_cmd("r", uid)
-        self.assertIn("第 1 关", explore_r)
+        self.assertIn("契约", explore_r)
 
     def test_tavern_hire_requires_enough_gp(self):
         uid = "poor_hirer"
@@ -83,11 +83,11 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
         self.assertEqual(stats_after_hire.hired_mercenaries, ["harry_du_bois"])
 
         start_res = self.run_cmd("start confirm", uid)
-        self.assertIn("第 1 关", start_res)
+        self.assertIn("契约", start_res)
         stats_after_start = self.plugin.save_manager.load_stats(uid)
         self.assertEqual(stats_after_start.hired_mercenaries, [])
 
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         self.assertEqual(run.player_count(), 2)
         self.assertEqual(run.human_uids(), [uid])
         merc_uid = [u for u in run.party_order if u != uid][0]
@@ -119,7 +119,7 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
         battle_res, run = move_to_room(self.plugin, uid, ("battle", "elite"))
         self.assertIn("哈里·杜博阿", battle_res)
 
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "battle")
         battle_r = self.run_cmd("r", uid)
         self.assertIn("哈里·杜博阿", battle_r)
@@ -201,19 +201,21 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
         self.run_cmd(f"friend add {h2_handle}", uids[0])
         self.run_cmd(f"friend accept {h1_handle}", uids[1])
         create_res = self.run_cmd("team create", uids[0])
-        lobby_id = re.search(r"队伍 ([A-Z0-9]{6})", create_res).group(1)
+        match = re.search(r"队伍 ([A-Z0-9]{6})", create_res)
+        assert match is not None, "team id must be present"
+        lobby_id = match.group(1)
         self.run_cmd(f"friend invite {h2_handle}", uids[0])
         self.run_cmd(f"team join {lobby_id}", uids[1])
         self.run_cmd("team ready", uids[1])
         self.run_cmd("team start", uids[0])
 
-        run = self.plugin.save_manager.load_save(uids[0])
+        run = load_run(self.plugin, uids[0])
         self.assertEqual(run.player_count(), 3)
         self.assertEqual(run.human_uids(), uids)
 
         self.run_cmd("c 1", uids[0])
         self.run_cmd("c 1", uids[1])
-        after_ancient = self.plugin.save_manager.load_save(uids[0])
+        after_ancient = load_run(self.plugin, uids[0])
         self.assertEqual(after_ancient.node_type, "grid_map")
 
         move_to_room(self.plugin, uids[0], ("battle", "elite"), rally=True)
@@ -221,7 +223,7 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
         self.assertIn("等待队友", res1)
         res2 = self.run_cmd("e", uids[1])
         self.assertIn("进入第 2 回合", res2)
-        after_turn = self.plugin.save_manager.load_save(uids[0])
+        after_turn = load_run(self.plugin, uids[0])
         self.assertEqual(after_turn.node_data.get("turn_count"), 2)
 
     def test_mercenary_plays_cards_cycles_hand_and_resolves_interactions(self):
@@ -260,7 +262,7 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
             if "打出【" in res:
                 played_seen = True
             self.assertNotIn("没有出牌", res if "打出【" in res else "")
-            after = self.plugin.save_manager.load_save(uid)
+            after = load_run(self.plugin, uid)
             if after and after.node_type == "battle":
                 self.assertFalse(after.node_data.get("state_stack"))
                 self.assertFalse(after.node_data.get("pending_discard"))

@@ -16,6 +16,7 @@ from ....models.state import GameRun
 from ....data.balance_config import COOP_MAX_PLAYERS
 from ..presence import sync_active
 from ..world_social import WorldSocialService
+from ..open_world.loadout_service import OpenWorldLoadoutService
 from ....renderer import GameRenderer
 from .floor import generate_yog_quest_floor
 
@@ -92,18 +93,19 @@ def _start_party_quest(save_manager, engine, user_id: str, members: list[str]) -
     players = {}
     member_stats = {}
     for member_uid in members:
-        player = engine.build_player_state(member_uid)
+        m_stats = save_manager.load_stats(member_uid)
+        player = OpenWorldLoadoutService.build_player_state(member_uid, m_stats)
         player.stage = int(FLOOR_CONFIGS[YOG_FLOOR_WILDS]["stage_min"])
-        player.sp = player.max_sp
         players[member_uid] = player
-        member_stats[member_uid] = save_manager.load_stats(member_uid)
+        member_stats[member_uid] = m_stats
+        save_manager.save_stats(member_uid, m_stats)
     leader_player = players[user_id]
     run = GameRun(
         user_id=user_id,
         node_type="grid_map",
         player=leader_player,
         enemies=[],
-        node_data={},
+        node_data={"yog_quest": True},
         coop_id=coop_id,
         leader_id=user_id,
         party_order=list(members),
@@ -147,20 +149,19 @@ def start_quest_run(save_manager, engine, user_id: str) -> Optional[str]:
     if lobby_id:
         stats.active_lobby_id = ""
         save_manager.delete_lobby(lobby_id)
-    player = engine.build_player_state(user_id)
+    player = OpenWorldLoadoutService.build_player_state(user_id, stats)
     run = GameRun(
         user_id=user_id,
         node_type="grid_map",
         player=player,
         enemies=[],
-        node_data={},
+        node_data={"yog_quest": True},
         party_order=[user_id],
         leader_id=user_id,
         players={user_id: player},
     )
     run.floor_map = generate_yog_quest_floor(run, YOG_FLOOR_WILDS)
     player.stage = int(FLOOR_CONFIGS[YOG_FLOOR_WILDS]["stage_min"])
-    player.sp = player.max_sp
     stats.town_flags[YOG_QUEST_FLAG] = "started"
     stats.town_flags[YOG_QUEST_ZONE_KEY] = 0
     stats.in_town = False
@@ -172,6 +173,7 @@ def start_quest_run(save_manager, engine, user_id: str) -> Optional[str]:
 
 def finish_quest(save_manager, map_engine, run: GameRun) -> str:
     from ...progress.achievement_service import AchievementService
+    OpenWorldLoadoutService.sync_run_to_stats(save_manager, run)
     uid = run.user_id
     fm = getattr(run, "floor_map", None)
     flags = dict((fm.floor_flags.get("yog_flags") or {})) if fm is not None else {}

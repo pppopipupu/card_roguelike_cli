@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
 from ....data.buff_data import BUFF_CONFIG
@@ -112,7 +112,7 @@ class BossPureVesselTemplate(EnemyTemplate):
         intents_list.append(self._build_intent(bonus_intent, 0, 1))
         return intents_list
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             from ....models.state import EnemyIntentState
             logs = []
@@ -129,7 +129,7 @@ class BossPureVesselTemplate(EnemyTemplate):
         strength = self._strength_bonus(enemy)
         val = intent.val + strength
         grid = self._enemy_grid(run, enemy)
-
+    
         if intent.type == "triple_slash":
             dmg_msgs = []
             for _ in range(cfg.get("triple_slash_hits", 3)):

@@ -171,12 +171,14 @@ def generate_floor_map(run, floor_index: int, save_manager=None) -> FloorMapStat
     def pop_candidate():
         return candidates.pop() if candidates else None
 
-    if cfg.get("has_cafe") and candidates:
+    if cfg.get("has_cafe"):
         c = pop_candidate()
-        rooms[c].room_type = "cafe"
-    if cfg.get("has_shop") and candidates:
+        if c:
+            rooms[c].room_type = "cafe"
+    if cfg.get("has_shop"):
         c = pop_candidate()
-        rooms[c].room_type = "shop"
+        if c:
+            rooms[c].room_type = "shop"
     for _ in range(int(cfg.get("rest_count", 1))):
         c = pop_candidate()
         if c:
@@ -224,11 +226,12 @@ def generate_floor_map(run, floor_index: int, save_manager=None) -> FloorMapStat
         found_corpses = []
         for stg in range(int(cfg["stage_min"]), int(cfg["stage_max"]) + 1):
             found_corpses.extend(save_manager.corpses.list_at_stage(stg, exclude_user=caller_uid))
-        if found_corpses and candidates:
+        if found_corpses:
             corpse = random.choice(found_corpses)
             c = pop_candidate()
-            rooms[c].room_type = "corpse"
-            rooms[c].shared_payload["corpse_id"] = corpse.get("id", "")
+            if c:
+                rooms[c].room_type = "corpse"
+                rooms[c].shared_payload["corpse_id"] = corpse.get("id", "")
 
     for c in list(candidates):
         if random.random() < 0.55:

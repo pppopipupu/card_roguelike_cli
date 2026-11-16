@@ -25,7 +25,19 @@ class GhostEnemyTemplate(EnemyTemplate):
                     cost_ba=0,
                 )
             ]
-        damage = 5 + int(getattr(run.player, "stage", 0))
+        stage_bonus = int(getattr(run.player, "stage", 0))
+        if random.random() < 0.5:
+            shield = 5 + stage_bonus
+            return [
+                EnemyIntentState(
+                    type="defend",
+                    val=shield,
+                    desc=get_locale_text("i18n_entity_wiring.enemy_base.intent_defend", val=shield),
+                    cost_a=1,
+                    cost_ba=0,
+                )
+            ]
+        damage = 5 + stage_bonus
         return [
             EnemyIntentState(
                 type="attack",
@@ -61,16 +73,17 @@ class GhostEnemyTemplate(EnemyTemplate):
         damage *= max(1, count)
         heal = int(upgrade_cfg.get("heal_amount", base_cfg.get("heal_amount", 0)) or 0)
         shield = int(upgrade_cfg.get("shield_amount", base_cfg.get("shield_amount", 0)) or 0)
-        if card.type in ("amulet", "ability") and shield <= 0:
-            shield = 5
-        if card.type == "minion" and shield <= 0:
-            shield = 4
+        if card.type == "minion" and damage <= 0:
+            damage = int(upgrade_cfg.get("minion_atk", base_cfg.get("minion_atk", 0)) or 0)
         if damage <= 0 and heal <= 0 and shield <= 0:
             if card.type == "minion":
                 damage = int(upgrade_cfg.get("minion_atk", base_cfg.get("minion_atk", 4)) or 4)
+                shield = 4
             elif card.type == "spell":
                 cost = int(getattr(card, "cost_a", 1) or 1)
                 damage = max(3, cost * 3 + (2 if state.upgraded else 0))
+            elif card.type in ("amulet", "ability"):
+                shield = 5
             else:
                 shield = 3
         damage = engine.combat_resolver._apply_gem_dmg(card, damage)

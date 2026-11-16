@@ -135,13 +135,17 @@ class GridUseCommand(CommandHandler, names=["使用", "use"], allowed_states=["g
         yield msg
 
 
-class DropItemCommand(CommandHandler, names=["丢弃物品", "扔掉", "drop_item", "di"], allowed_states=["grid_map", "explore", "cafe"], help_key="drop_item"):
+class DropItemCommand(CommandHandler, names=["丢弃物品", "扔掉", "drop_item", "di"], allowed_states=["grid_map", "explore", "cafe", "town", "outer_plane"], help_key="drop_item"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
-        run = router.save_manager.load_save(user_id)
-        if not run:
-            yield get_locale_text("i18n_cli_general_b.err_no_active_game")
-            return
         query = " ".join(parts[1:]).strip() if len(parts) > 1 else ""
-        msg = drop_bag_item(run, query)
-        router.save_manager.save_save(user_id, run)
+        run = router.save_manager.load_save(user_id)
+        if run:
+            msg = drop_bag_item(run, query)
+            router.save_manager.save_save(user_id, run)
+            yield msg
+            return
+        stats = router.save_manager.load_stats(user_id)
+        from ....world.open_world.loadout_service import OpenWorldLoadoutService
+        msg = OpenWorldLoadoutService.drop_bag_item_from_stats(stats, query)
+        router.save_manager.save_stats(user_id, stats)
         yield msg

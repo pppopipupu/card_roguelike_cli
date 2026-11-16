@@ -134,17 +134,19 @@ class RefreshSpiritCard(Card):
         exhausted_count = 0
         remaining_hand = []
         from ...models.events import CardExhaustEvent
+        from ...models.state import ensure_card_state
         from .base import ALL_CARDS
-        for cid in p.hand:
-            card_obj = ALL_CARDS.get(cid)
+        for hand_state in p.hand:
+            c_state = ensure_card_state(hand_state)
+            card_obj = ALL_CARDS.get(c_state)
             if card_obj and card_obj.type != "minion":
-                p.exhaust_pile.append(cid)
+                p.exhaust_pile.append(c_state)
                 engine._log_event(run, get_locale_text("i18n_cards_neutral.neutral.cards.refresh_spirit.exhaust_log", card_name=card_obj.name))
-                exhaust_evt = CardExhaustEvent(run, cid, "effect")
+                exhaust_evt = CardExhaustEvent(run, c_state, "effect")
                 engine.event_bus.dispatch(exhaust_evt)
                 exhausted_count += 1
             else:
-                remaining_hand.append(cid)
+                remaining_hand.append(c_state)
         p.hand = remaining_hand
         
         shield_mult = getattr(self, "shield_amount", 8 if self.upgraded else 6)

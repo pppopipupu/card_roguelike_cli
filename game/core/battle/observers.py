@@ -603,7 +603,7 @@ class CardTriggerHandler:
 
     def on_card_exhaust(self, event):
         from ...models.state import ensure_card_state
-        c_state = ensure_card_state(event.card_id)
+        c_state = ensure_card_state(event.card)
         base_cid = c_state.id
         if base_cid == "warrior_shield_bash":
             p = event.run.player

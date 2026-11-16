@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from ..base import EnemyTemplate, register_enemy
 from ....data.yog_quest_config import YOG_BOSS_INTENTS, YOG_BOSS_NAME, YOG_CULTISTS
@@ -31,7 +31,7 @@ class YogCultistTemplate(EnemyTemplate):
         desc = get_locale_text(f"i18n_yog_quest.cultist_intent.{key}", val=val)
         return [_intent(f"yog_{key}", val, desc, 1, 0)]
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             return ""
         if intent.type == "yog_ember":
@@ -67,7 +67,7 @@ class YogAurilTemplate(EnemyTemplate):
             _intent(f"yog_{ba_key}", int(cfg[ba_key]), get_locale_text(f"i18n_yog_quest.boss_intent.{ba_key}", val=cfg[ba_key]), 0, 1),
         ]
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             return ""
         if intent.type == "yog_frost_lance":

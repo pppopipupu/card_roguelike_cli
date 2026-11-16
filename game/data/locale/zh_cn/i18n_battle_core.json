@@ -11,6 +11,7 @@
   "yog_sothoth_intro_first": "💬 【虚空之门·尤格-索托斯】：‘渺小的灵魂，竟敢踏足终焉的视界。虚空之门将把你吞噬。’",
   "yog_sothoth_intro_repeat": "💬 【虚空之门·尤格-索托斯】：‘又一次……你再一次回到了这里，{name}。但无论多少次尝试，这扇门永远是你的死路！’",
   "ghost_default_name": "冤魂",
+  "ghost_name_suffix": "的冤魂",
   "split_to_ten_extra": " 🔀 [一分为十触发] {feedback}",
   "exhaust_to_pile_log": "✨ [消耗] 【{name}】已被移入消耗堆。",
   "emperor_eye_damage_log": "\n💥 【霸瞳天星+】对随机敌人【{name}】造成了 49 点力场伤害！",

@@ -1,7 +1,7 @@
 {
   "battle": {
     "separator": "━━━━━━━━━━━━━━━━━━━━",
-    "title": "⚔️ 【第 {stage} 关：战斗阶段 (第 {turn} 回合)】",
+    "title": "⚔️ 【{coord_prefix}战斗阶段 (第 {turn} 回合)】",
     "status_line": "{name}：❤️ HP {hp}/{max_hp} | 🛡️ 护盾 {shield} | ⚡ 动作 {actions}A {bonus_actions}BA",
     "potions_label": "\n🧪 药水：",
     "downed": "💀 你已倒地，无法行动，正在观战。",

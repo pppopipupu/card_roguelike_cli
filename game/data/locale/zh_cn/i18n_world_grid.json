@@ -1,4 +1,5 @@
 {
+  "floor_title": "🗺️ 【第 {floor} 层 · {floor_name}】",
   "town_title": "🏙️ 【先古主城】当前坐标 {coord}",
   "town_hint": "💡 使用 w/a/s/d 移动，tp <坐标|地点> 快速传送。",
   "viewport": "🗺️ 视野 {start}–{end}（整图 {width}×{height}）",

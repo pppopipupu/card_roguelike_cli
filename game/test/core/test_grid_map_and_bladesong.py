@@ -9,7 +9,7 @@ from game.data.grid_map_config import FLOOR_CONFIGS
 from game.entities import ALL_CARDS
 from game.entities.cards.base import card_matches_color, get_card_color_icon
 from game.models.state import CardState, EnemyState
-from game.test.core.base import CorePlugin, move_to_room, run_command
+from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command
 
 
 class TestGridMapAndBladesong(unittest.TestCase):
@@ -26,14 +26,14 @@ class TestGridMapAndBladesong(unittest.TestCase):
     def _start_solo(self, uid="grid_solo"):
         self.run_cmd("start confirm", uid)
         self.run_cmd("c 1", uid)
-        return self.plugin.save_manager.load_save(uid)
+        return load_run(self.plugin, uid)
 
     def test_grid_generation_fog_movement_and_tp(self):
         random.seed(42)
         run = self._start_solo("gm_nav")
         self.assertEqual(run.node_type, "grid_map")
-        fm = run.floor_map
-        self.assertIsNotNone(fm)
+        fm = floor_of(run)
+        assert fm is not None, "solo run must have a floor map"
         self.assertEqual(fm.floor_index, 1)
         passable = [r for r in fm.rooms.values() if r.room_type != "wall"]
         ratio = len(passable) / (fm.width * fm.height)
@@ -62,24 +62,24 @@ class TestGridMapAndBladesong(unittest.TestCase):
         self.plugin.save_manager.save_save("gm_nav", run)
 
         tp_pinyin = self.run_cmd("tp kfg", "gm_nav")
-        after_tp = self.plugin.save_manager.load_save("gm_nav")
-        self.assertEqual(after_tp.floor_map.player_coords["gm_nav"], cafe_coord)
+        after_tp = load_run(self.plugin, "gm_nav")
+        self.assertEqual(floor_of(after_tp).player_coords["gm_nav"], cafe_coord)
         self.assertEqual(after_tp.node_type, "cafe")
         self.assertIn("咖啡", tp_pinyin)
 
         self.run_cmd("离开", "gm_nav")
         back_to_spawn = self.run_cmd(f"tp {spawn_coord}", "gm_nav")
         self.assertIn(spawn_coord, back_to_spawn)
-        after_spawn = self.plugin.save_manager.load_save("gm_nav")
+        after_spawn = load_run(self.plugin, "gm_nav")
         self.assertEqual(after_spawn.player.sp, after_spawn.player.max_sp)
 
-        event_coord = next((c for c, r in after_spawn.floor_map.rooms.items() if r.room_type == "event"), None)
+        event_coord = next((c for c, r in floor_of(after_spawn).rooms.items() if r.room_type == "event"), None)
         if event_coord is None:
-            event_coord = next(c for c, r in after_spawn.floor_map.rooms.items() if r.room_type == "empty")
-            after_spawn.floor_map.rooms[event_coord].room_type = "event"
-        after_spawn.floor_map.rooms[event_coord].explored = True
-        if event_coord not in after_spawn.floor_map.revealed_coords:
-            after_spawn.floor_map.revealed_coords.append(event_coord)
+            event_coord = next(c for c, r in floor_of(after_spawn).rooms.items() if r.room_type == "empty")
+            floor_of(after_spawn).rooms[event_coord].room_type = "event"
+        floor_of(after_spawn).rooms[event_coord].explored = True
+        if event_coord not in floor_of(after_spawn).revealed_coords:
+            floor_of(after_spawn).revealed_coords.append(event_coord)
         self.plugin.save_manager.save_save("gm_nav", after_spawn)
         tp_with_event = self.run_cmd("tp", "gm_nav")
         self.assertIn(f"{event_coord} · 事件", tp_with_event)
@@ -87,7 +87,7 @@ class TestGridMapAndBladesong(unittest.TestCase):
 
     def test_obstacle_sp_and_forced_exhaustion_overdraft(self):
         run = self._start_solo("gm_obs")
-        fm = run.floor_map
+        fm = floor_of(run)
         sx, sy = coord_to_xy(fm.player_coords["gm_obs"])
         adj_coord = None
         adj_dir = None
@@ -97,7 +97,7 @@ class TestGridMapAndBladesong(unittest.TestCase):
                 adj_coord = xy_to_coord(nx, ny)
                 adj_dir = dkey
                 break
-        self.assertIsNotNone(adj_coord)
+        assert adj_coord is not None and adj_dir is not None, "adjacent coordinate must exist"
         fm.rooms[adj_coord].room_type = "obstacle"
         fm.rooms[adj_coord].cleared = False
         fm.rooms[adj_coord].obstacle_sp = 2
@@ -107,21 +107,21 @@ class TestGridMapAndBladesong(unittest.TestCase):
 
         warn = self.run_cmd(adj_dir, "gm_obs")
         self.assertIn("体力透支", warn)
-        self.assertEqual(self.plugin.save_manager.load_save("gm_obs").player.exhaustion, 0)
+        self.assertEqual(load_run(self.plugin, "gm_obs").player.exhaustion, 0)
         warn2 = self.run_cmd(adj_dir, "gm_obs")
         self.assertIn("2/2", warn2)
-        self.assertEqual(self.plugin.save_manager.load_save("gm_obs").player.exhaustion, 0)
+        self.assertEqual(load_run(self.plugin, "gm_obs").player.exhaustion, 0)
 
         forced = self.run_cmd(adj_dir, "gm_obs")
         self.assertIn("强行突破", forced)
-        after = self.plugin.save_manager.load_save("gm_obs")
+        after = load_run(self.plugin, "gm_obs")
         self.assertEqual(after.player.exhaustion, 1)
-        self.assertEqual(after.floor_map.player_coords["gm_obs"], adj_coord)
+        self.assertEqual(floor_of(after).player_coords["gm_obs"], adj_coord)
         self.assertLess(after.player.hp, after.player.max_hp)
 
     def test_dig_command(self):
         run = self._start_solo("gm_dig")
-        fm = run.floor_map
+        fm = floor_of(run)
         sx, sy = coord_to_xy(fm.player_coords["gm_dig"])
         adj_coord = None
         adj_dir = None
@@ -131,33 +131,33 @@ class TestGridMapAndBladesong(unittest.TestCase):
                 adj_coord = xy_to_coord(nx, ny)
                 adj_dir = dkey
                 break
-        self.assertIsNotNone(adj_coord)
+        assert adj_coord is not None and adj_dir is not None, "adjacent coordinate must exist"
         fm.rooms[adj_coord].room_type = "empty"
         fm.rooms[adj_coord].cleared = True
         self.plugin.save_manager.save_save("gm_dig", run)
 
         not_obs = self.run_cmd(f"dig {adj_dir}", "gm_dig")
         self.assertIn("不是障碍", not_obs)
-        self.assertEqual(self.plugin.save_manager.load_save("gm_dig").floor_map.player_coords["gm_dig"], xy_to_coord(sx, sy))
+        self.assertEqual(floor_of(load_run(self.plugin, "gm_dig")).player_coords["gm_dig"], xy_to_coord(sx, sy))
 
-        run = self.plugin.save_manager.load_save("gm_dig")
-        run.floor_map.rooms[adj_coord].room_type = "obstacle"
-        run.floor_map.rooms[adj_coord].cleared = False
-        run.floor_map.rooms[adj_coord].obstacle_sp = 2
+        run = load_run(self.plugin, "gm_dig")
+        floor_of(run).rooms[adj_coord].room_type = "obstacle"
+        floor_of(run).rooms[adj_coord].cleared = False
+        floor_of(run).rooms[adj_coord].obstacle_sp = 2
         run.player.sp = 3
         run.player.exhaustion = 0
         self.plugin.save_manager.save_save("gm_dig", run)
 
         dug = self.run_cmd(f"dig {adj_dir}", "gm_dig")
         self.assertIn("破除", dug)
-        after = self.plugin.save_manager.load_save("gm_dig")
+        after = load_run(self.plugin, "gm_dig")
         self.assertEqual(after.player.sp, 1)
         self.assertEqual(after.player.exhaustion, 0)
-        self.assertEqual(after.floor_map.player_coords["gm_dig"], adj_coord)
-        self.assertEqual(after.floor_map.rooms[adj_coord].room_type, "empty")
+        self.assertEqual(floor_of(after).player_coords["gm_dig"], adj_coord)
+        self.assertEqual(floor_of(after).rooms[adj_coord].room_type, "empty")
 
         run2 = self._start_solo("gm_dig_od")
-        fm2 = run2.floor_map
+        fm2 = floor_of(run2)
         sx2, sy2 = coord_to_xy(fm2.player_coords["gm_dig_od"])
         adj2 = None
         dir2 = None
@@ -167,7 +167,7 @@ class TestGridMapAndBladesong(unittest.TestCase):
                 adj2 = xy_to_coord(nx, ny)
                 dir2 = dkey
                 break
-        self.assertIsNotNone(adj2)
+        assert adj2 is not None and dir2 is not None, "adjacent coordinate must exist"
         fm2.rooms[adj2].room_type = "obstacle"
         fm2.rooms[adj2].cleared = False
         fm2.rooms[adj2].obstacle_sp = 2
@@ -177,9 +177,9 @@ class TestGridMapAndBladesong(unittest.TestCase):
 
         forced = self.run_cmd(f"dg {dir2}", "gm_dig_od")
         self.assertIn("强行突破", forced)
-        after2 = self.plugin.save_manager.load_save("gm_dig_od")
+        after2 = load_run(self.plugin, "gm_dig_od")
         self.assertEqual(after2.player.exhaustion, 1)
-        self.assertEqual(after2.floor_map.player_coords["gm_dig_od"], adj2)
+        self.assertEqual(floor_of(after2).player_coords["gm_dig_od"], adj2)
         self.assertLess(after2.player.hp, after2.player.max_hp)
 
     def test_five_level_exhaustion_effects_and_death(self):
@@ -208,11 +208,11 @@ class TestGridMapAndBladesong(unittest.TestCase):
         self.plugin.save_manager.save_save("gm_exh", battle)
 
         self.run_cmd("p 1", "gm_exh")
-        after_shield = self.plugin.save_manager.load_save("gm_exh")
+        after_shield = load_run(self.plugin, "gm_exh")
         self.assertEqual(after_shield.player.shield, int(10 * 0.75))
 
         self.run_cmd("p 1 e1", "gm_exh")
-        after_dmg = self.plugin.save_manager.load_save("gm_exh")
+        after_dmg = load_run(self.plugin, "gm_exh")
         self.assertEqual(999 - after_dmg.enemies[0].hp, int(18 * 0.80))
 
         death_res = self.run_cmd("p 1", "gm_exh")
@@ -232,7 +232,7 @@ class TestGridMapAndBladesong(unittest.TestCase):
         ghost_res = self.run_cmd("c 1", "gm_sp")
         self.assertIn("幽灵之躯", ghost_res)
 
-        after_ghost = self.plugin.save_manager.load_save("gm_sp")
+        after_ghost = load_run(self.plugin, "gm_sp")
         self.assertEqual(after_ghost.node_type, "grid_map")
         self.assertEqual(after_ghost.player.max_hp, 40)
         self.assertIn("ghost_body", after_ghost.player.relics)
@@ -252,7 +252,7 @@ class TestGridMapAndBladesong(unittest.TestCase):
         self.plugin.save_manager.save_save("gm_sp", battle)
 
         self.run_cmd("p 1", "gm_sp")
-        after_calm = self.plugin.save_manager.load_save("gm_sp")
+        after_calm = load_run(self.plugin, "gm_sp")
         self.assertEqual(after_calm.player.sp, 9)
         self.assertTrue(any(b.id == "psychic_resistance" for b in after_calm.player.buffs))
 
@@ -260,17 +260,17 @@ class TestGridMapAndBladesong(unittest.TestCase):
         after_calm.player.exhaustion = 2
         self.plugin.save_manager.save_save("gm_sp", after_calm)
         self.run_cmd("p 1 e1", "gm_sp")
-        after_desp = self.plugin.save_manager.load_save("gm_sp")
+        after_desp = load_run(self.plugin, "gm_sp")
         dealt = 999 - after_desp.enemies[0].hp
         expected = int((6 + 6 * 2) * (1 + 2 * 0.25))
         self.assertEqual(dealt, expected)
 
         self.run_cmd("p 1", "gm_sp")
-        after_intang = self.plugin.save_manager.load_save("gm_sp")
+        after_intang = load_run(self.plugin, "gm_sp")
         self.assertTrue(any(b.id == "intangible" for b in after_intang.player.buffs))
         hp_before_enemy = after_intang.player.hp
         self.run_cmd("e", "gm_sp")
-        after_enemy = self.plugin.save_manager.load_save("gm_sp")
+        after_enemy = load_run(self.plugin, "gm_sp")
         self.assertEqual(hp_before_enemy - after_enemy.player.hp, 1)
 
     def test_bladesong_dual_color_event_and_combat_resonance(self):
@@ -288,7 +288,7 @@ class TestGridMapAndBladesong(unittest.TestCase):
 
         ev_res = self.run_cmd("c 1", "gm_bs")
         self.assertIn("剑歌", ev_res)
-        after_ev = self.plugin.save_manager.load_save("gm_bs")
+        after_ev = load_run(self.plugin, "gm_bs")
         self.assertEqual(after_ev.node_type, "grid_map")
         self.assertTrue(any(c.id == "bladesong" for c in after_ev.player.deck))
 
@@ -314,33 +314,33 @@ class TestGridMapAndBladesong(unittest.TestCase):
 
         bs_res = self.run_cmd("p 1", "gm_bs")
         self.assertIn("剑歌", bs_res)
-        after_bs = self.plugin.save_manager.load_save("gm_bs")
+        after_bs = load_run(self.plugin, "gm_bs")
         self.assertEqual(after_bs.player.shield, 11)
         self.assertEqual(999 - after_bs.enemies[0].hp, 3)
         self.assertTrue(any(b.id == "bladesong" for b in after_bs.player.buffs))
 
         self.run_cmd("p 1 e1", "gm_bs")
-        after_blue = self.plugin.save_manager.load_save("gm_bs")
+        after_blue = load_run(self.plugin, "gm_bs")
         self.assertEqual(after_blue.player.shield, 14)
         self.assertEqual(999 - after_blue.enemies[0].hp, 3 + 18 + 3)
 
         self.run_cmd("p 1 e1", "gm_bs")
-        after_red = self.plugin.save_manager.load_save("gm_bs")
+        after_red = load_run(self.plugin, "gm_bs")
         self.assertEqual(after_red.player.shield, 17)
         self.assertEqual(999 - after_red.enemies[0].hp, 3 + 18 + 3 + 6 + 3)
 
         self.run_cmd("p 1 e1", "gm_bs")
-        after_neutral = self.plugin.save_manager.load_save("gm_bs")
+        after_neutral = load_run(self.plugin, "gm_bs")
         self.assertEqual(after_neutral.player.shield, 17)
 
         self.run_cmd("e", "gm_bs")
-        next_turn = self.plugin.save_manager.load_save("gm_bs")
+        next_turn = load_run(self.plugin, "gm_bs")
         self.assertEqual(next_turn.player.bonus_actions, 2)
 
     def test_landmark_secret_boss_and_downstairs_floor_advance(self):
         random.seed(7)
         run = self._start_solo("gm_lm")
-        fm = run.floor_map
+        fm = floor_of(run)
         obs_coord = next((c for c, r in fm.rooms.items() if r.room_type == "landmark" and r.landmark_id == "observatory"), None)
         if obs_coord is None:
             obs_coord = fm.player_coords["gm_lm"]
@@ -355,63 +355,63 @@ class TestGridMapAndBladesong(unittest.TestCase):
         self.assertIn("观星台", talk_res)
         clue_res = self.run_cmd("c 3", "gm_lm")
         self.assertIn("秘密祭坛", clue_res)
-        after_clue = self.plugin.save_manager.load_save("gm_lm")
-        self.assertTrue(after_clue.floor_map.secret_clue_found)
+        after_clue = load_run(self.plugin, "gm_lm")
+        self.assertTrue(floor_of(after_clue).secret_clue_found)
 
-        ritual_coord = after_clue.floor_map.ritual_coord
-        proto = after_clue.floor_map.ritual_protocol
+        ritual_coord = floor_of(after_clue).ritual_coord
+        proto = floor_of(after_clue).ritual_protocol
         if proto == "exhaustion_or_curse":
             after_clue.player.exhaustion = 1
         elif proto == "camp_ember":
             after_clue.player.quest_relics.append("camp_ember")
         elif proto == "awakened_compass":
             after_clue.player.quest_relics.append("awakened_rift_compass")
-        after_clue.floor_map.player_coords["gm_lm"] = ritual_coord
-        after_clue.floor_map.rooms[ritual_coord].explored = True
+        floor_of(after_clue).player_coords["gm_lm"] = ritual_coord
+        floor_of(after_clue).rooms[ritual_coord].explored = True
         self.plugin.save_manager.save_save("gm_lm", after_clue)
 
         self.run_cmd("talk", "gm_lm")
-        ritual_state = self.plugin.save_manager.load_save("gm_lm")
+        ritual_state = load_run(self.plugin, "gm_lm")
         ritual_idx = next(i + 1 for i, o in enumerate(ritual_state.node_data["options"]) if o.get("action", "").startswith("ritual_"))
         ritual_res = self.run_cmd(f"c {ritual_idx}", "gm_lm")
         self.assertIn("隐秘首领房间", ritual_res)
-        unlocked = self.plugin.save_manager.load_save("gm_lm")
-        self.assertTrue(unlocked.floor_map.secret_unlocked)
+        unlocked = load_run(self.plugin, "gm_lm")
+        self.assertTrue(floor_of(unlocked).secret_unlocked)
 
         unlocked.player.sp = 3
         unlocked.player.exhaustion = 2
-        ds_coord = unlocked.floor_map.boss_coord
-        ds_room = unlocked.floor_map.rooms[ds_coord]
+        ds_coord = floor_of(unlocked).boss_coord
+        ds_room = floor_of(unlocked).rooms[ds_coord]
         ds_room.room_type = "downstairs"
         ds_room.cleared = False
         ds_room.explored = True
-        unlocked.floor_map.player_coords["gm_lm"] = ds_coord
+        floor_of(unlocked).player_coords["gm_lm"] = ds_coord
         self.plugin.save_manager.save_save("gm_lm", unlocked)
         before_relics = len(unlocked.player.relics)
         before_deck = len(unlocked.player.deck)
 
         step_res = self.run_cmd(f"tp {ds_coord}", "gm_lm")
         self.assertIn("下降隧道", step_res)
-        stepped = self.plugin.save_manager.load_save("gm_lm")
+        stepped = load_run(self.plugin, "gm_lm")
         self.assertEqual(stepped.node_type, "grid_map")
-        self.assertIn("descent_tunnel", stepped.floor_map.rooms[ds_coord].props)
+        self.assertIn("descent_tunnel", floor_of(stepped).rooms[ds_coord].props)
 
         ds_open = self.run_cmd("touch 下降隧道", "gm_lm")
         self.assertIn("下楼回廊", ds_open)
         self.assertIn("传奇卡牌", ds_open)
-        touched = self.plugin.save_manager.load_save("gm_lm")
+        touched = load_run(self.plugin, "gm_lm")
         self.assertEqual(touched.node_type, "downstairs")
         first_options = [o["text"] for o in touched.node_data["options"]]
         self.run_cmd("c 4", "gm_lm")
         self.run_cmd("touch 下降隧道", "gm_lm")
-        re_touched = self.plugin.save_manager.load_save("gm_lm")
+        re_touched = load_run(self.plugin, "gm_lm")
         self.assertEqual([o["text"] for o in re_touched.node_data["options"]], first_options)
 
         ds_res = self.run_cmd("c 1", "gm_lm")
         self.assertIn("第 2 层", ds_res)
         self.assertIn("先古赐福", ds_res)
-        floor2 = self.plugin.save_manager.load_save("gm_lm")
-        self.assertEqual(floor2.floor_map.floor_index, 2)
+        floor2 = load_run(self.plugin, "gm_lm")
+        self.assertEqual(floor_of(floor2).floor_index, 2)
         self.assertEqual(floor2.player.sp, floor2.player.max_sp)
         self.assertEqual(floor2.player.exhaustion, 1)
         self.assertEqual(floor2.player.stage, FLOOR_CONFIGS[2]["stage_min"])

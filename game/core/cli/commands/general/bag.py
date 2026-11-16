@@ -2,7 +2,7 @@ from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
 
-class BagCommand(CommandHandler, names=["背包", "bag", "inventory", "inv"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe"], help_key="bag"):
+class BagCommand(CommandHandler, names=["背包", "bag", "inventory", "inv"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe", "outer_plane"], help_key="bag"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         stats = router.save_manager.load_stats(user_id)
         run = router.save_manager.load_save(user_id)
@@ -13,6 +13,8 @@ class BagCommand(CommandHandler, names=["背包", "bag", "inventory", "inv"], al
                 mode = "t"
             elif arg in ("r", "rogue", "肉鸽"):
                 mode = "r"
+            elif arg in ("o", "w", "open", "开放世界"):
+                mode = "o"
             else:
                 from .....data.locale_data import get_locale_text
                 yield get_locale_text("i18n_room_interact.bag.invalid_mode")

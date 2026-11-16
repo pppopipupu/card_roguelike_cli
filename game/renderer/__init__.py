@@ -1,3 +1,5 @@
+from typing import Optional
+
 from ..models.state import GameRun, UserStats
 from ..data.locale_data import get_locale_text
 from .menu import render_menu, render_card_library, render_relic_library, render_deck, render_stats, render_tutorial, render_changelog_page
@@ -18,14 +20,14 @@ class GameRenderer:
 
 
     @staticmethod
-    def render_bag(stats: UserStats, run: GameRun = None, mode: str = None) -> str:
+    def render_bag(stats: UserStats, run: Optional[GameRun] = None, mode: Optional[str] = None) -> str:
         return format_output_numbers(render_bag(stats, run=run, mode=mode))
     @staticmethod
     def render_town(stats: UserStats, room_data: dict) -> str:
         return format_output_numbers(render_town(stats, room_data))
 
     @staticmethod
-    def render_menu(stats: UserStats = None) -> str:
+    def render_menu(stats: Optional[UserStats] = None) -> str:
         return format_output_numbers(render_menu(stats))
 
     @staticmethod

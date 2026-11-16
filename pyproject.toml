@@ -27,15 +27,12 @@ dev = [
 [tool.pyright]
 include = ["game", "server"]
 exclude = ["**/__pycache__", ".venv", "scratch", "data", "deploy"]
-typeCheckingMode = "basic"
+typeCheckingMode = "standard"
 pythonVersion = "3.15"
 venvPath = "."
 venv = ".venv"
-# 无类型字典与动态属性保留三项推断豁免，其余可稳定收敛的类型检查作为门禁。
+# 类型检查作为门禁，不保留任何推断豁免。
 # 未定义名称、未绑定变量与导入解析始终报错。
-reportAttributeAccessIssue = "none"
-reportOptionalMemberAccess = "none"
-reportArgumentType = "none"
 reportOptionalSubscript = "error"
 reportOptionalOperand = "error"
 reportOperatorIssue = "error"

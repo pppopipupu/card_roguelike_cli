@@ -7,7 +7,7 @@
     "a": "alley",
     "d": "fountain"
   },
-  "npcs": ["Guide_Elder"],
+  "npcs": ["Guide_Elder", "Center_Chest"],
   "items": [],
   "interactive": {}
 }

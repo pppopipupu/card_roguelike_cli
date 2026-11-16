@@ -61,7 +61,7 @@ def char_initial_choices(ch: str) -> tuple:
         return (ch.lower(),) if ch.isalpha() else ()
     if not "\u4e00" <= ch <= "\u9fff":
         return ()
-    if _pypinyin is not None:
+    if _pypinyin is not None and _PYPINYIN_STYLE is not None:
         try:
             readings = _pypinyin(ch, style=_PYPINYIN_STYLE.FIRST_LETTER, heteronym=True)[0]
         except Exception:

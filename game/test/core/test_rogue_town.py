@@ -216,8 +216,7 @@ class TestRogueTown(unittest.TestCase):
             self.assertIn("Gate_Guardian 破门而出", res)
 
             stats = save_manager.load_stats("test_user")
-            run = save_manager.load_save("test_user")
-            self.assertIsNotNone(run)
+            run = require_run(save_manager.load_save("test_user"))
             self.assertTrue(run.node_data.get("is_town_combat"))
 
             res = await run_command(plugin, ".rogue 放弃 确认")
@@ -256,7 +255,7 @@ class TestRogueTown(unittest.TestCase):
             res = await run_command(plugin, ".rogue 2")
             self.assertIn("pppopipupu", res)
 
-            run = save_manager.load_save("test_user")
+            run = require_run(save_manager.load_save("test_user"))
             self.assertEqual(len(run.enemies), 1)
             enemy = run.enemies[0]
             self.assertEqual(enemy.name, "pppopipupu")
@@ -333,7 +332,7 @@ class TestRogueTown(unittest.TestCase):
             await run_command(plugin, ".rogue quit")
             res_new = await run_command(plugin, ".rogue 开启")
             self.assertIn("契约", res_new)
-            run = save_manager.load_save("test_user")
+            run = require_run(save_manager.load_save("test_user"))
             self.assertEqual(len(run.player.deck), 8)
             save_manager.delete_save("test_user")
 
@@ -458,8 +457,7 @@ class TestRogueTown(unittest.TestCase):
             res_challenge = await run_command(plugin, ".rogue 2")
             self.assertIn("我的测试名", res_challenge)
 
-            run = save_manager.load_save("test_user")
-            self.assertIsNotNone(run)
+            run = require_run(save_manager.load_save("test_user"))
             self.assertEqual(run.enemies[0].name, "NoobSlayer99")
 
             run.enemies[0].hp = 0
@@ -762,8 +760,7 @@ class TestRogueTown(unittest.TestCase):
             await run_command(plugin, ".rogue talk 训练假人")
             await run_command(plugin, ".rogue 2")
 
-            run = save_manager.load_save("test_user")
-            self.assertIsNotNone(run)
+            run = require_run(save_manager.load_save("test_user"))
             self.assertTrue(run.node_data.get("is_town_combat"))
 
             plugin.engine.battle_engine.combat_resolver.damage_target(

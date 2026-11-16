@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
 from ....core.inventory.deck_service import DeckService
 from ....data.buff_data import BUFF_CONFIG
@@ -46,25 +46,9 @@ class BossCorruptedHeartTemplate(EnemyTemplate):
         
         return intents_list
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
-            logs = intent
-            from ....models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
-            from ....models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
+            logs = []
         p = run.player
         import random
         
@@ -72,7 +56,7 @@ class BossCorruptedHeartTemplate(EnemyTemplate):
         for b in enemy.buffs:
             if b.id == "strength":
                 strength += b.stacks
-
+    
         if intent.type == "debuff":
             DeckService.add_card_to_draw(p, "curse_dazed")
             DeckService.add_card_to_draw(p, "curse_agony")
@@ -185,17 +169,9 @@ class BossIcerainbowwTemplate(EnemyTemplate):
         intents_list.append(self._make_intent(bonus_cycle[cycle], 0, 1))
         return intents_list
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
-            logs = intent
-            from ....models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
+            logs = []
         p = run.player
         import random
         
@@ -203,9 +179,9 @@ class BossIcerainbowwTemplate(EnemyTemplate):
         for b in enemy.buffs:
             if b.id == "strength":
                 strength += b.stacks
- 
+     
         val = intent.val + strength
- 
+     
         if intent.type == "icerain_shoot":
             if p.minions and random.random() < 0.5:
                 target_key = random.choice(list(p.minions.keys()))
@@ -226,11 +202,11 @@ class BossIcerainbowwTemplate(EnemyTemplate):
                     logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_ice_rain_player", enemy_name=enemy.name, dmg_msg=dmg_msg))
             engine._add_buff_to(run.player, "drain_a", get_locale_text("i18n_enemy_boss.buff_drain_a"), get_locale_text("i18n_enemy_boss.buff_drain_a_desc"), 1)
             logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_ice_rain_drain", enemy_name=enemy.name))
- 
+     
         elif intent.type == "fury":
             engine._add_buff_to(enemy, "fury", get_locale_text("i18n_enemy_boss.buff_fury"), get_locale_text("i18n_enemy_boss.buff_fury_desc"), 1)
             logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_fury", enemy_name=enemy.name))
- 
+     
         elif intent.type == "smash_attack":
             if p.minions and random.random() < 0.5:
                 target_key = random.choice(list(p.minions.keys()))
@@ -251,7 +227,7 @@ class BossIcerainbowwTemplate(EnemyTemplate):
                     logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_smash_player", enemy_name=enemy.name, dmg_msg=dmg_msg))
             engine._add_buff_to(p, "minor_vulnerable_cold", get_locale_text("i18n_enemy_boss.buff_minor_vulnerable_cold"), get_locale_text("i18n_enemy_boss.buff_minor_vulnerable_cold_desc"), 2)
             logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_smash_vulnerable", enemy_name=enemy.name))
- 
+     
         elif intent.type == "aurora_shield":
             neg_buff = next((b for b in enemy.buffs if is_debuff(b.id)), None)
             shield_gain = intent.val
@@ -269,7 +245,7 @@ class BossIcerainbowwTemplate(EnemyTemplate):
                 logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_aurora_bonus", enemy_name=enemy.name, shield_gain=shield_gain))
             if enemy in run.enemies:
                 engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", shield_gain)
- 
+     
         elif intent.type == "winter_gaze":
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="psychic")
@@ -279,7 +255,7 @@ class BossIcerainbowwTemplate(EnemyTemplate):
                 logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_winter_gaze", enemy_name=enemy.name, dmg_msg=dmg_msg))
             engine._add_buff_to(p, "minor_vulnerable_cold", get_locale_text("i18n_enemy_boss.buff_minor_vulnerable_cold"), get_locale_text("i18n_enemy_boss.buff_minor_vulnerable_cold_desc"), 1)
             logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_winter_gaze_vulnerable", enemy_name=enemy.name))
- 
+     
         elif intent.type == "frost_blast":
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="cold")
@@ -297,16 +273,16 @@ class BossIcerainbowwTemplate(EnemyTemplate):
                 if len(after_logs) > before_len:
                     dmg_msg = after_logs.pop()
                     logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_frost_blast_minion", minion_name=m_name, dmg_msg=dmg_msg))
-
+    
         elif intent.type == "ice_refraction":
             if enemy in run.enemies:
                 engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
             logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_ice_refraction", enemy_name=enemy.name, val=intent.val))
-
+    
         elif intent.type == "frost_trap":
             engine._add_buff_to(p, "drain_ba", get_locale_text("i18n_enemy_boss.buff_drain_ba"), get_locale_text("i18n_enemy_boss.buff_drain_ba_desc"), intent.val)
             logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_frost_trap", enemy_name=enemy.name))
-
+    
         elif intent.type == "arctic_whisper":
             run.node_data["draw_penalty_next_turn"] = run.node_data.get("draw_penalty_next_turn", 0) + intent.val
             logs.append(get_locale_text("i18n_enemy_boss.icerainboww_log_arctic_whisper", enemy_name=enemy.name))

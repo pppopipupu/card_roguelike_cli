@@ -233,7 +233,7 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
         if match_keyword:
             found = True
             cname = cfg.get("name", cid)
-            ctype = cfg.get("type", "")
+            ctype = str(cfg.get("type") or "")
             type_map = {
                 "spell": get_locale_text("renderer_menu.type_spell"),
                 "amulet": get_locale_text("renderer_menu.type_amulet_generic"),

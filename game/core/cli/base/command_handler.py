@@ -5,7 +5,7 @@ class CommandHandler:
     registry_all = {}
     help_key = ""
 
-    def __init_subclass__(cls, names: list[str] = None, allowed_states: list[str] = None, help_key: str = "", **kwargs):
+    def __init_subclass__(cls, names: list[str] | None = None, allowed_states: list[str] | None = None, help_key: str = "", **kwargs):
         super().__init_subclass__(**kwargs)
         cls.names = names or []
         cls.allowed_states = allowed_states if allowed_states is not None else ["menu", "town", "grid_map", "explore", "battle", "dialog"]

@@ -1,4 +1,5 @@
 import random
+from typing import TYPE_CHECKING, Optional
 from ...models.state import GameRun, ensure_card_state
 from ...data.locale_data import get_locale_text
 from ...entities import ALL_CARDS, ALL_AMULETS
@@ -6,8 +7,26 @@ from ...models.events import TurnEndEvent, TurnStartEvent, CardExhaustEvent
 from ..text.events import JoinedText, LocaleText, RenderedText, TextDocument, locale_text
 from ..text.pipeline import render_text
 
+if TYPE_CHECKING:
+    from ...models.state import PlayerState
+    from .engine import BattleEngine
 
-class CardPlayerTurnMixin:
+
+
+
+class CardPlayerEngineMixin:
+    if TYPE_CHECKING:
+        engine: BattleEngine
+
+
+class CardPlayerTurnMixin(CardPlayerEngineMixin):
+    if TYPE_CHECKING:
+
+        def draw_cards(self, p: PlayerState, count: int, run: Optional[GameRun] = None, ignore_focus: bool = False, depth: int = 0) -> None: ...
+
+        def handle_battle_win(self, run: GameRun) -> None: ...
+
+        def _reindex_minions(self, p: PlayerState) -> None: ...
     def _render_events(self, document: TextDocument) -> str:
         return render_text(document, "battle")
 
@@ -208,7 +227,7 @@ class CardPlayerTurnMixin:
                 settle_msg = self.engine.save_manager.settle_game_and_delete(run.user_id, run, is_victory=False)
                 if multi:
                     return [locale_text(key="i18n_explore_core.coop_wipe_simple", params={"settle_msg": settle_msg})]
-                return [locale_text(key="i18n_battle_core.adventure_defeat", params={"enemy_actions": "", "settle_msg": settle_msg})]
+                return self._defeat_nodes(run, "", settle_msg)
             return [locale_text(key="i18n_explore_core.downed_spectate")]
         viewer = run.player
         viewer_uid = run.user_id
@@ -221,7 +240,7 @@ class CardPlayerTurnMixin:
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
                     return [locale_text(key="i18n_explore_core.coop_wipe_simple", params={"settle_msg": settle_msg})]
-                return [locale_text(key="i18n_battle_core.adventure_defeat", params={"enemy_actions": "", "settle_msg": settle_msg})]
+                return self._defeat_nodes(run, "", settle_msg)
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
             return self._finish_turn(run, [locale_text(key="i18n_battle_core.battle_victory")], viewer_uid)
@@ -264,10 +283,7 @@ class CardPlayerTurnMixin:
                         "enemy_logs": JoinedText(parts=merc_after_events),
                         "settle_msg": settle_msg,
                     })]
-                return [locale_text(key="i18n_battle_core.adventure_defeat", params={
-                    "enemy_actions": JoinedText(parts=merc_after_events),
-                    "settle_msg": settle_msg,
-                })]
+                return self._defeat_nodes(run, JoinedText(parts=merc_after_events), settle_msg)
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
             return self._finish_turn(run, self._victory_events(merc_after_events), viewer_uid)
@@ -293,10 +309,7 @@ class CardPlayerTurnMixin:
                         "enemy_logs": JoinedText(parts=enemy_events),
                         "settle_msg": settle_msg,
                     })]
-                return [locale_text(key="i18n_battle_core.adventure_defeat", params={
-                    "enemy_actions": JoinedText(parts=enemy_events),
-                    "settle_msg": settle_msg,
-                })]
+                return self._defeat_nodes(run, JoinedText(parts=enemy_events), settle_msg)
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
             return self._finish_turn(run, self._victory_events(enemy_events), viewer_uid)
@@ -309,10 +322,7 @@ class CardPlayerTurnMixin:
                     "enemy_logs": JoinedText(parts=enemy_events),
                     "settle_msg": settle_msg,
                 })]
-            return [locale_text(key="i18n_battle_core.adventure_defeat", params={
-                "enemy_actions": JoinedText(parts=enemy_events),
-                "settle_msg": settle_msg,
-            })]
+            return self._defeat_nodes(run, JoinedText(parts=enemy_events), settle_msg)
         from ..party.mercenary import end_unended_mercenary_phases
         end_unended_mercenary_phases(self.engine, run)
         if self.engine.is_battle_won(run):
@@ -325,10 +335,7 @@ class CardPlayerTurnMixin:
                         "enemy_logs": JoinedText(parts=enemy_events),
                         "settle_msg": settle_msg,
                     })]
-                return [locale_text(key="i18n_battle_core.adventure_defeat", params={
-                    "enemy_actions": JoinedText(parts=enemy_events),
-                    "settle_msg": settle_msg,
-                })]
+                return self._defeat_nodes(run, JoinedText(parts=enemy_events), settle_msg)
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
             return self._finish_turn(run, self._victory_events(enemy_events), viewer_uid)
@@ -360,10 +367,7 @@ class CardPlayerTurnMixin:
                         "joined": JoinedText(parts=turn_logs),
                         "settle_msg": settle_msg,
                     })]
-                return [locale_text(key="i18n_battle_core.adventure_defeat", params={
-                    "enemy_actions": JoinedText(parts=enemy_events + turn_logs),
-                    "settle_msg": settle_msg,
-                })]
+                return self._defeat_nodes(run, JoinedText(parts=enemy_events + turn_logs), settle_msg)
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
             return self._finish_turn(run, self._victory_events(enemy_events + turn_logs), viewer_uid)
@@ -377,10 +381,7 @@ class CardPlayerTurnMixin:
                     "joined": JoinedText(parts=turn_logs),
                     "settle_msg": settle_msg,
                 })]
-            return [locale_text(key="i18n_battle_core.adventure_defeat", params={
-                "enemy_actions": JoinedText(parts=enemy_events + turn_logs),
-                "settle_msg": settle_msg,
-            })]
+            return self._defeat_nodes(run, JoinedText(parts=enemy_events + turn_logs), settle_msg)
         if multi:
             result = locale_text(
                 "i18n_explore_core.turn_all_ready",
@@ -392,3 +393,23 @@ class CardPlayerTurnMixin:
             )
             return self._finish_turn(run, [result], viewer_uid)
         return self._finish_turn(run, enemy_events + turn_logs, viewer_uid)
+
+    def _defeat_nodes(self, run: GameRun, enemy_actions_node, settle_msg: str) -> TextDocument:
+        from ..world.open_world.loadout_service import is_open_world_run
+        if is_open_world_run(run):
+            nodes: TextDocument = []
+            if enemy_actions_node:
+                nodes.append(enemy_actions_node)
+            if settle_msg:
+                nodes.append(RenderedText(text=settle_msg))
+            if not nodes:
+                return []
+            doc: TextDocument = []
+            doc.append(JoinedText(parts=nodes, separator="\n\n"))
+            return doc
+        return [
+            locale_text(
+                key="i18n_battle_core.adventure_defeat",
+                params={"enemy_actions": enemy_actions_node, "settle_msg": settle_msg},
+            )
+        ]

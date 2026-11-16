@@ -4,8 +4,11 @@ import math
 import tempfile
 from dataclasses import asdict
 from typing import Optional, Tuple, Dict, List
-from .state import GameRun, UserStats
+from .state import GameRun, UserStats, PlayerState, ensure_card_state
+from .records import Lobby, PlayerProfile
 from .corpse_registry import CorpseRegistry
+from .open_world_ghost_registry import OpenWorldGhostRegistry
+from .pvp_registry import PvpRegistry
 from .save_codec import SaveCodecMixin
 from .settlement import SettlementMixin
 from ..json_codec import dumps, load
@@ -52,7 +55,7 @@ def _atomic_write_json(path: str, data, indent: int = 2) -> None:
 class SaveManager(SaveCodecMixin, SettlementMixin):
     _default_data_dir = None
 
-    def __init__(self, data_dir: str = None):
+    def __init__(self, data_dir: Optional[str] = None):
         if data_dir is not None:
             SaveManager._default_data_dir = data_dir
             self.data_dir = data_dir
@@ -65,6 +68,8 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
         self.corpses = CorpseRegistry(self.data_dir)
+        self.open_world_ghosts = OpenWorldGhostRegistry(self.data_dir)
+        self.pvp = PvpRegistry(self.data_dir)
 
     def get_save_path(self, user_id: str) -> str:
         safe_id = "".join([c for c in user_id if c.isalnum() or c in ("-", "_")])
@@ -101,6 +106,8 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 d = load(f)
+            if not isinstance(d, dict):
+                raise TypeError(type(d).__name__)
             locked_cards = d.get("locked_cards", [])
             if not isinstance(locked_cards, list):
                 locked_cards = []
@@ -179,7 +186,25 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 unlocked_achievements=unlocked_achievements,
                 achievement_all_view=bool(d.get("achievement_all_view", False)),
                 achievement_stats=achievement_stats,
-                hired_mercenaries=list(d.get("hired_mercenaries", []))
+                hired_mercenaries=list(d.get("hired_mercenaries", [])),
+                open_world_deck=[ensure_card_state(c) for c in (d.get("open_world_deck", []) or [])],
+                open_world_relics=[str(r) for r in (d.get("open_world_relics", []) or []) if r],
+                open_world_relic_counters={
+                    str(k): int(v)
+                    for k, v in (d.get("open_world_relic_counters", {}) or {}).items()
+                } if isinstance(d.get("open_world_relic_counters"), dict) else {},
+                open_world_bag=[str(item) for item in (d.get("open_world_bag", []) or []) if item],
+                open_world_hp=int(d.get("open_world_hp", 0) or 0),
+                open_world_max_hp=int(d.get("open_world_max_hp", 0) or 0),
+                open_world_sp=int(d.get("open_world_sp", -1) if d.get("open_world_sp") is not None else -1),
+                open_world_gold=int(d.get("open_world_gold", -1) if d.get("open_world_gold") is not None else -1),
+                town_chest=[str(item) for item in (d.get("town_chest", []) or []) if item],
+                town_chest_relics=[str(r) for r in (d.get("town_chest_relics", []) or []) if r],
+                town_chest_relic_counters={
+                    str(k): int(v)
+                    for k, v in (d.get("town_chest_relic_counters", {}) or {}).items()
+                } if isinstance(d.get("town_chest_relic_counters"), dict) else {},
+                pvp_enabled=bool(d.get("pvp_enabled", True)),
             )
         except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_stats_failed", user_id=user_id, error=exc))
@@ -305,17 +330,27 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 from .coop_view import apply_view, scope_view
                 apply_view(run, user_id)
                 scope_view(run, user_id)
+                from ..data.pvp_config import PVP_MATCH_KEY
+                if run.node_data.get(PVP_MATCH_KEY):
+                    from ..core.battle.pvp_service import PvpService
+                    PvpService.bind_run_from_match(self, run, user_id)
             return run
         except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_save_failed", user_id=user_id, error=exc))
             return None
 
+    def _sync_open_world_from_run(self, run: Optional[GameRun]) -> None:
+        if run is None:
+            return
+        from ..core.world.open_world.loadout_service import OpenWorldLoadoutService
+        OpenWorldLoadoutService.sync_run_to_stats(self, run)
+
     def save_save(self, user_id: str, run: GameRun) -> bool:
         if not user_id:
             return False
         save_uid = user_id
-        prev_player = None
-        prev_user_id = None
+        prev_player: Optional[PlayerState] = None
+        prev_user_id: Optional[str] = None
         swapped_for_save = False
         if run:
             players = getattr(run, "players", {}) or {}
@@ -342,6 +377,11 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 from ..core.party.session import SessionContextScoper
                 SessionContextScoper.sync_from_run(run, save_uid)
                 persist_view(run, save_uid)
+                self._sync_open_world_from_run(run)
+                from ..data.pvp_config import PVP_MATCH_KEY
+                if run.node_data.get(PVP_MATCH_KEY):
+                    from ..core.battle.pvp_service import PvpService
+                    PvpService.sync_match_from_run(self, run, save_uid)
             path = self.get_save_path(save_uid)
             d = self.to_dict(run)
             _atomic_write_json(path, d)
@@ -351,8 +391,9 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return False
         finally:
             if swapped_for_save and run:
-                run.player = prev_player
-                run.user_id = prev_user_id
+                if prev_player is not None and prev_user_id is not None:
+                    run.player = prev_player
+                    run.user_id = prev_user_id
 
     def delete_save(self, user_id: str) -> bool:
         stats = self.load_stats(user_id)
@@ -384,6 +425,10 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 from .coop_view import apply_view, scope_view
                 apply_view(run, user_id)
                 scope_view(run, user_id)
+                from ..data.pvp_config import PVP_MATCH_KEY
+                if run.node_data.get(PVP_MATCH_KEY):
+                    from ..core.battle.pvp_service import PvpService
+                    PvpService.bind_run_from_match(self, run, user_id)
             return run
         except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_coop_save_failed", user_id=user_id, coop_id=coop_id, error=exc))
@@ -396,6 +441,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         from ..core.party.session import SessionContextScoper
         SessionContextScoper.sync_from_run(run, user_id)
         persist_view(run, user_id)
+        self._sync_open_world_from_run(run)
         path = self.get_coop_save_path(run.coop_id)
         try:
             d = self.to_dict(run)
@@ -416,7 +462,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 return False
         return False
 
-    def load_lobbies(self) -> dict:
+    def load_lobbies(self) -> Dict[str, Lobby]:
         path = self.get_lobbies_path()
         if not os.path.exists(path):
             return {}
@@ -428,7 +474,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             logger.warning(get_locale_text("i18n_models.manager.read_lobbies_failed", error=exc))
             return {}
 
-    def save_lobbies(self, lobbies: dict) -> bool:
+    def save_lobbies(self, lobbies: Dict[str, Lobby]) -> bool:
         try:
             _atomic_write_json(self.get_lobbies_path(), lobbies)
             return True
@@ -436,11 +482,11 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             logger.warning(get_locale_text("i18n_models.manager.save_lobbies_failed", error=exc))
             return False
 
-    def get_lobby(self, lobby_id: str) -> Optional[dict]:
+    def get_lobby(self, lobby_id: str) -> Optional[Lobby]:
         lobbies = self.load_lobbies()
         return lobbies.get(lobby_id)
 
-    def save_lobby(self, lobby: dict) -> bool:
+    def save_lobby(self, lobby: Lobby) -> bool:
         lobbies = self.load_lobbies()
         lobbies[lobby["lobby_id"]] = lobby
         return self.save_lobbies(lobbies)
@@ -488,8 +534,8 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             except (OSError, ValueError, TypeError) as exc:
                 logger.warning(get_locale_text("i18n_models.manager.save_stats_failed", user_id=uid, error=exc))
 
-    def list_player_profiles(self) -> List[dict]:
-        profiles = []
+    def list_player_profiles(self) -> List[PlayerProfile]:
+        profiles: List[PlayerProfile] = []
         if not os.path.isdir(self.data_dir):
             return profiles
         for name in os.listdir(self.data_dir):
@@ -502,19 +548,19 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                     data = load(f)
                 if not isinstance(data, dict):
                     continue
-                profiles.append({
-                    "user_id": uid,
-                    "name": data.get("player_name", "玩家"),
-                    "player_handle": data.get("player_handle", ""),
-                    "im_account": data.get("im_account", ""),
-                    "selected_class": data.get("selected_class", "法师"),
-                    "selected_subclass": data.get("selected_subclass", ""),
-                    "gp": data.get("gp", 0),
-                    "active_coop_id": data.get("active_coop_id", ""),
-                    "active_lobby_id": data.get("active_lobby_id", ""),
-                    "in_town": data.get("in_town", False),
-                    "mtime": os.path.getmtime(path)
-                })
+                profiles.append(PlayerProfile(
+                    user_id=uid,
+                    name=data.get("player_name", "玩家"),
+                    player_handle=data.get("player_handle", ""),
+                    im_account=data.get("im_account", ""),
+                    selected_class=data.get("selected_class", "法师"),
+                    selected_subclass=data.get("selected_subclass", ""),
+                    gp=data.get("gp", 0),
+                    active_coop_id=data.get("active_coop_id", ""),
+                    active_lobby_id=data.get("active_lobby_id", ""),
+                    in_town=data.get("in_town", False),
+                    mtime=os.path.getmtime(path),
+                ))
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 logger.warning(get_locale_text("i18n_models.manager.read_profile_failed", user_id=uid, error=exc))
                 continue
@@ -533,7 +579,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             run = self.from_dict(d)
             if run:
                 p2_id = run.node_data.get("player2_id")
-                if p2_id == user_id:
+                if p2_id == user_id and run.player2 is not None:
                     run.player, run.player2 = run.player2, run.player
                     run.user_id = user_id
             return run
@@ -547,19 +593,20 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             return False
         path = os.path.join(self.data_dir, f"duel_{game_id}.json")
         p2_id = run.node_data.get("player2_id")
-        if p2_id == user_id:
+        swap_view = p2_id == user_id and run.player2 is not None
+        if swap_view and run.player2 is not None:
             run.player, run.player2 = run.player2, run.player
             run.user_id = run.node_data.get("player1_id", run.user_id)
         try:
             d = self.to_dict(run)
-            if p2_id == user_id:
+            if swap_view and run.player2 is not None:
                 run.player, run.player2 = run.player2, run.player
                 run.user_id = user_id
             _atomic_write_json(path, d)
             return True
         except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_duel_save_failed", user_id=user_id, error=exc))
-            if p2_id == user_id:
+            if swap_view and run.player2 is not None:
                 run.player, run.player2 = run.player2, run.player
                 run.user_id = user_id
             return False

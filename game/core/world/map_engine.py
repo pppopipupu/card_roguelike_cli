@@ -1,5 +1,5 @@
 import random
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from ...models.state import GameRun
 from ...data.balance_config import (
     MAP_ANCIENT_OPTION_SLOTS,
@@ -16,8 +16,12 @@ from .landmark_system import execute_downstairs_option, execute_landmark_option
 from ..party.session import SessionContextScoper
 from .sp_system import reduce_exhaustion
 
+if TYPE_CHECKING:
+    from ...engine import GameEngine
+
 
 class MapEngine:
+    game_engine: "GameEngine"
     def __init__(self, save_manager, battle_engine):
         self.save_manager = save_manager
         self.battle_engine = battle_engine
@@ -271,9 +275,12 @@ class MapEngine:
     def _finalize_next_floor(self, run: GameRun, actor_uid: str, cfg: dict, *, yog_quest: bool = False) -> str:
         from .presence import sync_active
         from .world_social import WorldSocialService
+        from ...data.grid_map_config import get_display_floor
+        from ...renderer.world_grid import format_floor_number
         from ...data.yog_quest_config import YOG_QUEST_ZONE_KEY
 
         next_floor = run.floor_map.floor_index if run.floor_map is not None else 1
+        display_floor = format_floor_number(get_display_floor(next_floor))
         SessionContextScoper.ensure_full_party_order(run)
         humans = run.all_human_uids()
         for uid in humans:
@@ -291,7 +298,7 @@ class MapEngine:
         actor = run.players.get(actor_uid)
         actor_name = actor.name if actor is not None else actor_uid
         notice = (
-            get_locale_text("i18n_grid_map.downstairs.all_descended_notice", actor=actor_name, floor=next_floor, name=floor_name)
+            get_locale_text("i18n_grid_map.downstairs.all_descended_notice", actor=actor_name, floor=display_floor, name=floor_name)
             if social is not None
             else ""
         )
@@ -310,7 +317,7 @@ class MapEngine:
                     coop_id=str(getattr(run, "coop_id", "") or ""),
                 )
         msg_key = "i18n_yog_quest.gate.arrived" if yog_quest else "i18n_grid_map.downstairs.arrived_floor"
-        return get_locale_text(msg_key, floor=next_floor, name=floor_name)
+        return get_locale_text(msg_key, floor=display_floor, name=floor_name)
 
     def advance_to_next_floor(self, run: GameRun) -> str:
         actor_uid = run.user_id
@@ -324,7 +331,7 @@ class MapEngine:
             cfg = FLOOR_CONFIGS[next_floor]
             run.floor_map = generate_yog_quest_floor(run, next_floor)
             return self._finalize_next_floor(run, actor_uid, cfg, yog_quest=True)
-        next_floor = min(4, cur_floor + 1)
+        next_floor = min(4, int(cur_floor) + 1)
         cfg = FLOOR_CONFIGS.get(next_floor, FLOOR_CONFIGS[4])
         run.floor_map = generate_floor_map(run, next_floor, save_manager=self.save_manager)
         return self._finalize_next_floor(run, actor_uid, cfg, yog_quest=False)

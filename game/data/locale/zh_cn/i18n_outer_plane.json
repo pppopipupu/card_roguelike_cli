@@ -113,7 +113,7 @@
     "collapse": "【{name}】引发余响坍缩，造成 {dmg} 点力场伤害，并施加 1 层易伤。"
   },
   "ui": {
-    "title": "✦ 外层位面 ✦",
+    "title": "✦ 第 {floor} 层 · 外层位面 ✦",
     "divider": "━━━━━━━━━━━━━━━━━━━━",
     "map_title": "【外层位面】",
     "zone_row": " {zone}：{rooms}",

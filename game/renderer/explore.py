@@ -5,6 +5,7 @@ from ..entities.cards.base import get_card_color_icon
 from ..cards import ALL_CARDS
 from .menu import get_card_cost_str
 from .formatters import format_npcs_and_players_line, format_persistent_buff_bar, format_relic_bar
+from .world_grid import get_run_coord_prefix
 
 
 def _world_players_line(run: GameRun) -> str:
@@ -17,7 +18,7 @@ def render_event(run: GameRun) -> str:
     relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     lines = [
         get_locale_text("renderer_explore.separator"),
-        get_locale_text("renderer_explore.event_title", stage=p.stage),
+        get_locale_text("renderer_explore.event_title", coord_prefix=get_run_coord_prefix(run)),
         get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str + format_persistent_buff_bar(p),
         data.get("description", get_locale_text("renderer_explore.event_default_desc")),
         "",
@@ -65,7 +66,7 @@ def render_shop_wares(run: GameRun) -> str:
     relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     lines = [
         get_locale_text("renderer_explore.separator"),
-        get_locale_text("renderer_explore.shop_title", stage=p.stage),
+        get_locale_text("renderer_explore.shop_title", coord_prefix=get_run_coord_prefix(run)),
         get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str + format_persistent_buff_bar(p),
     ]
     npcs_line = _world_players_line(run)
@@ -122,7 +123,7 @@ def render_rest(run: GameRun) -> str:
     relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     lines = [
         get_locale_text("renderer_explore.separator"),
-        get_locale_text("render_rest_title", stage=p.stage),
+        get_locale_text("render_rest_title", coord_prefix=get_run_coord_prefix(run)),
         get_locale_text("renderer_explore.status_line_hp", name=run.player.name, hp=p.hp, max_hp=p.max_hp) + relics_str + format_persistent_buff_bar(p),
     ]
     if run.player_count() > 1:
@@ -259,7 +260,7 @@ def render_treasure(run: GameRun) -> str:
     state = data.get("state", "pending_remove")
     lines = [
         get_locale_text("renderer_explore.separator"),
-        get_locale_text("render_treasure_title", stage=p.stage),
+        get_locale_text("render_treasure_title", coord_prefix=get_run_coord_prefix(run)),
         get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + format_persistent_buff_bar(p),
         text,
         ""
@@ -341,7 +342,7 @@ def render_corpse_reward(run: GameRun) -> str:
     picks_left = int(data.get("picks_left", 0))
     lines = [
         get_locale_text("renderer_explore.separator"),
-        get_locale_text("renderer_explore.corpse_title", stage=p.stage),
+        get_locale_text("renderer_explore.corpse_title", coord_prefix=get_run_coord_prefix(run)),
         get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold),
     ]
     npcs_line = _world_players_line(run)
@@ -478,7 +479,7 @@ def render_life_merchant(run: GameRun) -> str:
     relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     lines = [
         get_locale_text("renderer_explore.separator"),
-        get_locale_text("renderer_explore.life_merchant_title", stage=p.stage),
+        get_locale_text("renderer_explore.life_merchant_title", coord_prefix=get_run_coord_prefix(run)),
         get_locale_text("renderer_explore.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + relics_str + format_persistent_buff_bar(p),
     ]
     if run.player_count() > 1:

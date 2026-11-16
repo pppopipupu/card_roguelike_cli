@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from game.models.state import CardState, EnemyState, GameRun, MinionState, PlayerState
-from game.test.core.base import CorePlugin, run_command
+from game.test.core.base import CorePlugin, load_run, run_command
 
 
 class TestAnnaCard(unittest.TestCase):
@@ -58,14 +58,14 @@ class TestAnnaCard(unittest.TestCase):
         self.build_battle(uid, [CardState(id="manaeria_queen_anne")], piles[:2], piles[2:], deck=deck)
         res = self.run_cmd("p 1", uid)
         self.assertIn("消失", res)
-        after = self.plugin.save_manager.load_save(uid)
+        after = load_run(self.plugin, uid)
         p = after.player
         self.assertEqual(len(p.draw_pile) + len(p.discard_pile), 2)
         self.assertEqual(p.exhaust_pile, [])
         self.assertEqual([c.id for c in p.deck], [c.id for c in deck])
         self.assertIn("excellent_crit", [c.id for c in p.hand])
         spirit = next((m for m in p.minions.values() if m.id == "anna_great_spirit"), None)
-        self.assertIsNotNone(spirit)
+        assert spirit is not None, "spirit must exist"
         self.assertEqual(spirit.hp, 50)
         self.assertEqual(spirit.atk, 20)
         self.assertEqual(spirit.attack_actions, 3)
@@ -77,7 +77,7 @@ class TestAnnaCard(unittest.TestCase):
         piles = [CardState(id=f"fire_bolt_{i}") for i in range(6)]
         self.build_battle(uid, [CardState(id="manaeria_queen_anne", upgraded=True)], piles[:3], piles[3:], deck=list(piles))
         self.run_cmd("p 1", uid)
-        after = self.plugin.save_manager.load_save(uid)
+        after = load_run(self.plugin, uid)
         self.assertIn("anna_great_spirit", [m.id for m in after.player.minions.values()])
 
     def test_spirit_dies_on_player_turn_start(self):
@@ -86,7 +86,7 @@ class TestAnnaCard(unittest.TestCase):
         piles = [CardState(id="fire_bolt")] * 10
         self.build_battle(uid, [CardState(id="excellent_crit")], piles[:5], piles[5:], minions=minions)
         self.run_cmd("e", uid)
-        after = self.plugin.save_manager.load_save(uid)
+        after = load_run(self.plugin, uid)
         self.assertNotIn("anna_great_spirit", [m.id for m in after.player.minions.values()])
 
     def test_skill_one_vanishes_and_distributes_fire_damage(self):
@@ -96,7 +96,7 @@ class TestAnnaCard(unittest.TestCase):
         self.build_battle(uid, [], piles[:3], piles[3:], minions=minions)
         res = self.run_cmd("m 1 s 1", uid)
         self.assertIn("火焰", res)
-        after = self.plugin.save_manager.load_save(uid)
+        after = load_run(self.plugin, uid)
         self.assertEqual(len(after.player.draw_pile) + len(after.player.discard_pile), 4)
         self.assertEqual(after.player.exhaust_pile, [])
         self.assertEqual(after.enemies[0].hp, 480)
@@ -107,7 +107,7 @@ class TestAnnaCard(unittest.TestCase):
         self.build_battle(uid, [], [], [], minions=minions)
         res = self.run_cmd("m 1 a e1", uid)
         self.assertIn("火焰", res)
-        after = self.plugin.save_manager.load_save(uid)
+        after = load_run(self.plugin, uid)
         self.assertEqual(after.enemies[0].hp, 494)
 
     def test_excellent_crit_tiers_and_both_targets(self):
@@ -124,7 +124,7 @@ class TestAnnaCard(unittest.TestCase):
                 piles = [CardState(id=f"fire_bolt_{i}") for i in range(pile_count)]
                 self.build_battle(uid, [CardState(id="excellent_crit")], piles, [], deck=list(piles))
                 res = self.run_cmd("p 1 p0", uid)
-                after = self.plugin.save_manager.load_save(uid)
+                after = load_run(self.plugin, uid)
                 self.assertEqual(after.player.hp, 1000 - expected * 2)
                 self.assertEqual(after.enemies[0].hp, 500 - expected * 2)
                 self.assertIn(str(expected), res)

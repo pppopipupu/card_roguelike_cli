@@ -87,6 +87,21 @@ class UserStats:
     achievement_all_view: bool = False
     achievement_stats: Dict[str, Any] = field(default_factory=dict)
     hired_mercenaries: List[str] = field(default_factory=list)
+    open_world_deck: List["CardState"] = field(default_factory=list)
+    open_world_relics: List[str] = field(default_factory=list)
+    open_world_relic_counters: Dict[str, int] = field(default_factory=dict)
+    open_world_bag: List[str] = field(default_factory=list)
+    open_world_hp: int = 0
+    open_world_max_hp: int = 0
+    open_world_sp: int = -1
+    open_world_gold: int = -1
+    town_chest: List[str] = field(default_factory=list)
+    town_chest_relics: List[str] = field(default_factory=list)
+    town_chest_relic_counters: Dict[str, int] = field(default_factory=dict)
+    pvp_enabled: bool = True
+
+    def __post_init__(self):
+        self.open_world_deck = [ensure_card_state(c) for c in (self.open_world_deck or [])]
 
 @dataclass
 class CardState:
@@ -265,6 +280,17 @@ class Card:
     instant_summon: bool = False
     instant_summon_thresholds: tuple = ()
     instant_summon_piles: tuple = ()
+    target_type: str = "enemy"
+    coop_only: bool = False
+    life_merchant_only: bool = False
+    event_only: bool = False
+    token: bool = False
+    exhaust_total: int = 0
+    exhaust_remaining: int = 0
+    fleeting_total: int = 0
+    fleeting_remaining: int = 0
+    minion_hp: int = 0
+    minion_atk: int = 0
 
     def get_gem_slots_count(self) -> int:
         rarities = {
@@ -304,7 +330,7 @@ class Card:
     def can_play_error(self, run: 'GameRun', target: Optional[str], engine) -> Optional[str]:
         return None
 
-    def execute(self, run: 'GameRun', target: Optional[str] = None, engine = None) -> str:
+    def execute(self, run: 'GameRun', target: Optional[str], engine) -> str:
         return ""
 
     def special_action(self, run: 'GameRun', target: Optional[str] = None) -> str:
@@ -396,6 +422,7 @@ class PlayerState:
     buffs: List[BuffState] = field(default_factory=list)
     relics: List[str] = field(default_factory=list)
     relic_counters: Dict[str, int] = field(default_factory=dict)
+    gp: int = 0
     subclass: str = ""
     selected_class: str = "法师"
     daily_blessing_id: str = ""
@@ -473,6 +500,7 @@ class EnemyState:
     intent_ba2_type: str = ""
     intent_ba2_val: int = 0
     intent_ba2_desc: str = ""
+    _battle_init_done: bool = False
 
     def __post_init__(self):
         if not self.intents:
@@ -551,7 +579,7 @@ class EncounterSession:
 
 @dataclass
 class FloorMapState:
-    floor_index: int = 1
+    floor_index: int | float = 1
     width: int = 8
     height: int = 6
     rooms: Dict[str, RoomState] = field(default_factory=dict)
@@ -580,6 +608,8 @@ class GameRun:
     party_order: List[str] = field(default_factory=list)
     players: Dict[str, PlayerState] = field(default_factory=dict)
     floor_map: Optional[FloorMapState] = None
+    coop_end_reason: str = ""
+    _hell_raider_chain: int = 0
 
     def __post_init__(self):
         if self.player is not None:
@@ -597,7 +627,9 @@ class GameRun:
             if self.user_id in self.players:
                 self.player = self.players[self.user_id]
             elif self.party_order:
-                self.player = self.players.get(self.party_order[0])
+                candidate = self.players.get(self.party_order[0])
+                if candidate is not None:
+                    self.player = candidate
 
     def player_count(self) -> int:
         if self.party_order:
@@ -633,7 +665,7 @@ class GameRun:
                 return uid
         return self.user_id
 
-    def turn_key(self, name: str, player: PlayerState = None) -> str:
+    def turn_key(self, name: str, player: Optional[PlayerState] = None) -> str:
         if self.player_count() <= 1:
             return name
         uid = self.uid_for(player) if player is not None else self.user_id

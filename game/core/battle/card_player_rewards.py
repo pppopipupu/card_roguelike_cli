@@ -16,9 +16,10 @@ from ..progress.achievement_service import AchievementService
 from ..party.coordinator import apply_and_scope, restore_player, swap_player, team_notice
 from .reward_builder import build_reward_items, elite_relic_id, roll_battle_gold, roll_potion
 from .corpse_reward import handle_corpse_win as handle_corpse_reward
+from .card_player_turn import CardPlayerEngineMixin
 
 
-class CardPlayerRewardsMixin:
+class CardPlayerRewardsMixin(CardPlayerEngineMixin):
     def build_elite_relic_pool(self, run: GameRun, difficulty: str) -> list:
         if difficulty != "elite" or run.player_count() <= 1:
             return []
@@ -160,7 +161,7 @@ class CardPlayerRewardsMixin:
 
     def init_rewards(self, run: GameRun, difficulty: str):
         caller = run.user_id
-        quest = run.node_data.get("quest")
+        quest = str(run.node_data.get("quest") or "")
         pending_gems = list(run.node_data.get("pending_gems", []))
         elite_name = str(run.node_data.get("elite_name", ""))
         relic_pool = self.build_elite_relic_pool(run, difficulty)
@@ -222,11 +223,16 @@ class CardPlayerRewardsMixin:
         if run.node_data.get("corpse_battle"):
             self.handle_corpse_win(run)
             return
+        if run.node_data.get("open_world_ghost_id"):
+            from ..world.open_world.ghost_service import OpenWorldGhostService
+            OpenWorldGhostService.handle_ghost_win(self.engine.save_manager, self.engine, run)
+            return
         if run.node_data.get("npc_combat"):
             from ..world.rooms.npc_dialog import handle_npc_combat_win
             handle_npc_combat_win(self, run)
             return
-        if run.node_data.get("is_town_combat"):
+        from ...data.open_world_config import OPEN_WORLD_COMBAT_FLAG
+        if run.node_data.get("is_town_combat") or run.node_data.get(OPEN_WORLD_COMBAT_FLAG):
             self.engine.save_manager.save_save(run.user_id, run)
             return
         if run.node_data.get("no_reward"):

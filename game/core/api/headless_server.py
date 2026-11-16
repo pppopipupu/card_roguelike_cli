@@ -67,7 +67,7 @@ class HeadlessGameServer:
             return False
         return parts[0].lower().lstrip("/") in CommandHandler.registry_all
 
-    async def handle_rogue_message(self, user_id: str, sender_name: str, message: str, shortcut_prefix: list[str] = None, enable_shortcut: bool = True, force_execute: bool = False, projection: bool = True) -> Optional[str]:
+    async def handle_rogue_message(self, user_id: str, sender_name: str, message: str, shortcut_prefix: list[str] | None = None, enable_shortcut: bool = True, force_execute: bool = False, projection: bool = True) -> Optional[str]:
         set_user_id(user_id)
         if shortcut_prefix is None:
             shortcut_prefix = [".rogue"]

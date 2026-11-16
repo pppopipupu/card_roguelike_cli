@@ -2,7 +2,7 @@ from .base import EventOption
 from ...data.locale_data import get_locale_text
 
 class LeaveEventOption(EventOption, action="leave_event", text=get_locale_text("i18n_events_c.opt_leave")):
-    def __init__(self, text: str = None, action: str = None, event_id: str = "fountain"):
+    def __init__(self, text: str | None = None, action: str | None = None, event_id: str = "fountain"):
         super().__init__(text, action)
         self.event_id = event_id
 

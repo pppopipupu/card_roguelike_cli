@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
 from ....data.locale_data import get_locale_text
@@ -17,17 +17,9 @@ class CultistKakaTemplate(EnemyTemplate):
             peck_intent = next(it for it in intents if it["id"] == "peck")
             return [EnemyIntentState(type=peck_intent["id"], val=peck_intent["val"], desc=peck_intent["desc"], cost_a=1, cost_ba=0)]
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
-            logs = intent
-            from ....models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
+            logs = []
         from ....entities.enemies.trash_talk_actions import try_trash_talk
         try_trash_talk(run, enemy, logs)
         if intent.type == "caw":

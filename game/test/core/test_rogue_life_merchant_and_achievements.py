@@ -14,7 +14,7 @@ from game.core.world.grid_map_generator import generate_floor_map
 from game.core.party.session import SessionContextScoper
 from game.renderer.grid_map import render_grid_map
 from game.renderer.menu import render_shop
-from game.test.core.base import CorePlugin, run_command
+from game.test.core.base import CorePlugin, load_run, run_command
 
 
 class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
@@ -35,8 +35,8 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         for i in range(60):
             uid = f"ancient_u_{i}"
             res = self._run_cmd("start", uid=uid)
-            self.assertIn("第 1 关", res)
-            run = self.sm.load_save(uid)
+            self.assertIn("契约", res)
+            run = load_run(self.plugin, uid)
             options = run.node_data.get("options", [])
             self.assertEqual(len(options), 3)
             if any(opt.get("relic") == "trash_mountain" for opt in options):
@@ -91,7 +91,7 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
 
     def test_life_merchant_dynamic_pricing_min_hp_one_and_shou_hui_bonus(self):
         self._run_cmd("start")
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         run.player.stage = 6
         run.player.max_hp = 5
         run.player.hp = 5
@@ -102,7 +102,7 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         enter_res = self._run_cmd("r")
         self.assertIn("生命商人", enter_res)
 
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         run.node_data["items"] = [
             {"type": "card", "card_id": "neutral_fusion", "ratio": 0.15, "sold": False},
             {"type": "relic", "relic_id": "trash_mountain", "ratio": 0.15, "sold": False},
@@ -117,7 +117,7 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
 
         res1 = self._run_cmd("1")
         self.assertIn("聚变", res1)
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         self.assertEqual(run.player.max_hp, 4)
         self.assertTrue(any(ensure_card_state(c).id == "neutral_fusion" for c in run.player.deck))
 
@@ -126,7 +126,7 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         res4 = self._run_cmd("4")
         self.assertIn("一线生机", res4)
 
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         self.assertEqual(run.player.max_hp, 1)
 
         res_block = self._run_cmd("5")
@@ -135,35 +135,35 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         res_bonus = self._run_cmd("6")
         self.assertIn("寿回✋😡✋", res_bonus)
         self.assertIn("血契大主顾", res_bonus)
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         self.assertEqual(run.player.max_hp, 6)
         self.assertTrue(any(ensure_card_state(c).id == "curse_shou_hui" for c in run.player.deck))
 
         res_upg = self._run_cmd("5")
         self.assertIn("血肉洗礼完成", res_upg)
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         self.assertEqual(run.player.max_hp, 5)
         self.assertGreaterEqual(sum(1 for c in run.player.deck if ensure_card_state(c).upgraded), 2)
 
         res_gem = self._run_cmd("7")
         self.assertIn("获得了宝石", res_gem)
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         self.assertEqual(run.node_type, "gem_insert")
         self.assertEqual(run.player.max_hp, 4)
         res_gem_pick = self._run_cmd("c 2")
         self.assertIn("增幅红宝石", res_gem_pick)
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         self.assertEqual(run.node_type, "life_merchant")
         self.assertTrue(any("gem_dmg_add_2" in ensure_card_state(c).gems for c in run.player.deck))
 
         res_leave = self._run_cmd("8")
         self.assertIn("离开了摊位", res_leave)
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         self.assertEqual(run.node_type, "grid_map")
 
     def test_fusion_shou_lai_shou_hui_tau_and_relics_in_battle(self):
         self._run_cmd("start")
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         SessionContextScoper.create_session(run, "A1", "battle", [self.uid], node_data={"difficulty": "normal", "turn_count": 1})
         run.player.max_hp = 40
         run.player.hp = 40
@@ -185,14 +185,14 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
 
         res_fus1 = self._run_cmd("p 1")
         self.assertIn("核聚变过载", res_fus1)
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         self.assertEqual(run.player.max_hp, 28)
         self.assertGreaterEqual(run.player.actions, 10)
 
         self._run_cmd("p 1")
         self._run_cmd("p 1")
         self._run_cmd("p 1")
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         for m in run.player.minions.values():
             m.actions = 0
             m.bonus_actions = 0
@@ -201,7 +201,7 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         res_tau = self._run_cmd("p 1")
         self.assertIn("Tau", res_tau)
         self.assertIn("Tau 协奏曲", res_tau)
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         tau_minion = next(m for m in run.player.minions.values() if m.id == "neutral_tau")
         self.assertEqual(tau_minion.hp, 1)
         self.assertEqual(tau_minion.atk, 0)
@@ -214,14 +214,14 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         hp_before = run.player.max_hp
         res_sl = self._run_cmd("p 1 e1")
         self.assertIn("寿来", res_sl)
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         self.assertEqual(run.player.max_hp, hp_before + 6)
         self.assertEqual(run.enemies[0].max_hp, 99999 - 6)
 
         res_sh_empty = self._run_cmd("p 1")
         self.assertIn("因果律落空", res_sh_empty)
 
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         run.player.max_hp = 1
         run.player.hp = 1
         run.player.hand = [ensure_card_state("neutral_fusion")]
@@ -229,7 +229,7 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         res_fus_block = self._run_cmd("p 1")
         self.assertIn("最大生命上限已降至 1 点", res_fus_block)
 
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         run.player.shield = 0
         run.player.minions.clear()
         run.node_data["immortal_pact_used:" + run.uid_for(run.player)] = False
@@ -244,7 +244,7 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         res_revive = self._run_cmd("e")
         self.assertIn("永生契约", res_revive)
         self.assertIn("30", res_revive)
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         self.assertIsNotNone(run)
         self.assertEqual(run.node_type, "battle")
         self.assertEqual(run.player.hp, 1)
@@ -359,7 +359,7 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         self.assertIn("成就列表", help_res)
 
         self._run_cmd("start")
-        run = self.sm.load_save(self.uid)
+        run = load_run(self.plugin, self.uid)
         run.node_type = "battle"
         run.player.stage = 12
         run.player.max_hp = 1

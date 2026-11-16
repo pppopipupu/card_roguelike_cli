@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import random
 from ..base import EnemyTemplate, register_enemy
 from ....core.inventory.deck_service import DeckService
@@ -131,7 +131,7 @@ class BossCthulhuTemplate(EnemyTemplate):
         intents_list.append(_build_intent(CTHULHU_NAME, random.choice(ENTITY_BA_INTENTS), 0, 1))
         return intents_list
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             logs = []
             from ....models.state import EnemyIntentState

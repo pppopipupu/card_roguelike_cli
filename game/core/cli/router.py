@@ -9,6 +9,7 @@ from .queue_processor import QueueProcessor
 from .base.aliases import normalize_node_alias, STATE_STACK_CANCEL_ALIASES
 from ..world.town.engine import TownEngine
 from ..progress.checkin_service import CheckinService
+from ..battle.engine import BattleEngine
 from ..social.service import SocialService
 from ..world.world_social import WorldSocialService
 from ..world.presence import set_active_service
@@ -16,8 +17,15 @@ from ..telemetry.projection_service import ProjectionService
 from ..telemetry.log_service import LogService
 from ..text.pipeline import render_text_node
 from ...data.locale_data import get_locale_text
-from ...data.outer_plane_config import OUTER_PLANE_COMBAT_FLAG, OUTER_PLANE_TRIGGER_FLAG
+from ...data.open_world_config import (
+    OPEN_WORLD_COMBAT_FLAG,
+    OPEN_WORLD_GHOST_ID_KEY,
+    OPEN_WORLD_ORIGIN_KEY,
+    OPEN_WORLD_SETTLED_MSG_KEY,
+)
+from ...data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG, OUTER_PLANE_COMBAT_FLAG, OUTER_PLANE_TRIGGER_FLAG
 from ...data.world_social_config import WORLD_PLAYER_DIALOG_EXIT_WORDS
+from ..world.open_world.loadout_service import is_open_world_run
 
 
 
@@ -49,8 +57,6 @@ class CLIRouter:
 
     def _handle_town_combat_settle(self, user_id: str, run: GameRun, original_res: str) -> str:
         latest_run = self.save_manager.load_save(user_id)
-        if run.node_data.get(OUTER_PLANE_COMBAT_FLAG):
-            return self._handle_outer_plane_combat_settle(user_id, run, latest_run, original_res)
         if not latest_run:
             stats = self.save_manager.load_stats(user_id)
             stats.in_town = True
@@ -94,22 +100,57 @@ class CLIRouter:
             return f"{original_res}\n\n" + get_locale_text("i18n_cli_core.combat_won_banner", bonus=msg_bonus) + "\n\n" + self.town_engine.render_current_room(user_id, stats)
         return original_res
 
-    def _handle_outer_plane_combat_settle(self, user_id: str, run: GameRun, latest_run, original_res: str) -> str:
-        if latest_run is None:
-            return original_res
-        stats = self.save_manager.load_stats(user_id)
+    def _handle_open_world_combat_settle(self, user_id: str, run: GameRun | None, original_res: str) -> str:
+        latest_run = self.save_manager.load_save(user_id)
         plane = self.town_engine.outer_plane_engine
-        if latest_run.node_data.get(OUTER_PLANE_TRIGGER_FLAG):
-            self.save_manager.delete_save(user_id)
-            return original_res + "\n\n" + plane.trigger_from_battle(user_id, stats)
-        is_won = self.engine.is_battle_won(latest_run) or latest_run.node_type in ("reward", "victory")
-        is_lost = latest_run.player.hp <= 0
-        if not is_won and not is_lost:
+        if latest_run is not None:
+            stats = self.save_manager.load_stats(user_id)
+            if latest_run.node_data.get(OUTER_PLANE_TRIGGER_FLAG):
+                self.save_manager.delete_save(user_id)
+                return original_res + "\n\n" + plane.trigger_from_battle(user_id, stats)
+            if run is not None and run.node_type == "battle" and latest_run.node_type == "grid_map":
+                notice = str(latest_run.node_data.pop("notice", "") or "").strip()
+                if notice:
+                    self.save_manager.save_save(user_id, latest_run)
+                rendered_map = GameRenderer.render_game(latest_run)
+                parts_out = [original_res]
+                if notice and notice not in original_res:
+                    parts_out.append(notice)
+                if rendered_map and rendered_map not in original_res:
+                    parts_out.append(rendered_map)
+                return "\n\n".join(part for part in parts_out if part)
+            if latest_run.node_data.get(OUTER_PLANE_COMBAT_FLAG) and not latest_run.node_data.get(OPEN_WORLD_GHOST_ID_KEY):
+                is_won = self.engine.is_battle_won(latest_run) or latest_run.node_type in ("reward", "victory")
+                is_lost = latest_run.player.hp <= 0
+                if not is_won and not is_lost:
+                    return original_res
+                if is_lost:
+                    return original_res + "\n\n" + plane.on_battle_lose(user_id, stats, latest_run)
+                self.save_manager.delete_save(user_id)
+                return original_res + "\n\n" + plane.on_battle_win(user_id, stats, latest_run)
             return original_res
-        self.save_manager.delete_save(user_id)
-        if is_lost:
-            return original_res + "\n\n" + plane.on_battle_lose(user_id, stats, latest_run)
-        return original_res + "\n\n" + plane.on_battle_win(user_id, stats, latest_run)
+
+        stats = self.save_manager.load_stats(user_id)
+        settled_msg = run.node_data.get(OPEN_WORLD_SETTLED_MSG_KEY, "") if run is not None else ""
+        origin = run.node_data.get(OPEN_WORLD_ORIGIN_KEY, "") if run is not None else ""
+        if origin == "outer_plane" and stats.town_flags.get(OUTER_PLANE_ACTIVE_FLAG):
+            rendered_room = plane.look(user_id, stats)
+            if not settled_msg or settled_msg in original_res:
+                return f"{original_res}\n\n{rendered_room}".strip()
+            return f"{original_res}\n\n{settled_msg}\n\n{rendered_room}".strip()
+        if settled_msg:
+            stats.in_town = True
+            self.town_engine.record_visited_room(stats)
+            self.save_manager.save_stats(user_id, stats)
+            rendered_room = self.town_engine.render_current_room(user_id, stats)
+            if settled_msg in original_res:
+                return f"{original_res}\n\n{rendered_room}".strip()
+            return f"{original_res}\n\n{settled_msg}\n\n{rendered_room}".strip()
+        if stats.in_town:
+            square_title = get_locale_text("rooms.square.name")
+            if square_title not in original_res:
+                return f"{original_res}\n\n{self.town_engine.render_current_room(user_id, stats)}".strip()
+        return original_res
 
     def _projection_result(self, user_id: str, result: str) -> str:
         run = self.save_manager.load_save(user_id)
@@ -130,7 +171,7 @@ class CLIRouter:
             return self.world_social.pop_pending_logs(user_id)
         battle_engine = getattr(self.engine, "battle_engine", self.engine)
         lines: list[str] = []
-        if hasattr(battle_engine, "_take_battle_logs"):
+        if isinstance(battle_engine, BattleEngine):
             before_logs = list(after_run.node_data.get("battle_logs") or [])
             nodes = battle_engine._take_battle_logs(after_run, user_id)
             after_logs = list(after_run.node_data.get("battle_logs") or [])
@@ -148,19 +189,48 @@ class CLIRouter:
     def handle_command(self, user_id: str, parts: list[str], project: bool = True) -> Generator[str, None, None]:
         command = " ".join(str(part) for part in parts).strip()
         set_active_service(self.world_social.presence)
+        from ..battle.pvp_service import PvpService
+        battle_engine = getattr(self.engine, "battle_engine", self.engine)
+        rope_notice = PvpService.check_and_advance_rope(
+            self.save_manager,
+            battle_engine,
+            self.town_engine,
+            self.world_social,
+            user_id,
+        )
         self.world_social.refresh(user_id)
         before_run = self.save_manager.load_save(user_id) if command else None
         kind = "battle" if before_run is not None and before_run.node_type == "battle" else "action"
         actor_name = before_run.player.name if before_run is not None and before_run.player else ""
+        raw_outputs = [
+            format_output_numbers(res)
+            for res in self._handle_command_raw(user_id, parts)
+            if res is not None and str(res) != ""
+        ]
+        unread_logs = []
+        if rope_notice:
+            unread_logs.append(format_output_numbers(rope_notice))
+        unread_logs.extend(
+            format_output_numbers(log_line)
+            for log_line in self._drain_unread_logs(user_id)
+            if log_line is not None and str(log_line).strip() != ""
+        )
         results = []
-        for res in self._handle_command_raw(user_id, parts):
-            formatted = format_output_numbers(res)
+        if unread_logs:
+            log_block = "\n".join(unread_logs)
+            if raw_outputs:
+                log_block = f"{log_block}\n{get_locale_text('i18n_grid_map.separator')}"
+            results.append(log_block)
+            yield log_block
+        for formatted in raw_outputs:
             results.append(formatted)
             yield formatted
-        for log_line in self._drain_unread_logs(user_id):
-            formatted_log = format_output_numbers(log_line)
-            results.append(formatted_log)
-            yield formatted_log
+        after_run = self.save_manager.load_save(user_id)
+        if after_run is None or after_run.node_type != "battle":
+            pvp_popup = PvpService.render_invite_popup(self.save_manager, user_id)
+            if pvp_popup:
+                results.append(pvp_popup)
+                yield pvp_popup
         self.world_social.refresh(user_id)
         if command:
             from ..progress.achievement_service import AchievementService
@@ -193,6 +263,42 @@ class CLIRouter:
             stats = self.save_manager.load_stats(user_id)
         return resolve_game_state(run, stats)
 
+    def _try_pvp_invite_input(self, user_id: str, parts: list[str], stats=None, curr_state: str = "") -> str | None:
+        if not parts:
+            return None
+        pvp = getattr(self.save_manager, "pvp", None)
+        if pvp is None:
+            return None
+        invite = pvp.get_invite(user_id)
+        if invite is None:
+            return None
+        joined = " ".join(parts).strip().lower()
+        head = parts[0].strip().lower()
+        action = None
+        if head in ("接受", "accept") or joined in ("接受", "accept"):
+            action = "accept"
+        elif head in ("不接受", "拒绝", "decline", "reject") or joined in ("不接受", "拒绝", "decline", "reject"):
+            action = "decline"
+        elif joined in ("关闭pvp", "关闭 pvp", "pvp off"):
+            action = "disable"
+        elif len(parts) == 1 and head in ("1", "2", "3"):
+            if stats is None:
+                stats = self.save_manager.load_stats(user_id)
+            if (
+                curr_state not in ("dialog", "battle", "outer_plane", "explore", "cafe")
+                and not stats.town_flags.get("current_dialog")
+                and not self.world_social.has_dialog(user_id, stats)
+            ):
+                action = {"1": "accept", "2": "decline", "3": "disable"}[head]
+        if action is None:
+            return None
+        from ..battle.pvp_service import PvpService
+        battle_engine = getattr(self.engine, "battle_engine", self.engine)
+        _, msg = PvpService.respond_invite(
+            self.save_manager, battle_engine, self.world_social, user_id, action
+        )
+        return msg
+
     def _try_player_dialog_input(self, user_id: str, parts: list[str], stats=None) -> str | None:
         if not parts:
             return None
@@ -211,11 +317,19 @@ class CLIRouter:
         self.world_social.clear_dialog(user_id, stats=stats)
         return None
 
+    def _post_command_settle(self, user_id: str, run: GameRun | None, is_town_combat: bool, is_open_world: bool, text: str) -> str:
+        if is_town_combat and run is not None:
+            return self._handle_town_combat_settle(user_id, run, text)
+        if is_open_world:
+            return self._handle_open_world_combat_settle(user_id, run, text)
+        return text
+
     def _handle_command_raw(self, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         set_user_id(user_id)
         run = self.save_manager.load_save(user_id)
         curr_state = self._get_current_state(user_id, run)
-        is_town_combat = run is not None and run.node_data.get("is_town_combat", False)
+        is_open_world = is_open_world_run(run)
+        is_town_combat = run is not None and run.node_data.get("is_town_combat", False) and not is_open_world
         if not parts:
             if run:
                 yield GameRenderer.render_game(run)
@@ -229,6 +343,10 @@ class CLIRouter:
         if run is None:
             stats = self.save_manager.load_stats(user_id)
             if stats.in_town:
+                pvp_res = self._try_pvp_invite_input(user_id, parts, stats=stats, curr_state=curr_state)
+                if pvp_res is not None:
+                    yield pvp_res
+                    return
                 player_dialog_res = self._try_player_dialog_input(user_id, parts, stats=stats)
                 if player_dialog_res is not None:
                     yield player_dialog_res
@@ -256,6 +374,10 @@ class CLIRouter:
             yield get_locale_text("i18n_cli_core.unknown_subcommand")
             return
 
+        pvp_res = self._try_pvp_invite_input(user_id, parts, curr_state=curr_state)
+        if pvp_res is not None:
+            yield pvp_res
+            return
         player_dialog_res = self._try_player_dialog_input(user_id, parts)
         if player_dialog_res is not None:
             yield player_dialog_res
@@ -283,19 +405,13 @@ class CLIRouter:
             return
         if run.node_data.get("state_stack"):
             res, term, success = self._execute_sub_action(user_id, run, parts)
-            if is_town_combat:
-                yield self._handle_town_combat_settle(user_id, run, res)
-            else:
-                yield res
+            yield self._post_command_settle(user_id, run, is_town_combat, is_open_world, res)
             return
         handler, exists = CommandHandler.resolve(sub, curr_state)
         if handler:
             res_list = list(handler.execute(self, user_id, parts))
             res_text = "\n".join(res_list)
-            if is_town_combat:
-                yield self._handle_town_combat_settle(user_id, run, res_text)
-            else:
-                yield res_text
+            yield self._post_command_settle(user_id, run, is_town_combat, is_open_world, res_text)
             return
         normalized = normalize_node_alias(run, parts)
         if normalized != parts:
@@ -304,16 +420,10 @@ class CLIRouter:
                 parts = normalized
                 res_list = list(norm_handler.execute(self, user_id, parts))
                 res_text = "\n".join(res_list)
-                if is_town_combat:
-                    yield self._handle_town_combat_settle(user_id, run, res_text)
-                else:
-                    yield res_text
+                yield self._post_command_settle(user_id, run, is_town_combat, is_open_world, res_text)
                 return
         if exists:
             yield get_locale_text("i18n_cli_core.err_command_unavailable", cmd=sub)
             return
         res, term, success = self._execute_sub_action(user_id, run, parts)
-        if is_town_combat:
-            yield self._handle_town_combat_settle(user_id, run, res)
-        else:
-            yield res
+        yield self._post_command_settle(user_id, run, is_town_combat, is_open_world, res)

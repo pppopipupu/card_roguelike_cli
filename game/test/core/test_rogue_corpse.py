@@ -2,7 +2,7 @@ import asyncio
 import unittest
 from tempfile import TemporaryDirectory
 
-from game.test.core.base import MyPlugin, DummyContext, run_command
+from game.test.core.base import MyPlugin, DummyContext, require_run, run_command
 from game.models.state import GameRun, PlayerState, CardState, EnemyState
 
 
@@ -34,8 +34,8 @@ class TestRogueCorpse(unittest.TestCase):
                 self.assertEqual(corpse["gp_pool"], 0)
                 await run_command(plugin, ".rogue 开启", sender_id=user_id)
                 await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
-                run = plugin.save_manager.load_save(user_id)
-                if run is None or run.floor_map is None:
+                run = require_run(plugin.save_manager.load_save(user_id))
+                if run.floor_map is None:
                     self.fail("map run missing")
                 corpse_coords = [
                     c for c, r in run.floor_map.rooms.items()
@@ -49,7 +49,8 @@ class TestRogueCorpse(unittest.TestCase):
                 plugin.save_manager.save_save(user_id, run)
                 tp_out = await run_command(plugin, f".rogue tp {target}", sender_id=user_id)
                 self.assertIn("已空旷", tp_out)
-                run = plugin.save_manager.load_save(user_id)
+                run = require_run(plugin.save_manager.load_save(user_id))
+                assert run.floor_map is not None, "map run missing"
                 self.assertEqual(run.floor_map.rooms[target].room_type, "empty")
             asyncio.run(go())
 

@@ -25,13 +25,23 @@ from ....data.outer_plane_config import (
     PHASE_QUEST,
     PHASE_WIP,
 )
-from ....models.state import EnemyState, GameRun
+from ....data.open_world_config import (
+    OPEN_WORLD_COMBAT_FLAG,
+    OPEN_WORLD_COORD_KEY,
+    OPEN_WORLD_ORIGIN_KEY,
+    OPEN_WORLD_WORLD_KEY,
+)
+from ....models.state import EnemyState, GameRun, ensure_card_state
 from ....renderer.outer_plane import render_outer_plane
 from ....data.world_social_config import WORLD_OUTER_PLANE
 from ..presence import render_players, sync_active
+from ..open_world.death_service import OpenWorldDeathService
+from ..open_world.ghost_service import OpenWorldGhostService
+from ..open_world.loadout_service import OpenWorldLoadoutService
+from ...inventory.deck_service import DeckService
 from ...progress.achievement_service import AchievementService
 from ...text.events import LocaleText, RenderedText, ScreenText, TextDocument
-from ...text.pipeline import render_text
+from ...text.pipeline import render_text, render_text_node
 
 OUTER_PLANE_SCREEN = "outer_plane"
 
@@ -118,15 +128,17 @@ class OuterPlaneEngine:
 
     def render(self, user_id: str, stats, scene_text: str = "", notice: str = "") -> str:
         sync_active(user_id, stats=stats)
+        room_id = self._room(stats)
         options = [
             (num, get_locale_text(f"i18n_outer_plane.opt.{opt['id']}"))
             for num, opt in self._visible_options(stats)
         ]
-        world_players = render_players(WORLD_OUTER_PLANE, self._room(stats), user_id)
+        world_players = render_players(WORLD_OUTER_PLANE, room_id, user_id)
+        ghost_names = OpenWorldGhostService.display_names_at(self.save_manager, WORLD_OUTER_PLANE, room_id)
         return render_outer_plane(
-            stats, self._room(stats), options,
+            stats, room_id, options,
             self._lucidity(stats), OUTER_PLANE_START_LUCIDITY,
-            scene_text, notice, world_players,
+            scene_text, notice, world_players, ghost_names=ghost_names,
         )
 
     def _render_document(self, user_id: str, stats, document: TextDocument) -> str:
@@ -184,16 +196,48 @@ class OuterPlaneEngine:
             ])
         return self._apply(user_id, stats, picked)
 
-    def attack(self, user_id: str, stats) -> str:
+    def attack(self, user_id: str, stats, target: str = "") -> str:
         if not self.is_active(stats):
             return self._render_document(user_id, stats, [
                 _line("i18n_outer_plane.ui.not_in_outer_plane"),
             ])
+        room_id = self._room(stats)
+        clean_target = (target or "").strip()
+        if clean_target:
+            ghost, ghost_err = OpenWorldGhostService.resolve_at(
+                self.save_manager, WORLD_OUTER_PLANE, room_id, clean_target
+            )
+            if ghost is not None:
+                return self._launch_ghost_combat(user_id, stats, ghost, room_id)
+            if ghost_err is not None:
+                return self._render_document(user_id, stats, [ghost_err, _screen_node()])
+            world_social = getattr(self.town_engine, "world_social", None)
+            if world_social is not None:
+                target_entry, _ = world_social.resolve_target(
+                    WORLD_OUTER_PLANE, room_id, clean_target, exclude_uid=user_id
+                )
+                if target_entry is not None:
+                    from ...battle.pvp_service import PvpService
+                    return PvpService.send_challenge(
+                        self.save_manager, world_social, user_id, target_entry, WORLD_OUTER_PLANE, room_id
+                    )
         flags = self._flags(stats)
         for _, opt in self._visible_options(stats):
             if opt.get("butcher"):
                 flags["butcher_path"] = True
                 return self._apply(user_id, stats, opt)
+        ghost, ghost_err = OpenWorldGhostService.resolve_at(
+            self.save_manager, WORLD_OUTER_PLANE, room_id, ""
+        )
+        if ghost is not None:
+            return self._launch_ghost_combat(user_id, stats, ghost, room_id)
+        if ghost_err is not None:
+            return self._render_document(user_id, stats, [ghost_err, _screen_node()])
+        if clean_target:
+            return self._render_document(user_id, stats, [
+                LocaleText(section="notice", key="i18n_open_world.ghost_not_found", params={"query": clean_target}),
+                _screen_node(),
+            ])
         for room_id, cfg in OUTER_PLANE_ROOMS.items():
             if room_id == self._room(stats):
                 continue
@@ -277,18 +321,33 @@ class OuterPlaneEngine:
             return self._blackout_events(user_id, stats)
         return [_screen_node(scene, notices)]
 
+    def _launch_ghost_combat(self, user_id: str, stats, ghost: dict, room_id: str) -> str:
+        _, ghost_res = OpenWorldGhostService.try_attack_ghost(
+            self.save_manager,
+            self.engine.battle_engine,
+            user_id,
+            stats,
+            WORLD_OUTER_PLANE,
+            room_id,
+            str(ghost.get("owner_name", "")),
+            "outer_plane",
+        )
+        return ghost_res or self.render(user_id, stats)
+
     def _blackout_events(self, user_id: str, stats) -> TextDocument:
+        room_id = self._room(stats)
         flags = self._flags(stats)
         flags["blackouts"] = int(flags.get("blackouts", 0)) + 1
-        stats.town_flags[OUTER_PLANE_ROOM_KEY] = OUTER_PLANE_START_ROOM
-        stats.town_flags[OUTER_PLANE_LUCIDITY_KEY] = OUTER_PLANE_START_LUCIDITY
-        self._mark_visited(stats, OUTER_PLANE_START_ROOM)
-        self._save(user_id, stats)
-        return [
-            _line("i18n_outer_plane.ending.blackout"),
-            _line("i18n_outer_plane.ui.blackout_notice"),
-            _screen_node(),
-        ]
+        death_output = OpenWorldDeathService.handle_state_death(
+            self.save_manager,
+            self.town_engine,
+            user_id,
+            stats,
+            WORLD_OUTER_PLANE,
+            room_id,
+            cause_key="i18n_open_world.cause_lucidity",
+        )
+        return [RenderedText(text=death_output, section="body")]
 
     def _start_encounter_events(self, user_id: str, stats, opt, scene: LocaleText | None, notices: list[LocaleText]) -> TextDocument:
         flags = self._flags(stats)
@@ -308,13 +367,16 @@ class OuterPlaneEngine:
                 max_actions=1,
                 max_bonus_actions=1 if is_boss else 0,
             ))
-        p_state = self.town_engine.build_combat_player(
-            user_id, stats, hp=OUTER_PLANE_START_HP, max_hp=OUTER_PLANE_START_HP)
+        p_state = OpenWorldLoadoutService.build_player_state(user_id, stats)
+        p_state.draw_pile = DeckService.clone_cards(p_state.deck)
         random.shuffle(p_state.draw_pile)
         for _ in range(min(5, len(p_state.draw_pile))):
             p_state.hand.append(p_state.draw_pile.pop(0))
         node_data = {
-            "is_town_combat": True,
+            OPEN_WORLD_COMBAT_FLAG: True,
+            OPEN_WORLD_WORLD_KEY: WORLD_OUTER_PLANE,
+            OPEN_WORLD_COORD_KEY: self._room(stats),
+            OPEN_WORLD_ORIGIN_KEY: "outer_plane",
             OUTER_PLANE_COMBAT_FLAG: encounter_id,
             OUTER_PLANE_PENDING_KEY: opt["id"],
             "outer_plane_room": self._room(stats),
@@ -335,10 +397,11 @@ class OuterPlaneEngine:
         document.extend(notices)
         return document
 
-    def on_battle_win(self, user_id: str, stats, run) -> str:
+    def on_battle_win(self, user_id: str, stats, run: GameRun) -> str:
         return self._render_document(user_id, stats, self._on_battle_win_events(user_id, stats, run))
 
-    def _on_battle_win_events(self, user_id: str, stats, run) -> TextDocument:
+    def _on_battle_win_events(self, user_id: str, stats, run: GameRun) -> TextDocument:
+        OpenWorldLoadoutService.sync_player_to_stats(stats, run.player)
         flags = self._flags(stats)
         pending_id = run.node_data.get(OUTER_PLANE_PENDING_KEY) or stats.town_flags.get(OUTER_PLANE_PENDING_KEY)
         stats.town_flags.pop(OUTER_PLANE_PENDING_KEY, None)
@@ -350,6 +413,8 @@ class OuterPlaneEngine:
         if reward_flag and not flags.get(reward_flag):
             flags[reward_flag] = True
             if reward_card:
+                OpenWorldLoadoutService.ensure_open_world_deck(stats)
+                stats.open_world_deck.append(ensure_card_state(reward_card))
                 from ....entities.cards import ALL_CARDS
                 card = ALL_CARDS.get(reward_card)
                 name = card.name if card else reward_card
@@ -370,17 +435,22 @@ class OuterPlaneEngine:
         return [win, _screen_node(None, notices)]
 
     def on_battle_lose(self, user_id: str, stats, run) -> str:
-        stats.town_flags[OUTER_PLANE_ROOM_KEY] = OUTER_PLANE_START_ROOM
-        stats.town_flags[OUTER_PLANE_LUCIDITY_KEY] = OUTER_PLANE_START_LUCIDITY
-        stats.town_flags[OUTER_PLANE_PHASE_KEY] = PHASE_QUEST
-        stats.town_flags[OUTER_PLANE_ACTIVE_FLAG] = True
-        stats.town_flags.pop(OUTER_PLANE_PENDING_KEY, None)
-        self._mark_visited(stats, OUTER_PLANE_START_ROOM)
-        self._save(user_id, stats)
-        return self._render_document(user_id, stats, [
-            _line("i18n_outer_plane.combat.lose"),
-            _screen_node(),
-        ])
+        room_id = str((run.node_data.get(OPEN_WORLD_COORD_KEY) if run else "") or self._room(stats))
+        if run is not None:
+            return OpenWorldDeathService.handle_run_death(
+                self.save_manager,
+                self.town_engine,
+                user_id,
+                run,
+            )
+        return OpenWorldDeathService.handle_state_death(
+            self.save_manager,
+            self.town_engine,
+            user_id,
+            stats,
+            WORLD_OUTER_PLANE,
+            room_id,
+        )
 
     def _fuse_events(self, user_id: str, stats, prefix: TextDocument, notices: list[LocaleText]) -> TextDocument:
         flags = self._flags(stats)

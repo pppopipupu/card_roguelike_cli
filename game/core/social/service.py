@@ -9,6 +9,7 @@ from ...data.checkin_data import (
     PLAYER_NAME_MAX_LENGTH,
 )
 from ...data.locale_data import get_locale_text
+from ...models.records import PlayerProfile
 from .player_names import PlayerNameError, parse_player_name, unique_handle
 from .team import SocialTeamMixin
 
@@ -44,42 +45,42 @@ class SocialService(SocialTeamMixin):
         separator = get_locale_text("i18n_social.common.class_separator")
         return f"{base}{separator}{sub}" if sub else base
 
-    def _profile_class_text(self, profile):
-        base = profile.get("selected_class", DEFAULT_CLASS_NAME)
-        sub = profile.get("selected_subclass", "")
+    def _profile_class_text(self, profile: PlayerProfile):
+        base = profile.selected_class or DEFAULT_CLASS_NAME
+        sub = profile.selected_subclass
         separator = get_locale_text("i18n_social.common.class_separator")
         return f"{base}{separator}{sub}" if sub else base
 
-    def _all_profiles(self):
+    def _all_profiles(self) -> list[PlayerProfile]:
         profiles = sorted(
             self.save_manager.list_player_profiles(),
-            key=lambda item: (item.get("mtime", 0), item.get("user_id", "")),
+            key=lambda item: (item.mtime, item.user_id),
         )
-        taken = set()
+        taken: set[str] = set()
         for profile in profiles:
-            base = profile.get("player_handle") or profile.get("name") or DEFAULT_PLAYER_NAME
-            handle = unique_handle(str(base), taken)
+            base = profile.player_handle or profile.name or DEFAULT_PLAYER_NAME
+            handle = unique_handle(base, taken)
             taken.add(handle)
-            profile["player_id"] = handle
-        return sorted(profiles, key=lambda item: item.get("name", ""))
+            profile.player_id = handle
+        return sorted(profiles, key=lambda item: item.name)
 
-    def _find_profile(self, query):
+    def _find_profile(self, query) -> PlayerProfile | None:
         text = str(query or "").strip()
         if not text:
             return None
         profiles = self._all_profiles()
         for profile in profiles:
-            if profile.get("player_id") == text:
+            if profile.player_id == text:
                 return profile
         for profile in profiles:
-            if profile.get("im_account") and profile.get("im_account") == text:
+            if profile.im_account and profile.im_account == text:
                 return profile
         for profile in profiles:
-            if profile.get("name") == text:
+            if profile.name == text:
                 return profile
         lowered = text.lower()
         for profile in profiles:
-            haystack = f"{profile.get('name', '')} {profile.get('player_id', '')} {profile.get('im_account', '')}".lower()
+            haystack = f"{profile.name} {profile.player_id} {profile.im_account}".lower()
             if lowered in haystack:
                 return profile
         return None
@@ -133,9 +134,9 @@ class SocialService(SocialTeamMixin):
                 gp=stats.gp,
             )
         taken = {
-            profile["player_id"]
+            profile.player_id
             for profile in self._all_profiles()
-            if profile.get("user_id") != uid
+            if profile.user_id != uid
         }
         if base in taken:
             return get_locale_text("i18n_social.friend_name.taken", name=base)
@@ -165,9 +166,9 @@ class SocialService(SocialTeamMixin):
         if len(text) > IM_ACCOUNT_MAX_LENGTH:
             return get_locale_text("i18n_social.friend_bind.too_long", limit=IM_ACCOUNT_MAX_LENGTH)
         for profile in self._all_profiles():
-            if profile.get("user_id") == uid:
+            if profile.user_id == uid:
                 continue
-            if profile.get("im_account") == text:
+            if profile.im_account == text:
                 return get_locale_text("i18n_social.friend_bind.already_bound")
         stats = self._stats(uid)
         stats.im_account = text
@@ -181,9 +182,9 @@ class SocialService(SocialTeamMixin):
         lowered = text.lower()
         matches = []
         for profile in self._all_profiles():
-            if profile.get("user_id") == uid:
+            if profile.user_id == uid:
                 continue
-            haystack = f"{profile.get('name', '')} {profile.get('player_id', '')} {profile.get('im_account', '')}".lower()
+            haystack = f"{profile.name} {profile.player_id} {profile.im_account}".lower()
             if lowered in haystack:
                 matches.append(profile)
         if not matches:
@@ -192,19 +193,19 @@ class SocialService(SocialTeamMixin):
         for profile in matches[:FRIEND_SEARCH_LIMIT]:
             class_text = self._profile_class_text(profile)
             account = (
-                get_locale_text("i18n_social.friend_search.account_suffix", account=profile.get("im_account"))
-                if profile.get("im_account")
+                get_locale_text("i18n_social.friend_search.account_suffix", account=profile.im_account)
+                if profile.im_account
                 else ""
             )
             lines.append(
                 get_locale_text(
                     "i18n_social.friend_search.entry",
-                    name=profile.get("name"),
+                    name=profile.name,
                     class_text=class_text,
                     account=account,
                 )
             )
-            lines.append(get_locale_text("i18n_social.friend_search.id_line", player_id=profile.get("player_id")))
+            lines.append(get_locale_text("i18n_social.friend_search.id_line", player_id=profile.player_id))
         lines.append(get_locale_text("i18n_social.friend_search.hint"))
         return "\n".join(lines)
 
@@ -212,13 +213,13 @@ class SocialService(SocialTeamMixin):
         target = self._find_profile(query)
         if not target:
             return get_locale_text("i18n_social.friend_add.not_found", query=query)
-        target_uid = target.get("user_id")
+        target_uid = target.user_id
         if target_uid == uid:
             return get_locale_text("i18n_social.friend_add.self")
         my_stats = self._stats(uid)
         target_stats = self._stats(target_uid)
         if target_uid in my_stats.friends:
-            return get_locale_text("i18n_social.friend_add.already_friend", name=target.get("name"))
+            return get_locale_text("i18n_social.friend_add.already_friend", name=target.name)
         if uid in target_stats.friend_requests_out and target_uid not in my_stats.friends:
             my_stats.friends.append(target_uid)
             target_stats.friends.append(uid)
@@ -230,7 +231,7 @@ class SocialService(SocialTeamMixin):
             my_stats.friend_requests_out = [item for item in my_stats.friend_requests_out if item != target_uid]
             self.save_manager.save_stats(uid, my_stats)
             self.save_manager.save_stats(target_uid, target_stats)
-            return get_locale_text("i18n_social.friend_add.mutual", name=target.get("name"))
+            return get_locale_text("i18n_social.friend_add.mutual", name=target.name)
         if target_uid not in my_stats.friend_requests_out:
             my_stats.friend_requests_out.append(target_uid)
         incoming = [
@@ -245,13 +246,13 @@ class SocialService(SocialTeamMixin):
             })
         self.save_manager.save_stats(uid, my_stats)
         self.save_manager.save_stats(target_uid, target_stats)
-        return get_locale_text("i18n_social.friend_add.sent", name=target.get("name"))
+        return get_locale_text("i18n_social.friend_add.sent", name=target.name)
 
     def friend_accept(self, uid, query):
         target = self._find_profile(query)
         if not target:
             return get_locale_text("i18n_social.common.player_not_found", query=query)
-        target_uid = target.get("user_id")
+        target_uid = target.user_id
         my_stats = self._stats(uid)
         incoming = []
         for item in my_stats.friend_requests_in:
@@ -259,7 +260,7 @@ class SocialService(SocialTeamMixin):
             if item_uid == target_uid:
                 incoming.append(item)
         if not incoming:
-            return get_locale_text("i18n_social.common.no_request", name=target.get("name"))
+            return get_locale_text("i18n_social.common.no_request", name=target.name)
         target_stats = self._stats(target_uid)
         if target_uid not in my_stats.friends:
             my_stats.friends.append(target_uid)
@@ -272,13 +273,13 @@ class SocialService(SocialTeamMixin):
         target_stats.friend_requests_out = [item for item in target_stats.friend_requests_out if item != uid]
         self.save_manager.save_stats(uid, my_stats)
         self.save_manager.save_stats(target_uid, target_stats)
-        return get_locale_text("i18n_social.friend_accept.success", name=target.get("name"))
+        return get_locale_text("i18n_social.friend_accept.success", name=target.name)
 
     def friend_reject(self, uid, query):
         target = self._find_profile(query)
         if not target:
             return get_locale_text("i18n_social.common.player_not_found", query=query)
-        target_uid = target.get("user_id")
+        target_uid = target.user_id
         my_stats = self._stats(uid)
         before = len(my_stats.friend_requests_in)
         my_stats.friend_requests_in = [
@@ -290,17 +291,17 @@ class SocialService(SocialTeamMixin):
         self.save_manager.save_stats(uid, my_stats)
         self.save_manager.save_stats(target_uid, target_stats)
         if len(my_stats.friend_requests_in) == before:
-            return get_locale_text("i18n_social.common.no_request", name=target.get("name"))
-        return get_locale_text("i18n_social.friend_reject.success", name=target.get("name"))
+            return get_locale_text("i18n_social.common.no_request", name=target.name)
+        return get_locale_text("i18n_social.friend_reject.success", name=target.name)
 
     def friend_remove(self, uid, query):
         target = self._find_profile(query)
         if not target:
             return get_locale_text("i18n_social.common.player_not_found", query=query)
-        target_uid = target.get("user_id")
+        target_uid = target.user_id
         my_stats = self._stats(uid)
         if target_uid not in my_stats.friends:
-            return get_locale_text("i18n_social.friend_remove.not_friend", name=target.get("name"))
+            return get_locale_text("i18n_social.friend_remove.not_friend", name=target.name)
         my_stats.friends = [item for item in my_stats.friends if item != target_uid]
         target_stats = self._stats(target_uid)
         target_stats.friends = [item for item in target_stats.friends if item != uid]
@@ -310,7 +311,7 @@ class SocialService(SocialTeamMixin):
         if lobby and target_uid in lobby.get("invited", []):
             lobby["invited"] = [item for item in lobby["invited"] if item != target_uid]
             self.save_manager.save_lobby(lobby)
-        return get_locale_text("i18n_social.friend_remove.success", name=target.get("name"))
+        return get_locale_text("i18n_social.friend_remove.success", name=target.name)
 
     def friend_list(self, uid):
         stats = self._stats(uid)
@@ -338,7 +339,9 @@ class SocialService(SocialTeamMixin):
         if stats.friend_requests_in:
             lines.append(get_locale_text("i18n_social.friend_requests.received"))
             for index, item in enumerate(stats.friend_requests_in, 1):
-                item_uid = item.get("uid") if isinstance(item, dict) else str(item)
+                item_uid = str(item.get("uid", "")) if isinstance(item, dict) else str(item)
+                if not item_uid:
+                    continue
                 profile = self._profile(item_uid)
                 lines.append(
                     get_locale_text(

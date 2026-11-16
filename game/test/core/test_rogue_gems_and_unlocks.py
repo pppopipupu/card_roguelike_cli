@@ -4,7 +4,7 @@ import random
 import unittest
 from game.core.inventory.deck_service import DeckService
 from game.core.battle.reward_builder import build_reward_items
-from game.test.core.base import DummyContext, MyPlugin, SaveManager, run_command
+from game.test.core.base import DummyContext, MyPlugin, SaveManager, require_run, run_command
 
 
 class TestRogueGemsAndUnlocks(unittest.TestCase):
@@ -36,7 +36,7 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
             await run_command(plugin, ".rogue 2", self.user_id)
 
             for turn in range(6):
-                run = self.save_manager.load_save(self.user_id)
+                run = require_run(self.save_manager.load_save(self.user_id))
                 target_idx = None
                 for idx, cs in enumerate(run.player.hand, 1):
                     if cs.id == "fire_bolt" and "gem_burn_gold" in (cs.gems or []):
@@ -53,14 +53,14 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
 
             stats_after_1 = self.save_manager.load_stats(self.user_id)
             self.assertEqual(stats_after_1.gp, 105)
-            run_after_1 = self.save_manager.load_save(self.user_id)
+            run_after_1 = require_run(self.save_manager.load_save(self.user_id))
             self.assertEqual(len(run_after_1.player.exhaust_pile), 0)
             discarded = [c for c in run_after_1.player.discard_pile if c.id == "fire_bolt" and "gem_burn_gold" in (c.gems or [])]
             self.assertEqual(len(discarded), 1)
             self.assertEqual(discarded[0].exhaust_used, 1)
 
             for turn in range(8):
-                run = self.save_manager.load_save(self.user_id)
+                run = require_run(self.save_manager.load_save(self.user_id))
                 target_idx = None
                 for idx, cs in enumerate(run.player.hand, 1):
                     if cs.id == "fire_bolt" and "gem_burn_gold" in (cs.gems or []):
@@ -77,7 +77,7 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
 
             stats_after_2 = self.save_manager.load_stats(self.user_id)
             self.assertEqual(stats_after_2.gp, 110)
-            run_after_2 = self.save_manager.load_save(self.user_id)
+            run_after_2 = require_run(self.save_manager.load_save(self.user_id))
             exhausted = [c for c in run_after_2.player.exhaust_pile if c.id == "fire_bolt" and "gem_burn_gold" in (c.gems or [])]
             self.assertEqual(len(exhausted), 1)
             self.assertEqual(exhausted[0].exhaust_used, 2)
@@ -99,7 +99,7 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
             deck_before = await run_command(plugin, ".rogue deck", self.user_id)
             self.assertIn("即逝 2。", deck_before)
             for _ in range(8):
-                run = self.save_manager.load_save(self.user_id)
+                run = require_run(self.save_manager.load_save(self.user_id))
                 target_idx = None
                 for idx, cs in enumerate(run.player.hand, 1):
                     if cs.id == "fleeting_spark" and "gem_sturdy" in (cs.gems or []):
@@ -107,7 +107,7 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
                         break
                 if target_idx is not None:
                     res = await run_command(plugin, f".rogue p {target_idx} e1", self.user_id)
-                    run_check = self.save_manager.load_save(self.user_id)
+                    run_check = require_run(self.save_manager.load_save(self.user_id))
                     if run_check.node_data.get("pending_discard"):
                         await run_command(plugin, ".rogue 选择 1", self.user_id)
                     self.assertIn("剩余 1 次", res)
@@ -118,7 +118,7 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
             self.assertIn("即逝。", deck_mid)
             self.assertNotIn("即逝 2", deck_mid)
             for _ in range(10):
-                run = self.save_manager.load_save(self.user_id)
+                run = require_run(self.save_manager.load_save(self.user_id))
                 target_idx = None
                 for idx, cs in enumerate(run.player.hand, 1):
                     if cs.id == "fleeting_spark" and "gem_sturdy" in (cs.gems or []):
@@ -126,14 +126,14 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
                         break
                 if target_idx is not None:
                     res = await run_command(plugin, f".rogue p {target_idx} e1", self.user_id)
-                    run_check = self.save_manager.load_save(self.user_id)
+                    run_check = require_run(self.save_manager.load_save(self.user_id))
                     if run_check.node_data.get("pending_discard"):
                         await run_command(plugin, ".rogue 选择 1", self.user_id)
                     self.assertIn("永久移除", res)
                     break
                 await run_command(plugin, ".rogue e", self.user_id)
 
-            run_end = self.save_manager.load_save(self.user_id)
+            run_end = require_run(self.save_manager.load_save(self.user_id))
             self.assertEqual([c for c in run_end.player.deck if c.id == "fleeting_spark"], [])
 
         asyncio.run(run_battle())
@@ -144,7 +144,7 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
         async def run_checkin_unlock():
             await run_command(plugin, ".rogue start", self.user_id)
             await run_command(plugin, ".rogue 1", self.user_id)
-            run = self.save_manager.load_save(self.user_id)
+            run = require_run(self.save_manager.load_save(self.user_id))
             stats_locked = self.save_manager.load_stats(self.user_id)
             pool_locked = DeckService.get_reward_card_pool(run, run.player, stats_locked)
             self.assertNotIn("elf_archer_xiaomei", pool_locked)
@@ -212,7 +212,7 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
             await run_command(plugin, ".rogue exit", self.user_id)
             await run_command(plugin, ".rogue start", self.user_id)
             await run_command(plugin, ".rogue 1", self.user_id)
-            run = self.save_manager.load_save(self.user_id)
+            run = require_run(self.save_manager.load_save(self.user_id))
             stats_after = self.save_manager.load_stats(self.user_id)
             self.assertIn("elf_archer_xiaomei", stats_after.unlocked_new_cards)
             pool = DeckService.get_reward_card_pool(run, run.player, stats_after)

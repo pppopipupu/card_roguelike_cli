@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from game.test.core.base import *
-from game.models.state import EnemyIntentState
+from game.models.state import EnemyIntentState, CardState
 from game.entities.enemies.base import ALL_ENEMIES, EnemyTemplate
 
 
@@ -128,7 +128,7 @@ class TestEnemyRework(unittest.TestCase):
             shield=0,
             gold=0,
             stage=25,
-            hand=["neutral_banish_slash"],
+            hand=[CardState(id="neutral_banish_slash")],
             actions=2,
             bonus_actions=1,
         )
@@ -154,7 +154,7 @@ class TestEnemyRework(unittest.TestCase):
             shield=0,
             gold=0,
             stage=12,
-            hand=["neutral_banish_slash"],
+            hand=[CardState(id="neutral_banish_slash")],
             actions=2,
             bonus_actions=1,
         )
@@ -182,7 +182,7 @@ class TestEnemyRework(unittest.TestCase):
             shield=0,
             gold=0,
             stage=30,
-            hand=["magic_missile"] * 12,
+            hand=[CardState(id="magic_missile") for _ in range(12)],
             actions=12,
             bonus_actions=0,
         )
@@ -213,7 +213,7 @@ class TestEnemyRework(unittest.TestCase):
             shield=0,
             gold=0,
             stage=30,
-            hand=["fire_bolt", "magic_missile"],
+            hand=[CardState(id="fire_bolt"), CardState(id="magic_missile")],
             actions=2,
             bonus_actions=1,
         )
@@ -241,7 +241,7 @@ class TestEnemyRework(unittest.TestCase):
             if card_state.id != required["id"] or card_state.upgraded != required.get("upgraded", False):
                 play_idx = idx + 1
                 break
-        self.assertIsNotNone(play_idx)
+        assert play_idx is not None, "required card must be in hand"
         before_hp = player.hp
         engine.card_player.play_card(run, play_idx, "e1")
         self.assertEqual(before_hp - player.hp, 10)

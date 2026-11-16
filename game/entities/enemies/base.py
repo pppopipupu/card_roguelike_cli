@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 from ...data.enemy_data_normal import ENEMY_INTENT_SCALING
 from ...data.locale_data import get_locale_text
 
@@ -83,17 +83,9 @@ class EnemyTemplate:
                     dmg_msg = after_logs.pop()
                     logs.append(get_locale_text("i18n_entity_wiring.enemy_base.player_attack", name=enemy.name, dmg_msg=dmg_msg))
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None) -> str | None:
         if logs is None:
-            logs = intent
-            from ...models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
+            logs = []
         from .trash_talk_actions import try_trash_talk
         try_trash_talk(run, enemy, logs)
         if intent.type == "attack":
@@ -102,6 +94,36 @@ class EnemyTemplate:
             if enemy in run.enemies:
                 engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}", intent.val)
             logs.append(get_locale_text("i18n_entity_wiring.enemy_base.defend_log", name=enemy.name, val=intent.val))
+
+    def on_enemy_before_death(self, run, enemy, event, engine):
+        pass
+
+    def on_card_play(self, event, enemy, engine):
+        pass
+
+    def on_turn_start(self, event, enemy, engine):
+        pass
+
+    def on_turn_end(self, event, enemy, engine):
+        pass
+
+    def on_battle_start(self, run, enemy, engine):
+        pass
+
+    def on_card_played(self, event, enemy, engine):
+        pass
+
+    def on_damage_take(self, event, enemy, engine):
+        pass
+
+    def on_damage_calculate(self, event, enemy, engine):
+        pass
+
+    def on_card_exhaust(self, event, enemy, engine):
+        pass
+
+    def on_minion_death(self, event, enemy, engine):
+        pass
 
     def apply_phase_transition(self, run, enemy, target_phase: int, engine, logs: list):
         pass
@@ -115,7 +137,9 @@ def register_enemy(name: str):
     return decorator
 
 def get_enemy_template(name: str) -> EnemyTemplate:
-    if name.startswith("冤魂"):
+    ghost_prefix = get_locale_text("i18n_battle_core.ghost_default_name")
+    ghost_suffix = get_locale_text("i18n_battle_core.ghost_name_suffix")
+    if name.startswith(ghost_prefix) or (ghost_suffix and name.endswith(ghost_suffix)):
         from .ghost import GhostEnemyTemplate
         return GhostEnemyTemplate(name)
     base_name = name.split(" ")[0] if name else ""

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
 from ....data.locale_data import get_locale_text
@@ -19,17 +19,9 @@ class GargoylePriestTemplate(EnemyTemplate):
             intents_list.append(EnemyIntentState(type=chosen["id"], val=chosen["val"], desc=chosen["desc"], cost_a=0, cost_ba=1))
         return intents_list
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
-            logs = intent
-            from ....models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
+            logs = []
         strength = 0
         if getattr(enemy, "buffs", None):
             for buff in enemy.buffs:

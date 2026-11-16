@@ -1,7 +1,7 @@
 import unittest
 import random
 from game.test.core.base import *
-from game.models.state import PlayerState, GameRun, EnemyState, CardState
+from game.models.state import PlayerState, GameRun, EnemyState, CardState, UserStats
 from game.entities.cards.base import ALL_CARDS
 from game.core.battle.engine import BattleEngine
 from game.entities.events.chaos_events import (
@@ -27,17 +27,17 @@ class TestRogueChaosUpdate(unittest.TestCase):
             await run_command(plugin, ".rogue up", user_id)
             await run_command(plugin, ".rogue talk Dummy", user_id)
             await run_command(plugin, ".rogue 2", user_id)
-            run = plugin.save_manager.load_save(user_id)
+            run = load_run(plugin, user_id)
             run.player.actions = 5
             run.player.bonus_actions = 2
             plugin.save_manager.save_save(user_id, run)
             for _ in range(6):
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == "warrior_source_of_cinder"), None)
                 if idx is not None:
                     await run_command(plugin, f".rogue p {idx}", user_id)
                     await run_command(plugin, ".rogue e", user_id)
-                    after = plugin.save_manager.load_save(user_id)
+                    after = load_run(plugin, user_id)
                     self.assertEqual(after.player.actions, 3)
                     self.assertEqual(after.player.bonus_actions, 2)
                     break
@@ -67,7 +67,7 @@ class TestRogueChaosUpdate(unittest.TestCase):
         eng = DummyEngine()
         player = PlayerState(
             hp=30, max_hp=30, shield=0, gold=100, stage=1,
-            deck=["fire_bolt", "shield_block"], hand=[], actions=3, bonus_actions=2
+            deck=[CardState(id="fire_bolt"), CardState(id="shield_block")], hand=[], actions=3, bonus_actions=2
         )
         run = GameRun(user_id="test_events", node_type="event", player=player, enemies=[])
         
@@ -145,7 +145,7 @@ class TestRogueChaosUpdate(unittest.TestCase):
         self.assertTrue(eng.stage_entered)
 
         player.hp = 30
-        player.deck = ["fire_bolt", "shield_block", "arcane_torrent"]
+        player.deck = [CardState(id="fire_bolt"), CardState(id="shield_block"), CardState(id="arcane_torrent")]
         eng.stage_entered = False
         opt10 = TouchTimeRiftOption()
         res10 = opt10.execute(run, eng)
@@ -181,7 +181,7 @@ class TestRogueChaosUpdate(unittest.TestCase):
         self.assertEqual(player.hp, 18)
         self.assertTrue(eng.stage_entered)
 
-        player.deck = ["fire_bolt"]
+        player.deck = [CardState(id="fire_bolt")]
         eng.stage_entered = False
         opt14 = DigGraveOption()
         res14 = opt14.execute(run, eng)
@@ -208,13 +208,18 @@ class TestRogueChaosUpdate(unittest.TestCase):
         self.assertTrue(eng.stage_entered)
 
     def test_source_of_cinder_stack(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run): pass
+        class DummySaveManager(DummySaveManagerBase):
+            def save_save(self, user_id, run) -> bool:
+                return True
+            def load_stats(self, user_id) -> UserStats:
+                return UserStats()
+            def save_stats(self, user_id, stats) -> bool:
+                return True
         sm = DummySaveManager()
         engine = BattleEngine(sm)
         player = PlayerState(
             hp=40, max_hp=40, shield=0, gold=100, stage=1,
-            deck=["warrior_source_of_cinder"], hand=["warrior_source_of_cinder"],
+            deck=[CardState(id="warrior_source_of_cinder")], hand=[CardState(id="warrior_source_of_cinder")],
             actions=3, bonus_actions=2, buffs=[]
         )
         run = GameRun(user_id="test_cinder_stack", node_type="battle", player=player, enemies=[EnemyState("e1", 10, 10, 0)])
@@ -228,9 +233,15 @@ class TestRogueChaosUpdate(unittest.TestCase):
         self.assertEqual(player.bonus_actions, 3)
 
     def test_gem_effects_independent(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run): pass
-            def settle_game_and_delete(self, user_id, run, is_victory): return ""
+        class DummySaveManager(DummySaveManagerBase):
+            def save_save(self, user_id, run) -> bool:
+                return True
+            def load_stats(self, user_id) -> UserStats:
+                return UserStats()
+            def save_stats(self, user_id, stats) -> bool:
+                return True
+            def settle_game_and_delete(self, user_id: str, run, is_victory: bool = False, create_corpse: bool = True, force: bool = False) -> str:
+                return ""
         from game.engine import GameEngine
         sm = DummySaveManager()
         ge = GameEngine(sm)
@@ -247,8 +258,13 @@ class TestRogueChaosUpdate(unittest.TestCase):
         self.assertEqual(player.shield, 16)
 
     def test_emperor_eye_suspend_post_play(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run): pass
+        class DummySaveManager(DummySaveManagerBase):
+            def save_save(self, user_id, run) -> bool:
+                return True
+            def load_stats(self, user_id) -> UserStats:
+                return UserStats()
+            def save_stats(self, user_id, stats) -> bool:
+                return True
         from game.engine import GameEngine
         sm = DummySaveManager()
         ge = GameEngine(sm)
@@ -284,20 +300,20 @@ class TestRogueChaosUpdate(unittest.TestCase):
             await run_command(plugin, ".rogue talk Dummy", user_id)
             await run_command(plugin, ".rogue 2", user_id)
             for _ in range(8):
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 fa_idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == "first_aid"), None)
                 if fa_idx is not None:
                     await run_command(plugin, f".rogue p {fa_idx}", user_id)
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 disc_idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == "discover"), None)
                 if disc_idx is not None and run.player.exhaust_pile:
                     res = await run_command(plugin, f".rogue p {disc_idx}", user_id)
                     self.assertIn("请选择一张卡牌发掘", res)
-                    run_mid = plugin.save_manager.load_save(user_id)
+                    run_mid = load_run(plugin, user_id)
                     self.assertFalse(any(c.id == "discover" for c in run_mid.player.hand))
                     res_sel = await run_command(plugin, ".rogue 选择 1", user_id)
                     self.assertIn("发掘", res_sel)
-                    run_end = plugin.save_manager.load_save(user_id)
+                    run_end = load_run(plugin, user_id)
                     self.assertTrue(any(c.id == "discover" and c.no_copy for c in run_end.player.hand))
                     break
                 await run_command(plugin, ".rogue e", user_id)
@@ -321,17 +337,17 @@ class TestRogueChaosUpdate(unittest.TestCase):
             await run_command(plugin, ".rogue talk Dummy", user_id)
             await run_command(plugin, ".rogue 2", user_id)
             for _ in range(8):
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 fa_idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == "first_aid"), None)
                 if fa_idx is not None:
                     await run_command(plugin, f".rogue p {fa_idx}", user_id)
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 disc_idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == "discover"), None)
                 if disc_idx is not None and run.player.exhaust_pile:
                     actions_before = run.player.actions
                     await run_command(plugin, f".rogue p {disc_idx}", user_id)
                     await run_command(plugin, ".rogue exit", user_id)
-                    run_end = plugin.save_manager.load_save(user_id)
+                    run_end = load_run(plugin, user_id)
                     self.assertEqual(run_end.player.actions, actions_before)
                     self.assertTrue(any(c.id == "discover" and "gem_copy_1" in c.gems for c in run_end.player.hand))
                     break

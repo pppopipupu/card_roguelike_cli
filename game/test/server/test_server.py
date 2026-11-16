@@ -264,7 +264,7 @@ class ServerTests(unittest.TestCase):
             {"command": "绑定码", "channel": "web"}, self.web_headers("web-bind")
         ).json()
         match = re.search(r"绑定码：([A-Z0-9]{8})", code_body["text"])
-        self.assertIsNotNone(match)
+        assert match is not None, "bind code must be present"
         code = match.group(1)
 
         im = self.post(
@@ -744,7 +744,7 @@ class ServerTests(unittest.TestCase):
         self.assertTrue(started["ok"])
         self.assertTrue(started["handled"])
         self.assertIsNotNone(started["account"])
-        self.assertIn("第 1 关", started["text"])
+        self.assertIn("契约", started["text"])
         self.assertIsNotNone(store.get_by_im(qq_id))
         self.assertIsNone(store.get_by_im(matrix_id))
 
@@ -754,7 +754,7 @@ class ServerTests(unittest.TestCase):
         ).json()
         self.assertTrue(started_matrix["ok"])
         self.assertIsNotNone(started_matrix["account"])
-        self.assertIn("第 1 关", started_matrix["text"])
+        self.assertIn("契约", started_matrix["text"])
         self.assertIsNotNone(store.get_by_im(matrix_id))
 
     def test_import_legacy_copies_saves_and_registry(self):

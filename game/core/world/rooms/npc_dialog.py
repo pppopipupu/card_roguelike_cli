@@ -10,6 +10,19 @@ from ...party.coordinator import apply_and_scope
 from .interact import _reveal_any_special, get_current_room, resolve_npc_in_room
 from ...party.session import SessionContextScoper
 from ..sp_system import reduce_exhaustion, restore_sp
+from ....data.open_world_config import WORLD_YOG_TEMPLE
+from ....data.world_social_config import WORLD_SNOWFIELD
+from ....data.yog_quest_config import YOG_FLOOR_TEMPLE
+from ...text.pipeline import render_text_node
+from ..open_world.ghost_service import OpenWorldGhostService
+from ..open_world.loadout_service import is_open_world_run
+
+
+def _open_world_grid_location(run, coord: str) -> tuple[str, str]:
+    fm = getattr(run, "floor_map", None)
+    floor_idx = getattr(fm, "floor_index", 0) if fm is not None else 0
+    world = WORLD_YOG_TEMPLE if floor_idx == YOG_FLOOR_TEMPLE else WORLD_SNOWFIELD
+    return world, coord
 
 
 def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
@@ -18,6 +31,9 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
         return None
     nid = resolve_npc_in_room(room, query)
     if not nid:
+        if run.node_type == "grid_map" and is_open_world_run(run):
+            world, pos = _open_world_grid_location(run, coord)
+            return OpenWorldGhostService.try_inspect_ghost(save_manager, world, pos, query, is_touch=False)
         return None
     SessionContextScoper.create_session(
         run,
@@ -355,9 +371,35 @@ def start_npc_combat(map_engine, run, npc_id: str, npc_source: str = "grid", gue
 
 def attack_in_room(map_engine, run, query: str) -> str:
     q = (query or "").strip()
+    room, coord = get_current_room(run)
+    if run.node_type == "grid_map" and is_open_world_run(run):
+        if not q or not room or not resolve_npc_in_room(room, q):
+            world, pos = _open_world_grid_location(run, coord)
+            stats = map_engine.save_manager.load_stats(run.user_id)
+            _, ghost_res = OpenWorldGhostService.try_attack_ghost(
+                map_engine.save_manager,
+                map_engine.battle_engine,
+                run.user_id,
+                stats,
+                world,
+                pos,
+                q,
+                "grid_map",
+                active_run=run,
+            )
+            if ghost_res is not None:
+                return ghost_res
+            if q:
+                world_social = getattr(getattr(map_engine, "grid_map_service", None), "world_social", None)
+                if world_social is not None:
+                    target_entry, _ = world_social.resolve_target(world, pos, q, exclude_uid=run.user_id)
+                    if target_entry is not None:
+                        from ...battle.pvp_service import PvpService
+                        return PvpService.send_challenge(
+                            map_engine.save_manager, world_social, run.user_id, target_entry, world, pos
+                        )
     if not q:
         return get_locale_text("i18n_room_interact.combat.attack_need_arg")
-    room, _ = get_current_room(run)
     if run.node_type == "shop":
         if room is not None and room.shared_payload.get("merchant_defeated"):
             return get_locale_text("i18n_room_interact.combat.attack_already_defeated", name=get_locale_text("i18n_room_interact.npcs.shop_merchant.name"))
@@ -380,7 +422,9 @@ def attack_in_room(map_engine, run, query: str) -> str:
         npcs = list(cafe_data.get("npcs") or [])
         entries = []
         for npc in npcs:
-            sname = NPC_SHOW_NAMES.get(npc, npc)
+            if not npc:
+                continue
+            sname = str(NPC_SHOW_NAMES.get(npc, npc))
             if ql == npc.lower() or ql == sname.lower() or ql in sname.lower():
                 return start_npc_combat(map_engine, run, f"cafe_guest:{npc}", npc_source="cafe_guest", guest_name=sname)
             entries.append((npc, sname))

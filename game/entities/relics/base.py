@@ -54,9 +54,26 @@ class RelicImpl:
 
     def on_node_enter(self, run, engine):
         pass
-
     def modify_initial_draw(self, run, draw_count: int, engine) -> int:
         return draw_count
+
+    def on_battle_win(self, run, engine):
+        pass
+
+    def on_minion_summon(self, event, run, engine):
+        pass
+
+    def on_minion_death(self, event, run, engine):
+        pass
+
+    def on_reward_generate(self, event, run, engine):
+        pass
+
+    def on_card_select_init(self, event, run, engine):
+        pass
+
+    def on_card_obtain(self, event, run, engine):
+        pass
 
 
 def get_relic_impl(relic_id: str) -> Optional[RelicImpl]:

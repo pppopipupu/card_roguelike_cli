@@ -12,7 +12,11 @@ from ...inventory.bag_service import get_item_display_name
 from ....data.yog_quest_config import YOG_SIGIL_ITEM
 from ....data.world_social_config import WORLD_PLAYER_DIALOG_KEY, WORLD_TOWN
 from ....data.town_map_config import TOWN_ROOM_COORDS
+from ....data.open_world_config import TOWN_CHEST_TAB_KEY
 from ..presence import sync_active
+from ..open_world.ghost_service import OpenWorldGhostService
+from ..open_world.loadout_service import OpenWorldLoadoutService
+from ...text.pipeline import render_text_node
 
 class TownEngine:
     def __init__(self, save_manager, engine):
@@ -95,7 +99,8 @@ class TownEngine:
 
         from ....renderer.town import render_town
         room_data = self._load_room_data(stats.town_pos)
-        return render_town(stats, room_data)
+        ghost_names = OpenWorldGhostService.display_names_at(self.save_manager, WORLD_TOWN, stats.town_pos)
+        return render_town(stats, room_data, ghost_names=ghost_names)
 
     def _render_dialog_window(self, stats: UserStats, npc_id: str, zh_cn: Dict[str, Any]) -> str:
         from .dialog_handler import build_dialog_menu
@@ -166,7 +171,8 @@ class TownEngine:
         sync_active(user_id, stats=stats)
         target_room_data = self._load_room_data(target_room)
         from ....renderer.town import render_town
-        return render_town(stats, target_room_data)
+        ghost_names = OpenWorldGhostService.display_names_at(self.save_manager, WORLD_TOWN, target_room)
+        return render_town(stats, target_room_data, ghost_names=ghost_names)
 
     def teleport(self, user_id: str, target_query: str) -> str:
         from ....data.town_map_config import TOWN_ROOM_COORDS
@@ -250,6 +256,7 @@ class TownEngine:
         for ent_id in self._visible_entity_ids(stats, room_data):
             ent_data = entities.get(ent_id, {})
             names = [ent_id.lower(), str(ent_data.get("name", "")).lower()]
+            names.extend(str(a).lower() for a in (ent_data.get("aliases") or []))
             if ent_id == "Harry_Du_Bois":
                 names.extend(a.lower() for a in MERCENARY_CONFIG["harry_du_bois"].get("aliases", []))
             if target_lower in names:
@@ -274,6 +281,11 @@ class TownEngine:
                 return player_res
         target_id = self._resolve_visible_entity(stats, room_data, target_name)
         if not target_id:
+            ghost_msg = OpenWorldGhostService.try_inspect_ghost(
+                self.save_manager, WORLD_TOWN, stats.town_pos, target_name, is_touch=False
+            )
+            if ghost_msg is not None:
+                return ghost_msg
             return get_locale_text("global.interact_not_found", target=target_name)
         return self._open_dialog(user_id, stats, target_id)
 
@@ -296,13 +308,42 @@ class TownEngine:
                 name=get_item_display_name(item_id),
                 desc=get_item_desc(item_id),
             )
+        ghost_msg = OpenWorldGhostService.try_inspect_ghost(
+            self.save_manager, WORLD_TOWN, stats.town_pos, target_name, is_touch=True
+        )
+        if ghost_msg is not None:
+            return ghost_msg
         return get_locale_text("global.interact_not_found", target=target_name)
 
     def attack_target(self, user_id: str, target_name: str) -> str:
         stats = self.save_manager.load_stats(user_id)
         room_data = self._load_room_data(stats.town_pos)
+        if not self._resolve_visible_entity(stats, room_data, target_name):
+            _, ghost_res = OpenWorldGhostService.try_attack_ghost(
+                self.save_manager,
+                self.engine.battle_engine,
+                user_id,
+                stats,
+                WORLD_TOWN,
+                stats.town_pos,
+                target_name,
+                "town",
+            )
+            if ghost_res is not None:
+                return ghost_res
         target_id = self._resolve_visible_entity(stats, room_data, target_name)
         if not target_id:
+            if getattr(self, "world_social", None) is not None:
+                from ....data.town_map_config import TOWN_ROOM_COORDS
+                presence_coord = TOWN_ROOM_COORDS.get(stats.town_pos, stats.town_pos) or stats.town_pos
+                target_entry, _ = self.world_social.resolve_target(
+                    WORLD_TOWN, presence_coord, target_name, exclude_uid=user_id
+                )
+                if target_entry is not None:
+                    from ...battle.pvp_service import PvpService
+                    return PvpService.send_challenge(
+                        self.save_manager, self.world_social, user_id, target_entry, WORLD_TOWN, presence_coord
+                    )
             return get_locale_text("global.interact_not_found", target=target_name)
         if target_id in ("Dummy", "NoobSlayer99", "xXx_SniperElite_xXx", "pppopipupu"):
             stats.town_flags.pop("current_dialog", None)
@@ -329,6 +370,7 @@ class TownEngine:
             stats.town_flags.pop("shop_sub_menu", None)
             stats.town_flags.pop("jack_agreement_menu", None)
             stats.town_flags.pop("jack_riddle_step", None)
+            stats.town_flags.pop(TOWN_CHEST_TAB_KEY, None)
             self.save_manager.save_stats(user_id, stats)
             return get_locale_text("global.dialog_exit", name=npc_data.get("name", npc_id)) + "\n\n" + self.render_current_room(user_id, stats)
 
@@ -356,7 +398,20 @@ class TownEngine:
         if stats.town_flags.get(f"taken_{target_id}", 0):
             return get_locale_text("global.take_already_taken", target=item_name)
 
-        stats.town_inventory.append(target_id)
+        from ....data.open_world_config import TOWN_QUEST_TOKEN_IDS
+        if target_id in TOWN_QUEST_TOKEN_IDS:
+            stats.town_inventory.append(target_id)
+        else:
+            from ...inventory.bag_service import BAG_DEFAULT_MAX_WEIGHT, calc_bag_items_weight, can_add_bag_item, get_item_weight
+            if not can_add_bag_item(stats.open_world_bag, target_id, BAG_DEFAULT_MAX_WEIGHT):
+                return get_locale_text(
+                    "i18n_room_interact.bag.weight_full",
+                    name=get_item_display_name(target_id),
+                    weight=get_item_weight(target_id),
+                    used=round(calc_bag_items_weight(stats.open_world_bag), 1),
+                    max=BAG_DEFAULT_MAX_WEIGHT,
+                )
+            stats.open_world_bag.append(target_id)
         stats.town_flags[f"taken_{target_id}"] = 1
         self.save_manager.save_stats(user_id, stats)
         
@@ -378,6 +433,12 @@ class TownEngine:
                 break
 
         if not target_id or target_id not in stats.town_inventory:
+            bag_msg = OpenWorldLoadoutService.use_bag_item_from_stats(
+                self.engine.battle_engine, user_id, stats, item_name
+            )
+            if bag_msg is not None:
+                self.save_manager.save_stats(user_id, stats)
+                return bag_msg
             return get_locale_text("global.use_not_found", target=item_name)
 
         if target_id == YOG_SIGIL_ITEM:
@@ -392,7 +453,7 @@ class TownEngine:
 
         return get_locale_text("global.use_cannot_use", target=item_name)
 
-    def build_combat_player(self, user_id: str, stats: UserStats, hp: int = None, max_hp: int = None) -> PlayerState:
+    def build_combat_player(self, user_id: str, stats: UserStats, hp: int | None = None, max_hp: int | None = None) -> PlayerState:
         selected_class = getattr(stats, "selected_class", "法师")
         selected_subclass = getattr(stats, "selected_subclass", "")
         if selected_class == "战士":
@@ -401,55 +462,24 @@ class TownEngine:
         else:
             allowed_colors = ("wizard", "neutral")
         if hp is None:
-            hp = 80 if selected_class == "战士" else 45
-            hp += getattr(stats, "town_health_bonus", 0)
-        if max_hp is None:
-            max_hp = hp
+            resolved_hp = 80 if selected_class == "战士" else 45
+            resolved_hp += getattr(stats, "town_health_bonus", 0)
+        else:
+            resolved_hp = hp
+        resolved_max_hp = resolved_hp if max_hp is None else max_hp
         if self.outer_plane_engine.apply_max_hp_zero(stats):
-            hp = 0
-            max_hp = 0
-        commons = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "common" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and not getattr(c, "token", False) and not getattr(c, "event_only", False) and not getattr(c, "life_merchant_only", False) and is_card_available(cid, stats)]
-        rares = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "rare" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and not getattr(c, "token", False) and not getattr(c, "event_only", False) and not getattr(c, "life_merchant_only", False) and is_card_available(cid, stats)]
-        epics = [cid for cid, c in ALL_CARDS.items() if getattr(c, "rarity", "common") == "epic" and getattr(c, "color", "") in allowed_colors and not cid.startswith("curse_") and not cid.startswith("duel_") and cid != "time_stop" and not getattr(c, "coop_only", False) and not getattr(c, "token", False) and not getattr(c, "event_only", False) and not getattr(c, "life_merchant_only", False) and is_card_available(cid, stats)]
-        locked_cards = list(getattr(stats, "locked_cards", []) or [])[:LOCK_SLOT_LIMIT]
-        g_card = getattr(stats, "guaranteed_card", None)
-        if g_card:
-            if g_card not in locked_cards:
-                locked_cards.append(g_card)
-            stats.guaranteed_card = None
-        p_pool = getattr(stats, "purchased_pool", [])
-        if p_pool:
-            locked_cards.extend(p_pool)
-            stats.purchased_pool = []
-        stats.locked_cards = locked_cards[:LOCK_SLOT_LIMIT]
+            resolved_hp = 0
+            resolved_max_hp = 0
+        from ...inventory.deck_service import DeckService
+        deck = DeckService.assemble_starting_deck(
+            stats,
+            include_random_rolls=True,
+            consume_pending=True,
+        )
         self.save_manager.save_stats(user_id, stats)
-        target_counts = dict(STARTING_ROLL_COUNTS)
-        for cid in locked_cards:
-            c_obj = ALL_CARDS.get(cid)
-            r = getattr(c_obj, "rarity", "common") if c_obj else "common"
-            if r not in target_counts:
-                r = "common"
-            if target_counts[r] > 0:
-                target_counts[r] -= 1
-            else:
-                if target_counts["common"] > 0:
-                    target_counts["common"] -= 1
-                elif target_counts["rare"] > 0:
-                    target_counts["rare"] -= 1
-                elif target_counts["epic"] > 0:
-                    target_counts["epic"] -= 1
-        deck = list(CLASS_STARTING_CARDS.get(selected_class, CLASS_STARTING_CARDS["法师"])) + list(locked_cards)
-        for _ in range(target_counts["common"]):
-            deck.append(random.choice(commons))
-        for _ in range(target_counts["rare"]):
-            deck.append(random.choice(rares))
-        for _ in range(target_counts["epic"]):
-            deck.append(random.choice(epics))
-        if selected_class == "法师" and selected_subclass == "时序法师":
-            deck.append("time_stop")
         return PlayerState(
-            hp=hp,
-            max_hp=max_hp,
+            hp=resolved_hp,
+            max_hp=resolved_max_hp,
             shield=0,
             gold=0,
             stage=1,

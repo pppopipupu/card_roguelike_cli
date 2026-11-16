@@ -1,5 +1,6 @@
 import random
 import string
+from typing import TYPE_CHECKING, Optional, Dict
 
 from ...data.checkin_data import (
     LOBBY_ID_LENGTH,
@@ -9,8 +10,28 @@ from ...data.checkin_data import (
 from ...data.locale_data import get_locale_text
 
 
+if TYPE_CHECKING:
+    from ...models.manager import SaveManager
+    from ...models.records import Lobby, PlayerProfile
+    from ...models.state import UserStats
+    from ...engine import GameEngine
+
+
 class SocialTeamMixin:
-    def _lobby_of(self, uid):
+    if TYPE_CHECKING:
+        save_manager: SaveManager
+        engine: Optional[GameEngine]
+
+        def _now(self) -> str: ...
+
+        def _stats(self, uid: str) -> UserStats: ...
+
+        def _profile(self, uid: str) -> Dict[str, str]: ...
+
+        def _find_profile(self, query) -> Optional[PlayerProfile]: ...
+
+        def _class_text(self, stats: UserStats) -> str: ...
+    def _lobby_of(self, uid) -> Optional[Lobby]:
         stats = self._stats(uid)
         lobby_id = getattr(stats, "active_lobby_id", "")
         if not lobby_id:
@@ -80,7 +101,7 @@ class SocialTeamMixin:
         if self.save_manager.has_personal_save(uid):
             return get_locale_text("i18n_social.team_create.personal_save")
         lobby_id = self._new_lobby_id()
-        lobby = {
+        new_lobby: Lobby = {
             "lobby_id": lobby_id,
             "leader_id": uid,
             "members": [uid],
@@ -88,13 +109,13 @@ class SocialTeamMixin:
             "ready": {uid: True},
             "created_at": self._now(),
         }
-        self.save_manager.save_lobby(lobby)
+        self.save_manager.save_lobby(new_lobby)
         stats.active_lobby_id = lobby_id
         self.save_manager.save_stats(uid, stats)
         return get_locale_text(
             "i18n_social.team_create.success",
             lobby_id=lobby_id,
-            lobby_status=self._lobby_status(lobby),
+            lobby_status=self._lobby_status(new_lobby),
         )
 
     def _new_lobby_id(self):
@@ -114,26 +135,26 @@ class SocialTeamMixin:
         target = self._find_profile(query)
         if not target:
             return get_locale_text("i18n_social.common.player_not_found", query=query)
-        target_uid = target.get("user_id")
+        target_uid = target.user_id
         if target_uid == uid:
             return get_locale_text("i18n_social.team_invite.self")
         leader_stats = self._stats(uid)
         if target_uid not in leader_stats.friends:
-            return get_locale_text("i18n_social.team_invite.not_friend", name=target.get("name"))
+            return get_locale_text("i18n_social.team_invite.not_friend", name=target.name)
         if target_uid in lobby.get("members", []):
-            return get_locale_text("i18n_social.team_invite.already_member", name=target.get("name"))
+            return get_locale_text("i18n_social.team_invite.already_member", name=target.name)
         if target_uid in lobby.get("invited", []):
-            return get_locale_text("i18n_social.team_invite.already_invited", name=target.get("name"))
+            return get_locale_text("i18n_social.team_invite.already_invited", name=target.name)
         if len(lobby.get("members", [])) + len(lobby.get("invited", [])) >= TEAM_MAX_MEMBERS:
             return get_locale_text("i18n_social.team_invite.full", max_members=TEAM_MAX_MEMBERS)
         target_stats = self._stats(target_uid)
         if getattr(target_stats, "active_coop_id", ""):
-            return get_locale_text("i18n_social.team_invite.target_in_coop", name=target.get("name"))
+            return get_locale_text("i18n_social.team_invite.target_in_coop", name=target.name)
         lobby.setdefault("invited", []).append(target_uid)
         self.save_manager.save_lobby(lobby)
         return get_locale_text(
             "i18n_social.team_invite.success",
-            name=target.get("name"),
+            name=target.name,
             lobby_id=lobby.get("lobby_id"),
         )
 
@@ -193,7 +214,7 @@ class SocialTeamMixin:
         lobby.setdefault("ready", {})[uid] = False
         lobby["invited"] = [item for item in lobby.get("invited", []) if item != uid]
         self.save_manager.save_lobby(lobby)
-        stats.active_lobby_id = lobby.get("lobby_id")
+        stats.active_lobby_id = str(lobby.get("lobby_id") or "")
         self.save_manager.save_stats(uid, stats)
         return get_locale_text(
             "i18n_social.team_join.success",
@@ -260,11 +281,11 @@ class SocialTeamMixin:
         target = self._find_profile(query)
         if not target:
             return get_locale_text("i18n_social.common.player_not_found", query=query)
-        target_uid = target.get("user_id")
+        target_uid = target.user_id
         if target_uid == uid:
             return get_locale_text("i18n_social.team_kick.self")
         if getattr(self._stats(target_uid), "active_coop_id", ""):
-            return get_locale_text("i18n_social.team_kick.target_in_coop", name=target.get("name"))
+            return get_locale_text("i18n_social.team_kick.target_in_coop", name=target.name)
         removed = False
         if target_uid in lobby.get("members", []):
             lobby["members"] = [item for item in lobby["members"] if item != target_uid]
@@ -274,7 +295,7 @@ class SocialTeamMixin:
             lobby["invited"] = [item for item in lobby["invited"] if item != target_uid]
             removed = True
         if not removed:
-            return get_locale_text("i18n_social.team_kick.not_member", name=target.get("name"))
+            return get_locale_text("i18n_social.team_kick.not_member", name=target.name)
         target_stats = self._stats(target_uid)
         if getattr(target_stats, "active_lobby_id", "") == lobby.get("lobby_id"):
             target_stats.active_lobby_id = ""
@@ -282,7 +303,7 @@ class SocialTeamMixin:
         self.save_manager.save_lobby(lobby)
         return get_locale_text(
             "i18n_social.team_kick.success",
-            name=target.get("name"),
+            name=target.name,
             lobby_status=self._lobby_status(lobby),
         )
 
@@ -371,13 +392,14 @@ class SocialTeamMixin:
         fm = getattr(run, "floor_map", None)
         if fm is None:
             return get_locale_text("i18n_social.team_coordinate.no_floor_map")
-        from ...data.grid_map_config import FLOOR_CONFIGS
+        from ...data.grid_map_config import FLOOR_CONFIGS, get_display_floor
+        from ...renderer.world_grid import format_floor_number
         cfg = FLOOR_CONFIGS.get(fm.floor_index, FLOOR_CONFIGS[1])
         floor_name = get_locale_text(cfg["name_key"])
         lines = [
             get_locale_text(
                 "i18n_social.team_coordinate.header",
-                floor=fm.floor_index,
+                floor=format_floor_number(get_display_floor(fm.floor_index)),
                 floor_name=floor_name,
             )
         ]

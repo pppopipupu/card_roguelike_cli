@@ -28,7 +28,7 @@ class MercTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
         from .....data.locale_data import get_locale_text
         from ....party.mercenary import find_mercenary_uid, list_owned_mercenaries, open_merc_dialog
         merc_uid, err = find_mercenary_uid(run, query, user_id)
-        if err:
+        if merc_uid is None:
             if query:
                 if not list_owned_mercenaries(run, user_id):
                     yield get_locale_text("i18n_room_interact.dialog.talk_not_found", target=query)
@@ -38,7 +38,7 @@ class MercTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
                 if location is not None and router.world_social.presence.players(location[0], coord=location[1], exclude_uid=user_id):
                     yield router.world_social.say_to_world(user_id, location[0], location[1], "")
                     return
-            yield err
+            yield err or get_locale_text("i18n_mercenary.err_not_found", target=query)
             return
         res = open_merc_dialog(run, user_id, merc_uid)
         router.save_manager.save_save(user_id, run)

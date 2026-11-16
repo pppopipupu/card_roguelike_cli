@@ -315,7 +315,8 @@ class GridMapService:
             self.save_manager.save_save(uid, run)
             return f"{get_locale_text('i18n_grid_map.moved_cleared', coord=coord)}\n\n{GameRenderer.render_game(run)}"
 
-        if room.room_type == "corpse":
+        from .open_world.loadout_service import is_open_world_run
+        if room.room_type == "corpse" and not is_open_world_run(run):
             corpse_id = room.shared_payload.get("corpse_id", "")
             corpse = self.save_manager.corpses.get(corpse_id) if corpse_id else None
             if not corpse or corpse.get("claimed_by"):
@@ -398,7 +399,7 @@ class GridMapService:
                 return sid
         return ""
 
-    def _start_or_prompt_battle(self, run, uid: str, coord: str, room, difficulty: str, corpse: dict = None) -> str:
+    def _start_or_prompt_battle(self, run, uid: str, coord: str, room, difficulty: str, corpse: dict | None = None) -> str:
         from ...renderer import GameRenderer
         fm = run.floor_map
         existing_sid = self._find_session_at(fm, coord, "battle")
@@ -434,7 +435,7 @@ class GridMapService:
 
         return self._launch_battle_session(run, coord, [uid], room, difficulty, corpse=corpse)
 
-    def _launch_battle_session(self, run, coord: str, participants: list[str], room, difficulty: str, corpse: dict = None, include_render: bool = True) -> str:
+    def _launch_battle_session(self, run, coord: str, participants: list[str], room, difficulty: str, corpse: dict | None = None, include_render: bool = True) -> str:
         from ...renderer import GameRenderer
         fm = run.floor_map
         caller = run.user_id

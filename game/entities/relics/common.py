@@ -54,7 +54,7 @@ class PenNibRelic(RelicImpl):
             return
         from ...data.card_subtype_data import is_attack_card
         card = getattr(event, "card", None)
-        if not is_attack_card(card):
+        if card is None or not is_attack_card(card):
             return
         from ...core.inventory.relic_service import get_relic_counter, set_relic_counter
         p = run.player

@@ -3,7 +3,7 @@ import random
 import tempfile
 import unittest
 
-from game.test.core.base import CorePlugin, move_to_room, run_command
+from game.test.core.base import CorePlugin, load_run, move_to_room, run_command
 
 
 class TestCoreFlow(unittest.TestCase):
@@ -29,13 +29,12 @@ class TestCoreFlow(unittest.TestCase):
     def test_start_map_battle_and_card_resolution(self):
         uid = "flow_battle_user"
         self.run_cmd("start confirm", uid)
-        run = self.plugin.save_manager.load_save(uid)
-        self.assertIsNotNone(run)
+        run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "start_ancient")
         self.assertEqual(run.player.stage, 1)
 
         self.run_cmd("c 1", uid)
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "grid_map")
         self.assertIsNotNone(run.floor_map)
 
@@ -48,7 +47,7 @@ class TestCoreFlow(unittest.TestCase):
         actions_before = run.player.actions
 
         self.run_cmd("p 1", uid)
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "battle")
         self.assertGreater(len(run.player.discard_pile), 0)
         self.assertLess(run.player.actions, actions_before)
@@ -60,11 +59,11 @@ class TestCoreFlow(unittest.TestCase):
         self.assertGreater(run.player.actions, 0)
 
         self.run_cmd("p 1", uid)
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         actions_after_card = run.player.actions
 
         self.run_cmd("e", uid)
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "battle")
         self.assertGreater(run.player.actions, actions_after_card)
         self.assertLessEqual(run.player.hp, hp_before)
@@ -72,14 +71,14 @@ class TestCoreFlow(unittest.TestCase):
 
         hp_after_first = run.player.hp
         self.run_cmd("e", uid)
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "battle")
         self.assertLessEqual(run.player.hp, hp_after_first)
 
     def test_commands_rejected_outside_battle_and_saves_isolated(self):
         uid = "flow_guard_user"
         self.run_cmd("start confirm", uid)
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "start_ancient")
 
         p_res = self.run_cmd("p 1", uid)
@@ -87,24 +86,24 @@ class TestCoreFlow(unittest.TestCase):
         e_res = self.run_cmd("e", uid)
         self.assertIn("在当前状态下不可用", e_res)
         self.assertEqual(
-            self.plugin.save_manager.load_save(uid).node_type,
+            load_run(self.plugin, uid).node_type,
             "start_ancient",
         )
 
         other = "flow_guard_other"
         self.run_cmd("start confirm", other)
         self.assertEqual(
-            self.plugin.save_manager.load_save(other).node_type,
+            load_run(self.plugin, other).node_type,
             "start_ancient",
         )
 
         self.run_cmd("c 1", uid)
         self.assertEqual(
-            self.plugin.save_manager.load_save(uid).node_type,
+            load_run(self.plugin, uid).node_type,
             "grid_map",
         )
         self.assertEqual(
-            self.plugin.save_manager.load_save(other).node_type,
+            load_run(self.plugin, other).node_type,
             "start_ancient",
         )
 

@@ -8,6 +8,7 @@ from ..data.locale_data import t
 from .menu import get_card_cost_str
 from .card_preview import render_card_description, replace_structured_number
 from .formatters import format_buff_detail, format_buff_list, format_npcs_and_players_line, format_relic_bar, format_relic_name_with_counter, get_effective_max_hp
+from .world_grid import get_run_coord_prefix
 
 
 def _append_world_players_line(lines: list[str], run: GameRun) -> None:
@@ -101,7 +102,7 @@ def render_battle(run: GameRun) -> str:
     turn_count = run.node_data.get("turn_count", 1)
     lines = [
         t("renderer.battle.separator"),
-        t("renderer.battle.title", stage=p.stage, turn=turn_count),
+        t("renderer.battle.title", coord_prefix=get_run_coord_prefix(run), turn=turn_count),
         t("renderer.battle.status_line", name=run.player.name, hp=p.hp, max_hp=cur_max, shield=p.shield, actions=p.actions, bonus_actions=p.bonus_actions) + relics_str + potions_str
     ]
     if getattr(run, "floor_map", None) is not None or getattr(p, "sp", 10) < getattr(p, "max_sp", 10):
@@ -111,6 +112,19 @@ def render_battle(run: GameRun) -> str:
             lines.append(t("renderer.battle.downed"))
     if p.buffs:
         lines.append(t("renderer.battle.buff_line", name=run.player.name) + format_buff_list(p.buffs))
+    if run.node_data.get("pvp_match_id"):
+        import time
+        from ..data.pvp_config import PVP_ROPE_WARNING_SECONDS, PVP_TURN_TIMEOUT_SECONDS
+        turn_uid = str(run.node_data.get("pvp_turn_uid", ""))
+        started_at = float(run.node_data.get("pvp_turn_started_at", time.time()))
+        rem = max(0, int(PVP_TURN_TIMEOUT_SECONDS - (time.time() - started_at)))
+        if turn_uid == str(run.user_id):
+            lines.append(t("i18n_pvp.battle.turn_yours", turn=turn_count))
+            rope_key = "i18n_pvp.battle.rope_warning" if rem <= PVP_ROPE_WARNING_SECONDS else "i18n_pvp.battle.rope_normal"
+        else:
+            lines.append(t("i18n_pvp.battle.turn_waiting", opp=str(run.node_data.get("pvp_opp_name", "")), turn=turn_count))
+            rope_key = "i18n_pvp.battle.rope_opp_warning" if rem <= PVP_ROPE_WARNING_SECONDS else "i18n_pvp.battle.rope_opp_normal"
+        lines.append(t(rope_key, seconds=rem))
     _append_world_players_line(lines, run)
     lines.append("")
     lines.append(t("renderer.battle.ally_field"))

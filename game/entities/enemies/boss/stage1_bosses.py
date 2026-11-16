@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
 from ....data.buff_data import BUFF_CONFIG
 from ....data.enemy_data import ENEMY_CONFIG
@@ -111,21 +111,13 @@ class BossRedDragonTemplate(EnemyTemplate):
             ))
         logs.append(get_locale_text("i18n_enemy_boss.red_dragon_log_summon_many", enemy_name=enemy.name, count=max(1, count)))
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
-            logs = intent
-            from ....models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
+            logs = []
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")
         val = intent.val + strength
         enemy_key = f"e{run.enemies.index(enemy)+1}" if enemy in run.enemies else ""
-
+    
         if intent.type == "summon":
             self._summon_imps(run, logs, enemy, intent.val)
         elif intent.type == "defend":
@@ -246,20 +238,12 @@ class BossThunderLordTemplate(EnemyTemplate):
             ))
         return intents_list
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
-            logs = intent
-            from ....models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
+            logs = []
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")
         val = intent.val + strength
-
+    
         if intent.type == "thunder_strike":
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="thunder")

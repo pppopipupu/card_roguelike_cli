@@ -37,44 +37,11 @@ class GameEngine:
         hp += hp_bonus
         max_hp += hp_bonus
         from .core.inventory.deck_service import DeckService
-        commons = [cid for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("common",)) if cid != "time_stop"]
-        rares = [cid for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("rare",)) if cid != "time_stop"]
-        epics = [cid for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("epic",)) if cid != "time_stop"]
-        locked_cards = list(getattr(stats, "locked_cards", []) or [])[:LOCK_SLOT_LIMIT]
-        g_card = getattr(stats, "guaranteed_card", None)
-        if g_card:
-            if g_card not in locked_cards:
-                locked_cards.append(g_card)
-            stats.guaranteed_card = None
-        p_pool = getattr(stats, "purchased_pool", [])
-        if p_pool:
-            locked_cards.extend(p_pool)
-            stats.purchased_pool = []
-        stats.locked_cards = locked_cards[:LOCK_SLOT_LIMIT]
-        target_counts = dict(STARTING_ROLL_COUNTS)
-        for cid in locked_cards:
-            c_obj = ALL_CARDS.get(cid)
-            r = getattr(c_obj, "rarity", "common") if c_obj else "common"
-            if r not in target_counts:
-                r = "common"
-            if target_counts[r] > 0:
-                target_counts[r] -= 1
-            else:
-                if target_counts["common"] > 0:
-                    target_counts["common"] -= 1
-                elif target_counts["rare"] > 0:
-                    target_counts["rare"] -= 1
-                elif target_counts["epic"] > 0:
-                    target_counts["epic"] -= 1
-        initial_deck = list(CLASS_STARTING_CARDS.get(selected_class, CLASS_STARTING_CARDS["法师"])) + list(locked_cards)
-        for _ in range(target_counts["common"]):
-            initial_deck.append(random.choice(commons))
-        for _ in range(target_counts["rare"]):
-            initial_deck.append(random.choice(rares))
-        for _ in range(target_counts["epic"]):
-            initial_deck.append(random.choice(epics))
-        if selected_class == "法师" and selected_subclass == "时序法师":
-            initial_deck.append("time_stop")
+        initial_deck = DeckService.assemble_starting_deck(
+            stats,
+            include_random_rolls=True,
+            consume_pending=True,
+        )
         player = PlayerState(
             hp=hp,
             max_hp=max_hp,
@@ -110,22 +77,21 @@ class GameEngine:
             raise ValueError(f"Coop party exceeds COOP_MAX_PLAYERS ({COOP_MAX_PLAYERS})")
         leader = leader_id or member_ids[0]
         coop_id = uuid.uuid4().hex[:8] if (shared_save or len(member_ids) > 1) else ""
+        players = {uid: self._build_player_state(uid) for uid in member_ids}
         run = GameRun(
             user_id=leader,
             node_type="start",
-            player=None,
+            player=players[leader],
             enemies=[],
             node_data={},
             coop_id=coop_id,
             leader_id=leader,
             party_order=list(member_ids),
-            players={},
+            players=players,
         )
         pending_mercs = []
         for uid in member_ids:
-            player = self._build_player_state(uid)
-            run.players[uid] = player
-            run.player = player
+            run.player = players[uid]
             run.user_id = uid
             stats = self.save_manager.load_stats(uid)
             if coop_id:

@@ -22,7 +22,7 @@ def is_barista_query(query: str) -> bool:
     return find_entry_by_query(entries, query) is not None
 
 
-def get_barista_dialog_content(run, state: str) -> Tuple[str, List[str]]:
+def get_barista_dialog_content(run, state: str | None) -> Tuple[str, List[str]]:
     cfg = CAFE_BARISTA_CONFIG
     opts = [
         get_locale_text("i18n_room_interact.cafe.barista_opt_espresso", cost=cfg["espresso_cost"], sp=cfg["espresso_sp"], cure=cfg["espresso_ex_cure"]),

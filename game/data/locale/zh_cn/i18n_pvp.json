@@ -1,0 +1,56 @@
+{
+  "card_merchant": {
+    "title": "🃏 【主城牌商 · 开放世界卡组补给】",
+    "summary": "💰 当前金币：{gp} GP | 🃏 当前主城共享卡组：共 {deck_count} 张",
+    "tip": "💡 此处售卖为主城与开放世界专属克制卡牌，购买后立即加入主城共享卡组。",
+    "item_row": "[{idx}] 【{name}】 ({color} · {cost}) — {price} GP\n      {desc}",
+    "opt_leave": "离开交谈",
+    "buy_success": "✅ 购买成功！已花费 {price} GP 将【{name}】加入你的主城共享卡组（当前共 {deck_count} 张）。",
+    "insufficient_gp": "❌ 金币不足！购买【{name}】需要 {price} GP，你当前仅有 {gp} GP。",
+    "invalid_option": "❌ 无效选项，请输入商品序号或 0 离开。",
+    "color_neutral": "中立",
+    "color_wizard": "法师",
+    "color_warrior": "战士"
+  },
+  "toggle": {
+    "enabled": "⚔️ 已开启 PVP 切磋开关，同格玩家可以使用 atk 向你发起切磋。",
+    "disabled": "🛡️ 已关闭 PVP 切磋开关，其他玩家无法向你发起 PVP 切磋。",
+    "status_on": "⚔️ 当前 PVP 切磋开关：已开启（输入 pvp 可关闭）。",
+    "status_off": "🛡️ 当前 PVP 切磋开关：已关闭（输入 pvp 可开启）。"
+  },
+  "invite": {
+    "sent": "⚔️ 已向同格玩家【{name}】发出 PVP 切磋请求，等待对方确认！",
+    "push_to_target": "⚔️ 【{name}】向你发起了 PVP 切磋请求！请回复：[1] 接受 | [2] 不接受 | [3] 关闭PVP",
+    "popup_header": "⚔️ 【PVP 切磋请求】来自同格玩家【{name}】",
+    "popup_opts": "  [1] 接受（立即开战）\n  [2] 不接受\n  [3] 关闭PVP并拒绝\n💡 输入序号 1/2/3 或直接输入 接受 / 不接受 / 关闭PVP",
+    "target_disabled": "🛡️ 【{name}】当前已关闭 PVP 切磋开关，无法发起对战。",
+    "target_busy": "⚠️ 【{name}】正在战斗或处理其他对局中，暂时无法接受切磋。",
+    "self_busy": "⚠️ 你当前正在战斗中，无法发起新的 PVP 切磋。",
+    "none_pending": "❌ 你当前没有待处理的 PVP 切磋请求。",
+    "expired": "⌛ 该 PVP 切磋请求已失效或对方已离开当前位置。",
+    "accepted_self": "⚔️ 你接受了【{name}】的 PVP 切磋挑战，战斗开始！",
+    "accepted_notify": "⚔️ 【{name}】接受了你的 PVP 切磋挑战，战斗开始！",
+    "declined_self": "✋ 你拒绝了【{name}】的 PVP 切磋请求。",
+    "declined_notify": "✋ 【{name}】拒绝了你的 PVP 切磋请求。",
+    "disabled_self": "🛡️ 你已拒绝本次切磋并关闭 PVP 开关。",
+    "disabled_notify": "🛡️ 【{name}】拒绝了你的切磋请求并关闭了 PVP。"
+  },
+  "battle": {
+    "rope_normal": "⏳ 回合时限：还剩 {seconds} 秒",
+    "rope_warning": "🔥 烧绳警告！你的回合仅剩 {seconds} 秒，超时将自动结束回合！",
+    "rope_opp_normal": "⏳ 对手回合时限：还剩 {seconds} 秒",
+    "rope_opp_warning": "🔥 对手正在烧绳！仅剩 {seconds} 秒",
+    "turn_yours": "🟢 当前回合：你的回合（第 {turn} 回合）",
+    "turn_waiting": "⏳ 当前回合：等待【{opp}】行动（第 {turn} 回合）",
+    "wait_action_blocked": "⏳ 现在是【{opp}】的回合，请等待对方结束回合或烧绳超时（剩余 {seconds} 秒）。",
+    "turn_ended_wait": "⏳ 你结束了第 {turn} 回合，正在等待【{opp}】行动...",
+    "your_turn_notify": "🔔 对手【{opp}】已结束回合，现在轮到你的第 {turn} 回合！",
+    "rope_auto_end": "🔥 【烧绳超时】{name} 本回合超时未操作，系统已自动结束其回合！",
+    "rope_auto_forfeit": "🔥 【连续烧绳判负】{name} 连续超时未行动，判为战败！",
+    "opp_intent": "PVP 切磋对手（等待对方行动）",
+    "win_banner": "🏆 PVP 切磋胜利！你击败了【{loser}】，获得与击败他人冤魂同等的 {gp} GP 奖励！",
+    "lose_banner": "💀 PVP 切磋战败！你不敌【{winner}】，触发开放世界死亡结算：遗落了随身物品、遗物与卡组并留下冤魂，已返回主城中心广场。",
+    "abandon_forfeit": "🏳️ 你放弃了 PVP 切磋，视为战败！",
+    "opp_forfeit_notify": "🏆 对手【{loser}】主动放弃了切磋！你赢得胜利并获得 {gp} GP 奖励！"
+  }
+}

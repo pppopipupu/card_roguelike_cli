@@ -5,7 +5,7 @@
     "w": "square",
     "a": "blacksmith"
   },
-  "npcs": ["Market_Merchant"],
+  "npcs": ["Market_Merchant", "Town_Card_Merchant"],
   "items": [],
   "interactive": {}
 }

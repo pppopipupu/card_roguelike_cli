@@ -30,7 +30,7 @@ class UnminedGemCard(Card):
             new_cid = copy.copy(target_cid)
             new_cid.replay = new_val
             run.player.hand[idx] = new_cid
-            card_name = ALL_CARDS.get(new_cid).name
+            card_name = ALL_CARDS[new_cid].name
             if old_val > 0:
                 return get_locale_text("i18n_cards_neutral.neutral.cards.unmined_gem.result_stacked", name=self.name, card_name=card_name, val=val, new_val=new_val)
             else:

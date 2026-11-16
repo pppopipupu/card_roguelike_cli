@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
 from ....data.locale_data import get_locale_text
 
@@ -8,17 +8,9 @@ class AstralPuppyTemplate(EnemyTemplate):
         from ....models.state import EnemyIntentState
         return [EnemyIntentState(type="star_bite", val=3, desc=get_locale_text("i18n_enemy_misc.astral_puppy.intent_star_bite"), cost_a=1, cost_ba=0)]
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
-            logs = intent
-            from ....models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
+            logs = []
         strength = 0
         for b in enemy.buffs:
             if b.id == "strength":

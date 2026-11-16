@@ -6,14 +6,14 @@ import asyncio
 
 
 if sys.platform.startswith("win"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
-
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            try:
+                stream.reconfigure(encoding="utf-8")
+            except Exception:
+                pass
 from game.models.manager import SaveManager
-from game.models.state import GameRun, PlayerState, EnemyState, MinionState, BuffState
+from game.models.state import GameRun, PlayerState, EnemyState, MinionState, BuffState, FloorMapState
 from game.core.battle.engine import BattleEngine
 from game.core.world.map_engine import MapEngine
 from game.entities.cards.base import ALL_CARDS
@@ -22,6 +22,11 @@ from game.core.cli.router import CLIRouter
 from game.models.state import UserStats
 from game.engine import GameEngine
 from game.core.api.headless_server import HeadlessGameServer
+
+
+class DummySaveManagerBase(SaveManager):
+    def __init__(self):
+        pass
 
 class DummyContext:
     pass
@@ -96,15 +101,28 @@ async def run_command(plugin, cmd_str: str, sender_id: str = "test_user") -> str
             pass
     return "\n".join(event.results)
 
-async def async_move_to_room(plugin, uid: str, target_types, rally: bool = False):
+def require_run(run: GameRun | None) -> GameRun:
+    assert run is not None, "missing save"
+    return run
+
+def load_run(plugin, uid: str) -> GameRun:
+    return require_run(plugin.save_manager.load_save(uid))
+
+def floor_of(run: GameRun) -> FloorMapState:
+    fm = run.floor_map
+    assert fm is not None, "missing floor map"
+    return fm
+
+async def async_move_to_room(plugin, uid: str, target_types, rally: bool = False) -> tuple[str, GameRun]:
     import heapq
     from game.core.world.grid_map_generator import coord_to_xy, xy_to_coord
     if isinstance(target_types, str):
         target_types = (target_types,)
     else:
         target_types = tuple(target_types)
-    run = plugin.save_manager.load_save(uid)
+    run = load_run(plugin, uid)
     fm = run.floor_map
+    assert fm is not None, "missing floor map"
     start = fm.player_coords.get(uid)
     if not start:
         return "", run
@@ -165,29 +183,27 @@ async def async_move_to_room(plugin, uid: str, target_types, rally: bool = False
     last_res = ""
     for idx, (coord, dcmd) in enumerate(path):
         last_res = await run_command(plugin, dcmd, uid)
-        run = plugin.save_manager.load_save(uid)
-        if run is None:
-            return last_res, None
-        if run.node_type == "grid_map" and run.floor_map.player_coords.get(uid) != coord:
+        run = load_run(plugin, uid)
+        if run.node_type == "grid_map" and run.floor_map is not None and run.floor_map.player_coords.get(uid) != coord:
             last_res = await run_command(plugin, dcmd, uid)
-            run = plugin.save_manager.load_save(uid)
+            run = load_run(plugin, uid)
         is_last = idx == len(path) - 1
         if is_last:
-            if run and run.node_type == "battle_prompt":
+            if run.node_type == "battle_prompt":
                 opt_cmd = "2" if rally else "1"
                 last_res = await run_command(plugin, opt_cmd, uid)
-                run = plugin.save_manager.load_save(uid)
+                run = load_run(plugin, uid)
             break
-        if run and run.node_type == "battle_prompt":
+        if run.node_type == "battle_prompt":
             await run_command(plugin, "3", uid)
-        elif run and run.node_type in ("shop", "rest", "cafe", "landmark", "life_merchant", "treasure"):
+        elif run.node_type in ("shop", "rest", "cafe", "landmark", "life_merchant", "treasure"):
             await run_command(plugin, "离开", uid)
-        elif run and run.node_type == "event":
+        elif run.node_type == "event":
             opts = run.node_data.get("options", [])
             if opts:
                 await run_command(plugin, str(len(opts)), uid)
-    return last_res, plugin.save_manager.load_save(uid)
+    return last_res, load_run(plugin, uid)
 
 
-def move_to_room(plugin, uid: str, target_types, rally: bool = False):
+def move_to_room(plugin, uid: str, target_types, rally: bool = False) -> tuple[str, GameRun]:
     return asyncio.run(async_move_to_room(plugin, uid, target_types, rally=rally))

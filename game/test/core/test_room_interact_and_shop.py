@@ -4,7 +4,7 @@ import random
 import tempfile
 import unittest
 from game.core.world.grid_map_generator import coord_to_xy, xy_to_coord
-from game.test.core.base import CorePlugin, move_to_room, run_command
+from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, require_run, run_command
 
 
 class TestRoomInteractAndShop(unittest.TestCase):
@@ -24,12 +24,12 @@ class TestRoomInteractAndShop(unittest.TestCase):
     def _start_grid(self, uid: str):
         self.run_cmd("start confirm", uid)
         self.run_cmd("c 1", uid)
-        return self.plugin.save_manager.load_save(uid)
+        return load_run(self.plugin, uid)
 
     def test_obstacle_two_step_confirmation_and_cancel(self):
         uid = "obs_two_step_user"
         run = self._start_grid(uid)
-        fm = run.floor_map
+        fm = floor_of(run)
         sx, sy = coord_to_xy(fm.player_coords[uid])
         obs_dir = None
         other_dir = None
@@ -54,6 +54,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
                         obs_dir = d
                         break
             self.plugin.save_manager.save_save(uid, run)
+        assert obs_dir is not None, "obstacle direction must exist"
         step1 = self.run_cmd(obs_dir, uid)
         self.assertIn("1/2", step1)
         self.assertIn("坍塌巨石堆", step1)
@@ -61,7 +62,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self.assertIn("2/2", step2)
         step3 = self.run_cmd(obs_dir, uid)
         self.assertIn("破除", step3)
-        run_after = self.plugin.save_manager.load_save(uid)
+        run_after = load_run(self.plugin, uid)
         self.assertLess(run_after.player.sp, run_after.player.max_sp)
 
     def test_fold_guide_touch_take_bag_use_and_drop(self):
@@ -75,7 +76,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
         unfolded = self.run_cmd("f", uid)
         self.assertIn("w/a/s/d", unfolded)
 
-        fm = run.floor_map
+        fm = floor_of(run)
         cur_coord = fm.player_coords[uid]
         room = fm.rooms[cur_coord]
         prop_id = room.props[0]
@@ -97,7 +98,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
 
         use_out = self.run_cmd("使用 浓缩咖啡豆", uid)
         self.assertIn("SP", use_out)
-        run_after = self.plugin.save_manager.load_save(uid)
+        run_after = load_run(self.plugin, uid)
         self.assertNotIn("espresso_beans", run_after.player.bag_items)
 
     def _win_current_battle(self, uid: str):
@@ -118,7 +119,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
     def test_room_npc_dialog_and_attack_combat(self):
         uid = "npc_dialog_atk_user"
         run = self._start_grid(uid)
-        fm = run.floor_map
+        fm = floor_of(run)
         cur_coord = fm.player_coords[uid]
         room = fm.rooms[cur_coord]
         room.npcs = ["wandering_smith", "lost_scholar"]
@@ -127,22 +128,22 @@ class TestRoomInteractAndShop(unittest.TestCase):
 
         talk_out = self.run_cmd("对话 托林", uid)
         self.assertIn("托林", talk_out)
-        run_dlg = self.plugin.save_manager.load_save(uid)
+        run_dlg = load_run(self.plugin, uid)
         self.assertEqual(run_dlg.node_type, "room_dialog")
         leave_out = self.run_cmd("离开", uid)
         self.assertIn("告别", leave_out)
-        self.assertEqual(self.plugin.save_manager.load_save(uid).node_type, "grid_map")
+        self.assertEqual(load_run(self.plugin, uid).node_type, "grid_map")
 
         atk_out = self.run_cmd("攻击 艾拉", uid)
         self.assertIn("发起攻击", atk_out)
-        run_bat = self.plugin.save_manager.load_save(uid)
+        run_bat = load_run(self.plugin, uid)
         self.assertEqual(run_bat.node_type, "battle")
-        run_end = self._win_current_battle(uid)
+        run_end = require_run(self._win_current_battle(uid))
         if run_end.node_type == "reward":
             self.run_cmd("离开", uid)
-            run_end = self.plugin.save_manager.load_save(uid)
+            run_end = load_run(self.plugin, uid)
         self.assertEqual(run_end.node_type, "grid_map")
-        self.assertIn("lost_scholar", run_end.floor_map.rooms[cur_coord].defeated_npcs)
+        self.assertIn("lost_scholar", floor_of(run_end).rooms[cur_coord].defeated_npcs)
         self.assertIn("[FAIL]", self.run_cmd("攻击 艾拉", uid))
 
     def test_shop_lobby_dialog_wares_and_merchant_attack(self):
@@ -151,12 +152,12 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self._start_grid(uid)
         _, run = move_to_room(self.plugin, uid, ("shop",))
         if run.node_type != "shop":
-            fm = run.floor_map
+            fm = floor_of(run)
             shop_coord = next(c for c, r in fm.rooms.items() if r.room_type == "shop")
             fm.revealed_coords.append(shop_coord)
             self.plugin.save_manager.save_save(uid, run)
             self.run_cmd(f"tp {shop_coord}", uid)
-            run = self.plugin.save_manager.load_save(uid)
+            run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "shop")
         self.assertEqual(run.node_data.get("shop_mode"), "lobby")
         lobby_view = self.run_cmd("i", uid)
@@ -164,39 +165,39 @@ class TestRoomInteractAndShop(unittest.TestCase):
 
         dlg_out = self.run_cmd("对话 维克多", uid)
         self.assertIn("讨价还价", dlg_out)
-        self.assertEqual(self.plugin.save_manager.load_save(uid).node_data.get("shop_mode"), "dialog")
+        self.assertEqual(load_run(self.plugin, uid).node_data.get("shop_mode"), "dialog")
 
         wares_out = self.run_cmd("c 1", uid)
-        self.assertEqual(self.plugin.save_manager.load_save(uid).node_data.get("shop_mode"), "wares")
+        self.assertEqual(load_run(self.plugin, uid).node_data.get("shop_mode"), "wares")
         self.assertIn("商店", wares_out)
         back_lobby = self.run_cmd("离开", uid)
-        self.assertEqual(self.plugin.save_manager.load_save(uid).node_data.get("shop_mode"), "lobby")
+        self.assertEqual(load_run(self.plugin, uid).node_data.get("shop_mode"), "lobby")
         self.assertIn("行商", back_lobby)
 
 
         atk_res = self.run_cmd("攻击 维克多", uid)
         self.assertIn("维克多", atk_res)
-        run_bat = self.plugin.save_manager.load_save(uid)
+        run_bat = load_run(self.plugin, uid)
         self.assertEqual(run_bat.node_type, "battle")
-        run_post = self._win_current_battle(uid)
+        run_post = require_run(self._win_current_battle(uid))
         if run_post.node_type == "reward":
             self.run_cmd("离开", uid)
-            run_post = self.plugin.save_manager.load_save(uid)
+            run_post = load_run(self.plugin, uid)
         self.assertEqual(run_post.node_type, "grid_map")
-        cur_c = run_post.floor_map.player_coords[uid]
-        self.assertTrue(run_post.floor_map.rooms[cur_c].shared_payload.get("merchant_defeated"))
+        cur_c = floor_of(run_post).player_coords[uid]
+        self.assertTrue(floor_of(run_post).rooms[cur_c].shared_payload.get("merchant_defeated"))
 
     def test_cafe_barista_props_and_attack(self):
         uid = "cafe_barista_user"
         self._start_grid(uid)
         _, run = move_to_room(self.plugin, uid, ("cafe",))
         if run.node_type != "cafe":
-            fm = run.floor_map
+            fm = floor_of(run)
             cafe_coord = next(c for c, r in fm.rooms.items() if r.room_type == "cafe")
             fm.revealed_coords.append(cafe_coord)
             self.plugin.save_manager.save_save(uid, run)
             self.run_cmd(f"tp {cafe_coord}", uid)
-            run = self.plugin.save_manager.load_save(uid)
+            run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "cafe")
         look_out = self.run_cmd("look", uid)
         self.assertIn("布鲁诺", look_out)
@@ -217,36 +218,47 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self.run_cmd("c 7", uid)
         atk_barista = self.run_cmd("攻击 店长", uid)
         self.assertIn("布鲁诺", atk_barista)
-        self.assertEqual(self.plugin.save_manager.load_save(uid).node_type, "battle")
+        self.assertEqual(load_run(self.plugin, uid).node_type, "battle")
 
     def test_town_inventory_folds_and_uses_localized_names(self):
         uid = "town_inventory_fold_user"
         self.run_cmd("主城", uid)
         stats = self.plugin.save_manager.load_stats(uid)
         stats.town_inventory = [
+            "wine_glass",
+            "strange_ore",
+            "lost_notebook",
+            "lucky_coin",
+            "smith_hammer",
+            "rusty_key",
+        ]
+        stats.open_world_bag = [
             "espresso_beans",
             "merchant_ledger",
             "ancient_notes",
             "skeleton_key",
             "smuggler_token",
-            "rusty_key",
         ]
+        stats.town_chest = list(stats.open_world_bag)
         self.plugin.save_manager.save_stats(uid, stats)
         folded = self.run_cmd("状态", uid)
         self.assertIn("共 6 件", folded)
         self.assertIn("已折叠", folded)
-        self.assertIn("输入 bag 查看", folded)
-        self.assertNotIn("浓缩咖啡豆", folded)
-        bag_out = self.run_cmd("bag t", uid)
-        for name in ("浓缩咖啡豆", "行商账册", "先古残页", "万能骷髅钥匙", "走私者徽记", "锈蚀的钥匙"):
+        self.assertNotIn("酒杯", folded)
+        bag_out = self.run_cmd("bag", uid)
+        chest_out = self.run_cmd("talk 储物箱", uid)
+        self.run_cmd("0", uid)
+        for name in ("浓缩咖啡豆", "行商账册", "先古残页", "万能骷髅钥匙", "走私者徽记"):
             self.assertIn(name, bag_out)
-        for raw_id in ("espresso_beans", "merchant_ledger", "ancient_notes", "skeleton_key", "smuggler_token", "rusty_key"):
+            self.assertIn(name, chest_out)
+        for raw_id in ("espresso_beans", "merchant_ledger", "ancient_notes", "skeleton_key", "smuggler_token"):
             self.assertNotIn(raw_id, bag_out)
+            self.assertNotIn(raw_id, chest_out)
         stats = self.plugin.save_manager.load_stats(uid)
         stats.town_inventory = stats.town_inventory[:5]
         self.plugin.save_manager.save_stats(uid, stats)
         unfolded = self.run_cmd("状态", uid)
-        self.assertIn("浓缩咖啡豆", unfolded)
+        self.assertIn("精致的空酒杯", unfolded)
         self.assertNotIn("已折叠", unfolded)
 
     def test_combat_room_entry_shows_environment_intro(self):
@@ -257,7 +269,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self.assertIn("你踏入了", res)
         from game.data.room_interact_data import ROOM_PROPS
         from game.data.locale_data import get_locale_text
-        room = run.floor_map.rooms[run.floor_map.player_coords[uid]]
+        room = floor_of(run).rooms[floor_of(run).player_coords[uid]]
         self.assertTrue(any(get_locale_text(ROOM_PROPS[pid]["name_key"]) in res for pid in room.props))
 
     def test_bag_modes_and_universal_fold(self):
@@ -275,12 +287,12 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self.assertIn("秘境冒险行囊", rogue_bag)
         self.assertIn("负重", rogue_bag)
         town_bag = self.run_cmd("bag t", uid)
-        self.assertIn("先古主城行囊", town_bag)
-        self.assertIn("无限", town_bag)
+        self.assertIn("广场", town_bag)
+        self.assertIn("储物箱", town_bag)
         stats = self.plugin.save_manager.load_stats(uid)
-        stats.town_inventory = ["merchant_ledger", "merchant_ledger", "ancient_notes"]
+        stats.open_world_bag = ["merchant_ledger", "merchant_ledger", "ancient_notes"]
         self.plugin.save_manager.save_stats(uid, stats)
-        stacked_bag = self.run_cmd("bag t", uid)
+        stacked_bag = self.run_cmd("bag o", uid)
         self.assertIn("【行商账册】 ×2", stacked_bag)
         self.assertEqual(stacked_bag.count("【行商账册】"), 1)
         self.assertEqual(stacked_bag.count("记录着秘密货源"), 1)
@@ -324,16 +336,16 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self.run_cmd("d", uid)
         self.run_cmd("leave", uid)
         camp_entry = self.run_cmd("d", uid)
-        self.assertEqual(self.plugin.save_manager.load_save(uid).node_type, "landmark")
+        self.assertEqual(load_run(self.plugin, uid).node_type, "landmark")
         self.assertIn("断剑残营", camp_entry)
         scavenge_res = self.run_cmd("c 3", uid)
         self.assertTrue("断剑残营" in scavenge_res and ("翻出了" in scavenge_res or "捡到了" in scavenge_res))
-        run_camp = self.plugin.save_manager.load_save(uid)
+        run_camp = load_run(self.plugin, uid)
         if run_camp.node_type == "landmark":
             self.run_cmd("leave", uid)
 
         hd_res = self.run_cmd("d", uid)
-        run_hd = self.plugin.save_manager.load_save(uid)
+        run_hd = load_run(self.plugin, uid)
         self.assertEqual(run_hd.node_type, "battle")
         self.assertIn("深渊寒蚀", hd_res)
         self.assertTrue(any(b.id == "weak" for b in run_hd.player.buffs))
@@ -357,7 +369,9 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self.run_cmd(f"friend add {pid2}", uid1)
         self.run_cmd(f"friend accept {pid1}", uid2)
         created = self.run_cmd("team create", uid1)
-        lobby_id = re.search(r"队伍 ([A-Z0-9]{6})", created).group(1)
+        match = re.search(r"队伍 ([A-Z0-9]{6})", created)
+        assert match is not None, "team id must be present"
+        lobby_id = match.group(1)
         self.run_cmd(f"friend invite {pid2}", uid1)
         self.run_cmd(f"team join {lobby_id}", uid2)
         self.run_cmd("team ready", uid2)
@@ -366,8 +380,8 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self.run_cmd("c 1", uid1)
         self.run_cmd("c 1", uid2)
 
-        run_coop = self.plugin.save_manager.load_save(uid1)
-        fm = run_coop.floor_map
+        run_coop = load_run(self.plugin, uid1)
+        fm = floor_of(run_coop)
         start_c = fm.player_coords[uid1]
         hd_targets = {c for c, r in fm.rooms.items() if r.room_type == "high_danger"}
         pq = [(0, start_c)]
@@ -395,7 +409,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
                     dist[nc] = d + cost
                     prev[nc] = cur
                     heapq.heappush(pq, (d + cost, nc))
-        self.assertIsNotNone(target_c)
+        assert target_c is not None, "high danger target must exist"
         path = []
         cur = target_c
         while cur != start_c:
@@ -407,11 +421,11 @@ class TestRoomInteractAndShop(unittest.TestCase):
         path.reverse()
         for step_idx, (coord, dcmd) in enumerate(path):
             self.run_cmd(dcmd, uid1)
-            cur_run = self.plugin.save_manager.load_save(uid1)
-            if cur_run.node_type == "grid_map" and cur_run.floor_map.player_coords.get(uid1) != coord:
+            cur_run = load_run(self.plugin, uid1)
+            if cur_run.node_type == "grid_map" and floor_of(cur_run).player_coords.get(uid1) != coord:
                 self.run_cmd(dcmd, uid1)
                 self.run_cmd(dcmd, uid1)
-                cur_run = self.plugin.save_manager.load_save(uid1)
+                cur_run = load_run(self.plugin, uid1)
             if step_idx < len(path) - 1:
                 if cur_run.node_type == "battle_prompt":
                     self.run_cmd("c 3", uid1)
@@ -421,7 +435,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
                     opts = cur_run.node_data.get("options", [])
                     if opts:
                         self.run_cmd(f"c {len(opts)}", uid1)
-        self.assertEqual(self.plugin.save_manager.load_save(uid1).node_type, "battle_prompt")
+        self.assertEqual(load_run(self.plugin, uid1).node_type, "battle_prompt")
         self.run_cmd("c 3", uid1)
         map_after_hd = self.run_cmd("map", uid1)
         self.assertIn("深渊寒蚀", map_after_hd)
@@ -429,5 +443,5 @@ class TestRoomInteractAndShop(unittest.TestCase):
         move_to_room(self.plugin, uid1, ("cafe",))
         gram_res = self.run_cmd("touch 留声机", uid1)
         self.assertIn("黑胶留声机", gram_res)
-        run_cured = self.plugin.save_manager.load_save(uid1)
+        run_cured = load_run(self.plugin, uid1)
         self.assertFalse(any(b.id == "abyss_chill" for b in run_cured.player.persistent_buffs))

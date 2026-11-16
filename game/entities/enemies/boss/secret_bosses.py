@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
 from ....core.inventory.deck_service import DeckService
 from ....data.enemy_data import ENEMY_CONFIG
@@ -35,7 +35,7 @@ class SecretRiftShadowLordTemplate(EnemyTemplate):
             _make_intent("rift_slash", v_slash, get_locale_text("i18n_grid_map.secret_boss.rift_slash_intent", val=v_slash), 0, 1),
         ]
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             return ""
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")
@@ -72,7 +72,7 @@ class SecretAstralInquisitorTemplate(EnemyTemplate):
             _make_intent("astral_verdict", v_verdict, get_locale_text("i18n_grid_map.secret_boss.astral_verdict_intent", val=v_verdict), 1, 0),
         ]
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             return ""
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")
@@ -110,7 +110,7 @@ class SecretPrimordialEchoTemplate(EnemyTemplate):
             _make_intent("primordial_roar", v_roar, get_locale_text("i18n_grid_map.secret_boss.primordial_roar_intent", val=v_roar), 0, 1),
         ]
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             return ""
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")

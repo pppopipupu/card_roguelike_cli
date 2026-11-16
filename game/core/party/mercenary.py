@@ -1,5 +1,5 @@
 import random
-from typing import Optional
+from typing import Optional, TypeGuard
 
 from ...data.locale_data import get_locale_raw, get_locale_text
 from ...data.mercenary_data import (
@@ -17,7 +17,7 @@ from ..inventory.deck_service import DeckService
 from .coordinator import restore_player, swap_player
 
 
-def is_mercenary(player: Optional[PlayerState]) -> bool:
+def is_mercenary(player: Optional[PlayerState]) -> TypeGuard[PlayerState]:
     return bool(player is not None and getattr(player, "is_mercenary", False))
 
 

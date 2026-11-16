@@ -43,7 +43,7 @@ class SaveCodecMixin:
                 node_data["battle_log_owners"] = owners
         return res
 
-    def _parse_player_state(self, p_data: dict) -> Optional[PlayerState]:
+    def _parse_player_state(self, p_data: dict | None) -> Optional[PlayerState]:
         if not p_data:
             return None
         p_minions = {}
@@ -251,8 +251,19 @@ class SaveCodecMixin:
                 node_data=dict(sdata.get("node_data") or {}),
                 status=sdata.get("status", "active"),
             )
+        raw_floor = fm_data.get("floor_index", 1)
+        if raw_floor is None or isinstance(raw_floor, bool):
+            parsed_floor: int | float = 1
+        elif isinstance(raw_floor, int):
+            parsed_floor = raw_floor
+        else:
+            try:
+                num_floor = float(raw_floor)
+                parsed_floor = int(num_floor) if num_floor.is_integer() else num_floor
+            except (TypeError, ValueError):
+                parsed_floor = 1
         return FloorMapState(
-            floor_index=int(fm_data.get("floor_index", 1) or 1),
+            floor_index=parsed_floor,
             width=int(fm_data.get("width", 8) or 8),
             height=int(fm_data.get("height", 6) or 6),
             rooms=rooms,
@@ -272,13 +283,19 @@ class SaveCodecMixin:
     def from_dict(self, d: dict) -> Optional[GameRun]:
         if not d:
             return None
-        player = self._parse_player_state(d["player"])
         player2 = self._parse_player_state(d.get("player2"))
         players = {}
         for uid, pdata in (d.get("players") or {}).items():
             parsed = self._parse_player_state(pdata)
             if parsed is not None:
                 players[uid] = parsed
+        player = self._parse_player_state(d.get("player"))
+        if player is None:
+            player = players.get(d["user_id"])
+            if player is None and players:
+                player = next(iter(players.values()))
+        if player is None:
+            return None
         enemies = self._parse_enemy_list(d.get("enemies") or [])
         floor_map = self._parse_floor_map(d.get("floor_map"))
         return GameRun(

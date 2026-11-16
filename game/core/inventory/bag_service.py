@@ -25,9 +25,17 @@ def format_weight(weight: float) -> str:
     return f"{rounded:g}"
 
 
+def calc_bag_items_weight(items: Optional[List[str]]) -> float:
+    return round(sum(get_item_weight(it) for it in (items or [])), 2)
+
+
 def get_bag_weight(player) -> float:
     items = getattr(player, "bag_items", None) or []
-    return round(sum(get_item_weight(it) for it in items), 2)
+    return calc_bag_items_weight(items)
+
+
+def can_add_bag_item(items: Optional[List[str]], item_id: str, max_weight: float = BAG_DEFAULT_MAX_WEIGHT) -> bool:
+    return round(calc_bag_items_weight(items) + get_item_weight(item_id), 2) <= float(max_weight)
 
 
 def get_bag_max_weight(player) -> int:
@@ -291,6 +299,17 @@ def _is_valid_carryover_item(item_id: str) -> bool:
 
 
 def carryin_from_stats(player, stats) -> None:
+    chest_items = list(getattr(stats, "town_chest", []) or [])
+    remaining_chest = []
+    for item_id in chest_items:
+        if _is_valid_carryover_item(item_id):
+            w = get_item_weight(item_id)
+            if round(get_bag_weight(player) + w, 2) <= get_bag_max_weight(player):
+                player.bag_items.append(item_id)
+                continue
+        remaining_chest.append(item_id)
+    stats.town_chest = remaining_chest
+
     town_inv = list(getattr(stats, "town_inventory", []) or [])
     remaining_inv = []
     for item_id in town_inv:
@@ -305,10 +324,10 @@ def carryin_from_stats(player, stats) -> None:
 
 def carryout_to_stats(player, stats) -> List[str]:
     carried = []
-    if not hasattr(stats, "town_inventory") or stats.town_inventory is None:
-        stats.town_inventory = []
+    if not hasattr(stats, "town_chest") or stats.town_chest is None:
+        stats.town_chest = []
     for item_id in list(getattr(player, "bag_items", []) or []):
         if is_item_carryover(item_id):
-            stats.town_inventory.append(item_id)
+            stats.town_chest.append(item_id)
             carried.append(get_item_display_name(item_id))
     return carried

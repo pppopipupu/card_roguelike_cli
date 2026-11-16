@@ -2,28 +2,97 @@ from typing import Tuple
 from .base import ActionHandler, find_hand_index_by_initials, normalize_initial_query
 from ...entities import ALL_CARDS
 from ...data.locale_data import get_locale_text
+from ...data.open_world_config import OPEN_WORLD_SETTLED_MSG_KEY
+from ...data.pvp_config import PVP_MATCH_KEY
+from ..battle.pvp_service import PvpService, is_pvp_run
+from ..world.open_world.loadout_service import is_open_world_run
+
+
+def finalize_defeat(
+    save_manager,
+    user_id: str,
+    run,
+    res: str,
+    success: bool,
+    *,
+    solo_key: str = "i18n_cli_core.battle_defeated",
+    coop_key: str = "i18n_cli_core.battle_downed_coop",
+    allow_coop_msg: bool = True,
+) -> Tuple[str, bool, bool]:
+    settle_msg = save_manager.settle_game_and_delete(user_id, run, is_victory=False)
+    if is_open_world_run(run) and save_manager.load_save(user_id) is None:
+        merged = (res.rstrip() + "\n\n" + settle_msg).strip() if res and res.strip() else settle_msg
+        return merged, True, success
+    if allow_coop_msg and len(run.human_uids()) > 1:
+        return get_locale_text(coop_key, res=res, settle_msg=settle_msg), True, success
+    return get_locale_text(solo_key, res=res, settle_msg=settle_msg), True, success
+
+
+def finalize_victory(
+    save_manager,
+    engine,
+    user_id: str,
+    run,
+    res: str,
+    success: bool,
+    *,
+    append_logs: bool = False,
+) -> Tuple[str, bool, bool]:
+    engine._handle_battle_win(run)
+    settled_msg = run.node_data.get(OPEN_WORLD_SETTLED_MSG_KEY)
+    if settled_msg:
+        msg = (res.rstrip() + "\n\n" + settled_msg).strip() if res and res.strip() else settled_msg
+        return msg, True, success
+    if run.node_type == "victory":
+        settle_msg = save_manager.settle_game_and_delete(user_id, run, is_victory=True)
+        boss_name = run.node_data.get("boss_name")
+        if not boss_name and run.enemies:
+            boss_name = run.enemies[0].name
+        if not boss_name:
+            boss_name = get_locale_text("i18n_cli_core.final_boss_default")
+        out = get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg)
+    else:
+        out = get_locale_text("i18n_cli_core.battle_won", res=res)
+    if append_logs:
+        out = engine.battle_engine._append_logs_to_res(run, out)
+    return out, True, success
+
 
 def check_battle_outcome(router, user_id, run, res, success):
+    if is_pvp_run(run):
+        PvpService.sync_opponent_from_enemies(run)
+        router.save_manager.save_save(user_id, run)
+        match = router.save_manager.pvp.get_match(run.node_data.get(PVP_MATCH_KEY))
+        if match is not None:
+            p1_uid = str(match.get("p1_uid", ""))
+            p2_uid = str(match.get("p2_uid", ""))
+            opp_uid = p2_uid if str(user_id) == p1_uid else p1_uid
+            if run.player.hp <= 0:
+                _, lose_msg = PvpService.settle_pvp_match(
+                    router.save_manager, router.town_engine, router.world_social, match["id"], opp_uid, user_id
+                )
+                merged = (res.rstrip() + "\n\n" + lose_msg).strip() if res and res.strip() else lose_msg
+                return merged, True, success
+            if (run.player2 is not None and run.player2.hp <= 0) or (run.enemies and run.enemies[0].hp <= 0):
+                win_msg, _ = PvpService.settle_pvp_match(
+                    router.save_manager, router.town_engine, router.world_social, match["id"], user_id, opp_uid
+                )
+                merged = (res.rstrip() + "\n\n" + win_msg).strip() if res and res.strip() else win_msg
+                return merged, True, success
+        return res, False, success
     if run.player.hp <= 0:
-        settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-        if len(run.human_uids()) > 1:
-            return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
-        return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, success
+        return finalize_defeat(router.save_manager, user_id, run, res, success)
     if router.engine.is_battle_won(run):
-        router.engine._handle_battle_win(run)
-        if run.node_type == "victory":
-            settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=True)
-            boss_name = run.node_data.get("boss_name")
-            if not boss_name and run.enemies:
-                boss_name = run.enemies[0].name
-            if not boss_name:
-                boss_name = get_locale_text("i18n_cli_core.final_boss_default")
-            return get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg), True, success
-        return get_locale_text("i18n_cli_core.battle_won", res=res), True, success
+        return finalize_victory(router.save_manager, router.engine, user_id, run, res, success)
     return res, False, success
 
 class UseAction(ActionHandler, actions=["使用", "p"]):
     def execute(self, router, user_id: str, run, parts: list[str]) -> Tuple[str, bool, bool]:
+        if is_pvp_run(run):
+            ok, wait_msg = PvpService.check_turn_owner(router.save_manager, user_id, run)
+            if not ok:
+                return wait_msg, False, False
+            PvpService.sync_enemies_from_opponent(run)
         if len(parts) < 2:
             return get_locale_text("i18n_cli_core.err_use_usage"), False, False
         arg = parts[1]
@@ -43,6 +112,11 @@ class UseAction(ActionHandler, actions=["使用", "p"]):
 
 class MinionAction(ActionHandler, actions=["随从", "m"]):
     def execute(self, router, user_id: str, run, parts: list[str]) -> Tuple[str, bool, bool]:
+        if is_pvp_run(run):
+            ok, wait_msg = PvpService.check_turn_owner(router.save_manager, user_id, run)
+            if not ok:
+                return wait_msg, False, False
+            PvpService.sync_enemies_from_opponent(run)
         if len(parts) < 3:
             return get_locale_text("i18n_cli_core.err_minion_usage"), False, False
         my_grid_raw = parts[1]
@@ -161,10 +235,14 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
             res = router.engine.upgrade_card_in_deck(run, idx)
             success = "❌" not in res
             if run.player.hp <= 0:
-                settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                if len(run.human_uids()) > 1:
-                    return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
-                return get_locale_text("i18n_cli_core.death_wilderness", res=res, settle_msg=settle_msg), True, success
+                return finalize_defeat(
+                    router.save_manager,
+                    user_id,
+                    run,
+                    res,
+                    success,
+                    solo_key="i18n_cli_core.death_wilderness",
+                )
             router.save_manager.save_save(user_id, run)
             return res, False, success
         elif run.node_data.get("pending_remove"):
@@ -178,8 +256,15 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
             if run.node_data.get("yog_finished"):
                 return res, True, success
             if run.player.hp <= 0:
-                settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                return get_locale_text("i18n_cli_core.death_down", res=res, settle_msg=settle_msg), True, success
+                return finalize_defeat(
+                    router.save_manager,
+                    user_id,
+                    run,
+                    res,
+                    success,
+                    solo_key="i18n_cli_core.death_down",
+                    allow_coop_msg=False,
+                )
             if res == "REMOVE_FLOW":
                 run.node_data["pending_remove"] = True
                 router.save_manager.save_save(user_id, run)
@@ -194,6 +279,11 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
 
 class SpecialAction(ActionHandler, actions=["特殊", "sa"]):
     def execute(self, router, user_id: str, run, parts: list[str]) -> Tuple[str, bool, bool]:
+        if is_pvp_run(run):
+            ok, wait_msg = PvpService.check_turn_owner(router.save_manager, user_id, run)
+            if not ok:
+                return wait_msg, False, False
+            PvpService.sync_enemies_from_opponent(run)
         if len(parts) < 2:
             return get_locale_text("i18n_cli_core.err_special_usage"), False, False
         try:
@@ -207,13 +297,35 @@ class SpecialAction(ActionHandler, actions=["特殊", "sa"]):
 
 class EndTurnAction(ActionHandler, actions=["结束", "e"]):
     def execute(self, router, user_id: str, run, parts: list[str]) -> Tuple[str, bool, bool]:
+        if is_pvp_run(run):
+            ok, wait_msg = PvpService.check_turn_owner(router.save_manager, user_id, run)
+            if not ok:
+                return wait_msg, False, False
+            msg = PvpService.advance_pvp_turn(
+                router.save_manager,
+                getattr(router.engine, "battle_engine", router.engine),
+                router.town_engine,
+                router.world_social,
+                run,
+                user_id,
+            )
+            return msg, True, True
         res = router.engine.end_turn(run)
         success = "❌" not in res
         if run.node_type == "victory":
             settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=True)
             boss_name = run.node_data.get("boss_name") or get_locale_text("i18n_cli_core.final_boss_default")
             return get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg), True, success
-        if get_locale_text("i18n_cli_core.marker_adventure_over") in res or get_locale_text("i18n_cli_core.marker_party_wiped") in res or router.engine.is_battle_won(run):
+        if (
+            get_locale_text("i18n_cli_core.marker_adventure_over") in res
+            or get_locale_text("i18n_cli_core.marker_party_wiped") in res
+            or router.engine.is_battle_won(run)
+            or (is_open_world_run(run) and run.node_type == "grid_map")
+            or router.save_manager.load_save(user_id) is None
+        ):
+            settled_msg = run.node_data.get(OPEN_WORLD_SETTLED_MSG_KEY)
+            if settled_msg and settled_msg not in res:
+                res = (res.rstrip() + "\n\n" + settled_msg).strip() if res and res.strip() else settled_msg
             return res, True, success
         return res, False, success
 

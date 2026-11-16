@@ -1,7 +1,7 @@
 import random
 import re
 from typing import Optional
-from ...models.state import GameRun, PlayerState, EnemyState, Card
+from ...models.state import GameRun, PlayerState, EnemyState, Card, UserStats
 from ...data.map_config import MapConfig
 from ...data.enemy_data import ENEMY_CONFIG
 from ...data.enemy_data_normal import ENEMY_ENCOUNTER_CONFIG
@@ -71,17 +71,13 @@ class BattleEngine(BaseBattleEngine):
     def _consume_pending_stats_logs(self, uid: str) -> TextDocument:
         if not uid or self.save_manager is None:
             return []
-        loader = getattr(self.save_manager, "load_stats", None)
-        saver = getattr(self.save_manager, "save_stats", None)
-        if not callable(loader) or not callable(saver):
-            return []
-        stats = loader(uid)
-        pending = getattr(stats, "pending_logs", None)
-        if not isinstance(pending, list) or not pending:
+        stats = self.save_manager.load_stats(uid)
+        pending = stats.pending_logs
+        if not pending:
             return []
         nodes: TextDocument = [RenderedText(text=str(item)) for item in pending if str(item or "").strip()]
         stats.pending_logs = []
-        saver(uid, stats)
+        self.save_manager.save_stats(uid, stats)
         return nodes
 
     def _take_battle_logs(self, run: GameRun, effective_uid: Optional[str] = None) -> TextDocument:
@@ -290,6 +286,8 @@ class BattleEngine(BaseBattleEngine):
         actions_str = str(cfg["actions"])
         actions_match = re.search(r"(\d+)A", actions_str)
         bonus_match = re.search(r"(\d+)BA", actions_str)
+        if hp_match is None or actions_match is None or bonus_match is None:
+            raise ValueError(f"invalid enemy config: {name}")
         return int(hp_match.group(1)), int(actions_match.group(1)), int(bonus_match.group(1))
 
     def _build_enemy_state(self, name: str, hp: int, actions: int, bonus_actions: int) -> EnemyState:

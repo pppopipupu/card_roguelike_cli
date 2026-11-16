@@ -195,8 +195,8 @@ class TestRogueEnemyStage(unittest.TestCase):
                 pass
             def delete_save(self, user_id):
                 pass
-            def load_stats(self, user_id):
-                return None
+            def load_stats(self, user_id) -> UserStats:
+                return UserStats()
         sm = DummySaveManager()
         engine = BattleEngine(sm)
         player = PlayerState(hp=100, max_hp=100, shield=0, gold=100, stage=31, name="测试玩家")
@@ -312,8 +312,8 @@ class TestRogueEnemyStage(unittest.TestCase):
                 pass
             def delete_save(self, user_id):
                 pass
-            def load_stats(self, user_id):
-                return None
+            def load_stats(self, user_id) -> UserStats:
+                return UserStats()
         sm = DummySaveManager()
         engine = BattleEngine(sm)
         player = PlayerState(hp=80, max_hp=80, shield=10, gold=100, stage=1, relics=["leng_spider_venom", "migo_lightning_gun", "shoggoth_slime", "star_vampire_proboscis", "starspawn_core"])
@@ -367,8 +367,8 @@ class TestRogueEnemyStage(unittest.TestCase):
                 pass
             def delete_save(self, user_id):
                 pass
-            def load_stats(self, user_id):
-                return None
+            def load_stats(self, user_id) -> UserStats:
+                return UserStats()
         sm = DummySaveManager()
         engine = BattleEngine(sm)
         player = PlayerState(hp=80, max_hp=80, shield=0, gold=100, stage=1, relics=["migo_lightning_gun"])
@@ -384,8 +384,8 @@ class TestRogueEnemyStage(unittest.TestCase):
                 pass
             def delete_save(self, user_id):
                 pass
-            def load_stats(self, user_id):
-                return None
+            def load_stats(self, user_id) -> UserStats:
+                return UserStats()
         sm = DummySaveManager()
         engine = BattleEngine(sm)
         player = PlayerState(hp=80, max_hp=80, shield=10, gold=100, stage=1, relics=["mindflayer_brain"])
@@ -419,7 +419,7 @@ class TestRogueEnemyStage(unittest.TestCase):
     def test_monster_intent_buffs_and_deductions(self):
         class DummySaveManager:
             def save_save(self, user_id, run): pass
-            def load_stats(self, user_id): return None
+            def load_stats(self, user_id) -> UserStats: return UserStats()
         engine = BattleEngine(DummySaveManager())
         player = PlayerState(hp=80, max_hp=80, shield=10, gold=100, stage=1)
         enemy = EnemyState("测试敌人", 50, 50, 0)
@@ -431,7 +431,7 @@ class TestRogueEnemyStage(unittest.TestCase):
         self.assertTrue(any(b.id == "drain_ba" for b in player.buffs))
         self.assertTrue(any(b.id == "discard_next_turn" for b in player.buffs))
         from game.models.state import CardState
-        player.deck = ["strike", "strike", "strike", "strike", "strike", "strike", "strike", "strike"]
+        player.deck = [CardState(id="strike") for _ in range(8)]
         player.hand = []
         player.draw_pile = player.deck.copy()
         engine.card_player.end_turn(run)
@@ -445,10 +445,11 @@ class TestRogueEnemyStage(unittest.TestCase):
     def test_ready_pack_relic(self):
         class DummySaveManager:
             def save_save(self, user_id, run): pass
-            def load_stats(self, user_id): return None
+            def load_stats(self, user_id) -> UserStats: return UserStats()
         engine = BattleEngine(DummySaveManager())
         player = PlayerState(hp=80, max_hp=80, shield=10, gold=100, stage=1, relics=["ready_pack"])
-        player.deck = ["strike", "strike", "strike", "strike", "strike", "strike", "strike", "strike"]
+        from game.models.state import CardState
+        player.deck = [CardState(id="strike") for _ in range(8)]
         run = GameRun(user_id="test_relic_pack", node_type="battle", player=player, enemies=[])
         engine._init_battle_node(run)
         self.assertEqual(len(player.hand), 7)
@@ -470,6 +471,7 @@ class TestRogueEnemyStage(unittest.TestCase):
                 class DummyStats:
                     selected_class = "战士"
                     yog_sothoth_challenge_count = 1
+                    pending_logs = []
                 return DummyStats()
         dummy_save = DummySaveManager()
         from game.core.battle.engine import BattleEngine

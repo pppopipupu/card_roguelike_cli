@@ -24,7 +24,7 @@ class LoreContext:
 class LoreView:
     item_id: str
     name: str
-    weight: int
+    weight: float
     carry_tag: str
     version: LoreVersion
     intro: str
@@ -88,20 +88,17 @@ class ItemLoreStateMachine:
         ctx = LoreContext(self.stats, self.run, item_id)
         state = self._advance(self._initial(cfg, ctx), cfg, ctx)
         carry_key = "i18n_room_interact.bag.carry_yes" if is_item_carryover(item_id) else "i18n_room_interact.bag.carry_no"
-        base = dict(
-            item_id=item_id,
-            name=get_item_display_name(item_id),
-            weight=get_item_weight(item_id),
-            carry_tag=get_locale_text(carry_key),
-        )
+        name = get_item_display_name(item_id)
+        weight = get_item_weight(item_id)
+        carry_tag = get_locale_text(carry_key)
         if state is LoreVersion.HIDDEN:
-            return LoreView(**base, version=state, intro="", detail=get_locale_text("i18n_item_lore.hidden_placeholder"))
+            return LoreView(item_id=item_id, name=name, weight=weight, carry_tag=carry_tag, version=state, intro="", detail=get_locale_text("i18n_item_lore.hidden_placeholder"))
         intro = get_locale_text(cfg["intro_key"])
         secret = cfg.get("secret")
         if not secret:
-            return LoreView(**base, version=state, intro=intro, detail="")
+            return LoreView(item_id=item_id, name=name, weight=weight, carry_tag=carry_tag, version=state, intro=intro, detail="")
         key = secret["reveal_key"] if state is LoreVersion.FULL else secret["hint_key"]
-        return LoreView(**base, version=state, intro=intro, detail=get_locale_text(key))
+        return LoreView(item_id=item_id, name=name, weight=weight, carry_tag=carry_tag, version=state, intro=intro, detail=get_locale_text(key))
 
 
 def query_item_lore(query: str, stats=None, run=None):

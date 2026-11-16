@@ -13,7 +13,7 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
 
     async def test_potion_basics(self):
         await run_command(self.plugin, "start confirm", self.user_id)
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         self.assertIsNotNone(run)
         
         p = run.player
@@ -31,7 +31,7 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         res = await run_command(self.plugin, "1", self.user_id)
         self.assertIn("拾取了【药水·火焰药水】", res)
         
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         self.assertEqual(len(run.player.bag_items), 6)
         self.assertEqual(run.player.bag_items[-1], "potion:fire_potion")
         
@@ -45,13 +45,13 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         res = await run_command(self.plugin, "1", self.user_id)
         self.assertIn("背包负重已满", res)
         
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         self.assertEqual(len(run.player.bag_items), 6)
         
         res = await run_command(self.plugin, "丢弃药水 2", self.user_id)
         self.assertIn("已丢弃了药水：【火焰药水】", res)
         
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         self.assertEqual(len(run.player.bag_items), 5)
         
         SessionContextScoper.create_session(run, "A1", "reward", [self.user_id], node_data={
@@ -63,7 +63,7 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         res = await run_command(self.plugin, "1", self.user_id)
         self.assertIn("拾取了【药水·冰霜药水】", res)
         
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         self.assertEqual(len(run.player.bag_items), 6)
         self.assertEqual(run.player.bag_items[-1], "potion:frost_potion")
 
@@ -80,7 +80,7 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
 
     async def test_potion_battle_use(self):
         await run_command(self.plugin, "start confirm", self.user_id)
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         
         run.node_type = "battle"
         p = run.player
@@ -96,13 +96,13 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         
         res = await run_command(self.plugin, "喝药水 1", self.user_id)
         self.assertIn("回复了 10 点生命值", res)
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         self.assertEqual(run.player.hp, 30)
         self.assertEqual(len(run.player.bag_items), 2)
         
         res = await run_command(self.plugin, "喝药水 1", self.user_id)
         self.assertIn("施加了 25 点护盾", res)
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         self.assertEqual(run.player.shield, 30)
         
         res = await run_command(self.plugin, "投掷 1 e1", self.user_id)
@@ -110,18 +110,18 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         self.assertIn("钝击伤害", res)
         self.assertIn("火焰伤害", res)
         
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         self.assertEqual(len(run.enemies), 1)
         self.assertLess(run.enemies[0].hp, 30)
 
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         run.player.bag_items = ["potion:poison_potion"]
         self.plugin.save_manager.save_save(self.user_id, run)
         res = await run_command(self.plugin, "投掷 1 e1", self.user_id)
         self.assertIn("投掷了【剧毒药水】", res)
         self.assertIn("造成 10 点毒素伤害并施加 4 层【中毒】", res)
 
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         run.enemies = [
             EnemyState(name="精英兽人", hp=50, max_hp=50, shield=0)
         ]
@@ -133,7 +133,7 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         res = await run_command(self.plugin, "结束", self.user_id)
         self.assertIn("受到中毒造成的 5 点毒素伤害", res)
 
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         run.enemies = [
             EnemyState(name="精英兽人", hp=5, max_hp=50, shield=0),
             EnemyState(name="小骷髅", hp=20, max_hp=20, shield=0)
@@ -146,13 +146,13 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         self.assertIn("灾厄降临", res)
         self.assertIn("直接走向灭亡", res)
         
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         self.assertEqual(len(run.enemies), 1)
         self.assertEqual(run.enemies[0].name, "小骷髅")
 
     async def test_potion_non_battle_limit(self):
         await run_command(self.plugin, "start confirm", self.user_id)
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         
         run.node_type = "explore"
         p = run.player
@@ -167,7 +167,7 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         res = await run_command(self.plugin, "喝药水 1", self.user_id)
         self.assertIn("回复了 10 点生命值", res)
         
-        run = self.plugin.save_manager.load_save(self.user_id)
+        run = load_run(self.plugin, self.user_id)
         self.assertEqual(run.player.hp, 20)
         self.assertEqual(len(run.player.bag_items), 1)
 

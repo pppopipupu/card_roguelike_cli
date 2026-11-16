@@ -6,11 +6,12 @@ from ..data.grid_map_config import (
     PERMANENT_ICON_TYPES,
     QUEST_RELIC_CONFIG,
     ROOM_ICONS,
+    get_display_floor,
 )
 from ..data.locale_data import get_locale_text
 from ..models.state import GameRun
 from .formatters import format_npcs_and_players_line, format_persistent_buff_bar, format_relic_bar
-from .world_grid import render_grid_view
+from .world_grid import render_grid_header, render_grid_view
 def _visible_cell_icon(fm, coord: str, viewer_coord: str, adj_set: set[str]) -> str:
     room = fm.rooms.get(coord)
     if room is None:
@@ -79,8 +80,9 @@ def render_grid_map(run: GameRun) -> str:
         quest_str = get_locale_text("i18n_grid_map.quest_relics_line", items=" ".join(qnames))
 
     pbuff_str = format_persistent_buff_bar(p)
+    display_floor = get_display_floor(fm.floor_index)
     lines = [
-        get_locale_text("i18n_grid_map.header_title", floor=fm.floor_index, floor_name=floor_name, coord=viewer_coord),
+        render_grid_header(display_floor, floor_name, viewer_coord),
         get_locale_text(
             "i18n_grid_map.header_status",
             name=p.name,
@@ -314,9 +316,29 @@ def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players:
         f"【{get_locale_text(ROOM_NPCS[nid]['name_key'])}】" if nid in ROOM_NPCS else nid
         for nid in alive_npcs
     ]
+    ghost_names: list[str] = []
+    if fm is not None and fm.floor_flags.get("yog_quest"):
+        from ..core.world.open_world.ghost_service import OpenWorldGhostService
+        from ..data.open_world_config import WORLD_YOG_TEMPLE
+        from ..data.world_social_config import WORLD_SNOWFIELD
+        from ..data.yog_quest_config import YOG_FLOOR_TEMPLE
+        from ..models.manager import SaveManager
+
+        world = WORLD_YOG_TEMPLE if fm.floor_index == YOG_FLOOR_TEMPLE else WORLD_SNOWFIELD
+        ghost_names = OpenWorldGhostService.display_names_at(SaveManager(), world, viewer_coord)
+        for gname in ghost_names:
+            npc_names.append(f"【{gname}】")
     npcs_line = format_npcs_and_players_line(npc_names, world_players)
     if npcs_line:
         out.append(npcs_line)
+    if ghost_names:
+        sep = get_locale_text("i18n_social.common.list_separator")
+        out.append(
+            get_locale_text(
+                "i18n_open_world.ghost_scene_hint",
+                ghosts=sep.join(f"【{gname}】" for gname in ghost_names),
+            )
+        )
 
     items = list(getattr(cur_room, "items", None) or [])
     if items:

@@ -1,4 +1,5 @@
 import random
+from typing import Optional
 from ....models.state import GameRun
 from ....entities import get_relic_name
 from ....data.relic_data import RELIC_CONFIG
@@ -37,7 +38,7 @@ class CafeEngine(CafeDialogMixin):
         if isinstance(shared, dict):
             return shared
         return self._view_cafe(run)
-    def _release_npc_lock(self, shared_cafe: dict, uid: str, npc: str = None):
+    def _release_npc_lock(self, shared_cafe: dict, uid: str, npc: Optional[str] = None):
         active_by_npc = shared_cafe.get("active_by_npc")
         if not isinstance(active_by_npc, dict):
             return
@@ -58,7 +59,7 @@ class CafeEngine(CafeDialogMixin):
         guest_min = min(guest_min, guest_max)
         return total_npcs, guest_min, guest_max
 
-    def build_cafe_state(self, run: GameRun, player_count: int = None) -> dict:
+    def build_cafe_state(self, run: GameRun, player_count: int | None = None) -> dict:
         if player_count is None:
             player_count = run.player_count() if run else 1
         total_npcs, guest_min, guest_max = self._npc_bounds_for_count(player_count)
@@ -102,7 +103,7 @@ class CafeEngine(CafeDialogMixin):
 
         return cafe_data
 
-    def init_cafe(self, run: GameRun, persist: bool = True, player_count: int = None):
+    def init_cafe(self, run: GameRun, persist: bool = True, player_count: int | None = None):
         from ...party.coordinator import apply_and_scope
         if player_count is None:
             player_count = run.player_count()
@@ -226,6 +227,29 @@ class CafeEngine(CafeDialogMixin):
                 lines.append(get_locale_text("i18n_map_cafe.cafe_hint_exit_dialog"))
             lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             return "\n".join(lines)
+    def _find_npc(self, run: GameRun, target: str) -> Optional[str]:
+        shared_cafe = self._shared_cafe(run)
+        npcs = shared_cafe.get("npcs", [])
+        target_lower = target.lower().strip()
+        mapped = NPC_ALIASES.get(target_lower)
+        if mapped and mapped in npcs:
+            return mapped
+        def clean_text(text: str) -> str:
+            res_chars = []
+            for char in text.lower():
+                if char.isalnum() or (0x4e00 <= ord(char) <= 0x9fff):
+                    res_chars.append(char)
+            return "".join(res_chars)
+        cleaned_target = clean_text(target_lower)
+        if cleaned_target:
+            for npc in npcs:
+                if cleaned_target in clean_text(npc):
+                    return npc
+                show_name = NPC_SHOW_NAMES.get(npc, "")
+                if show_name and cleaned_target in clean_text(show_name):
+                    return npc
+        return None
+
     def talk_npc(self, run: GameRun, target: str) -> str:
         waiting = self._waiting(run)
         if waiting:

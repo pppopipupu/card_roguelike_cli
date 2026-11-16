@@ -5,7 +5,7 @@ import unittest
 
 from game.core.battle.daily_blessing import _pick_random_card
 from game.core.inventory.deck_service import DeckService
-from game.test.core.base import CorePlugin, run_command
+from game.test.core.base import CorePlugin, floor_of, require_run, run_command
 from game.entities import ALL_CARDS
 from game.models.state import CardState, EnemyState, GameRun, PlayerState, UserStats
 
@@ -71,10 +71,10 @@ class TestTempleAndTokens(unittest.TestCase):
             self.assertIn("雾隐雪原", enter_res)
             self.assertIn("B11", enter_res)
             self.assertNotIn("尤格索托斯神殿", enter_res)
-            run = self.sm.load_save(uid)
+            run = require_run(self.sm.load_save(uid))
             self.assertEqual(run.node_type, "grid_map")
-            self.assertEqual(run.floor_map.floor_index, 5)
-            self.assertTrue(run.floor_map.floor_flags.get("yog_quest"))
+            self.assertEqual(floor_of(run).floor_index, 5)
+            self.assertTrue(floor_of(run).floor_flags.get("yog_quest"))
 
             quest_res = self._run(".rogue 任务", uid)
             self.assertIn("穿过雾隐雪原，找到神殿大门", quest_res)
@@ -139,7 +139,7 @@ class TestTempleAndTokens(unittest.TestCase):
             self.assertNotIn("dream_shard", self.sm.load_stats(uid).locked_cards)
 
             self._run(".rogue start confirm", uid)
-            run = self.sm.load_save(uid)
+            run = require_run(self.sm.load_save(uid))
             deck_ids = {c.id for c in run.player.deck}
             self.assertTrue(tokens.isdisjoint(deck_ids))
 

@@ -403,8 +403,9 @@ class DemonContractBuff(BuffImpl):
             card_id = event.card.id
             if card_id.startswith("duel_"):
                 card_id = card_id[5:]
-            if not card_id.startswith("demon_contract"):
-                stacks = buff_state.stacks
+            if card_id.startswith("demon_contract"):
+                return
+            stacks = buff_state.stacks
             for _ in range(stacks):
                 if event.engine.is_battle_won(event.run):
                     break

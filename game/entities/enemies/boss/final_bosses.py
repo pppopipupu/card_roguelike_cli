@@ -1,5 +1,5 @@
 import random
-from typing import List
+from typing import List, Optional
 
 from ..base import EnemyTemplate, register_enemy
 from ...buffs import is_debuff
@@ -240,17 +240,9 @@ class BossYogSothothTemplate(EnemyTemplate):
             for intent_type, val, desc_key, cost_a, cost_ba in entries
         ]
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
-            logs = intent
-            from ....models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0,
-            )
+            logs = []
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")
         val = intent.val + strength
         handler_name = YOG_INTENT_HANDLERS.get(intent.type)

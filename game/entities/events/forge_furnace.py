@@ -55,7 +55,12 @@ class ForgeBackfireOption(EventOption, action="forge_backfire", text=get_locale_
                 found = True
                 break
         if not found:
-            p.buffs.append(BuffState("forge_backfire", get_locale_text("i18n_events_a.forge_backfire_buff_name"), buff_stacks, get_locale_text("i18n_events_a.forge_backfire_buff_desc")))
+            p.buffs.append(BuffState(
+                id="forge_backfire",
+                name=get_locale_text("i18n_events_a.forge_backfire_buff_name"),
+                stacks=buff_stacks,
+                desc=get_locale_text("i18n_events_a.forge_backfire_buff_desc"),
+            ))
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_events_a.forge_backfire_result")

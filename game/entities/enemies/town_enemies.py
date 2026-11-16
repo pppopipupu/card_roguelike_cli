@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 from .base import EnemyTemplate, register_enemy
 from ...models.state import EnemyIntentState, BuffState
 from ...data.locale_data import get_locale_text
@@ -80,17 +80,9 @@ class SniperEliteTemplate(EnemyTemplate):
             ))
         return intents_list
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
-            logs = intent
-            from ...models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
+            logs = []
         from .trash_talk_actions import try_trash_talk
         try_trash_talk(run, enemy, logs)
         if intent.type == "aim":
@@ -162,17 +154,9 @@ class PppopipupuTemplate(EnemyTemplate):
             ))
         return intents_list
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
-            logs = intent
-            from ...models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
+            logs = []
         from .trash_talk_actions import try_trash_talk
         try_trash_talk(run, enemy, logs)
         if intent.type == "force_strike":

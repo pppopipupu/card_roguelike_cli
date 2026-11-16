@@ -7,7 +7,9 @@ from ..entities import ALL_CARDS
 from ..entities.cards.market import MARKET_SHELF_CARDS, get_market_price
 from ..data.locale_data import t, get_locale_text
 from ..data.balance_config import TOWN_INVENTORY_FOLD_THRESHOLD
-from ..core.inventory.bag_service import get_item_display_name
+from ..data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
+from ..core.inventory.bag_service import calc_bag_items_weight, get_item_display_name
+from ..core.world.open_world.loadout_service import OpenWorldLoadoutService
 
 def _load_zh_cn() -> Dict[str, Any]:
     from ..core.i18n.locale_manager import LocaleManager
@@ -120,7 +122,7 @@ def get_npc_quest_indicator(npc_id: str, stats: UserStats) -> str:
             return " ❓"
     return ""
 
-def render_town(stats: UserStats, room_data: Dict[str, Any], world_players: List[Dict[str, Any]] | None = None) -> str:
+def render_town(stats: UserStats, room_data: Dict[str, Any], world_players: List[Dict[str, Any]] | None = None, ghost_names: List[str] | None = None) -> str:
     zh_cn = _load_zh_cn()
     current_id = stats.town_pos
     if world_players is None:
@@ -155,6 +157,9 @@ def render_town(stats: UserStats, room_data: Dict[str, Any], world_players: List
 
     for entry in world_here:
         visible_npcs.append(f"{WORLD_PLAYER_ICON}{entry.get('name', '')}")
+    for gname in (ghost_names or []):
+        if gname:
+            visible_npcs.append(gname)
 
     none_label = get_locale_text("global.none")
     npc_str = get_locale_text("renderer_town.list_separator").join(visible_npcs) if visible_npcs else none_label
@@ -225,13 +230,32 @@ def render_town(stats: UserStats, room_data: Dict[str, Any], world_players: List
     else:
         quest_str = zh_cn.get("global", {}).get("quest_tour_none", "")
 
+    ow_bag = list(getattr(stats, "open_world_bag", []) or [])
+    ow_relics = list(getattr(stats, "open_world_relics", []) or [])
+    hp, max_hp, sp, max_sp, _ = OpenWorldLoadoutService.get_vitals(stats)
+    player_name = str(getattr(stats, "player_handle", "") or getattr(stats, "player_name", "") or get_locale_text("i18n_town.player_default_name"))
+    inventory_line = get_locale_text(
+        "i18n_open_world.bag.loadout_summary",
+        player_name=player_name,
+        hp=hp,
+        max_hp=max_hp,
+        sp=sp,
+        max_sp=max_sp,
+        count=len(ow_bag),
+        weight=round(calc_bag_items_weight(ow_bag), 1),
+        max_weight=BAG_DEFAULT_MAX_WEIGHT,
+        relics=len(ow_relics),
+        gp=stats.gp,
+    )
     town_inv = list(stats.town_inventory)
-    if len(town_inv) > TOWN_INVENTORY_FOLD_THRESHOLD:
-        inventory_line = get_locale_text("global.room_inventory_folded", count=len(town_inv), gp=stats.gp)
-    else:
-        inv_display = [get_item_display_name(item_id) for item_id in town_inv]
-        inv_str = get_locale_text("renderer_town.list_separator").join(inv_display) if inv_display else get_locale_text("global.empty")
-        inventory_line = get_locale_text("global.room_inventory", inv=inv_str, gp=stats.gp)
+    tokens_line = ""
+    if town_inv:
+        if len(town_inv) > TOWN_INVENTORY_FOLD_THRESHOLD:
+            tokens_line = get_locale_text("i18n_open_world.bag.quest_tokens_folded", count=len(town_inv))
+        else:
+            inv_display = [get_item_display_name(item_id) for item_id in town_inv]
+            inv_str = get_locale_text("renderer_town.list_separator").join(inv_display)
+            tokens_line = get_locale_text("i18n_open_world.bag.quest_tokens", items=inv_str)
 
     lines = [
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
@@ -245,6 +269,10 @@ def render_town(stats: UserStats, room_data: Dict[str, Any], world_players: List
         get_locale_text("global.room_items", items=item_str),
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
         inventory_line,
+    ]
+    if tokens_line:
+        lines.append(tokens_line)
+    lines.extend([
         quest_str,
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
         get_locale_text("global.help_move"),
@@ -255,5 +283,5 @@ def render_town(stats: UserStats, room_data: Dict[str, Any], world_players: List
         get_locale_text("global.help_attack"),
         get_locale_text("global.help_system"),
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    ]
+    ])
     return "\n".join(lines)

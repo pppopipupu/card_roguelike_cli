@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from ..base import EnemyTemplate, register_enemy
 from ....data.locale_data import get_locale_text
@@ -23,7 +23,7 @@ class OuterPlaneWraithTemplate(EnemyTemplate):
         desc = get_locale_text(f"i18n_outer_plane.intent.{key}", val=val)
         return [_intent(f"outer_{key}", val, desc, 1, 0)]
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             return ""
         if intent.type == "outer_gnaw":
@@ -57,7 +57,7 @@ class OuterPlaneGuardianTemplate(EnemyTemplate):
             _intent(f"outer_{ba_key}", int(cfg[ba_key]), get_locale_text(f"i18n_outer_plane.intent.{ba_key}", val=cfg[ba_key]), 0, 1),
         ]
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             return ""
         if intent.type == "outer_hammer":

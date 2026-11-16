@@ -1,4 +1,5 @@
 import orjson
+from typing import Any
 
 
 def dumps(data, indent: bool = False) -> bytes:
@@ -8,9 +9,9 @@ def dumps(data, indent: bool = False) -> bytes:
     return orjson.dumps(data, option=option)
 
 
-def loads(data) -> object:
+def loads(data) -> Any:
     return orjson.loads(data)
 
 
-def load(handle) -> object:
+def load(handle) -> Any:
     return orjson.loads(handle.read())

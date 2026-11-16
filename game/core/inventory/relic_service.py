@@ -1,6 +1,13 @@
 from ...data.relic_data import RELIC_CONFIG
 
 
+def init_relic_counter_map(counters: dict, relic_id: str) -> None:
+    cfg = RELIC_CONFIG.get(relic_id, {})
+    if "counter_init" not in cfg:
+        return
+    counters.setdefault(relic_id, int(cfg["counter_init"]))
+
+
 def init_relic_counter(player, relic_id: str) -> None:
     if player is None:
         return
@@ -11,7 +18,7 @@ def init_relic_counter(player, relic_id: str) -> None:
     if not isinstance(counters, dict):
         counters = {}
         player.relic_counters = counters
-    counters.setdefault(relic_id, int(cfg["counter_init"]))
+    init_relic_counter_map(counters, relic_id)
 
 
 def grant_relic(player, relic_id: str) -> bool:

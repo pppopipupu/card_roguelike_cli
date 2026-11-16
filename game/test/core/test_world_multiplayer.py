@@ -11,7 +11,7 @@ from game.core.world.presence import WorldPresenceService
 from game.data.outer_plane_config import NECRONOMICON_ITEM
 from game.data.world_social_config import WORLD_PRESENCE_TIMEOUT_SECONDS, WORLD_TOWN
 from game.data.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
-from game.test.core.base import CorePlugin, move_to_room, run_command
+from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command
 
 
 class WorldMultiplayerTest(unittest.TestCase):
@@ -49,7 +49,9 @@ class WorldMultiplayerTest(unittest.TestCase):
         self.enter_town()
         self.befriend()
         created = self.cmd("组队 创建", self.a)
-        lobby_id = re.search(r"队伍 ([A-Z0-9]{6})", created).group(1)
+        match = re.search(r"队伍 ([A-Z0-9]{6})", created)
+        assert match is not None, "team id must be present"
+        lobby_id = match.group(1)
         self.cmd("组队 邀请 Bob", self.a)
         self.cmd("组队 加入 " + lobby_id, self.b)
         self.cmd("组队 准备", self.b)
@@ -57,8 +59,8 @@ class WorldMultiplayerTest(unittest.TestCase):
         return started
 
     def _first_walkable_direction(self, uid: str) -> str:
-        run = self.plugin.save_manager.load_save(uid)
-        fm = run.floor_map
+        run = load_run(self.plugin, uid)
+        fm = floor_of(run)
         cur = fm.player_coords.get(uid, "")
         cx, cy = coord_to_xy(cur)
         for dcmd, dx, dy in (("d", 1, 0), ("s", 0, 1), ("w", 0, -1), ("a", -1, 0)):
@@ -223,8 +225,8 @@ class WorldMultiplayerTest(unittest.TestCase):
             stats.in_town = True
             stats.town_pos = "west_gate"
             self.plugin.save_manager.save_stats(uid, stats)
-        self.assertIn("第 5 层", self.cmd("使用 星辉符印", self.a))
-        self.assertIn("第 5 层", self.cmd("使用 星辉符印", self.b))
+        self.assertIn("第 1 层 · 雾隐雪原", self.cmd("使用 星辉符印", self.a))
+        self.assertIn("第 1 层 · 雾隐雪原", self.cmd("使用 星辉符印", self.b))
         rendered = self.cmd("看", self.a)
         self.assertIn("👤 【在场人物】【🧑Bob】", rendered)
         self.assertNotIn("与玩家交谈", rendered)
@@ -243,7 +245,9 @@ class WorldMultiplayerTest(unittest.TestCase):
         self.enter_town()
         self.befriend()
         created = self.cmd("组队 创建", self.a)
-        lobby_id = re.search(r"队伍 ([A-Z0-9]{6})", created).group(1)
+        match = re.search(r"队伍 ([A-Z0-9]{6})", created)
+        assert match is not None, "team id must be present"
+        lobby_id = match.group(1)
         self.cmd("组队 邀请 Bob", self.a)
         self.cmd("组队 加入 " + lobby_id, self.b)
         self.cmd("组队 准备", self.b)
@@ -260,7 +264,7 @@ class WorldMultiplayerTest(unittest.TestCase):
         self.assertNotEqual(self.plugin.save_manager.load_stats(self.a).active_coop_id, "")
         self.assertEqual(self.plugin.save_manager.load_stats(self.a).town_flags.get(YOG_QUEST_FLAG), "started")
         party_view = self.cmd("看", self.b)
-        self.assertIn("第 5 层", party_view)
+        self.assertIn("第 1 层 · 雾隐雪原", party_view)
         self.assertIn("👤 【在场人物】【🧑Alice】", party_view)
         self.assertFalse(any("🧑" in line or "👥" in line for line in self._map_rows(party_view)))
         self.assertIsNone(self.plugin.save_manager.get_lobby(lobby_id))
@@ -295,7 +299,7 @@ class WorldMultiplayerTest(unittest.TestCase):
 
         dcmd = self._first_walkable_direction(self.a)
         moved_a = self.cmd(dcmd, self.a)
-        run_after_move = self.plugin.save_manager.load_save(self.a)
+        run_after_move = load_run(self.plugin, self.a)
         if run_after_move.node_type == "battle_prompt":
             self.cmd("3", self.a)
         self.assertNotIn("🧑Bob", moved_a)
@@ -309,22 +313,22 @@ class WorldMultiplayerTest(unittest.TestCase):
         self.assertIsNotNone(run_b_battle)
         if run_b_battle.node_type == "grid_map":
             move_to_room(self.plugin, self.b, ("battle", "elite", "boss"))
-            run_b_battle = self.plugin.save_manager.load_save(self.b)
-        battle_coord = run_b_battle.floor_map.player_coords.get(self.b)
+            run_b_battle = load_run(self.plugin, self.b)
+        battle_coord = floor_of(run_b_battle).player_coords.get(self.b)
         self.cmd("1", self.b)
-        run_b_battle = self.plugin.save_manager.load_save(self.b)
+        run_b_battle = load_run(self.plugin, self.b)
         self.assertEqual(run_b_battle.node_type, "battle")
 
         move_res, run_a_moved = move_to_room(self.plugin, self.a, ("battle", "elite", "boss"))
         if run_a_moved and run_a_moved.node_type == "battle_prompt":
             self.cmd("3", self.a)
-        run_a_now = self.plugin.save_manager.load_save(self.a)
-        if run_a_now and run_a_now.floor_map.player_coords.get(self.a) != battle_coord:
+        run_a_now = load_run(self.plugin, self.a)
+        if run_a_now and floor_of(run_a_now).player_coords.get(self.a) != battle_coord:
             self.cmd(f"tp {battle_coord}", self.a)
-            run_a_now = self.plugin.save_manager.load_save(self.a)
+            run_a_now = load_run(self.plugin, self.a)
             if run_a_now and run_a_now.node_type == "battle_prompt":
                 self.cmd("3", self.a)
-        a_coord_now = self.plugin.save_manager.load_save(self.a).floor_map.player_coords.get(self.a)
+        a_coord_now = floor_of(load_run(self.plugin, self.a)).player_coords.get(self.a)
         if a_coord_now == battle_coord:
             b_battle_render = self.cmd("r", self.b)
             self.assertIn("👤 【在场人物】【🧑Alice】", b_battle_render)
@@ -350,29 +354,29 @@ class WorldMultiplayerTest(unittest.TestCase):
             if run.node_type != "grid_map":
                 self._clear_battle_if_needed([self.a, self.b])
             run = self.plugin.save_manager.load_save(self.a)
-            if not run or any(r.room_type == "downstairs" for r in run.floor_map.rooms.values()):
+            if not run or any(r.room_type == "downstairs" for r in floor_of(run).rooms.values()):
                 break
             _, moved = move_to_room(self.plugin, self.a, ("boss",), rally=True)
             if moved and moved.node_type != "grid_map":
                 self._clear_battle_if_needed([self.a, self.b])
             run_check = self.plugin.save_manager.load_save(self.a)
-            if not run_check or any(r.room_type == "downstairs" for r in run_check.floor_map.rooms.values()):
+            if not run_check or any(r.room_type == "downstairs" for r in floor_of(run_check).rooms.values()):
                 break
             move_to_room(self.plugin, self.a, ("battle", "elite", "high_danger"))
             self._clear_battle_if_needed([self.a, self.b])
 
         self._clear_battle_if_needed([self.a, self.b])
-        run = self.plugin.save_manager.load_save(self.a)
-        ds_coords = [c for c, r in run.floor_map.rooms.items() if r.room_type == "downstairs"]
+        run = load_run(self.plugin, self.a)
+        ds_coords = [c for c, r in floor_of(run).rooms.items() if r.room_type == "downstairs"]
         self.assertTrue(ds_coords)
         ds_coord = ds_coords[0]
 
-        if run.floor_map.player_coords.get(self.a) != ds_coord:
+        if floor_of(run).player_coords.get(self.a) != ds_coord:
             self.cmd(f"tp {ds_coord}", self.a)
-        if run.floor_map.player_coords.get(self.b) != ds_coord:
+        if floor_of(run).player_coords.get(self.b) != ds_coord:
             move_to_room(self.plugin, self.b, ("downstairs",))
-            run_b_now = self.plugin.save_manager.load_save(self.b)
-            if run_b_now.floor_map.player_coords.get(self.b) != ds_coord:
+            run_b_now = load_run(self.plugin, self.b)
+            if floor_of(run_b_now).player_coords.get(self.b) != ds_coord:
                 self.cmd(f"tp {ds_coord}", self.b)
 
         self.assertIn("第 1 层下楼回廊", self.cmd("talk", self.a))
@@ -381,28 +385,28 @@ class WorldMultiplayerTest(unittest.TestCase):
         self.assertIn("已就绪队友：Alice", wait_res)
         self.assertIn("尚未到达：Bob", wait_res)
 
-        run_still_floor1 = self.plugin.save_manager.load_save(self.b)
-        self.assertEqual(run_still_floor1.floor_map.floor_index, 1)
+        run_still_floor1 = load_run(self.plugin, self.b)
+        self.assertEqual(floor_of(run_still_floor1).floor_index, 1)
 
         coord_waiting = self.cmd("team coord", self.b)
         self.assertIn("等待下楼", coord_waiting)
 
-        a_deck_count = len(self.plugin.save_manager.load_save(self.a).player.deck)
-        a_relic_count = len(self.plugin.save_manager.load_save(self.a).player.relics)
+        a_deck_count = len(load_run(self.plugin, self.a).player.deck)
+        a_relic_count = len(load_run(self.plugin, self.a).player.relics)
         self.cmd("离开", self.a)
         reopen = self.cmd("talk", self.a)
         self.assertIn("确认原地等待全员下楼", reopen)
         self.assertNotIn("先古卡牌", reopen)
         self.cmd("1", self.a)
-        self.assertEqual(len(self.plugin.save_manager.load_save(self.a).player.deck), a_deck_count)
-        self.assertEqual(len(self.plugin.save_manager.load_save(self.a).player.relics), a_relic_count)
+        self.assertEqual(len(load_run(self.plugin, self.a).player.deck), a_deck_count)
+        self.assertEqual(len(load_run(self.plugin, self.a).player.relics), a_relic_count)
 
         self.assertIn("第 1 层下楼回廊", self.cmd("talk", self.b))
         descend_res = self.cmd("c 1", self.b)
         self.assertIn("第 2 层", descend_res)
 
-        run_floor2_b = self.plugin.save_manager.load_save(self.b)
-        self.assertEqual(run_floor2_b.floor_map.floor_index, 2)
+        run_floor2_b = load_run(self.plugin, self.b)
+        self.assertEqual(floor_of(run_floor2_b).floor_index, 2)
         alice_after_descend = self.cmd("r", self.a)
         self.assertIn("第 2 层", alice_after_descend)
         self.assertIn("已汇合确认下楼", alice_after_descend)

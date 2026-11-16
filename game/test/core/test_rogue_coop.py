@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from game.entities.events import ALL_EVENTS
 
-from game.test.core.base import CorePlugin, move_to_room, run_command
+from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command
 from game.core.party.session import SessionContextScoper
 from game.data.account_config import RENAME_COST_GP
 from game.data.gem_data import GEM_CONFIG
@@ -51,7 +51,9 @@ class TestRogueCoop(unittest.TestCase):
     def create_team(self, leader, others):
         result = self.run_cmd("team create", leader)
         self.assertIn("已创建队伍", result)
-        lobby_id = re.search(r"队伍 ([A-Z0-9]{6})", result).group(1)
+        match = re.search(r"队伍 ([A-Z0-9]{6})", result)
+        assert match is not None, "team id must be present"
+        lobby_id = match.group(1)
         for uid in others:
             invited = self.run_cmd(f"friend invite {self.player_id(uid)}", leader)
             self.assertIn("已邀请", invited)
@@ -78,7 +80,7 @@ class TestRogueCoop(unittest.TestCase):
         for uid in uids:
             chosen = self.run_cmd("c 1", uid)
             self.assertIn("契约达成", chosen)
-        run = self.plugin.save_manager.load_save(leader)
+        run = load_run(self.plugin, leader)
         self.assertEqual(run.node_type, "grid_map")
         self.assertEqual(len(run.players), len(uids))
         return run
@@ -102,7 +104,9 @@ class TestRogueCoop(unittest.TestCase):
         named = self.run_cmd("friend search 好友2", leader)
         self.assertIn(self.player_id(friends[1]), named)
         result = self.run_cmd("team create", leader)
-        lobby_id = re.search(r"队伍 ([A-Z0-9]{6})", result).group(1)
+        match = re.search(r"队伍 ([A-Z0-9]{6})", result)
+        assert match is not None, "team id must be present"
+        lobby_id = match.group(1)
         rejected = self.run_cmd(f"team invite {self.player_id(stranger)}", leader)
         self.assertIn("还不是你的好友", rejected)
         for uid in friends[:5]:
@@ -146,7 +150,7 @@ class TestRogueCoop(unittest.TestCase):
                 counts = Counter(base_names)
                 self.assertTrue(all(value == 2 for value in counts.values()))
                 for uid in uids:
-                    member_run = self.plugin.save_manager.load_save(uid)
+                    member_run = load_run(self.plugin, uid)
                     self.assertEqual(len(member_run.players), count)
                     self.assertFalse(member_run.players[uid].downed)
 
@@ -156,12 +160,12 @@ class TestRogueCoop(unittest.TestCase):
         _, run = move_to_room(self.plugin, uids[0], ("battle", "elite"), rally=True)
         first = self.run_cmd("e", uids[0])
         self.assertIn("等待队友", first)
-        run = self.plugin.save_manager.load_save(uids[0])
+        run = load_run(self.plugin, uids[0])
         self.assertTrue(run.node_data["turn_ready"][uids[0]])
         self.assertFalse(run.node_data["turn_ready"][uids[1]])
         second = self.run_cmd("e", uids[1])
         self.assertIn("进入第 2 回合", second)
-        run = self.plugin.save_manager.load_save(uids[0])
+        run = load_run(self.plugin, uids[0])
         self.assertEqual(run.node_data.get("turn_count"), 2)
         self.assertFalse(any(run.node_data["turn_ready"].values()))
         from game.core.inventory.deck_service import DeckService
@@ -191,12 +195,12 @@ class TestRogueCoop(unittest.TestCase):
     def test_independent_shop_and_rest_mend(self):
         uids = ["shop_a", "shop_b"]
         run = self.start_coop(uids)
-        shop_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "shop"), "A1")
+        shop_coord = next((c for c, r in floor_of(run).rooms.items() if r.room_type == "shop"), "A1")
         SessionContextScoper.create_session(run, shop_coord, "shop", uids)
         self.plugin.engine.map_engine.explore_engine._init_shop_node(run)
         self.plugin.save_manager.save_save(uids[0], run)
-        shop_a = self.plugin.save_manager.load_save(uids[0])
-        shop_b = self.plugin.save_manager.load_save(uids[1])
+        shop_a = load_run(self.plugin, uids[0])
+        shop_b = load_run(self.plugin, uids[1])
         cards_a = [item.get("card_id") for item in shop_a.node_data.get("items", []) if item.get("type") == "card"]
         cards_b = [item.get("card_id") for item in shop_b.node_data.get("items", []) if item.get("type") == "card"]
         self.assertNotEqual(cards_a, cards_b)
@@ -209,20 +213,20 @@ class TestRogueCoop(unittest.TestCase):
         bought_card = items_a[buy_index - 1].get("card_id")
         bought = self.run_cmd(f"c {buy_index}", uids[0])
         self.assertIn("购买成功", bought)
-        after_a = self.plugin.save_manager.load_save(uids[0])
-        after_b = self.plugin.save_manager.load_save(uids[1])
+        after_a = load_run(self.plugin, uids[0])
+        after_b = load_run(self.plugin, uids[1])
         self.assertIn(bought_card, {state.id for state in after_a.player.deck})
         self.assertEqual(after_b.player.gold, shop_b.player.gold)
         self.assertFalse(after_b.node_data["items"][buy_index - 1].get("sold"))
         leave_index = len(items_a)
         self.run_cmd(f"c {leave_index}", uids[0])
         self.run_cmd(f"c {leave_index}", uids[1])
-        advanced = self.plugin.save_manager.load_save(uids[0])
+        advanced = load_run(self.plugin, uids[0])
         self.assertEqual(advanced.node_type, "grid_map")
 
         uids = ["rest_a", "rest_b"]
         run = self.start_coop(uids)
-        rest_coord = next((c for c, r in run.floor_map.rooms.items() if r.room_type == "rest"), "A1")
+        rest_coord = next((c for c, r in floor_of(run).rooms.items() if r.room_type == "rest"), "A1")
         SessionContextScoper.create_session(run, rest_coord, "rest", uids)
         self.plugin.engine.map_engine.explore_engine._init_rest_node(run)
         self.plugin.save_manager.save_save(uids[0], run)
@@ -232,7 +236,7 @@ class TestRogueCoop(unittest.TestCase):
         self.assertIn("救治", mend)
         mend = self.run_cmd("c 4", uids[1])
         self.assertIn("救治", mend)
-        advanced = self.plugin.save_manager.load_save(uids[0])
+        advanced = load_run(self.plugin, uids[0])
         self.assertEqual(advanced.node_type, "grid_map")
 
 
@@ -292,7 +296,7 @@ class TestRogueCoop(unittest.TestCase):
 
         first = self.run_cmd("c 1", uids[0])
         self.assertIn(get_relic_name(relic_a), first)
-        owner = self.plugin.save_manager.load_save(uids[0])
+        owner = load_run(self.plugin, uids[0])
         self.assertEqual(owner.node_data["coop_relic_pool"][0]["claimed_by"], uids[0])
 
         blocked = self.run_cmd("c 2", uids[0])
@@ -301,17 +305,17 @@ class TestRogueCoop(unittest.TestCase):
         taken = self.run_cmd("c 1", uids[1])
         self.assertIn("夺走", taken)
         self.assertEqual(
-            self.plugin.save_manager.load_save(uids[1]).node_data["coop_relic_pool"][0]["claimed_by"],
+            load_run(self.plugin, uids[1]).node_data["coop_relic_pool"][0]["claimed_by"],
             uids[0],
         )
 
         second = self.run_cmd("c 2", uids[1])
         self.assertIn(get_relic_name(relic_b), second)
-        teammate = self.plugin.save_manager.load_save(uids[1])
+        teammate = load_run(self.plugin, uids[1])
         self.assertEqual(teammate.node_data["coop_relic_pool"][1]["claimed_by"], uids[1])
 
-        self.assertIn(relic_a, self.plugin.save_manager.load_save(uids[0]).players[uids[0]].relics)
-        self.assertIn(relic_b, self.plugin.save_manager.load_save(uids[1]).players[uids[1]].relics)
+        self.assertIn(relic_a, load_run(self.plugin, uids[0]).players[uids[0]].relics)
+        self.assertIn(relic_b, load_run(self.plugin, uids[1]).players[uids[1]].relics)
 
     def test_coop_relic_pool_allows_multiple_picks(self):
         uids = ["multi_a", "multi_b"]
@@ -354,7 +358,7 @@ class TestRogueCoop(unittest.TestCase):
         third = self.run_cmd("c 3", uids[1])
         self.assertIn(get_relic_name(relic_c), third)
 
-        owner = self.plugin.save_manager.load_save(uids[0])
+        owner = load_run(self.plugin, uids[0])
         self.assertIn(relic_a, owner.players[uids[0]].relics)
         self.assertIn(relic_b, owner.players[uids[0]].relics)
         self.assertIn(relic_c, owner.players[uids[1]].relics)
@@ -366,7 +370,7 @@ class TestRogueCoop(unittest.TestCase):
         self.assertEqual(run.node_type, "battle")
         blocked = self.run_cmd("start confirm", uids[0])
         self.assertIn("联机", blocked)
-        self.assertIsNotNone(self.plugin.save_manager.load_save(uids[0]))
+        self.assertIsNotNone(load_run(self.plugin, uids[0]))
         abandoned = self.run_cmd("abandon confirm", uids[0])
         self.assertIn("全队进度已结算", abandoned)
         for uid in uids:
@@ -380,7 +384,7 @@ class TestRogueCoop(unittest.TestCase):
         before = {uid: len(run.players[uid].relics) for uid in uids}
         self.plugin.engine.battle_engine.card_player.init_rewards(run, "elite")
         self.plugin.save_manager.save_save(uids[0], run)
-        saved = self.plugin.save_manager.load_save(uids[0])
+        saved = load_run(self.plugin, uids[0])
         pool = saved.node_data["coop_relic_pool"]
         ids = [entry["relic_id"] for entry in pool]
         self.assertEqual(len(pool), len(uids) + 1)
@@ -389,12 +393,12 @@ class TestRogueCoop(unittest.TestCase):
         for index, uid in enumerate(uids, 1):
             claimed = self.run_cmd(f"c {index}", uid)
             self.assertIn("获得了遗物", claimed)
-        after = self.plugin.save_manager.load_save(uids[0])
+        after = load_run(self.plugin, uids[0])
         claims = [entry.get("claimed_by") for entry in after.node_data["coop_relic_pool"]]
         self.assertEqual(claims[: len(uids)], uids)
         self.assertEqual(claims[len(uids)], "")
         for uid in uids:
-            member = self.plugin.save_manager.load_save(uid)
+            member = load_run(self.plugin, uid)
             self.assertEqual(len(member.players[uid].relics), before[uid] + 1)
 
     def test_coop_elite_relic_pool_fills_when_owned(self):
@@ -421,14 +425,14 @@ class TestRogueCoop(unittest.TestCase):
         self.plugin.save_manager.save_save(uids[0], run)
         amounts = {}
         for uid in uids:
-            member_run = self.plugin.save_manager.load_save(uid)
+            member_run = load_run(self.plugin, uid)
             self.assertEqual(member_run.node_type, "reward")
             self.assertTrue(member_run.node_data.get("items"))
             amounts[uid] = member_run.node_data["items"][0].get("amount", 0)
             claimed = self.run_cmd("c 1", uid)
             self.assertIn("金币", claimed)
             self.run_cmd("c 取消", uid)
-        advanced = self.plugin.save_manager.load_save(uids[0])
+        advanced = load_run(self.plugin, uids[0])
         self.assertEqual(advanced.node_type, "grid_map")
         for uid in uids:
             self.assertEqual(advanced.players[uid].gold, before[uid] + amounts[uid])
@@ -463,7 +467,7 @@ class TestRogueCoop(unittest.TestCase):
         self.assertNotIn("甲的记录", res_b)
 
     def _force_shared_event(self, uids, event_id):
-        run = self.plugin.save_manager.load_save(uids[0])
+        run = load_run(self.plugin, uids[0])
         SessionContextScoper.create_session(run, "A1", "event", uids)
         explore = self.plugin.engine.map_engine.explore_engine
         event = next(e for e in ALL_EVENTS if e.id == event_id)
@@ -478,7 +482,7 @@ class TestRogueCoop(unittest.TestCase):
         run = self._force_shared_event(uids, "altar")
         self.assertEqual(run.node_type, "event")
         self.assertFalse(run.node_data.get("player_views"))
-        loaded = [self.plugin.save_manager.load_save(uid) for uid in uids]
+        loaded = [load_run(self.plugin, uid) for uid in uids]
         self.assertEqual(len({item.node_data.get("event_id") for item in loaded}), 1)
         self.assertEqual(loaded[0].node_data.get("options"), loaded[1].node_data.get("options"))
         self.assertTrue(loaded[0].node_data.get("options"))
@@ -486,17 +490,17 @@ class TestRogueCoop(unittest.TestCase):
     def test_coop_event_effects_all_players(self):
         uids = ["effect_a", "effect_b", "effect_c"]
         self.start_coop(uids)
-        before = {uid: self.plugin.save_manager.load_save(uid).player.gold for uid in uids}
-        names = {uid: self.plugin.save_manager.load_save(uid).player.name for uid in uids}
+        before = {uid: load_run(self.plugin, uid).player.gold for uid in uids}
+        names = {uid: load_run(self.plugin, uid).player.name for uid in uids}
         self._force_shared_event(uids, "altar")
         result = self.run_cmd("c 2", uids[0])
         self.assertIn("全队共同应对事件", result)
         for uid in uids:
             self.assertIn(names[uid], result)
-        after = {uid: self.plugin.save_manager.load_save(uid).player.gold for uid in uids}
+        after = {uid: load_run(self.plugin, uid).player.gold for uid in uids}
         for uid in uids:
             self.assertGreater(after[uid], before[uid])
-        self.assertEqual(self.plugin.save_manager.load_save(uids[0]).node_type, "grid_map")
+        self.assertEqual(load_run(self.plugin, uids[0]).node_type, "grid_map")
 
     def test_coop_event_vote_half_threshold(self):
         uids = ["evvote_a", "evvote_b", "evvote_c", "evvote_d"]
@@ -504,13 +508,13 @@ class TestRogueCoop(unittest.TestCase):
         self._force_shared_event(uids, "lost_maze")
         first = self.run_cmd("c 1", uids[1])
         self.assertIn("事件意向已记录", first)
-        run = self.plugin.save_manager.load_save(uids[0])
+        run = load_run(self.plugin, uids[0])
         self.assertEqual(run.node_type, "event")
         self.assertEqual(run.node_data.get("event_id"), "lost_maze")
         second = self.run_cmd("c 1", uids[2])
         self.assertNotIn("事件意向已记录", second)
         self.assertIn("全队共同应对事件", second)
-        run = self.plugin.save_manager.load_save(uids[0])
+        run = load_run(self.plugin, uids[0])
         self.assertEqual(run.node_type, "event")
         self.assertEqual(run.node_data.get("event_id"), "maze_guard")
 
@@ -519,7 +523,7 @@ class TestRogueCoop(unittest.TestCase):
         self.start_coop(uids)
         self._force_shared_event(uids, "lost_maze")
         self.run_cmd("c 1", uids[0])
-        run = self.plugin.save_manager.load_save(uids[0])
+        run = load_run(self.plugin, uids[0])
         self.assertEqual(run.node_data.get("event_id"), "maze_guard")
         fight_idx = next(
             index + 1
@@ -528,12 +532,12 @@ class TestRogueCoop(unittest.TestCase):
         )
         result = self.run_cmd(f"c {fight_idx}", uids[0])
         self.assertIn("全队共同应对事件", result)
-        final = self.plugin.save_manager.load_save(uids[0])
+        final = load_run(self.plugin, uids[0])
         self.assertEqual(final.node_type, "battle")
         self.assertEqual(len(final.players), len(uids))
         self.assertIn("coop_hp_mult", final.node_data)
         for uid in uids:
-            member = self.plugin.save_manager.load_save(uid)
+            member = load_run(self.plugin, uid)
             self.assertEqual(member.node_type, "battle")
             self.assertFalse(member.player.downed)
 
@@ -602,21 +606,21 @@ class TestRogueCoop(unittest.TestCase):
         self.plugin.save_manager.save_save(uids[0], run)
 
         opened = self.run_cmd("c 1", uids[0])
-        owner = self.plugin.save_manager.load_save(uids[0])
+        owner = load_run(self.plugin, uids[0])
         self.assertEqual(owner.node_type, "card_select")
         self.assertFalse(owner.node_data.get("can_skip"))
         self.assertTrue(owner.node_data.get("force_upgraded"))
         self.assertIn(ALL_CARDS[CardState(id="fireball", upgraded=True)].desc, opened)
-        teammate = self.plugin.save_manager.load_save(uids[1])
+        teammate = load_run(self.plugin, uids[1])
         self.assertEqual(teammate.node_type, "reward")
 
         refused = self.run_cmd("c 3", uids[0])
         self.assertIn("无法跳过", refused)
-        owner = self.plugin.save_manager.load_save(uids[0])
+        owner = load_run(self.plugin, uids[0])
         self.assertEqual(owner.node_type, "card_select")
 
         self.run_cmd("c 1", uids[0])
-        owner = self.plugin.save_manager.load_save(uids[0])
+        owner = load_run(self.plugin, uids[0])
         obtained = [card for card in owner.player.deck if getattr(card, "id", "") == "fireball"]
         self.assertTrue(obtained)
         self.assertTrue(obtained[-1].upgraded)
@@ -642,10 +646,10 @@ class TestRogueCoop(unittest.TestCase):
         from game.models.coop_view import apply_view
         apply_view(run, uids[0])
         self.plugin.save_manager.save_save(uids[0], run)
-        before = len(self.plugin.save_manager.load_save(uids[0]).player.deck)
+        before = len(load_run(self.plugin, uids[0]).player.deck)
 
         opened = self.run_cmd("c 2", uids[0])
-        owner = self.plugin.save_manager.load_save(uids[0])
+        owner = load_run(self.plugin, uids[0])
         self.assertEqual(owner.node_type, "card_select")
         self.assertTrue(owner.node_data.get("can_skip"))
         cards = owner.node_data.get("cards", [])
@@ -653,7 +657,7 @@ class TestRogueCoop(unittest.TestCase):
         self.assertIn(ALL_CARDS[CardState(id=cards[0])].desc, opened)
 
         self.run_cmd("c 1", uids[0])
-        owner = self.plugin.save_manager.load_save(uids[0])
+        owner = load_run(self.plugin, uids[0])
         self.assertEqual(owner.node_type, "rest")
         self.assertTrue(owner.node_data.get("coop_done"))
         self.assertEqual(len(owner.player.deck), before + 1)
@@ -664,19 +668,19 @@ class TestRogueCoop(unittest.TestCase):
         SessionContextScoper.create_session(run, "A1", "shop", uids)
         self.plugin.engine.map_engine.explore_engine._init_shop_node(run)
         self.plugin.save_manager.save_save(uids[0], run)
-        run = self.plugin.save_manager.load_save(uids[0])
+        run = load_run(self.plugin, uids[0])
         items = list(run.node_data.get("items", []))
         gem_id = next(iter(GEM_CONFIG))
         explore = self.plugin.engine.map_engine.explore_engine
         explore.start_gem_insert_flow(run, gem_id, "shop", {"items": items})
-        owner = self.plugin.save_manager.load_save(uids[0])
-        teammate = self.plugin.save_manager.load_save(uids[1])
+        owner = load_run(self.plugin, uids[0])
+        teammate = load_run(self.plugin, uids[1])
         self.assertEqual(owner.node_type, "gem_insert")
         self.assertEqual(teammate.node_type, "shop")
         self.assertTrue(teammate.node_data.get("items"))
         explore.gem_insert_cancel(owner)
-        owner = self.plugin.save_manager.load_save(uids[0])
-        teammate = self.plugin.save_manager.load_save(uids[1])
+        owner = load_run(self.plugin, uids[0])
+        teammate = load_run(self.plugin, uids[1])
         self.assertEqual(owner.node_type, "shop")
         self.assertEqual(teammate.node_type, "shop")
         self.assertTrue(owner.node_data.get("items"))
@@ -701,11 +705,11 @@ class TestRogueCoop(unittest.TestCase):
         from game.models.coop_view import apply_view
         apply_view(run, uids[0])
         self.plugin.save_manager.save_save(uids[0], run)
-        owner = self.plugin.save_manager.load_save(uids[0])
+        owner = load_run(self.plugin, uids[0])
         self.plugin.engine.map_engine.choose_option(owner, 1)
         self.plugin.save_manager.save_save(uids[0], owner)
-        owner = self.plugin.save_manager.load_save(uids[0])
-        teammate = self.plugin.save_manager.load_save(uids[1])
+        owner = load_run(self.plugin, uids[0])
+        teammate = load_run(self.plugin, uids[1])
         self.assertEqual(owner.node_type, "card_select")
         self.assertIn("fireball", owner.node_data.get("cards", []))
         self.assertEqual(teammate.node_type, "treasure")
@@ -715,12 +719,12 @@ class TestRogueCoop(unittest.TestCase):
         )
         self.plugin.engine.map_engine.choose_option(owner, 1)
         self.plugin.save_manager.save_save(uids[0], owner)
-        owner = self.plugin.save_manager.load_save(uids[0])
+        owner = load_run(self.plugin, uids[0])
         self.assertEqual(owner.node_type, "treasure")
         self.plugin.engine.map_engine.choose_option(owner, 1)
         self.plugin.save_manager.save_save(uids[0], owner)
-        owner = self.plugin.save_manager.load_save(uids[0])
-        teammate = self.plugin.save_manager.load_save(uids[1])
+        owner = load_run(self.plugin, uids[0])
+        teammate = load_run(self.plugin, uids[1])
         self.assertEqual(owner.node_type, "gem_insert")
         self.assertEqual(teammate.node_type, "treasure")
         self.assertEqual(
@@ -729,7 +733,7 @@ class TestRogueCoop(unittest.TestCase):
         )
         self.plugin.engine.map_engine.explore_engine.gem_insert_cancel(owner)
         self.plugin.save_manager.save_save(uids[0], owner)
-        owner = self.plugin.save_manager.load_save(uids[0])
+        owner = load_run(self.plugin, uids[0])
         self.assertEqual(owner.node_type, "treasure")
 
     def test_coop_reward_completion_advances_once(self):
@@ -742,14 +746,14 @@ class TestRogueCoop(unittest.TestCase):
         for enemy in run.enemies:
             enemy.hp = 0
         self.plugin.engine.battle_engine._handle_battle_win(run)
-        reward = self.plugin.save_manager.load_save(uids[0])
+        reward = load_run(self.plugin, uids[0])
         self.assertEqual(reward.node_type, "reward")
         self.assertTrue(reward.node_data.get("items"))
         self.assertEqual(reward.players[uids[0]].stage, stage)
 
         waiting = self.run_cmd("c 取消", uids[0])
         self.assertIn("等待队友", waiting)
-        mid = self.plugin.save_manager.load_save(uids[1])
+        mid = load_run(self.plugin, uids[1])
         self.assertEqual(mid.node_type, "reward")
         self.assertTrue(mid.node_data.get("stage_ready", {}).get(uids[0]))
         self.assertFalse(mid.node_data.get("stage_ready", {}).get(uids[1]))
@@ -759,12 +763,12 @@ class TestRogueCoop(unittest.TestCase):
         completed = self.run_cmd("c 取消", uids[1])
         self.assertIn("继续前进", completed)
         for uid in uids:
-            advanced = self.plugin.save_manager.load_save(uid)
+            advanced = load_run(self.plugin, uid)
             self.assertEqual(advanced.node_type, "grid_map")
             self.assertEqual(advanced.players[uids[0]].stage, stage)
             self.assertEqual(advanced.players[uids[1]].stage, stage)
         self.run_cmd("c 取消", uids[0])
-        unchanged = self.plugin.save_manager.load_save(uids[0])
+        unchanged = load_run(self.plugin, uids[0])
         self.assertEqual(unchanged.node_type, "grid_map")
         self.assertEqual(unchanged.players[uids[0]].stage, stage)
 
@@ -775,13 +779,13 @@ class TestRogueCoop(unittest.TestCase):
         SessionContextScoper.create_session(run, "A1", "rest", uids)
         self.plugin.engine.map_engine.explore_engine._init_rest_node(run)
         self.plugin.save_manager.save_save(uids[0], run)
-        rest = self.plugin.save_manager.load_save(uids[0])
+        rest = load_run(self.plugin, uids[0])
         self.assertEqual(rest.node_type, "rest")
         self.assertEqual(rest.players[uids[0]].stage, stage)
 
         waiting = self.run_cmd("c 4", uids[0])
         self.assertIn("救治", waiting)
-        mid = self.plugin.save_manager.load_save(uids[1])
+        mid = load_run(self.plugin, uids[1])
         self.assertEqual(mid.node_type, "rest")
         self.assertTrue(mid.node_data.get("stage_ready", {}).get(uids[0]))
         self.assertFalse(mid.node_data.get("stage_ready", {}).get(uids[1]))
@@ -790,12 +794,12 @@ class TestRogueCoop(unittest.TestCase):
         completed = self.run_cmd("c 4", uids[1])
         self.assertIn("继续前进", completed)
         for uid in uids:
-            advanced = self.plugin.save_manager.load_save(uid)
+            advanced = load_run(self.plugin, uid)
             self.assertEqual(advanced.node_type, "grid_map")
             self.assertEqual(advanced.players[uids[0]].stage, stage)
             self.assertEqual(advanced.players[uids[1]].stage, stage)
         self.run_cmd("c 取消", uids[0])
-        unchanged = self.plugin.save_manager.load_save(uids[0])
+        unchanged = load_run(self.plugin, uids[0])
         self.assertEqual(unchanged.node_type, "grid_map")
         self.assertEqual(unchanged.players[uids[0]].stage, stage)
 
@@ -825,16 +829,16 @@ class TestRogueCoop(unittest.TestCase):
 
         opened = self.run_cmd("c 1", uids[0])
         self.assertIn("强制镶嵌", opened)
-        owner = self.plugin.save_manager.load_save(uids[0])
-        teammate = self.plugin.save_manager.load_save(uids[1])
+        owner = load_run(self.plugin, uids[0])
+        teammate = load_run(self.plugin, uids[1])
         self.assertEqual(owner.node_type, "gem_insert")
         self.assertEqual(teammate.node_type, "treasure")
         self.assertFalse(teammate.node_data["items"][0]["taken"])
 
         inserted = self.run_cmd("c 1", uids[0])
         self.assertIn("镶嵌成功", inserted)
-        owner = self.plugin.save_manager.load_save(uids[0])
-        teammate = self.plugin.save_manager.load_save(uids[1])
+        owner = load_run(self.plugin, uids[0])
+        teammate = load_run(self.plugin, uids[1])
         self.assertEqual(owner.node_type, "treasure")
         self.assertTrue(owner.node_data["items"][0]["taken"])
         self.assertTrue(any(gem_id in card.gems for card in owner.player.deck))
@@ -844,7 +848,7 @@ class TestRogueCoop(unittest.TestCase):
 
         waiting = self.run_cmd("c 取消", uids[0])
         self.assertIn("等待队友", waiting)
-        mid = self.plugin.save_manager.load_save(uids[1])
+        mid = load_run(self.plugin, uids[1])
         self.assertEqual(mid.node_type, "treasure")
         self.assertEqual(mid.players[uids[0]].stage, stage)
         self.assertTrue(mid.node_data.get("stage_ready", {}).get(uids[0]))
@@ -852,26 +856,26 @@ class TestRogueCoop(unittest.TestCase):
 
         opened_b = self.run_cmd("c 1", uids[1])
         self.assertIn("强制镶嵌", opened_b)
-        member = self.plugin.save_manager.load_save(uids[1])
+        member = load_run(self.plugin, uids[1])
         self.assertEqual(member.node_type, "gem_insert")
         member_inserted = self.run_cmd("c 1", uids[1])
         self.assertIn("镶嵌成功", member_inserted)
-        member = self.plugin.save_manager.load_save(uids[1])
+        member = load_run(self.plugin, uids[1])
         self.assertEqual(member.node_type, "treasure")
         self.assertTrue(member.node_data["items"][0]["taken"])
         self.assertTrue(any(gem_id in card.gems for card in member.player.deck))
-        leader = self.plugin.save_manager.load_save(uids[0])
+        leader = load_run(self.plugin, uids[0])
         self.assertTrue(any(gem_id in card.gems for card in leader.player.deck))
 
         completed = self.run_cmd("c 取消", uids[1])
         self.assertIn("继续前进", completed)
         for uid in uids:
-            advanced = self.plugin.save_manager.load_save(uid)
+            advanced = load_run(self.plugin, uid)
             self.assertEqual(advanced.node_type, "grid_map")
             self.assertEqual(advanced.players[uids[0]].stage, stage)
             self.assertEqual(advanced.players[uids[1]].stage, stage)
         self.run_cmd("c 取消", uids[0])
-        unchanged = self.plugin.save_manager.load_save(uids[0])
+        unchanged = load_run(self.plugin, uids[0])
         self.assertEqual(unchanged.node_type, "grid_map")
         self.assertEqual(unchanged.players[uids[0]].stage, stage)
 
@@ -882,7 +886,7 @@ class TestRogueCoop(unittest.TestCase):
         return run
 
     def set_hand(self, uid, states):
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         run.player = run.players[uid]
         run.players[uid].hand = list(states)
         self.plugin.save_manager.save_save(uid, run)
@@ -897,7 +901,7 @@ class TestRogueCoop(unittest.TestCase):
         self.assertIn("✨ [消耗] 【雇佣兵】进入战场。", first)
         second = self.run_cmd("p 1", uid)
         self.assertEqual(second.count("✨ [消耗] 【雇佣兵】进入战场。"), 1)
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         self.assertFalse(run.node_data.get("battle_logs"))
 
     def test_coop_last_ender_clears_single_turn_buff(self):
@@ -906,12 +910,12 @@ class TestRogueCoop(unittest.TestCase):
         from game.models.state import BuffState
         waiting = self.run_cmd("e", uids[0])
         self.assertIn("等待队友", waiting)
-        run = self.plugin.save_manager.load_save(uids[1])
+        run = load_run(self.plugin, uids[1])
         run.player = run.players[uids[1]]
         run.players[uids[1]].buffs.append(BuffState("tactical_focus", "无法抽牌", 1, None, ""))
         self.plugin.save_manager.save_save(uids[1], run)
         self.run_cmd("e", uids[1])
-        run = self.plugin.save_manager.load_save(uids[1])
+        run = load_run(self.plugin, uids[1])
         self.assertFalse(any(b.id == "tactical_focus" for b in run.players[uids[1]].buffs))
         self.assertEqual(len(run.players[uids[1]].hand), 6)
 
@@ -922,7 +926,7 @@ class TestRogueCoop(unittest.TestCase):
         self.set_hand(uids[0], [CardState(id="quick_strike")] * 3)
         self.run_cmd("p 1", uids[0])
         self.run_cmd("p 1", uids[0])
-        run = self.plugin.save_manager.load_save(uids[1])
+        run = load_run(self.plugin, uids[1])
         run.player = run.players[uids[1]]
         run.players[uids[1]].buffs.append(BuffState("echo_form", "回响形态", 1, None, ""))
         run.players[uids[1]].hand = [CardState(id="arcane_spark")]
@@ -937,7 +941,7 @@ class TestRogueCoop(unittest.TestCase):
         self.enter_coop_battle(uids)
         from game.models.state import BuffState
         uid = uids[0]
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         run.player = run.players[uid]
         player = run.players[uid]
         player.buffs.append(BuffState("echo_form", "回响形态", 1, None, ""))
@@ -955,7 +959,7 @@ class TestRogueCoop(unittest.TestCase):
         uid = uids[0]
         self.set_hand(uid, [CardState(id="mercenary", upgraded=True)])
         self.run_cmd("p 1", uid)
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         player = run.players[uid]
         self.assertEqual(player.minions["1"].id, "mercenary+")
         self.assertFalse([c for c in player.hand if c.id == "mercenary"])
@@ -963,7 +967,7 @@ class TestRogueCoop(unittest.TestCase):
         self.assertFalse([c for c in player.exhaust_pile if c.id == "mercenary"])
         self.run_cmd("e", uid)
         self.run_cmd("e", uids[1])
-        run = self.plugin.save_manager.load_save(uid)
+        run = load_run(self.plugin, uid)
         player = run.players[uid]
         self.assertIn("1", player.minions)
         self.assertEqual(player.minions["1"].id, "mercenary+")

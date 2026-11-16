@@ -67,6 +67,8 @@ def apply_quest_encounter(run: GameRun, room: RoomState) -> None:
         return
     cfg = YOG_ENCOUNTERS[encounter_id]
     fm = run.floor_map
+    if fm is None:
+        return
     flags = fm.floor_flags.setdefault("yog_flags", {})
     is_boss = bool(cfg.get("boss"))
     boss_mod = 0

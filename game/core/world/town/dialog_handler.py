@@ -7,6 +7,10 @@ from ....entities.cards.market import get_market_price
 from ....data.locale_data import get_locale_text
 from ....data.starting_deck_config import LOCK_PRICE_GP, LOCK_SLOT_LIMIT
 from ....data.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
+from ....data.open_world_config import TOWN_CHEST_NPC_ID
+from ....data.town_card_shop_data import TOWN_CARD_MERCHANT_NPC_ID
+from .chest_dialog import build_chest_menu, process_chest_choice
+from .card_shop_dialog import build_town_card_shop_menu, process_town_card_shop_choice
 
 
 def _option(action: Optional[str], label: Any, condition: Optional[Callable[[UserStats], bool]] = None, target: Any = None, prefix: bool = True, selectable: bool = True) -> Dict[str, Any]:
@@ -25,7 +29,7 @@ def _text_label(text: str) -> tuple:
     return ("text", text)
 
 
-def _resolve_label(label: Any, stats: UserStats, npc_data: Dict[str, Any], zh_cn: Dict[str, Any], number: int) -> str:
+def _resolve_label(label: Any, stats: UserStats, npc_data: Dict[str, Any], zh_cn: Dict[str, Any], number: int | None) -> str:
     if callable(label):
         return str(label(stats, npc_data, zh_cn, number) or "")
     kind = label[0]
@@ -223,6 +227,10 @@ def _shop_specs(stats: UserStats) -> List[Dict[str, Any]]:
 
 
 def build_dialog_menu(town_engine, stats: UserStats, npc_id: str, zh_cn: Dict[str, Any]) -> Dict[str, Any]:
+    if npc_id == TOWN_CHEST_NPC_ID:
+        return build_chest_menu(stats, zh_cn)
+    if npc_id == TOWN_CARD_MERCHANT_NPC_ID:
+        return build_town_card_shop_menu(stats, zh_cn)
     entities = zh_cn.get("interactive_entities", {})
     npc_data = entities.get(npc_id, {})
     npc_name = npc_data.get("name", npc_id)
@@ -269,6 +277,10 @@ def build_dialog_menu(town_engine, stats: UserStats, npc_id: str, zh_cn: Dict[st
 
 
 def process_dialog_choice(town_engine, stats: UserStats, npc_id: str, choice_lower: str, choice: str, user_id: str, zh_cn: Dict[str, Any]) -> str:
+    if npc_id == TOWN_CHEST_NPC_ID:
+        return process_chest_choice(town_engine, stats, choice_lower, user_id, zh_cn)
+    if npc_id == TOWN_CARD_MERCHANT_NPC_ID:
+        return process_town_card_shop_choice(town_engine, stats, choice_lower, user_id, zh_cn)
     menu = build_dialog_menu(town_engine, stats, npc_id, zh_cn)
     for option in menu["options"]:
         if option["number"] is not None and choice_lower == str(option["number"]):

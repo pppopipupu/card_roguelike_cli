@@ -2,6 +2,7 @@ from typing import Tuple
 from ...models.state import set_user_id
 from ...entities import ALL_CARDS
 from ..cli.base import ActionHandler
+from .actions import finalize_defeat, finalize_victory
 from .base.aliases import normalize_node_alias
 from ...data.locale_data import get_locale_text
 
@@ -58,21 +59,9 @@ class ActionRouter:
                     self.engine.battle_engine.resolve_suspended_card(run)
                     self.save_manager.save_save(user_id, run)
                     if run.player.hp <= 0:
-                        settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                        if len(run.human_uids()) > 1:
-                            return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, True
-                        return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, True
+                        return finalize_defeat(self.save_manager, user_id, run, res, True)
                     if self.engine.is_battle_won(run):
-                        self.engine._handle_battle_win(run)
-                        if run.node_type == "victory":
-                            settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=True)
-                            boss_name = run.node_data.get("boss_name")
-                            if not boss_name and run.enemies:
-                                boss_name = run.enemies[0].name
-                            if not boss_name:
-                                boss_name = get_locale_text("i18n_cli_core.final_boss_default")
-                            return self.engine.battle_engine._append_logs_to_res(run, get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg)), True, True
-                        return self.engine.battle_engine._append_logs_to_res(run, get_locale_text("i18n_cli_core.battle_won", res=res)), True, True
+                        return finalize_victory(self.save_manager, self.engine, user_id, run, res, True, append_logs=True)
                     return self.engine.battle_engine._append_logs_to_res(run, res), False, True
                 if head == "选择":
                     return get_locale_text("i18n_cli_core.err_cthulhu_puzzle_invalid"), False, False
@@ -111,17 +100,7 @@ class ActionRouter:
                 if agile_msg:
                     res += f"\n{agile_msg}"
                 if self.engine.is_battle_won(run):
-                    self.engine._handle_battle_win(run)
-                    if run.node_type == "victory":
-                        settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=True)
-                        boss_name = run.node_data.get("boss_name")
-                        if not boss_name and run.enemies:
-                            boss_name = run.enemies[0].name
-                        if not boss_name:
-                            boss_name = get_locale_text("i18n_cli_core.final_boss_default")
-                        return self.engine.battle_engine._append_logs_to_res(run, get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg)), True, True
-                    else:
-                        return self.engine.battle_engine._append_logs_to_res(run, get_locale_text("i18n_cli_core.battle_won", res=res)), True, True
+                    return finalize_victory(self.save_manager, self.engine, user_id, run, res, True, append_logs=True)
                 return self.engine.battle_engine._append_logs_to_res(run, res), False, True
             elif stype == "awaiting_target":
                 if parts and parts[0] in self._action_handlers:
@@ -161,22 +140,9 @@ class ActionRouter:
                             res = self.engine.play_card(run, hand_idx, target)
                             success = "❌" not in res
                             if run.player.hp <= 0:
-                                settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                                if len(run.human_uids()) > 1:
-                                    return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
-                                return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, success
+                                return finalize_defeat(self.save_manager, user_id, run, res, success)
                             if self.engine.is_battle_won(run):
-                                self.engine._handle_battle_win(run)
-                                if run.node_type == "victory":
-                                    settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=True)
-                                    boss_name = run.node_data.get("boss_name")
-                                    if not boss_name and run.enemies:
-                                        boss_name = run.enemies[0].name
-                                    if not boss_name:
-                                        boss_name = get_locale_text("i18n_cli_core.final_boss_default")
-                                    return get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg), True, success
-                                else:
-                                    return get_locale_text("i18n_cli_core.battle_won", res=res), True, success
+                                return finalize_victory(self.save_manager, self.engine, user_id, run, res, success)
                             return res, False, success
                         elif action_info == "minion_skill":
                             my_grid = top_state.get("my_grid")
@@ -185,22 +151,9 @@ class ActionRouter:
                             res = self.engine.minion_skill(run, my_grid, skill_idx, target)
                             success = "❌" not in res
                             if run.player.hp <= 0:
-                                settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                                if len(run.human_uids()) > 1:
-                                    return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
-                                return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, success
+                                return finalize_defeat(self.save_manager, user_id, run, res, success)
                             if self.engine.is_battle_won(run):
-                                self.engine._handle_battle_win(run)
-                                if run.node_type == "victory":
-                                    settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=True)
-                                    boss_name = run.node_data.get("boss_name")
-                                    if not boss_name and run.enemies:
-                                        boss_name = run.enemies[0].name
-                                    if not boss_name:
-                                        boss_name = get_locale_text("i18n_cli_core.final_boss_default")
-                                    return get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg), True, success
-                                else:
-                                    return get_locale_text("i18n_cli_core.battle_won", res=res), True, success
+                                return finalize_victory(self.save_manager, self.engine, user_id, run, res, success)
                             return res, False, success
                     else:
                         state_stack.pop()
@@ -275,22 +228,9 @@ class ActionRouter:
                 res = self.engine.execute_emperor_eye_resolve(run, idx - 1, upgraded)
                 success = "❌" not in res
                 if run.player.hp <= 0:
-                    settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=False)
-                    if len(run.human_uids()) > 1:
-                        return get_locale_text("i18n_cli_core.battle_downed_coop", res=res, settle_msg=settle_msg), True, success
-                    return get_locale_text("i18n_cli_core.battle_defeated", res=res, settle_msg=settle_msg), True, success
+                    return finalize_defeat(self.save_manager, user_id, run, res, success)
                 if self.engine.is_battle_won(run):
-                    self.engine._handle_battle_win(run)
-                    if run.node_type == "victory":
-                        settle_msg = self.save_manager.settle_game_and_delete(user_id, run, is_victory=True)
-                        boss_name = run.node_data.get("boss_name")
-                        if not boss_name and run.enemies:
-                            boss_name = run.enemies[0].name
-                        if not boss_name:
-                            boss_name = get_locale_text("i18n_cli_core.final_boss_default")
-                        return get_locale_text("i18n_cli_core.battle_victory_full", res=res, boss_name=boss_name, settle_msg=settle_msg), True, success
-                    else:
-                        return get_locale_text("i18n_cli_core.battle_won", res=res), True, success
+                    return finalize_victory(self.save_manager, self.engine, user_id, run, res, success)
                 return res, False, success
         parts = normalize_node_alias(run, parts)
         sub = parts[0]

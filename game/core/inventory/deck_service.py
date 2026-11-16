@@ -1,6 +1,8 @@
-from dataclasses import replace
+import random
+from dataclasses import asdict, replace
 from ...models.state import CardState, ensure_card_state
 from ...data.reward_config import EPIC_CARD_RARITY, NORMAL_CARD_RARITIES
+from ...data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
 
 UPGRADE_SUFFIX = "+"
 
@@ -161,3 +163,74 @@ class DeckService:
             rarities=NORMAL_CARD_RARITIES,
             allow_coop=include_coop,
         )
+
+    @staticmethod
+    def serialize_cards(cards) -> list[dict]:
+        return [asdict(ensure_card_state(c)) for c in (cards or [])]
+
+    @staticmethod
+    def clone_cards(cards) -> list[CardState]:
+        return [DeckService.clone_state(c) for c in (cards or [])]
+
+    @staticmethod
+    def assemble_starting_deck(
+        stats,
+        *,
+        include_random_rolls: bool = True,
+        consume_pending: bool = True,
+    ) -> list[CardState]:
+        from ...entities import ALL_CARDS
+
+        selected_class = getattr(stats, "selected_class", "法师")
+        selected_subclass = getattr(stats, "selected_subclass", "")
+        locked_cards = list(getattr(stats, "locked_cards", []) or [])[:LOCK_SLOT_LIMIT]
+        if consume_pending:
+            g_card = getattr(stats, "guaranteed_card", None)
+            if g_card:
+                if g_card not in locked_cards:
+                    locked_cards.append(g_card)
+                stats.guaranteed_card = None
+            p_pool = getattr(stats, "purchased_pool", [])
+            if p_pool:
+                locked_cards.extend(p_pool)
+                stats.purchased_pool = []
+            stats.locked_cards = locked_cards[:LOCK_SLOT_LIMIT]
+
+        deck = list(CLASS_STARTING_CARDS.get(selected_class, CLASS_STARTING_CARDS["法师"])) + list(locked_cards)
+        if include_random_rolls:
+            allowed_colors = ["warrior", "neutral"] if selected_class == "战士" else ["wizard", "neutral"]
+            commons = [
+                cid
+                for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("common",))
+                if cid != "time_stop"
+            ]
+            rares = [
+                cid
+                for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("rare",))
+                if cid != "time_stop"
+            ]
+            epics = [
+                cid
+                for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("epic",))
+                if cid != "time_stop"
+            ]
+            target_counts = dict(STARTING_ROLL_COUNTS)
+            for cid in locked_cards:
+                c_obj = ALL_CARDS.get(cid)
+                rarity = getattr(c_obj, "rarity", "common") if c_obj else "common"
+                if rarity not in target_counts:
+                    rarity = "common"
+                if target_counts[rarity] > 0:
+                    target_counts[rarity] -= 1
+                else:
+                    for fallback_rarity in ("common", "rare", "epic"):
+                        if target_counts[fallback_rarity] > 0:
+                            target_counts[fallback_rarity] -= 1
+                            break
+            for rarity, pool in (("common", commons), ("rare", rares), ("epic", epics)):
+                for _ in range(target_counts[rarity]):
+                    if pool:
+                        deck.append(random.choice(pool))
+        if selected_class == "法师" and selected_subclass == "时序法师":
+            deck.append("time_stop")
+        return [ensure_card_state(c) for c in deck]

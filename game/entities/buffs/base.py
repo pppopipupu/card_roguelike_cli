@@ -15,6 +15,7 @@ class BuffImpl:
     def __init__(self, stacks: int):
         self.stacks = stacks
         self.upgraded = False
+        self.stacks2: Optional[int] = None
 
     def on_card_play(self, event, buff_state, entity):
         pass
@@ -46,6 +47,14 @@ class BuffImpl:
     def on_shield_gain(self, event, buff_state, entity):
         pass
 
+    def on_enemy_sync_intents(self, event, buff_state, entity):
+        pass
+
+    def on_damage_take_attack(self, event, buff_state, entity, engine):
+        pass
+
+    def on_card_exhaust(self, event, buff_state, entity):
+        pass
 def get_buff_impl(buff_id: str, stacks: int, stacks2: Optional[int] = None) -> Optional[BuffImpl]:
     upgraded = False
     if isinstance(buff_id, str) and buff_id.endswith("+"):

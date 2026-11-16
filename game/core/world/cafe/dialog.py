@@ -1,5 +1,5 @@
 import random
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple, Optional
 from ....models.state import GameRun
 from ....cards import ALL_CARDS
 from ....entities import get_relic_name
@@ -14,13 +14,31 @@ from ....data.cafe_data import (
 from ....data.locale_data import get_locale_text
 from ...inventory.deck_service import DeckService
 
+if TYPE_CHECKING:
+    from ....models.manager import SaveManager
+    from ..map_engine import MapEngine
+
+
 class CafeDialogMixin:
+    if TYPE_CHECKING:
+        save_manager: SaveManager
+        map_engine: MapEngine
+
+        def _view_cafe(self, run: GameRun) -> dict: ...
+
+        def _shared_cafe(self, run: GameRun) -> dict: ...
+
+        def _release_npc_lock(self, shared_cafe: dict, uid: str, npc: Optional[str] = None) -> None: ...
+
+        def render_cafe(self, run: GameRun) -> str: ...
+
+        def leave_npc(self, run: GameRun) -> str: ...
     def _close_dialog(self, cafe_data: dict, talked_npcs: list, npc: str):
         talked_npcs.append(npc)
         cafe_data["active_npc"] = None
         cafe_data["dialog_state"] = None
 
-    def _get_dialog_content(self, run: GameRun, npc: str, state: str, talked: bool) -> Tuple[str, list[str]]:
+    def _get_dialog_content(self, run: GameRun, npc: str, state: Optional[str], talked: bool) -> Tuple[str, list[str]]:
         p = run.player
         shared_cafe = self._shared_cafe(run)
 
@@ -63,12 +81,12 @@ class CafeDialogMixin:
             opts.append(get_locale_text("i18n_map_cafe.cafe_opt_leave_talk"))
             return get_locale_text("i18n_map_cafe.cafe_kyle_greeting"), opts
 
-        entry = NPC_DIALOGS.get(npc, {}).get(state)
+        entry = NPC_DIALOGS.get(npc, {}).get(state or "")
         if entry:
             return entry["text"], list(entry["options"])
         return get_locale_text("i18n_map_cafe.cafe_unknown_traveler"), [get_locale_text("i18n_map_cafe.cafe_opt_leave_talk")]
 
-    def _execute_dialog_logic(self, run: GameRun, npc: str, state: str, idx: int, talked: bool) -> str:
+    def _execute_dialog_logic(self, run: GameRun, npc: str, state: Optional[str], idx: int, talked: bool) -> str:
         p = run.player
         cafe_data = self._view_cafe(run)
         shared_cafe = self._shared_cafe(run)

@@ -1,9 +1,31 @@
-from .state import GameRun
+from typing import TYPE_CHECKING
+from .state import GameRun, UserStats
 from ..data.map_config import MapConfig
 from ..data.locale_data import get_locale_text
 
 
+if TYPE_CHECKING:
+    from .corpse_registry import CorpseRegistry
+    from .records import Lobby
+
+
 class SettlementMixin:
+    if TYPE_CHECKING:
+        corpses: CorpseRegistry
+
+        def load_stats(self, user_id: str) -> UserStats: ...
+
+        def save_stats(self, user_id: str, stats: UserStats) -> bool: ...
+
+        def save_save(self, user_id: str, run: GameRun) -> bool: ...
+
+        def delete_save(self, user_id: str) -> bool: ...
+
+        def delete_coop_save(self, coop_id: str) -> bool: ...
+
+        def load_lobbies(self) -> dict[str, Lobby]: ...
+
+        def save_lobbies(self, lobbies: dict[str, Lobby]) -> bool: ...
     def settle_game_and_delete(self, user_id: str, run: GameRun, is_victory: bool = False, create_corpse: bool = True, force: bool = False) -> str:
         if run is None:
             return self._settle_single_game(user_id, None, is_victory, create_corpse, delete_personal=True)
@@ -36,6 +58,18 @@ class SettlementMixin:
                 run.node_data = {}
             self.save_save(user_id, run)
             return get_locale_text("i18n_models.manager.settle_coop_downed")
+        if not is_victory and run is not None:
+            from ..core.world.open_world.death_service import OpenWorldDeathService
+            from ..core.world.open_world.loadout_service import is_open_world_run
+
+            if is_open_world_run(run):
+                return OpenWorldDeathService.handle_run_death(
+                    self,
+                    None,
+                    user_id,
+                    run,
+                    is_abandon=force,
+                )
         original_player = run.player
         original_user = run.user_id
         results = []
@@ -57,14 +91,6 @@ class SettlementMixin:
         run.user_id = original_user
         if getattr(run, "coop_id", ""):
             self.delete_coop_save(run.coop_id)
-            lobbies = self.load_lobbies()
-            changed = False
-            for lobby_id, lobby in list(lobbies.items()):
-                if lobby.get("coop_id") == run.coop_id:
-                    del lobbies[lobby_id]
-                    changed = True
-            if changed:
-                self.save_lobbies(lobbies)
         self.delete_save(user_id)
         if run.player_count() <= 1 and results:
             return results[0]

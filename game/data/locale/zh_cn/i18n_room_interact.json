@@ -335,7 +335,7 @@
     "use_merchant_ledger": "📒 你变卖了【行商账册】上的秘境货单，获得 {gold} 金币！",
     "use_barista_seal": "☕ 握紧【店主秘藏印章】令你精神焕发，恢复了 {sp} 点 SP！",
     "use_town_item": "📖 你翻阅随身携带的【{name}】：{desc}",
-    "settle_carryover": "\n🎒 已收入先古主城行囊：{items}"
+    "settle_carryover": "\n📦 已存入广场储物箱：{items}"
   },
   "pbuff": {
     "ancient_ward_log": "🛡️ 【先古庇护】生效！战斗开始获得 {shield} 点护盾。",

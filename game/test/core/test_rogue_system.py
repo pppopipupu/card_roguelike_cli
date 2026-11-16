@@ -2,23 +2,23 @@ import os
 import unittest
 import asyncio
 from game.json_codec import dumps
+from game.models.state import CardState
 from game.test.core.base import *
 
 class TestRogueSystem(unittest.TestCase):
 
 
     def test_warrior_class_and_features(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run):
-                pass
-            def delete_save(self, user_id):
-                pass
-            def load_stats(self, user_id):
-                class DummyStats:
-                    def __init__(self):
-                        self.selected_class = "战士"
-                        self.selected_subclass = ""
-                return DummyStats()
+        class DummySaveManager(DummySaveManagerBase):
+            def save_save(self, user_id, run) -> bool:
+                return True
+            def delete_save(self, user_id) -> bool:
+                return True
+            def load_stats(self, user_id) -> UserStats:
+                stats = UserStats()
+                stats.selected_class = "战士"
+                stats.selected_subclass = ""
+                return stats
         sm = DummySaveManager()
         engine = BattleEngine(sm)
         
@@ -28,8 +28,8 @@ class TestRogueSystem(unittest.TestCase):
             shield=0,
             gold=20,
             stage=1,
-            deck=["warrior_strike", "warrior_defend", "power_through", "barricade", "heavy_blade", "bludgeon"],
-            hand=["warrior_strike", "warrior_defend", "power_through", "barricade", "heavy_blade", "bludgeon"],
+            deck=[CardState(id="warrior_strike"), CardState(id="warrior_defend"), CardState(id="power_through"), CardState(id="barricade"), CardState(id="heavy_blade"), CardState(id="bludgeon")],
+            hand=[CardState(id="warrior_strike"), CardState(id="warrior_defend"), CardState(id="power_through"), CardState(id="barricade"), CardState(id="heavy_blade"), CardState(id="bludgeon")],
             actions=2,
             bonus_actions=1
         )
@@ -53,7 +53,7 @@ class TestRogueSystem(unittest.TestCase):
         card_power = ALL_CARDS["power_through"]
         card_power.execute(run, None, engine)
         self.assertEqual(player.shield, 20)
-        self.assertEqual(player.hand.count("curse_wound"), 2)
+        self.assertEqual(player.hand.count(CardState(id="curse_wound")), 2)
         
         card_wound = ALL_CARDS["curse_wound"]
         self.assertTrue(getattr(card_wound, "unplayable", False))
@@ -69,7 +69,7 @@ class TestRogueSystem(unittest.TestCase):
         engine._add_buff_to(player, "strength", "力量", "伤害加成", 3)
         card_heavy = ALL_CARDS["heavy_blade"]
         enemies[0].hp = 100
-        engine.combat_resolver.card_player = engine.card_player
+        
         
         damage = engine.combat_resolver.get_modified_spell_damage(run, card_heavy, 14)
         self.assertEqual(damage, 14 + 3 * 3)
@@ -81,7 +81,7 @@ class TestRogueSystem(unittest.TestCase):
         plugin = MyPlugin(DummyContext())
         run.node_data["action_surge_uses"] = 2
         
-        class DummySaveManagerWithSave:
+        class DummySaveManagerWithSave(DummySaveManagerBase):
             def __init__(self, run):
                 self.run = run
                 self.stats = UserStats()
@@ -90,19 +90,20 @@ class TestRogueSystem(unittest.TestCase):
                 self.stats.rogue_mode = True
             def load_save(self, user_id):
                 return self.run
-            def save_save(self, user_id, run):
+            def save_save(self, user_id, run) -> bool:
                 self.run = run
-            def delete_save(self, user_id):
-                pass
-            def load_stats(self, user_id):
+                return True
+            def delete_save(self, user_id) -> bool:
+                return True
+            def load_stats(self, user_id) -> UserStats:
                 return self.stats
-            def save_stats(self, user_id, stats):
-                pass
+            def save_stats(self, user_id, stats) -> bool:
+                return True
         
         mgr = DummySaveManagerWithSave(run)
         plugin.save_manager = mgr
         plugin.cli_router.save_manager = mgr
-        plugin.cli_router.engine = engine
+        
 
         async def go():
             run.node_data["action_surge_turn_used"] = False
@@ -141,19 +142,18 @@ class TestRogueSystem(unittest.TestCase):
         from game.core.battle.engine import BattleEngine
         from game.models.state import GameRun, PlayerState, EnemyState, MinionState, Card
         from game.entities.enemies.base import EnemyTemplate
-        class DummySaveManager:
+        class DummySaveManager(DummySaveManagerBase):
             def load_admin_config(self):
                 return {}
-            def load_stats(self, uid):
-                class DummyStats:
-                    def __init__(self):
-                        self.selected_class = "战士"
-                        self.selected_subclass = ""
-                return DummyStats()
-            def save_save(self, uid, run):
-                pass
-            def save_stats(self, uid, stats):
-                pass
+            def load_stats(self, user_id) -> UserStats:
+                stats = UserStats()
+                stats.selected_class = "战士"
+                stats.selected_subclass = ""
+                return stats
+            def save_save(self, user_id, run) -> bool:
+                return True
+            def save_stats(self, user_id, stats) -> bool:
+                return True
         sm = DummySaveManager()
         engine = BattleEngine(sm)
         player = PlayerState(
@@ -162,12 +162,12 @@ class TestRogueSystem(unittest.TestCase):
             shield=0,
             gold=100,
             stage=1,
-            deck=["officer_recruit_vanguard"],
-            hand=["officer_recruit_vanguard"],
+            deck=[CardState(id="officer_recruit_vanguard")],
+            hand=[CardState(id="officer_recruit_vanguard")],
             actions=2,
             bonus_actions=1
         )
-        run = GameRun("test_user_w", "battle", player=player, enemies=[EnemyState("测试史莱姆", 20, 20, 0, 1, 0, 1, 0)])
+        run = GameRun("test_user_w", "battle", player=player, enemies=[EnemyState(name="测试史莱姆", hp=20, max_hp=20, shield=0, actions=1, bonus_actions=0, max_actions=1, max_bonus_actions=0)])
         p = run.player
         p.selected_class = "战士"
         engine._init_battle_node(run)
@@ -182,7 +182,7 @@ class TestRogueSystem(unittest.TestCase):
         run.enemies[0].hp = 20
         enemy_template._perform_attack(run, engine, run.enemies[0], 5, [])
         self.assertEqual(p.minions["1"].hp, 1)
-        p.hand = ["officer_recruit_vanguard"]
+        p.hand = [CardState(id="officer_recruit_vanguard")]
         run.node_data["free_minion_cards"] = ["officer_recruit_vanguard"]
         engine.play_card(run, 1, "e1")
         self.assertEqual(run.player.actions, 2)
@@ -285,9 +285,9 @@ class TestRogueSystem(unittest.TestCase):
             
             player = PlayerState(
                 hp=80, max_hp=80, shield=0, gold=100, stage=1,
-                deck=["strike"], draw_pile=["strike"], discard_pile=[], exhaust_pile=[], graveyard=[]
+                deck=[CardState(id="strike")], draw_pile=[CardState(id="strike")], discard_pile=[], exhaust_pile=[], graveyard=[]
             )
-            run = GameRun("test_user_warrior", "battle", player=player, enemies=[EnemyState("测试怪物", 20, 20, 0, 1, 0, 1, 0)])
+            run = GameRun("test_user_warrior", "battle", player=player, enemies=[EnemyState(name="测试怪物", hp=20, max_hp=20, shield=0, actions=1, bonus_actions=0, max_actions=1, max_bonus_actions=0)])
             save_manager.save_save("test_user_warrior", run)
             
             plugin.engine.battle_engine._init_battle_node(run)
@@ -300,7 +300,7 @@ class TestRogueSystem(unittest.TestCase):
             self.assertIn("战士发动了【动作如潮】", res)
             self.assertIn("还可使用 1 次", res)
             
-            run = save_manager.load_save("test_user_warrior")
+            run = require_run(save_manager.load_save("test_user_warrior"))
             self.assertEqual(run.node_data.get("action_surge_uses"), 1)
             self.assertTrue(run.node_data.get("action_surge_turn_used"))
             self.assertEqual(run.player.actions, 4)
@@ -309,14 +309,14 @@ class TestRogueSystem(unittest.TestCase):
             res2 = await run_command(plugin, "k", sender_id="test_user_warrior")
             self.assertIn("每回合只能使用一次", res2)
             
-            run = save_manager.load_save("test_user_warrior")
+            run = require_run(save_manager.load_save("test_user_warrior"))
             self.assertEqual(run.node_data.get("action_surge_uses"), 1)
             self.assertEqual(run.player.actions, 4)
             self.assertEqual(run.player.bonus_actions, 2)
             
             await run_command(plugin, "e", sender_id="test_user_warrior")
             
-            run = save_manager.load_save("test_user_warrior")
+            run = require_run(save_manager.load_save("test_user_warrior"))
             self.assertFalse(run.node_data.get("action_surge_turn_used", False))
             self.assertEqual(run.node_data.get("action_surge_uses"), 1)
             
@@ -324,7 +324,7 @@ class TestRogueSystem(unittest.TestCase):
             self.assertIn("战士发动了【动作如潮】", res3)
             self.assertIn("还可使用 0 次", res3)
             
-            run = save_manager.load_save("test_user_warrior")
+            run = require_run(save_manager.load_save("test_user_warrior"))
             self.assertEqual(run.node_data.get("action_surge_uses"), 0)
             self.assertTrue(run.node_data.get("action_surge_turn_used"))
             
@@ -348,8 +348,8 @@ class TestRogueSystem(unittest.TestCase):
             
             player = PlayerState(
                 hp=80, max_hp=80, shield=0, gold=100, stage=1,
-                deck=["discover", "dagger_throw", "first_aid"],
-                hand=["discover", "dagger_throw"],
+                deck=[CardState(id="discover"), CardState(id="dagger_throw"), CardState(id="first_aid")],
+                hand=[CardState(id="discover"), CardState(id="dagger_throw")],
                 draw_pile=[], discard_pile=[],
                 exhaust_pile=[]
             )
@@ -359,24 +359,24 @@ class TestRogueSystem(unittest.TestCase):
             res_empty = await run_command(plugin, "使用 1", sender_id="test_user_discover")
             self.assertIn("没有任何可以发掘的卡牌", res_empty)
             
-            run = save_manager.load_save("test_user_discover")
-            run.player.exhaust_pile = ["dagger_throw", "first_aid", "adrenaline"]
-            run.player.hand = ["discover", "dagger_throw"]
+            run = require_run(save_manager.load_save("test_user_discover"))
+            run.player.exhaust_pile = [CardState(id="dagger_throw"), CardState(id="first_aid"), CardState(id="adrenaline")]
+            run.player.hand = [CardState(id="discover"), CardState(id="dagger_throw")]
             run.player.actions = 2
             run.player.bonus_actions = 1
             save_manager.save_save("test_user_discover", run)
             
             res_param = await run_command(plugin, "使用 1 2", sender_id="test_user_discover")
             self.assertIn("发掘了消耗堆中的【绷带包扎】", res_param)
-            run = save_manager.load_save("test_user_discover")
+            run = require_run(save_manager.load_save("test_user_discover"))
             self.assertNotIn("discover", run.player.hand)
             self.assertIn("first_aid", run.player.hand)
             self.assertNotIn("first_aid", run.player.exhaust_pile)
             self.assertEqual(run.player.actions, 1)
             self.assertEqual(len(run.node_data.get("state_stack", [])), 0)
             
-            run.player.hand = ["discover", "dagger_throw"]
-            run.player.exhaust_pile = ["dagger_throw", "first_aid", "adrenaline"]
+            run.player.hand = [CardState(id="discover"), CardState(id="dagger_throw")]
+            run.player.exhaust_pile = [CardState(id="dagger_throw"), CardState(id="first_aid"), CardState(id="adrenaline")]
             run.player.actions = 2
             save_manager.save_save("test_user_discover", run)
             
@@ -392,13 +392,13 @@ class TestRogueSystem(unittest.TestCase):
             self.assertIn("你完成了发掘", res_choose)
             self.assertIn("绷带包扎", res_choose)
             
-            run = save_manager.load_save("test_user_discover")
+            run = require_run(save_manager.load_save("test_user_discover"))
             self.assertIn("first_aid", run.player.hand)
             self.assertNotIn("first_aid", run.player.exhaust_pile)
             self.assertEqual(len(run.node_data.get("state_stack", [])), 0)
             
-            run.player.hand = ["discover+", "dagger_throw"]
-            run.player.exhaust_pile = ["dagger_throw", "first_aid", "adrenaline"]
+            run.player.hand = [CardState(id="discover", upgraded=True), CardState(id="dagger_throw")]
+            run.player.exhaust_pile = [CardState(id="dagger_throw"), CardState(id="first_aid"), CardState(id="adrenaline")]
             run.player.actions = 2
             save_manager.save_save("test_user_discover", run)
             
@@ -412,13 +412,13 @@ class TestRogueSystem(unittest.TestCase):
             self.assertIn("你完成了发掘", res_up_c2)
             self.assertIn("匕首投掷", res_up_c2)
             
-            run = save_manager.load_save("test_user_discover")
+            run = require_run(save_manager.load_save("test_user_discover"))
             self.assertIn("first_aid", run.player.hand)
             self.assertIn("dagger_throw", run.player.hand)
             self.assertEqual(len(run.node_data.get("state_stack", [])), 0)
             
-            run.player.hand = ["discover", "dagger_throw"]
-            run.player.exhaust_pile = ["dagger_throw", "first_aid"]
+            run.player.hand = [CardState(id="discover"), CardState(id="dagger_throw")]
+            run.player.exhaust_pile = [CardState(id="dagger_throw"), CardState(id="first_aid")]
             run.player.actions = 2
             save_manager.save_save("test_user_discover", run)
             
@@ -427,8 +427,7 @@ class TestRogueSystem(unittest.TestCase):
             await plugin.shortcut_rogue(event_cancel)
             self.assertTrue(event_cancel.stopped)
             self.assertTrue(any("取消发掘操作" in r for r in event_cancel.results))
-            run = save_manager.load_save("test_user_discover")
-            from game.models.state import CardState
+            run = require_run(save_manager.load_save("test_user_discover"))
             run.player.exhaust_pile = [
                 CardState(id="discover", upgraded=False),
                 CardState(id="dagger_throw"),
@@ -525,7 +524,7 @@ class TestRogueSystem(unittest.TestCase):
             res_start = await run_command(plugin, "start", sender_id=user_id)
             self.assertIn("契约", res_start)
 
-            run = plugin.save_manager.load_save(user_id)
+            run = load_run(plugin, user_id)
             self.assertIsNotNone(run)
             card_ids = [c.id for c in run.player.deck]
             self.assertIn("warrior_bash", card_ids)

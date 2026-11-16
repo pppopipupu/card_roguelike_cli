@@ -3,6 +3,7 @@ from ..entities import get_relic_name, get_relic_desc
 from ..cards import ALL_CARDS
 from ..data.locale_data import get_locale_text
 from .formatters import format_npcs_and_players_line
+from .world_grid import get_run_coord_prefix
 
 
 def _world_players_line(run: GameRun) -> str:
@@ -63,7 +64,7 @@ def render_ancient(run: GameRun) -> str:
     name_str = style_names.get(style, get_locale_text("i18n_renderer_extra.map.style_default"))
     lines = [
         get_locale_text("i18n_renderer_extra.map.separator"),
-        get_locale_text("i18n_renderer_extra.map.bless_title", stage=p.stage, style=name_str),
+        get_locale_text("i18n_renderer_extra.map.bless_title", coord_prefix=get_run_coord_prefix(run), style=name_str),
         get_locale_text("i18n_renderer_extra.map.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold),
     ]
     npcs_line = _world_players_line(run)

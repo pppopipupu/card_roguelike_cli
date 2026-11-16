@@ -179,7 +179,7 @@ class CommanderValiantHeraldCard(Card):
                 chosen = random.choice(eligible)
                 run.player.draw_pile.remove(chosen)
                 DeckService.add_card_to_hand(run.player, chosen)
-                cname = ALL_CARDS.get(chosen).name
+                cname = ALL_CARDS[chosen].name
                 rally = run.node_data.get("rally_count", 0)
                 rally_threshold = getattr(self, "rally_threshold", 6)
                 if rally >= rally_threshold:

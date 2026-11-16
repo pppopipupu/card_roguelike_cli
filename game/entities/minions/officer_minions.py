@@ -310,17 +310,17 @@ class ValiantHeraldTemplate(MinionTemplate):
         if event.grid == f"p{grid}" and not event.is_enemy:
             is_upgraded = event.minion_id.endswith("+")
             if is_upgraded:
-                eligible = [cid for cid in run.player.hand if ALL_CARDS.get(cid) and ALL_CARDS.get(cid).type == "minion"]
+                eligible = [cid for cid in run.player.hand if (card := ALL_CARDS.get(cid)) is not None and card.type == "minion"]
                 for cid in eligible:
                     run.node_data.setdefault("free_minion_cards", []).append(cid)
                 engine._log_event(run, get_locale_text("i18n_minions.officer.valiant_herald_death_upgraded_log"))
             else:
-                eligible = [cid for cid in run.player.hand if ALL_CARDS.get(cid) and ALL_CARDS.get(cid).type == "minion"]
+                eligible = [cid for cid in run.player.hand if (card := ALL_CARDS.get(cid)) is not None and card.type == "minion"]
                 if eligible:
                     import random
                     chosen = random.choice(eligible)
                     run.node_data.setdefault("free_minion_cards", []).append(chosen)
-                    cname = ALL_CARDS.get(chosen).name
+                    cname = ALL_CARDS[chosen].name
                     engine._log_event(run, get_locale_text("i18n_minions.officer.valiant_herald_death_log", name=cname))
 
 

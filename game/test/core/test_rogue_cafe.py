@@ -1,7 +1,7 @@
 import unittest
 import asyncio
 from game.test.core.base import *
-from game.models.state import GameRun, PlayerState, EnemyState, Card, BuffState
+from game.models.state import GameRun, PlayerState, EnemyState, Card, BuffState, CardState
 from game.models.events import BattleStartEvent, TurnStartEvent, CardPlayedEvent, DamageCalculateEvent
 from game.core.world.cafe.engine import CafeEngine
 
@@ -13,7 +13,7 @@ class TestRogueCafe(unittest.TestCase):
         plugin.save_manager.delete_save(user_id)
         p = PlayerState(
             hp=30, max_hp=30, shield=0, gold=100, stage=13,
-            deck=["fire_bolt"], hand=[], draw_pile=[], discard_pile=[],
+            deck=[CardState(id="fire_bolt")], hand=[], draw_pile=[], discard_pile=[],
             exhaust_pile=[], graveyard=[], relics=[]
         )
         run = GameRun(user_id=user_id, node_type="cafe", player=p, enemies=[], node_data={})
@@ -33,13 +33,13 @@ class TestRogueCafe(unittest.TestCase):
             res1 = await run_command(plugin, ".rogue talk 铁匠", user_id)
             self.assertIn("铁匠艾恩克拉德", res1)
             
-            latest_run = plugin.save_manager.load_save(user_id)
+            latest_run = load_run(plugin, user_id)
             self.assertEqual(latest_run.node_data["cafe_data"]["active_npc"], "Blacksmith_Ironclad")
             
             res2 = await run_command(plugin, ".rogue 1", user_id)
             self.assertIn("大锤猛砸", res2)
             
-            latest_run2 = plugin.save_manager.load_save(user_id)
+            latest_run2 = load_run(plugin, user_id)
             self.assertEqual(latest_run2.player.gold, 30)
             self.assertEqual(latest_run2.node_data["cafe_data"]["active_npc"], None)
             has_upgraded = any(card.id == "fire_bolt" and card.upgraded for card in latest_run2.player.deck)
@@ -54,7 +54,7 @@ class TestRogueCafe(unittest.TestCase):
         plugin.save_manager.delete_save(user_id)
         p = PlayerState(
             hp=30, max_hp=30, shield=0, gold=100, stage=13,
-            deck=["fire_bolt"], hand=[], draw_pile=[], discard_pile=[],
+            deck=[CardState(id="fire_bolt")], hand=[], draw_pile=[], discard_pile=[],
             exhaust_pile=[], graveyard=[], relics=[]
         )
         run = GameRun(user_id=user_id, node_type="cafe", player=p, enemies=[], node_data={})
@@ -75,12 +75,12 @@ class TestRogueCafe(unittest.TestCase):
             await run_command(plugin, ".rogue 1", user_id)
             res = await run_command(plugin, ".rogue 1", user_id)
             
-            latest_run = plugin.save_manager.load_save(user_id)
+            latest_run = load_run(plugin, user_id)
             self.assertEqual(latest_run.node_type, "gem_insert")
             self.assertEqual(latest_run.node_data["pending_gem"], "gem_return_5")
             
             await run_command(plugin, ".rogue c 1", user_id)
-            latest_run2 = plugin.save_manager.load_save(user_id)
+            latest_run2 = load_run(plugin, user_id)
             self.assertEqual(latest_run2.node_type, "cafe")
             self.assertTrue(any(c.id == "fire_bolt" and "gem_return_5" in c.gems for c in latest_run2.player.deck))
             
@@ -93,7 +93,7 @@ class TestRogueCafe(unittest.TestCase):
         plugin.save_manager.delete_save(user_id)
         p = PlayerState(
             hp=30, max_hp=30, shield=0, gold=100, stage=13,
-            deck=["fire_bolt", "curse_indigestion"], hand=[], draw_pile=[], discard_pile=[],
+            deck=[CardState(id="fire_bolt"), CardState(id="curse_indigestion")], hand=[], draw_pile=[], discard_pile=[],
             exhaust_pile=[], graveyard=[], relics=[]
         )
         run = GameRun(user_id=user_id, node_type="cafe", player=p, enemies=[], node_data={})
@@ -115,7 +115,7 @@ class TestRogueCafe(unittest.TestCase):
             res = await run_command(plugin, ".rogue 2", user_id)
             self.assertIn("净化", res)
             
-            latest_run = plugin.save_manager.load_save(user_id)
+            latest_run = load_run(plugin, user_id)
             self.assertEqual(latest_run.player.gold, 80)
             self.assertNotIn("curse_indigestion", latest_run.player.deck)
             self.assertEqual(latest_run.node_data["cafe_data"]["active_npc"], None)
@@ -129,7 +129,7 @@ class TestRogueCafe(unittest.TestCase):
         plugin.save_manager.delete_save(user_id)
         p = PlayerState(
             hp=30, max_hp=30, shield=0, gold=100, stage=13,
-            deck=["fire_bolt"], hand=[], draw_pile=[], discard_pile=[],
+            deck=[CardState(id="fire_bolt")], hand=[], draw_pile=[], discard_pile=[],
             exhaust_pile=[], graveyard=[], relics=[]
         )
         run = GameRun(user_id=user_id, node_type="cafe", player=p, enemies=[], node_data={})
@@ -150,7 +150,7 @@ class TestRogueCafe(unittest.TestCase):
             res = await run_command(plugin, ".rogue 2", user_id)
             self.assertIn("深吻", res)
             
-            latest_run = plugin.save_manager.load_save(user_id)
+            latest_run = load_run(plugin, user_id)
             self.assertEqual(latest_run.player.max_hp, 36)
             self.assertNotIn("fire_bolt", latest_run.player.deck)
             self.assertEqual(latest_run.node_data["cafe_data"]["active_npc"], None)
@@ -173,17 +173,17 @@ class TestRogueCafe(unittest.TestCase):
             await run_command(plugin, ".rogue up", user_id)
             await run_command(plugin, ".rogue talk Dummy", user_id)
             await run_command(plugin, ".rogue 2", user_id)
-            run = plugin.save_manager.load_save(user_id)
+            run = load_run(plugin, user_id)
             run.player.relics.append("crimson_heart")
             run.player.hp = 5
             plugin.save_manager.save_save(user_id, run)
             for _ in range(6):
-                run = plugin.save_manager.load_save(user_id)
+                run = load_run(plugin, user_id)
                 idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == "fire_bolt"), None)
                 if idx is not None:
                     hp_before_enemy = run.enemies[0].hp
                     await run_command(plugin, f".rogue p {idx} e1", user_id)
-                    after = plugin.save_manager.load_save(user_id)
+                    after = load_run(plugin, user_id)
                     self.assertEqual(hp_before_enemy - after.enemies[0].hp, 6)
                     self.assertEqual(after.player.hp, 7)
                     break
@@ -215,7 +215,7 @@ class TestRogueCafe(unittest.TestCase):
         engine = plugin.engine.battle_engine
         p = PlayerState(
             hp=20, max_hp=20, shield=0, gold=100, stage=13,
-            deck=["fire_bolt"], hand=[], draw_pile=[], discard_pile=[],
+            deck=[CardState(id="fire_bolt")], hand=[], draw_pile=[], discard_pile=[],
             exhaust_pile=[], graveyard=[], relics=["anthem_relic_3"]
         )
         run = GameRun(user_id="test_user_anthem", node_type="battle", player=p, enemies=[], node_data={})
@@ -242,7 +242,7 @@ class TestRogueCafe(unittest.TestCase):
         plugin.save_manager.delete_save(user_id)
         p = PlayerState(
             hp=30, max_hp=30, shield=0, gold=100, stage=13,
-            deck=["fire_bolt"], hand=[], draw_pile=[], discard_pile=[],
+            deck=[CardState(id="fire_bolt")], hand=[], draw_pile=[], discard_pile=[],
             exhaust_pile=[], graveyard=[], relics=[]
         )
         run = GameRun(user_id=user_id, node_type="cafe", player=p, enemies=[], node_data={})
@@ -270,13 +270,13 @@ class TestRogueCafe(unittest.TestCase):
             res1 = await run_command(plugin, "talk 铁匠", user_id)
             self.assertIn("铁匠艾恩克拉德", res1)
             
-            latest_run = plugin.save_manager.load_save(user_id)
+            latest_run = load_run(plugin, user_id)
             self.assertEqual(latest_run.node_data["cafe_data"]["active_npc"], "Blacksmith_Ironclad")
             
             res2 = await run_command(plugin, "1", user_id)
             self.assertIn("大锤猛砸", res2)
             
-            latest_run2 = plugin.save_manager.load_save(user_id)
+            latest_run2 = load_run(plugin, user_id)
             self.assertEqual(latest_run2.player.gold, 30)
             self.assertEqual(latest_run2.node_data["cafe_data"]["active_npc"], None)
             

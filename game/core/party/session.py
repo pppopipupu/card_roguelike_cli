@@ -52,6 +52,11 @@ class SessionContextScoper:
             md = (fm.floor_flags or {}).get("merc_dialogs")
             if isinstance(md, dict) and md:
                 run.node_data["merc_dialogs"] = md
+            gn = (fm.floor_flags or {}).get("grid_notices")
+            if isinstance(gn, dict):
+                uid_notice = gn.get(caller_uid)
+                if uid_notice:
+                    run.node_data["notice"] = uid_notice
             run.party_order = list(full)
             return
         session = fm.active_sessions[sid]
@@ -78,6 +83,17 @@ class SessionContextScoper:
                 fm.floor_flags["merc_dialogs"] = md
             else:
                 fm.floor_flags.pop("merc_dialogs", None)
+            notice = (run.node_data or {}).get("notice")
+            gn = fm.floor_flags.get("grid_notices")
+            if notice:
+                if not isinstance(gn, dict):
+                    gn = {}
+                    fm.floor_flags["grid_notices"] = gn
+                gn[caller_uid] = notice
+            elif isinstance(gn, dict):
+                gn.pop(caller_uid, None)
+                if not gn:
+                    fm.floor_flags.pop("grid_notices", None)
             return
         persist_view(run, caller_uid)
         session = fm.active_sessions[sid]
@@ -86,7 +102,7 @@ class SessionContextScoper:
         session.node_data = run.node_data
 
     @staticmethod
-    def create_session(run, coord: str, node_type: str, participants: list[str], node_data: dict = None, enemies: list = None) -> EncounterSession:
+    def create_session(run, coord: str, node_type: str, participants: list[str], node_data: dict | None = None, enemies: list | None = None) -> EncounterSession:
         fm = run.floor_map
         expanded = SessionContextScoper._expand_with_mercenaries(run, participants)
         sid = f"sess_{uuid.uuid4().hex[:8]}"

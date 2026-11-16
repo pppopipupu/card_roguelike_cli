@@ -1,5 +1,5 @@
 import random
-from typing import List
+from typing import List, Optional
 
 from ..base import EnemyTemplate, register_enemy
 from ....core.inventory.deck_service import DeckService
@@ -77,7 +77,7 @@ class ObsidianGiantTemplate(EnemyTemplate):
     def roll_intents(self, run, engine, enemy) -> List:
         return _roll_pool(self.name, _intent_ids(self.name), enemy.actions, enemy.bonus_actions)
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             logs = []
             intent = _legacy_intent(enemy)
@@ -112,7 +112,7 @@ class ShadowAssassinTemplate(EnemyTemplate):
         bonus_ids = [i for i in ("smoke_screen",) if i in _intent_ids(self.name)]
         return _roll_pool(self.name, main_ids, enemy.actions, 0) + _roll_pool(self.name, bonus_ids, 0, enemy.bonus_actions)
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             logs = []
             intent = _legacy_intent(enemy)
@@ -134,7 +134,7 @@ class VoidWalkerTemplate(EnemyTemplate):
     def roll_intents(self, run, engine, enemy) -> List:
         return _roll_pool(self.name, _intent_ids(self.name), enemy.actions, enemy.bonus_actions)
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             logs = []
             intent = _legacy_intent(enemy)
@@ -170,7 +170,7 @@ class DeepSeekFlashTemplate(EnemyTemplate):
         pool = ["cyber_ddos", "cyber_ablation", "prompt_injection", "overclock_cache", "standard_query"]
         return _roll_pool(DEEPSEEK_CONFIG_NAME, pool, enemy.actions, enemy.bonus_actions)
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
             logs = []
             intent = _legacy_intent(enemy)

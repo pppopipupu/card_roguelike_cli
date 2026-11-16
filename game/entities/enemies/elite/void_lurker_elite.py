@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import random
 from ..base import EnemyTemplate, register_enemy
 from ....data.enemy_data import ENEMY_CONFIG
@@ -58,21 +58,13 @@ class VoidLurkerEliteTemplate(EnemyTemplate):
             ))
         return intents_list
 
-    def execute_intent(self, run, engine, enemy, intent, logs: List[str] = None):
+    def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         if logs is None:
-            logs = intent
-            from ....models.state import EnemyIntentState
-            intent = EnemyIntentState(
-                type=getattr(enemy, "intent_type", ""),
-                val=getattr(enemy, "intent_val", 0),
-                desc=getattr(enemy, "intent_desc", ""),
-                cost_a=1,
-                cost_ba=0
-            )
+            logs = []
         p = run.player
         val = intent.val + self._strength(enemy)
         target = self._enemy_target(run, enemy)
-
+    
         if intent.type == "void_ambush":
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="necrotic")

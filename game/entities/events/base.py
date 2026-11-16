@@ -6,11 +6,11 @@ class EventOption:
     default_text = ""
     default_action = ""
 
-    def __init__(self, text: str = None, action: str = None):
+    def __init__(self, text: str | None = None, action: str | None = None):
         self.text = text if text is not None else self.default_text
         self.action = action if action is not None else self.default_action
 
-    def __init_subclass__(cls, action: str = None, text: str = None, **kwargs):
+    def __init_subclass__(cls, action: str | None = None, text: str | None = None, **kwargs):
         super().__init_subclass__(**kwargs)
         if action:
             cls.default_action = action
