@@ -119,7 +119,7 @@ class TestGridMapAndBladesong(unittest.TestCase):
         self.assertEqual(after.floor_map.player_coords["gm_obs"], adj_coord)
         self.assertLess(after.player.hp, after.player.max_hp)
 
-    def test_dig_breaks_obstacle_without_confirm(self):
+    def test_dig_command(self):
         run = self._start_solo("gm_dig")
         fm = run.floor_map
         sx, sy = coord_to_xy(fm.player_coords["gm_dig"])

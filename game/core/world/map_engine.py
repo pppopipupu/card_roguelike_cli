@@ -369,7 +369,7 @@ class MapEngine:
         return self.grid_map_service.move_player(run, direction)
 
     def dig(self, run: GameRun, direction: str) -> str:
-        return self.grid_map_service.dig_obstacle(run, direction)
+        return self.grid_map_service.move_player(run, direction, dig=True)
 
     def teleport(self, run: GameRun, target: str) -> str:
         return self.grid_map_service.teleport_player(run, target)

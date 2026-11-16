@@ -94,35 +94,6 @@ class GridMapService:
         else:
             player.stage = compute_effective_stage(fm, coord)
 
-    def _resolve_adjacent_target(self, run, direction: str):
-        fm = getattr(run, "floor_map", None)
-        if fm is None:
-            return None, None, None, get_locale_text("i18n_grid_map.err_no_floor_map")
-        uid = run.user_id
-        if uid in fm.player_session_map:
-            return None, None, None, get_locale_text("i18n_grid_map.err_in_session")
-        dkey = direction.strip().lower()
-        if dkey not in DIR_DELTAS:
-            return None, None, None, get_locale_text("i18n_grid_map.err_invalid_direction")
-        cur = fm.player_coords.get(uid) or xy_to_coord(0, fm.height // 2)
-        cx, cy = coord_to_xy(cur)
-        dx, dy = DIR_DELTAS[dkey]
-        nx, ny = cx + dx, cy + dy
-        if not (0 <= nx < fm.width and 0 <= ny < fm.height):
-            fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
-            return None, None, None, get_locale_text("i18n_grid_map.err_out_of_bounds")
-        target_coord = xy_to_coord(nx, ny)
-        room = fm.rooms.get(target_coord)
-        if room is None or room.room_type == "wall" or (room.room_type == "secret_boss" and not fm.secret_unlocked):
-            fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
-            return None, None, None, get_locale_text("i18n_grid_map.err_blocked_wall")
-        if room.locked:
-            boss_room = fm.rooms.get(fm.boss_coord) if fm.boss_coord else None
-            if not (boss_room is not None and boss_room.cleared):
-                fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
-                return None, None, None, get_locale_text("i18n_yog_quest.room_locked")
-        return fm, target_coord, room, None
-
     def _break_obstacle_and_enter(self, run, fm, uid: str, room, target_coord: str) -> str:
         from ...renderer import GameRenderer
         from .presence import sync_active
@@ -156,55 +127,71 @@ class GridMapService:
         sync_active(uid, run=run)
         return f"{prefix}\n\n{GameRenderer.render_game(run)}"
 
-    def dig_obstacle(self, run, direction: str) -> str:
-        fm, target_coord, room, err = self._resolve_adjacent_target(run, direction)
-        if err is not None:
-            return err
+    def move_player(self, run, direction: str, dig: bool = False) -> str:
+        fm = getattr(run, "floor_map", None)
+        if fm is None:
+            return get_locale_text("i18n_grid_map.err_no_floor_map")
         uid = run.user_id
-        if room.room_type != "obstacle":
-            fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
-            return get_locale_text("i18n_grid_map.err_not_obstacle", coord=target_coord)
-        return self._break_obstacle_and_enter(run, fm, uid, room, target_coord)
-
-    def move_player(self, run, direction: str) -> str:
-        fm, target_coord, room, err = self._resolve_adjacent_target(run, direction)
-        if err is not None:
-            return err
-        uid = run.user_id
+        if uid in fm.player_session_map:
+            return get_locale_text("i18n_grid_map.err_in_session")
         dkey = direction.strip().lower()
+        if dkey not in DIR_DELTAS:
+            return get_locale_text("i18n_grid_map.err_invalid_direction")
+        cur = fm.player_coords.get(uid) or xy_to_coord(0, fm.height // 2)
+        cx, cy = coord_to_xy(cur)
+        dx, dy = DIR_DELTAS[dkey]
+        nx, ny = cx + dx, cy + dy
+        if not (0 <= nx < fm.width and 0 <= ny < fm.height):
+            fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
+            return get_locale_text("i18n_grid_map.err_out_of_bounds")
+        target_coord = xy_to_coord(nx, ny)
+        room = fm.rooms.get(target_coord)
+        if room is None or room.room_type == "wall" or (room.room_type == "secret_boss" and not fm.secret_unlocked):
+            fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
+            return get_locale_text("i18n_grid_map.err_blocked_wall")
+        if room.locked:
+            boss_room = fm.rooms.get(fm.boss_coord) if fm.boss_coord else None
+            if not (boss_room is not None and boss_room.cleared):
+                fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
+                return get_locale_text("i18n_yog_quest.room_locked")
+
         p = run.player
         pending_map = fm.floor_flags.setdefault("pending_obstacle", {})
+        if dig and room.room_type != "obstacle":
+            pending_map.pop(uid, None)
+            return get_locale_text("i18n_grid_map.err_not_obstacle", coord=target_coord)
         if room.room_type == "obstacle":
-            cost = max(1, int(room.obstacle_sp or SP_CONFIG["obstacle_cost_min"]))
-            prev_pending = pending_map.get(uid)
-            step = int(prev_pending.get("step", 0)) if (prev_pending and prev_pending.get("coord") == target_coord) else 0
-            if step < 2:
-                from ...data.room_interact_data import OBSTACLE_STYLES
-                style_key = room.obstacle_style or "collapsed_boulders"
-                scfg = OBSTACLE_STYLES.get(style_key, OBSTACLE_STYLES["collapsed_boulders"])
-                obs_name = get_locale_text(scfg["name_key"])
-                obs_desc = get_locale_text(scfg["desc_key"])
-                if p.sp >= cost:
-                    sp_warn = get_locale_text("i18n_room_interact.obstacle.sp_warn_ok")
-                else:
-                    sp_warn = get_locale_text(
-                        "i18n_room_interact.obstacle.sp_warn_overdraft",
-                        loss=SP_CONFIG["forced_obstacle_hp_loss"],
+            if not dig:
+                cost = max(1, int(room.obstacle_sp or SP_CONFIG["obstacle_cost_min"]))
+                prev_pending = pending_map.get(uid)
+                step = int(prev_pending.get("step", 0)) if (prev_pending and prev_pending.get("coord") == target_coord) else 0
+                if step < 2:
+                    from ...data.room_interact_data import OBSTACLE_STYLES
+                    style_key = room.obstacle_style or "collapsed_boulders"
+                    scfg = OBSTACLE_STYLES.get(style_key, OBSTACLE_STYLES["collapsed_boulders"])
+                    obs_name = get_locale_text(scfg["name_key"])
+                    obs_desc = get_locale_text(scfg["desc_key"])
+                    if p.sp >= cost:
+                        sp_warn = get_locale_text("i18n_room_interact.obstacle.sp_warn_ok")
+                    else:
+                        sp_warn = get_locale_text(
+                            "i18n_room_interact.obstacle.sp_warn_overdraft",
+                            loss=SP_CONFIG["forced_obstacle_hp_loss"],
+                        )
+                    next_step = step + 1
+                    pending_map[uid] = {"coord": target_coord, "dir": dkey, "step": next_step}
+                    self.save_manager.save_save(uid, run)
+                    key = "i18n_room_interact.obstacle.confirm_step1" if next_step == 1 else "i18n_room_interact.obstacle.confirm_step2"
+                    return get_locale_text(
+                        key,
+                        coord=target_coord,
+                        name=obs_name,
+                        desc=obs_desc,
+                        cost=cost,
+                        sp=p.sp,
+                        sp_warn=sp_warn,
+                        direction=dkey,
                     )
-                next_step = step + 1
-                pending_map[uid] = {"coord": target_coord, "dir": dkey, "step": next_step}
-                self.save_manager.save_save(uid, run)
-                key = "i18n_room_interact.obstacle.confirm_step1" if next_step == 1 else "i18n_room_interact.obstacle.confirm_step2"
-                return get_locale_text(
-                    key,
-                    coord=target_coord,
-                    name=obs_name,
-                    desc=obs_desc,
-                    cost=cost,
-                    sp=p.sp,
-                    sp_warn=sp_warn,
-                    direction=dkey,
-                )
             return self._break_obstacle_and_enter(run, fm, uid, room, target_coord)
         pending_map.pop(uid, None)
         fm.player_coords[uid] = target_coord
