@@ -1,6 +1,5 @@
 import random
 
-POTION_SLOT_LIMIT = 3
 POTION_THROW_DAMAGE = 3
 POTION_RARITY_THRESHOLDS = (
     ("common", 0.60),
@@ -13,6 +12,7 @@ POTION_CONFIG = {
     "healing_potion": {
         "name": "治疗药水",
         "rarity": "common",
+        "weight": 0.5,
         "heal_amount": 10,
         "drink_desc": "回复你 10 点生命值。",
         "throw_desc": "回复目标 10 点生命值。"
@@ -20,6 +20,7 @@ POTION_CONFIG = {
     "shield_potion": {
         "name": "护盾药水",
         "rarity": "common",
+        "weight": 1.0,
         "shield_amount": 25,
         "drink_desc": "获得 25 点护盾。",
         "throw_desc": "目标获得 25 点护盾。"
@@ -27,6 +28,7 @@ POTION_CONFIG = {
     "fire_potion": {
         "name": "火焰药水",
         "rarity": "common",
+        "weight": 1.0,
         "drink_damage": 12,
         "drink_buff_stacks": 2,
         "throw_damage": 16,
@@ -37,6 +39,7 @@ POTION_CONFIG = {
     "frost_potion": {
         "name": "冰霜药水",
         "rarity": "common",
+        "weight": 1.0,
         "drink_damage": 10,
         "throw_damage": 20,
         "throw_buff_stacks": 1,
@@ -46,6 +49,7 @@ POTION_CONFIG = {
     "strength_potion": {
         "name": "力量药水",
         "rarity": "common",
+        "weight": 1.0,
         "buff_stacks": 2,
         "drink_desc": "获得 2 层【力量】状态。",
         "throw_desc": "目标获得 2 层【力量】状态。"
@@ -53,6 +57,7 @@ POTION_CONFIG = {
     "swift_potion": {
         "name": "迅捷药水",
         "rarity": "rare",
+        "weight": 0.5,
         "gain_a": 1,
         "gain_ba": 1,
         "draw_count": 1,
@@ -65,6 +70,7 @@ POTION_CONFIG = {
     "poison_potion": {
         "name": "剧毒药水",
         "rarity": "rare",
+        "weight": 1.0,
         "drink_damage": 10,
         "drink_buff_stacks": 4,
         "throw_damage": 10,
@@ -75,12 +81,14 @@ POTION_CONFIG = {
     "cleanse_potion": {
         "name": "净化药水",
         "rarity": "rare",
+        "weight": 1.0,
         "drink_desc": "清除自身所有负面状态且本回合免疫负面状态。",
         "throw_desc": "清除目标的所有状态（驱散敌人正面 Buff 或解除随从 Debuff）。"
     },
     "iron_potion": {
         "name": "钢铁药水",
         "rarity": "epic",
+        "weight": 1.5,
         "max_hp_gain": 5,
         "shield_amount": 20,
         "heal_amount": 10,
@@ -91,6 +99,7 @@ POTION_CONFIG = {
     "energy_potion": {
         "name": "能量药水",
         "rarity": "epic",
+        "weight": 1.5,
         "gain_a": 2,
         "minion_gain_a": 2,
         "minion_gain_aa": 1,
@@ -100,6 +109,7 @@ POTION_CONFIG = {
     "fury_potion": {
         "name": "狂怒药水",
         "rarity": "epic",
+        "weight": 1.5,
         "buff_stacks": 3,
         "self_hp_cost": 5,
         "draw_count": 3,
@@ -109,6 +119,7 @@ POTION_CONFIG = {
     "intellect_potion": {
         "name": "智力药水",
         "rarity": "epic",
+        "weight": 1.5,
         "buff_stacks": 2,
         "draw_count": 4,
         "drink_desc": "获得 2 层【奥术充能】（法术牌造成的伤害 +6），抽 4 张牌。",
@@ -117,6 +128,7 @@ POTION_CONFIG = {
     "destruction_potion": {
         "name": "毁灭药水",
         "rarity": "legendary",
+        "weight": 2.0,
         "drink_damage": 30,
         "throw_damage": 60,
         "splash_damage": 20,
@@ -127,6 +139,12 @@ POTION_CONFIG = {
 
 def get_potion_name(pid: str) -> str:
     return POTION_CONFIG.get(pid, {}).get("name", pid)
+
+def get_potion_weight(pid: str) -> float:
+    return float(POTION_CONFIG.get(pid, {}).get("weight", 1.0))
+
+def get_potion_rarity(pid: str) -> str:
+    return str(POTION_CONFIG.get(pid, {}).get("rarity", "common"))
 
 def get_potion_drink_text(pid: str) -> str:
     return POTION_CONFIG.get(pid, {}).get("drink_desc", "")

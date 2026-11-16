@@ -1,7 +1,6 @@
 from typing import Generator
 from ...base import CommandHandler
 from .....data.locale_data import get_locale_text
-from .....data.world_social_config import WORLD_SNOWFIELD, WORLD_TALK_END_WORDS
 from .....renderer import GameRenderer
 from ....inventory.bag_service import drop_bag_item, use_bag_item
 from ....world.landmark_system import open_room_talk
@@ -17,6 +16,18 @@ class GridMoveCommand(CommandHandler, names=["w", "a", "s", "d", "up", "down", "
             yield get_locale_text("i18n_cli_general_b.err_no_active_game")
             return
         yield router.engine.map_engine.move(run, parts[0].lower())
+
+
+class GridDigCommand(CommandHandler, names=["破障", "挖掘", "dig", "dg"], allowed_states=["grid_map"], help_key="grid_dig"):
+    def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
+        run = router.save_manager.load_save(user_id)
+        if not run:
+            yield get_locale_text("i18n_cli_general_b.err_no_active_game")
+            return
+        if len(parts) < 2:
+            yield get_locale_text("i18n_grid_map.err_invalid_direction")
+            return
+        yield router.engine.map_engine.dig(run, parts[1].lower())
 
 
 class GridTeleportCommand(CommandHandler, names=["传送", "tp", "teleport"], allowed_states=["grid_map"], help_key="grid_tp"):
@@ -48,17 +59,11 @@ class GridTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
             yield get_locale_text("i18n_cli_general_b.err_no_active_game")
             return
         query = " ".join(parts[1:]).strip() if len(parts) > 1 else ""
-        if query in WORLD_TALK_END_WORDS:
-            yield router.world_social.close(user_id)
-            return
         if query:
-            from ..general.say import current_world
-            location = current_world(router, user_id)
-            if location is not None and location[0] == WORLD_SNOWFIELD:
-                target, _ = router.world_social.resolve_target(location[0], location[1], query, user_id)
-                if target is not None:
-                    yield router.world_social.say_to_world(user_id, location[0], location[1], query)
-                    return
+            player_res = router.world_social.try_talk(user_id, query, run=run)
+            if player_res is not None:
+                yield player_res
+                return
             merc_uid, _ = find_mercenary_uid(run, query, user_id)
             if merc_uid:
                 res = open_merc_dialog(run, user_id, merc_uid)

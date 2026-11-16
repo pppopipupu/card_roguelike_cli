@@ -5,7 +5,7 @@ from .....renderer import GameRenderer
 from .....data.locale_data import get_locale_text
 
 
-class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobby"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe"], help_key="team"):
+class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobby"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe", "outer_plane"], help_key="team"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         service = router.social_service
         if len(parts) < 2:
@@ -46,5 +46,7 @@ class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobb
             yield service.team_status(user_id)
         elif sub in ("invites", "invitations", "邀请列表"):
             yield service.team_invites(user_id)
+        elif sub in ("coordinate", "coord", "xyz", "pos", "坐标", "位置"):
+            yield service.team_coordinate(user_id)
         else:
             yield get_locale_text("i18n_cli_general_a.team.unknown_sub")

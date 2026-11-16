@@ -8,6 +8,11 @@ class MercTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
         if not run:
             return
         query = " ".join(parts[1:]).strip() if len(parts) > 1 else ""
+        if query:
+            player_res = router.world_social.try_talk(user_id, query, run=run)
+            if player_res is not None:
+                yield player_res
+                return
         if run.node_type == "shop":
             from .....data.room_interact_data import ROOM_NPCS
             from .....data.locale_data import get_locale_text
@@ -20,9 +25,19 @@ class MercTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
             if is_merchant:
                 yield open_shop_dialog(router.engine.map_engine.explore_engine, run)
                 return
-        from ....party.mercenary import find_mercenary_uid, open_merc_dialog
+        from .....data.locale_data import get_locale_text
+        from ....party.mercenary import find_mercenary_uid, list_owned_mercenaries, open_merc_dialog
         merc_uid, err = find_mercenary_uid(run, query, user_id)
         if err:
+            if query:
+                if not list_owned_mercenaries(run, user_id):
+                    yield get_locale_text("i18n_room_interact.dialog.talk_not_found", target=query)
+                    return
+            else:
+                location = router.world_social.presence.resolve_location(user_id, run=run)
+                if location is not None and router.world_social.presence.players(location[0], coord=location[1], exclude_uid=user_id):
+                    yield router.world_social.say_to_world(user_id, location[0], location[1], "")
+                    return
             yield err
             return
         res = open_merc_dialog(run, user_id, merc_uid)

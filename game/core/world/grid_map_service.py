@@ -94,35 +94,84 @@ class GridMapService:
         else:
             player.stage = compute_effective_stage(fm, coord)
 
-    def move_player(self, run, direction: str) -> str:
-        from ...renderer import GameRenderer
+    def _resolve_adjacent_target(self, run, direction: str):
         fm = getattr(run, "floor_map", None)
         if fm is None:
-            return get_locale_text("i18n_grid_map.err_no_floor_map")
+            return None, None, None, get_locale_text("i18n_grid_map.err_no_floor_map")
         uid = run.user_id
         if uid in fm.player_session_map:
-            return get_locale_text("i18n_grid_map.err_in_session")
+            return None, None, None, get_locale_text("i18n_grid_map.err_in_session")
         dkey = direction.strip().lower()
         if dkey not in DIR_DELTAS:
-            return get_locale_text("i18n_grid_map.err_invalid_direction")
+            return None, None, None, get_locale_text("i18n_grid_map.err_invalid_direction")
         cur = fm.player_coords.get(uid) or xy_to_coord(0, fm.height // 2)
         cx, cy = coord_to_xy(cur)
         dx, dy = DIR_DELTAS[dkey]
         nx, ny = cx + dx, cy + dy
         if not (0 <= nx < fm.width and 0 <= ny < fm.height):
             fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
-            return get_locale_text("i18n_grid_map.err_out_of_bounds")
+            return None, None, None, get_locale_text("i18n_grid_map.err_out_of_bounds")
         target_coord = xy_to_coord(nx, ny)
         room = fm.rooms.get(target_coord)
         if room is None or room.room_type == "wall" or (room.room_type == "secret_boss" and not fm.secret_unlocked):
             fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
-            return get_locale_text("i18n_grid_map.err_blocked_wall")
+            return None, None, None, get_locale_text("i18n_grid_map.err_blocked_wall")
         if room.locked:
             boss_room = fm.rooms.get(fm.boss_coord) if fm.boss_coord else None
             if not (boss_room is not None and boss_room.cleared):
                 fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
-                return get_locale_text("i18n_yog_quest.room_locked")
+                return None, None, None, get_locale_text("i18n_yog_quest.room_locked")
+        return fm, target_coord, room, None
 
+    def _break_obstacle_and_enter(self, run, fm, uid: str, room, target_coord: str) -> str:
+        from ...renderer import GameRenderer
+        from .presence import sync_active
+        p = run.player
+        cost = max(1, int(room.obstacle_sp or SP_CONFIG["obstacle_cost_min"]))
+        fm.floor_flags.setdefault("pending_obstacle", {}).pop(uid, None)
+        if p.sp >= cost:
+            consume_sp(p, cost, allow_overdraft=False)
+            prefix = get_locale_text("i18n_grid_map.obstacle_cleared", coord=target_coord, cost=cost, sp=p.sp, max_sp=p.max_sp)
+        else:
+            sp_res = consume_sp(p, cost, allow_overdraft=True)
+            hp_loss = SP_CONFIG["forced_obstacle_hp_loss"]
+            p.hp = max(0, p.hp - hp_loss)
+            if p.hp <= 0 or p.exhaustion >= 5:
+                run.node_data["death_cause"] = get_locale_text("i18n_grid_map.exhaustion_death_cause")
+                return self.save_manager.settle_game_and_delete(uid, run, is_victory=False, create_corpse=True)
+            prefix = get_locale_text(
+                "i18n_grid_map.obstacle_forced",
+                coord=target_coord,
+                hp_loss=hp_loss,
+                sp=p.sp,
+                exhaustion=sp_res["new_exhaustion"],
+            )
+        room.room_type = "empty"
+        room.cleared = True
+        room.obstacle_sp = 0
+        fm.player_coords[uid] = target_coord
+        self._reveal_coord(fm, target_coord)
+        self._sync_stage_for_coord(run, p, target_coord)
+        self.save_manager.save_save(uid, run)
+        sync_active(uid, run=run)
+        return f"{prefix}\n\n{GameRenderer.render_game(run)}"
+
+    def dig_obstacle(self, run, direction: str) -> str:
+        fm, target_coord, room, err = self._resolve_adjacent_target(run, direction)
+        if err is not None:
+            return err
+        uid = run.user_id
+        if room.room_type != "obstacle":
+            fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
+            return get_locale_text("i18n_grid_map.err_not_obstacle", coord=target_coord)
+        return self._break_obstacle_and_enter(run, fm, uid, room, target_coord)
+
+    def move_player(self, run, direction: str) -> str:
+        fm, target_coord, room, err = self._resolve_adjacent_target(run, direction)
+        if err is not None:
+            return err
+        uid = run.user_id
+        dkey = direction.strip().lower()
         p = run.player
         pending_map = fm.floor_flags.setdefault("pending_obstacle", {})
         if room.room_type == "obstacle":
@@ -156,43 +205,13 @@ class GridMapService:
                     sp_warn=sp_warn,
                     direction=dkey,
                 )
-            pending_map.pop(uid, None)
-            if p.sp >= cost:
-                consume_sp(p, cost, allow_overdraft=False)
-                room.room_type = "empty"
-                room.cleared = True
-                room.obstacle_sp = 0
-                fm.player_coords[uid] = target_coord
-                self._reveal_coord(fm, target_coord)
-                self._sync_stage_for_coord(run, p, target_coord)
-                self.save_manager.save_save(uid, run)
-                prefix = get_locale_text("i18n_grid_map.obstacle_cleared", coord=target_coord, cost=cost, sp=p.sp, max_sp=p.max_sp)
-                return f"{prefix}\n\n{GameRenderer.render_game(run)}"
-            sp_res = consume_sp(p, cost, allow_overdraft=True)
-            hp_loss = SP_CONFIG["forced_obstacle_hp_loss"]
-            p.hp = max(0, p.hp - hp_loss)
-            if p.hp <= 0 or p.exhaustion >= 5:
-                run.node_data["death_cause"] = get_locale_text("i18n_grid_map.exhaustion_death_cause")
-                return self.save_manager.settle_game_and_delete(uid, run, is_victory=False, create_corpse=True)
-            room.room_type = "empty"
-            room.cleared = True
-            room.obstacle_sp = 0
-            fm.player_coords[uid] = target_coord
-            self._reveal_coord(fm, target_coord)
-            self._sync_stage_for_coord(run, p, target_coord)
-            self.save_manager.save_save(uid, run)
-            prefix = get_locale_text(
-                "i18n_grid_map.obstacle_forced",
-                coord=target_coord,
-                hp_loss=hp_loss,
-                sp=p.sp,
-                exhaustion=sp_res["new_exhaustion"],
-            )
-            return f"{prefix}\n\n{GameRenderer.render_game(run)}"
+            return self._break_obstacle_and_enter(run, fm, uid, room, target_coord)
         pending_map.pop(uid, None)
         fm.player_coords[uid] = target_coord
         self._reveal_coord(fm, target_coord)
         self._sync_stage_for_coord(run, p, target_coord)
+        from .presence import sync_active
+        sync_active(uid, run=run)
         return self._enter_room(run, uid, target_coord)
 
     def _update_quest_zone(self, run, room) -> None:
@@ -285,6 +304,8 @@ class GridMapService:
             return get_locale_text("i18n_grid_map.tp_blocked", coord=coord)
         fm.player_coords[uid] = coord
         self._sync_stage_for_coord(run, run.player, coord)
+        from .presence import sync_active
+        sync_active(uid, run=run)
         if room.room_type in PERMANENT_ICON_TYPES or not room.cleared:
             return self._enter_room(run, uid, coord)
         self.save_manager.save_save(uid, run)

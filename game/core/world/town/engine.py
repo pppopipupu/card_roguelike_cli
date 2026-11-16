@@ -10,7 +10,7 @@ from ....data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT,
 from ...inventory.bag_service import get_item_display_name
 
 from ....data.yog_quest_config import YOG_SIGIL_ITEM
-from ....data.world_social_config import WORLD_TOWN
+from ....data.world_social_config import WORLD_PLAYER_DIALOG_KEY, WORLD_TOWN
 from ....data.town_map_config import TOWN_ROOM_COORDS
 from ..presence import sync_active
 
@@ -259,6 +259,7 @@ class TownEngine:
     def _open_dialog(self, user_id: str, stats: UserStats, target_id: str) -> str:
         from ..yog_quest.service import ensure_sigil
         ensure_sigil(stats)
+        stats.town_flags.pop(WORLD_PLAYER_DIALOG_KEY, None)
         stats.town_flags["current_dialog"] = target_id
         stats.town_flags.pop("market_sub_menu", None)
         self.save_manager.save_stats(user_id, stats)
@@ -268,10 +269,9 @@ class TownEngine:
         stats = self.save_manager.load_stats(user_id)
         room_data = self._load_room_data(stats.town_pos)
         if self.world_social is not None:
-            coord = TOWN_ROOM_COORDS.get(stats.town_pos, "C2")
-            target_entry, _ = self.world_social.resolve_target(WORLD_TOWN, coord, target_name, user_id)
-            if target_entry is not None:
-                return self.world_social.say_to_world(user_id, WORLD_TOWN, coord, target_name)
+            player_res = self.world_social.try_talk(user_id, target_name, stats=stats)
+            if player_res is not None:
+                return player_res
         target_id = self._resolve_visible_entity(stats, room_data, target_name)
         if not target_id:
             return get_locale_text("global.interact_not_found", target=target_name)

@@ -4,6 +4,7 @@ from .....renderer import GameRenderer
 from .....data.potion_data import get_potion_name
 from .....data.command_data import POTION_LIST_ALIASES, POTION_DRINK_ALIASES, POTION_THROW_ALIASES, POTION_DROP_ALIASES, POTION_CONTAINER_ALIASES
 from .....data.locale_data import get_locale_text
+from ....inventory.bag_service import drop_bag_item, format_weight, get_bag_max_weight, get_bag_weight, get_player_potions, resolve_item_query
 
 class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "drink", "use_potion", "丢弃药水", "discard_potion", "drop_potion", "drop", "丢药", "dp", "dr", "pot", "投掷", "投", "throw", "t"], allowed_states=["battle", "grid_map", "explore", "cafe", "town", "menu"], help_key="potion"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
@@ -17,8 +18,9 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
             yield get_locale_text("i18n_cli_general_a.potion.no_run")
             return
         p = run.player
-        if not hasattr(p, "potions"):
-            p.potions = []
+        if not hasattr(p, "bag_items") or p.bag_items is None:
+            p.bag_items = []
+        potions = get_player_potions(p)
 
         if action == "list":
             yield GameRenderer.render_potion_list(run)
@@ -36,26 +38,39 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
             yield get_locale_text("i18n_cli_general_a.potion.downed")
             return
 
+        bag_idx = -1
+        potion_id = ""
         try:
             idx = int(args[0]) - 1
         except ValueError:
-            if action == "drop":
-                from ....inventory.bag_service import drop_bag_item
+            matched = resolve_item_query(args[0], [f"potion:{pid}" for _, pid in potions])
+            if matched:
+                for b_idx, pid in potions:
+                    if f"potion:{pid}" == matched:
+                        bag_idx = b_idx
+                        potion_id = pid
+                        break
+            elif action == "drop":
                 msg = drop_bag_item(run, " ".join(args))
                 router.save_manager.save_save(user_id, run)
                 yield msg
                 return
+            else:
+                yield get_locale_text("i18n_cli_general_a.potion.invalid_slot")
+                return
+        else:
+            if idx < 0 or idx >= len(potions):
+                yield get_locale_text("i18n_cli_general_a.potion.invalid_slot_count", count=len(potions))
+                return
+            bag_idx, potion_id = potions[idx]
+
+        if bag_idx < 0:
             yield get_locale_text("i18n_cli_general_a.potion.invalid_slot")
             return
-        if idx < 0 or idx >= len(p.potions):
-            yield get_locale_text("i18n_cli_general_a.potion.invalid_slot_count", count=len(p.potions))
-            return
-
-        potion_id = p.potions[idx]
         potion_name = get_potion_name(potion_id)
 
         if action == "drop":
-            p.potions.pop(idx)
+            p.bag_items.pop(bag_idx)
             router.save_manager.save_save(user_id, run)
             yield get_locale_text("i18n_cli_general_a.potion.discarded", name=potion_name) + GameRenderer.render_game(run)
             return
@@ -119,7 +134,7 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
             yield get_locale_text("i18n_cli_general_a.potion.battle_only")
             return
 
-        p.potions.pop(idx)
+        p.bag_items.pop(bag_idx)
         res_msg = router.engine.potion_resolver.use_potion(run, potion_id, target, is_throw)
         if run.node_type == "battle":
             res_msg = router.engine.battle_engine._append_logs_to_res(run, res_msg)

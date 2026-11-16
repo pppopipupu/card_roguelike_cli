@@ -361,3 +361,62 @@ class SocialTeamMixin:
             names=separator.join(self._profile(member_uid)["name"] for member_uid in members),
         )
         return notice, run
+
+    def team_coordinate(self, uid):
+        run = self.save_manager.load_save(uid)
+        if run is None or not getattr(run, "coop_id", ""):
+            if self._lobby_of(uid) is not None:
+                return get_locale_text("i18n_social.team_coordinate.not_started")
+            return get_locale_text("i18n_social.team_coordinate.not_in_coop")
+        fm = getattr(run, "floor_map", None)
+        if fm is None:
+            return get_locale_text("i18n_social.team_coordinate.no_floor_map")
+        from ...data.grid_map_config import FLOOR_CONFIGS
+        cfg = FLOOR_CONFIGS.get(fm.floor_index, FLOOR_CONFIGS[1])
+        floor_name = get_locale_text(cfg["name_key"])
+        lines = [
+            get_locale_text(
+                "i18n_social.team_coordinate.header",
+                floor=fm.floor_index,
+                floor_name=floor_name,
+            )
+        ]
+        ready_map = fm.floor_flags.get("downstairs_ready", {}) if isinstance(fm.floor_flags.get("downstairs_ready"), dict) else {}
+        for pid in run.all_human_uids():
+            pl = run.players.get(pid)
+            if pl is None:
+                continue
+            coord = fm.player_coords.get(pid, "?")
+            room = fm.rooms.get(coord)
+            room_name = get_locale_text(f"i18n_grid_map.room_name.{room.room_type}") if room is not None else "?"
+            sid = fm.player_session_map.get(pid)
+            sess = fm.active_sessions.get(sid) if sid else None
+            sess_type = sess.get("node_type") if isinstance(sess, dict) else ""
+            is_waiting_descend = bool(
+                ready_map.get(pid)
+                or (
+                    isinstance(sess, dict)
+                    and sess_type == "downstairs"
+                    and ((sess.get("node_data_by_uid") or {}).get(pid) or {}).get("coop_done")
+                )
+            )
+            if pl.downed or pl.hp <= 0:
+                state = get_locale_text("i18n_social.team_coordinate.state_downed")
+            elif is_waiting_descend:
+                state = get_locale_text("i18n_social.team_coordinate.state_waiting_descend")
+            elif sess_type == "battle":
+                state = get_locale_text("i18n_social.team_coordinate.state_battle")
+            else:
+                state = get_locale_text("i18n_social.team_coordinate.state_ready")
+            marker = get_locale_text("i18n_social.team_coordinate.you_marker") if pid == uid else ""
+            lines.append(
+                get_locale_text(
+                    "i18n_social.team_coordinate.member_line",
+                    name=pl.name,
+                    marker=marker,
+                    coord=coord,
+                    room_name=room_name,
+                    state=state,
+                )
+            )
+        return "\n".join(lines)

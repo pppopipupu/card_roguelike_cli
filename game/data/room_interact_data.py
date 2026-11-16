@@ -42,6 +42,7 @@ ROGUE_ITEMS = {
     "espresso_beans": {
         "name_key": "i18n_room_interact.items.espresso_beans.name",
         "desc_key": "i18n_room_interact.items.espresso_beans.desc",
+        "rarity": "common",
         "weight": 4,
         "carryover": True,
         "usable": True,
@@ -51,6 +52,7 @@ ROGUE_ITEMS = {
     "rusty_pickaxe": {
         "name_key": "i18n_room_interact.items.rusty_pickaxe.name",
         "desc_key": "i18n_room_interact.items.rusty_pickaxe.desc",
+        "rarity": "epic",
         "weight": 35,
         "carryover": True,
         "usable": True,
@@ -59,6 +61,7 @@ ROGUE_ITEMS = {
     "glowing_runestone": {
         "name_key": "i18n_room_interact.items.glowing_runestone.name",
         "desc_key": "i18n_room_interact.items.glowing_runestone.desc",
+        "rarity": "legendary",
         "weight": 25,
         "carryover": True,
         "usable": True,
@@ -68,6 +71,7 @@ ROGUE_ITEMS = {
     "field_bandage": {
         "name_key": "i18n_room_interact.items.field_bandage.name",
         "desc_key": "i18n_room_interact.items.field_bandage.desc",
+        "rarity": "common",
         "weight": 3,
         "carryover": False,
         "usable": True,
@@ -77,6 +81,7 @@ ROGUE_ITEMS = {
     "ancient_notes": {
         "name_key": "i18n_room_interact.items.ancient_notes.name",
         "desc_key": "i18n_room_interact.items.ancient_notes.desc",
+        "rarity": "common",
         "weight": 2,
         "carryover": True,
         "usable": True,
@@ -85,6 +90,7 @@ ROGUE_ITEMS = {
     "frost_offering": {
         "name_key": "i18n_room_interact.items.frost_offering.name",
         "desc_key": "i18n_room_interact.items.frost_offering.desc",
+        "rarity": "rare",
         "weight": 2,
         "carryover": False,
         "usable": False,
@@ -93,6 +99,7 @@ ROGUE_ITEMS = {
     "cult_pages": {
         "name_key": "i18n_room_interact.items.cult_pages.name",
         "desc_key": "i18n_room_interact.items.cult_pages.desc",
+        "rarity": "rare",
         "weight": 1,
         "carryover": True,
         "usable": False,
@@ -101,6 +108,7 @@ ROGUE_ITEMS = {
     "skeleton_key": {
         "name_key": "i18n_room_interact.items.skeleton_key.name",
         "desc_key": "i18n_room_interact.items.skeleton_key.desc",
+        "rarity": "epic",
         "weight": 6,
         "carryover": True,
         "usable": True,
@@ -110,6 +118,7 @@ ROGUE_ITEMS = {
     "sugar_cube_pack": {
         "name_key": "i18n_room_interact.items.sugar_cube_pack.name",
         "desc_key": "i18n_room_interact.items.sugar_cube_pack.desc",
+        "rarity": "rare",
         "weight": 5,
         "carryover": False,
         "usable": True,
@@ -120,6 +129,7 @@ ROGUE_ITEMS = {
     "smuggler_token": {
         "name_key": "i18n_room_interact.items.smuggler_token.name",
         "desc_key": "i18n_room_interact.items.smuggler_token.desc",
+        "rarity": "rare",
         "weight": 8,
         "carryover": True,
         "usable": True,
@@ -129,6 +139,7 @@ ROGUE_ITEMS = {
     "merchant_ledger": {
         "name_key": "i18n_room_interact.items.merchant_ledger.name",
         "desc_key": "i18n_room_interact.items.merchant_ledger.desc",
+        "rarity": "epic",
         "weight": 18,
         "carryover": True,
         "usable": True,
@@ -138,6 +149,7 @@ ROGUE_ITEMS = {
     "barista_seal": {
         "name_key": "i18n_room_interact.items.barista_seal.name",
         "desc_key": "i18n_room_interact.items.barista_seal.desc",
+        "rarity": "mythic",
         "weight": 10,
         "carryover": True,
         "usable": True,

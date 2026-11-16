@@ -188,7 +188,7 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         self.assertEqual(battle_run.node_type, "battle")
 
         battle_run.player.hp = 10
-        battle_run.player.potions = ["healing_potion"]
+        battle_run.player.bag_items = ["potion:healing_potion"]
         battle_run.player.hand = [
             CardState(id="coop_resonance_hymn", upgraded=True),
             CardState(id="coop_phalanx_bulwark", upgraded=True),
@@ -223,7 +223,7 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         p2.minions["1"] = MinionState("mercenary", "队友佣兵", 4, 10, 3, 1, 0)
         p1.actions = 6
         p1.bonus_actions = 4
-        p1.potions = ["healing_potion", "healing_potion"]
+        p1.bag_items = ["potion:healing_potion", "potion:healing_potion"]
         p1.hand = [
             CardState(id="coop_tactical_command"),
             CardState(id="coop_resonance_hymn"),

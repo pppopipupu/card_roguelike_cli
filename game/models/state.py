@@ -61,7 +61,6 @@ class UserStats:
     purchased_pool: List[str] = field(default_factory=list)
     defeated_town_npcs: List[str] = field(default_factory=list)
     town_inventory: List[str] = field(default_factory=list)
-    town_potions: List[str] = field(default_factory=list)
     town_flags: Dict[str, Any] = field(default_factory=dict)
     town_health_bonus: int = 0
     player_name: str = "玩家"
@@ -83,6 +82,7 @@ class UserStats:
     projection_feed: List[Dict[str, Any]] = field(default_factory=list)
     log_history: List[Dict[str, Any]] = field(default_factory=list)
     team_log_history: List[Dict[str, Any]] = field(default_factory=list)
+    pending_logs: List[str] = field(default_factory=list)
     unlocked_achievements: List[str] = field(default_factory=list)
     achievement_all_view: bool = False
     achievement_stats: Dict[str, Any] = field(default_factory=dict)
@@ -398,7 +398,6 @@ class PlayerState:
     relic_counters: Dict[str, int] = field(default_factory=dict)
     subclass: str = ""
     selected_class: str = "法师"
-    potions: List[str] = field(default_factory=list)
     daily_blessing_id: str = ""
     downed: bool = False
     is_mercenary: bool = False
@@ -425,8 +424,6 @@ class PlayerState:
         set_persistent_buff(self, "exhaustion", int(value or 0))
 
     def __post_init__(self):
-        if not hasattr(self, "potions") or self.potions is None:
-            self.potions = []
         self.deck = [self._ensure_card_state(c) for c in self.deck]
         self.draw_pile = [self._ensure_card_state(c) for c in self.draw_pile]
         self.discard_pile = [self._ensure_card_state(c) for c in self.discard_pile]

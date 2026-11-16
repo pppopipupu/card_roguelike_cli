@@ -20,6 +20,10 @@ class CafeTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
             yield get_locale_text("i18n_cli_commands.cafe_talk_missing_target")
             return
         target = " ".join(parts[1:])
+        player_res = router.world_social.try_talk(user_id, target, run=run)
+        if player_res is not None:
+            yield player_res
+            return
         from ....party.mercenary import find_mercenary_uid, open_merc_dialog
         from ....world.cafe.engine import CafeEngine
         cafe = CafeEngine(router.save_manager, router.engine.map_engine)

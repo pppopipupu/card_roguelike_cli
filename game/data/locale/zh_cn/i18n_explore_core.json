@@ -48,7 +48,7 @@
   "life_merchant_relic_bought": "🩸 交易达成！消耗了 {cost} 点最大生命上限，获得遗物【{relic_name}】。",
   "life_merchant_gem_bought": "🩸 交易达成！消耗了 {cost} 点最大生命上限，{result}",
   "life_merchant_potion_bought": "🩸 交易达成！消耗了 {cost} 点最大生命上限，获得药水【{potion_name}】。",
-  "life_merchant_potion_full": "❌ 药水槽已满！无法放入【{potion_name}】，请先清理药水槽。",
+  "life_merchant_potion_full": "❌ 背包负重已满！无法装入【{potion_name}】，请先使用或丢弃行囊物品。",
   "life_merchant_upgrade_bought": "🩸 血肉洗礼完成！消耗了 {cost} 点最大生命上限，强化了卡牌：{names}。",
   "life_merchant_upgrade_none": "❌ 你的卡组中没有可以继续升级的卡牌。",
   "life_merchant_leave_coop": "你向生命商人致意后离开了摊位。",

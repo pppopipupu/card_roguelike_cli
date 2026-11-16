@@ -48,13 +48,17 @@ def render_shop_view(run) -> str:
     p = run.player
     room, coord = get_current_room(run)
     merchant_dead = bool(run.node_data.get("merchant_defeated")) or (room is not None and bool(room.shared_payload.get("merchant_defeated")))
-    from ....renderer.formatters import format_persistent_buff_bar
+    from ....renderer.formatters import format_npcs_and_players_line, format_persistent_buff_bar
+    from ..presence import render_players_for
     lines = [
         get_locale_text("renderer_explore.separator"),
         get_locale_text("i18n_room_interact.shop.lobby_title", stage=p.stage) if mode == "lobby" else get_locale_text("i18n_room_interact.shop.dialog_title"),
         get_locale_text("renderer_explore.status_line", name=p.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + format_persistent_buff_bar(p),
-        "",
     ]
+    npcs_line = format_npcs_and_players_line(None, render_players_for(run.user_id, run=run))
+    if npcs_line:
+        lines.append(npcs_line)
+    lines.append("")
     if mode == "lobby":
         if room is not None:
             lines.append(format_room_env_with_props(room, include_cleared_suffix=False))

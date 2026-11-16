@@ -268,40 +268,15 @@ class MapEngine:
         attach_notices(run, carried, caller)
         apply_and_scope(run, caller)
 
-    def advance_to_next_floor(self, run: GameRun) -> str:
-        cur_floor = run.floor_map.floor_index if run.floor_map else 1
-        if run.floor_map is not None and run.floor_map.floor_flags.get("yog_quest"):
-            from .yog_quest.floor import generate_yog_quest_floor
-            from ...data.yog_quest_config import YOG_FLOOR_TEMPLE, YOG_QUEST_ZONE_KEY
-            if cur_floor >= YOG_FLOOR_TEMPLE:
-                return get_locale_text("i18n_yog_quest.gate.no_further")
-            next_floor = YOG_FLOOR_TEMPLE
-            cfg = FLOOR_CONFIGS[next_floor]
-            run.floor_map = generate_yog_quest_floor(run, next_floor)
-            SessionContextScoper.ensure_full_party_order(run)
-            for uid in run.all_human_uids():
-                p = run.players.get(uid)
-                if p is None:
-                    continue
-                p.sp = p.max_sp
-                reduce_exhaustion(p, 1)
-                p.stage = int(cfg["stage_min"])
-            run.node_type = "grid_map"
-            run.enemies.clear()
-            run.node_data = {}
-            from .presence import sync_active
-            for uid in run.all_human_uids():
-                stats = self.save_manager.load_stats(uid)
-                stats.town_flags[YOG_QUEST_ZONE_KEY] = 1
-                self.save_manager.save_stats(uid, stats)
-                sync_active(uid, stats=stats, run=run)
-            floor_name = get_locale_text(cfg["name_key"])
-            return get_locale_text("i18n_yog_quest.gate.arrived", floor=next_floor, name=floor_name)
-        next_floor = min(4, cur_floor + 1)
-        cfg = FLOOR_CONFIGS.get(next_floor, FLOOR_CONFIGS[4])
-        run.floor_map = generate_floor_map(run, next_floor, save_manager=self.save_manager)
+    def _finalize_next_floor(self, run: GameRun, actor_uid: str, cfg: dict, *, yog_quest: bool = False) -> str:
+        from .presence import sync_active
+        from .world_social import WorldSocialService
+        from ...data.yog_quest_config import YOG_QUEST_ZONE_KEY
+
+        next_floor = run.floor_map.floor_index if run.floor_map is not None else 1
         SessionContextScoper.ensure_full_party_order(run)
-        for uid in run.all_human_uids():
+        humans = run.all_human_uids()
+        for uid in humans:
             p = run.players.get(uid)
             if p is None:
                 continue
@@ -312,7 +287,47 @@ class MapEngine:
         run.enemies.clear()
         run.node_data = {}
         floor_name = get_locale_text(cfg["name_key"])
-        return get_locale_text("i18n_grid_map.downstairs.arrived_floor", floor=next_floor, name=floor_name)
+        social = WorldSocialService(self.save_manager) if len(humans) > 1 else None
+        actor = run.players.get(actor_uid)
+        actor_name = actor.name if actor is not None else actor_uid
+        notice = (
+            get_locale_text("i18n_grid_map.downstairs.all_descended_notice", actor=actor_name, floor=next_floor, name=floor_name)
+            if social is not None
+            else ""
+        )
+        for uid in humans:
+            stats = self.save_manager.load_stats(uid)
+            if yog_quest:
+                stats.town_flags[YOG_QUEST_ZONE_KEY] = 1
+                self.save_manager.save_stats(uid, stats)
+            sync_active(uid, stats=stats, run=run)
+            if social is not None and uid != actor_uid:
+                social.push_log(
+                    uid,
+                    notice,
+                    command="downstairs",
+                    player_name=actor_name,
+                    coop_id=str(getattr(run, "coop_id", "") or ""),
+                )
+        msg_key = "i18n_yog_quest.gate.arrived" if yog_quest else "i18n_grid_map.downstairs.arrived_floor"
+        return get_locale_text(msg_key, floor=next_floor, name=floor_name)
+
+    def advance_to_next_floor(self, run: GameRun) -> str:
+        actor_uid = run.user_id
+        cur_floor = run.floor_map.floor_index if run.floor_map else 1
+        if run.floor_map is not None and run.floor_map.floor_flags.get("yog_quest"):
+            from .yog_quest.floor import generate_yog_quest_floor
+            from ...data.yog_quest_config import YOG_FLOOR_TEMPLE
+            if cur_floor >= YOG_FLOOR_TEMPLE:
+                return get_locale_text("i18n_yog_quest.gate.no_further")
+            next_floor = YOG_FLOOR_TEMPLE
+            cfg = FLOOR_CONFIGS[next_floor]
+            run.floor_map = generate_yog_quest_floor(run, next_floor)
+            return self._finalize_next_floor(run, actor_uid, cfg, yog_quest=True)
+        next_floor = min(4, cur_floor + 1)
+        cfg = FLOOR_CONFIGS.get(next_floor, FLOOR_CONFIGS[4])
+        run.floor_map = generate_floor_map(run, next_floor, save_manager=self.save_manager)
+        return self._finalize_next_floor(run, actor_uid, cfg, yog_quest=False)
 
     def enter_ancient_node(self, run: GameRun):
         from ..party.coordinator import apply_and_scope, attach_notices, collect_notices, restore_player, swap_player
@@ -352,6 +367,9 @@ class MapEngine:
 
     def move(self, run: GameRun, direction: str) -> str:
         return self.grid_map_service.move_player(run, direction)
+
+    def dig(self, run: GameRun, direction: str) -> str:
+        return self.grid_map_service.dig_obstacle(run, direction)
 
     def teleport(self, run: GameRun, target: str) -> str:
         return self.grid_map_service.teleport_player(run, target)

@@ -11,10 +11,11 @@ from ...data.outer_plane_config import (
 )
 from ...data.town_map_config import TOWN_ROOM_COORDS
 from ...data.world_social_config import (
+    WORLD_COOP_PREFIX,
+    WORLD_LIVE_MESSAGE_LIMIT,
     WORLD_OUTER_PLANE,
     WORLD_PRESENCE_FILE,
     WORLD_PRESENCE_TIMEOUT_SECONDS,
-    WORLD_LIVE_MESSAGE_LIMIT,
     WORLD_SNOWFIELD,
     WORLD_TOWN,
 )
@@ -28,6 +29,12 @@ _ACTIVE_SERVICE = None
 
 def _now_text() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _is_valid_world(world: object) -> bool:
+    if world in (WORLD_TOWN, WORLD_SNOWFIELD, WORLD_OUTER_PLANE):
+        return True
+    return isinstance(world, str) and world.startswith(WORLD_COOP_PREFIX) and len(world) > len(WORLD_COOP_PREFIX)
 
 
 def _class_text(stats) -> str:
@@ -75,7 +82,7 @@ class WorldPresenceService:
                 changed = True
                 continue
             world = entry.get("world")
-            if world not in (WORLD_TOWN, WORLD_SNOWFIELD, WORLD_OUTER_PLANE):
+            if not _is_valid_world(world):
                 changed = True
                 continue
             kept[uid] = entry
@@ -94,7 +101,7 @@ class WorldPresenceService:
             return {uid: entry for uid, entry in entries.items() if entry.get("world") == world}
 
     def touch(self, uid: str, world: str, coord: str) -> None:
-        if not uid or world not in (WORLD_TOWN, WORLD_SNOWFIELD, WORLD_OUTER_PLANE):
+        if not uid or not _is_valid_world(world):
             return
         stats = self.save_manager.load_stats(uid)
         with _REGISTRY_LOCK:
@@ -188,13 +195,30 @@ class WorldPresenceService:
         outer_active = bool(stats.town_flags.get(OUTER_PLANE_ACTIVE_FLAG))
         if run is not None:
             floor_map = getattr(run, "floor_map", None)
-            if floor_map is not None and floor_map.floor_flags.get("yog_quest"):
-                if floor_map.floor_index != YOG_FLOOR_WILDS:
+            coop_id = str(getattr(run, "coop_id", "") or "")
+            if floor_map is not None:
+                if floor_map.floor_flags.get("yog_quest"):
+                    coord = floor_map.player_coords.get(uid, "")
+                    if floor_map.floor_index == YOG_FLOOR_WILDS:
+                        if not coord:
+                            return None
+                        return WORLD_SNOWFIELD, coord
+                    if coop_id and coord:
+                        return f"{WORLD_COOP_PREFIX}{coop_id}", f"{floor_map.floor_index}:{coord}"
                     return None
-                coord = floor_map.player_coords.get(uid, "")
-                if not coord:
-                    return None
-                return WORLD_SNOWFIELD, coord
+                if coop_id:
+                    coord = floor_map.player_coords.get(uid, "")
+                    if not coord:
+                        return None
+                    return f"{WORLD_COOP_PREFIX}{coop_id}", f"{floor_map.floor_index}:{coord}"
+                if outer_active:
+                    room = stats.town_flags.get(OUTER_PLANE_ROOM_KEY) or OUTER_PLANE_START_ROOM
+                    return WORLD_OUTER_PLANE, str(room)
+                if stats.in_town and run.node_data.get("is_town_combat"):
+                    return WORLD_TOWN, TOWN_ROOM_COORDS.get(stats.town_pos, "C2")
+                return None
+            if coop_id:
+                return f"{WORLD_COOP_PREFIX}{coop_id}", "0:START"
             if outer_active:
                 room = stats.town_flags.get(OUTER_PLANE_ROOM_KEY) or OUTER_PLANE_START_ROOM
                 return WORLD_OUTER_PLANE, str(room)
@@ -238,3 +262,13 @@ def render_players(world: str, coord: str | None = None, exclude_uid: str = "") 
     if service is None:
         return []
     return service.players(world, coord=coord, exclude_uid=exclude_uid)
+
+
+def render_players_for(uid: str, stats=None, run=None) -> list[dict]:
+    service = _ACTIVE_SERVICE
+    if service is None or not uid:
+        return []
+    location = service.resolve_location(uid, stats=stats, run=run)
+    if location is None:
+        return []
+    return service.players(location[0], coord=location[1], exclude_uid=uid)

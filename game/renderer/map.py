@@ -2,6 +2,12 @@ from ..models.state import GameRun
 from ..entities import get_relic_name, get_relic_desc
 from ..cards import ALL_CARDS
 from ..data.locale_data import get_locale_text
+from .formatters import format_npcs_and_players_line
+
+
+def _world_players_line(run: GameRun) -> str:
+    from ..core.world.presence import render_players_for
+    return format_npcs_and_players_line(None, render_players_for(run.user_id, run=run))
 def render_start_ancient(run: GameRun) -> str:
     from .party import render_waiting
     p = run.player
@@ -19,10 +25,15 @@ def render_start_ancient(run: GameRun) -> str:
         get_locale_text("i18n_renderer_extra.map.separator"),
         get_locale_text("i18n_renderer_extra.map.start_title", style=name_str),
         get_locale_text("i18n_renderer_extra.map.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold),
+    ]
+    npcs_line = _world_players_line(run)
+    if npcs_line:
+        lines.append(npcs_line)
+    lines.extend([
         "",
         get_locale_text("i18n_renderer_extra.map.start_intro", style=name_str),
-        ""
-    ]
+        "",
+    ])
     for idx, opt in enumerate(options, 1):
         rid = opt["relic"]
         rname = get_relic_name(rid)
@@ -54,10 +65,15 @@ def render_ancient(run: GameRun) -> str:
         get_locale_text("i18n_renderer_extra.map.separator"),
         get_locale_text("i18n_renderer_extra.map.bless_title", stage=p.stage, style=name_str),
         get_locale_text("i18n_renderer_extra.map.status_line", name=run.player.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold),
+    ]
+    npcs_line = _world_players_line(run)
+    if npcs_line:
+        lines.append(npcs_line)
+    lines.extend([
         "",
         get_locale_text("i18n_renderer_extra.map.bless_intro", style=name_str),
-        ""
-    ]
+        "",
+    ])
     for idx, opt in enumerate(options, 1):
         rid = opt["relic"]
         rname = get_relic_name(rid)

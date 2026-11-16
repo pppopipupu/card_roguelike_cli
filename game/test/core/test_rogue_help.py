@@ -30,7 +30,7 @@ class TestRogueHelp(unittest.TestCase):
         self.enter_battle()
         run = self.plugin.save_manager.load_save(self.uid)
         run.player.hp = 20
-        run.player.potions = ["healing_potion", "fire_potion", "shield_potion"]
+        run.player.bag_items = ["potion:healing_potion", "potion:fire_potion", "potion:shield_potion"]
         self.plugin.save_manager.save_save(self.uid, run)
 
         listing = self.run_cmd("potion list")
@@ -40,18 +40,18 @@ class TestRogueHelp(unittest.TestCase):
         self.assertIn("回复了 10 点生命值", self.run_cmd("potion drink 1"))
         run = self.plugin.save_manager.load_save(self.uid)
         self.assertEqual(run.player.hp, 30)
-        self.assertEqual(run.player.potions, ["fire_potion", "shield_potion"])
+        self.assertEqual(run.player.bag_items, ["potion:fire_potion", "potion:shield_potion"])
 
         enemy_hp_before = run.enemies[0].hp
         self.run_cmd("potion throw 1")
         run = self.plugin.save_manager.load_save(self.uid)
-        self.assertEqual(run.player.potions, ["shield_potion"])
+        self.assertEqual(run.player.bag_items, ["potion:shield_potion"])
         self.assertLess(run.enemies[0].hp, enemy_hp_before)
         self.assertEqual(run.enemies[1].hp, 500)
 
         self.run_cmd("potion drop 1")
         run = self.plugin.save_manager.load_save(self.uid)
-        self.assertEqual(run.player.potions, [])
+        self.assertEqual(run.player.bag_items, [])
 
 
 if __name__ == "__main__":

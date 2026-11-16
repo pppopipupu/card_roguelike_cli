@@ -160,6 +160,17 @@ def build_downstairs_data(run, save_manager, uid) -> dict:
         }
     nxt = fm.floor_index + 1
     nxt_name = get_locale_text(FLOOR_CONFIGS.get(nxt, FLOOR_CONFIGS[4])["name_key"])
+    claimed_map = fm.floor_flags.get("descent_claimed", {})
+    if isinstance(claimed_map, dict) and claimed_map.get(uid):
+        options = [
+            {"action": "downstairs_confirm", "text": get_locale_text("i18n_grid_map.downstairs.confirm_opt")},
+            {"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")},
+        ]
+        return {
+            "title": get_locale_text("i18n_grid_map.downstairs.title", floor=fm.floor_index),
+            "desc": get_locale_text("i18n_grid_map.downstairs.desc", next_floor=nxt, nxt_name=nxt_name),
+            "options": options,
+        }
     coord = fm.player_coords.get(uid, "")
     room = fm.rooms.get(coord)
     store = room.shared_payload.setdefault("descent_options_by_uid", {}) if room is not None else {}
@@ -431,24 +442,41 @@ def execute_downstairs_option(save_manager, map_engine, run, idx: int) -> str:
     chosen = options[idx]
     action = chosen.get("action", "")
     uid = run.user_id
+    fm = getattr(run, "floor_map", None)
     if action == "downstairs_leave":
+        if fm is not None and isinstance(fm.floor_flags.get("downstairs_ready"), dict):
+            fm.floor_flags["downstairs_ready"].pop(uid, None)
         map_engine.complete_session(run, mark_cleared=False)
         save_manager.save_save(uid, run)
         return get_locale_text("i18n_grid_map.downstairs.left_msg")
-    if action == "yog_descend":
-        map_engine.complete_session(run, mark_cleared=False)
-        advance_msg = map_engine.advance_to_next_floor(run)
-        save_manager.save_save(uid, run)
-        return advance_msg
-    if action != "ancient_pick":
-        return get_locale_text("err_invalid_option_idx")
     reward_msg = ""
-    for pid in run.all_human_uids():
-        pl = run.players.get(pid)
-        if pl is None:
-            continue
-        reward_msg = grant_ancient_blessing(run, chosen, player=pl)
+    if action == "ancient_pick":
+        reward_msg = grant_ancient_blessing(run, chosen, player=run.player)
+        if fm is not None:
+            claimed = fm.floor_flags.setdefault("descent_claimed", {})
+            if isinstance(claimed, dict):
+                claimed[uid] = True
+    elif action not in ("yog_descend", "downstairs_confirm"):
+        return get_locale_text("err_invalid_option_idx")
+    alive_humans = [
+        pid
+        for pid in run.all_human_uids()
+        if (pl := run.players.get(pid)) is not None and not pl.downed and pl.hp > 0
+    ]
+    if fm is not None and len(alive_humans) > 1:
+        ready_map = fm.floor_flags.setdefault("downstairs_ready", {})
+        if isinstance(ready_map, dict):
+            ready_map[uid] = True
+            if not all(ready_map.get(pid) for pid in alive_humans):
+                run.node_data["coop_done"] = True
+                run.node_data["waiting_descend"] = True
+                run.node_data["options"] = []
+                SessionContextScoper.sync_from_run(run, uid)
+                save_manager.save_save(uid, run)
+                wait_msg = get_locale_text("i18n_grid_map.downstairs.confirm_wait_msg")
+                return f"{reward_msg}\n{wait_msg}" if reward_msg else wait_msg
+            ready_map.clear()
     map_engine.complete_session(run, mark_cleared=False)
     advance_msg = map_engine.advance_to_next_floor(run)
     save_manager.save_save(uid, run)
-    return "\n".join([reward_msg, advance_msg])
+    return f"{reward_msg}\n{advance_msg}" if reward_msg else advance_msg

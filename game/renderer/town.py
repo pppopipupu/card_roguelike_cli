@@ -243,7 +243,6 @@ def render_town(stats: UserStats, room_data: Dict[str, Any], world_players: List
         get_locale_text("global.room_exits", exits=exit_str),
         get_locale_text("global.room_npcs", npcs=npc_str),
         get_locale_text("global.room_items", items=item_str),
-        get_locale_text("i18n_world_social.world.talk_hint") if world_here else "",
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
         inventory_line,
         quest_str,

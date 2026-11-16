@@ -119,6 +119,69 @@ class TestGridMapAndBladesong(unittest.TestCase):
         self.assertEqual(after.floor_map.player_coords["gm_obs"], adj_coord)
         self.assertLess(after.player.hp, after.player.max_hp)
 
+    def test_dig_breaks_obstacle_without_confirm(self):
+        run = self._start_solo("gm_dig")
+        fm = run.floor_map
+        sx, sy = coord_to_xy(fm.player_coords["gm_dig"])
+        adj_coord = None
+        adj_dir = None
+        for dkey, (dx, dy) in (("d", (1, 0)), ("w", (0, -1)), ("s", (0, 1)), ("a", (-1, 0))):
+            nx, ny = sx + dx, sy + dy
+            if 0 <= nx < fm.width and 0 <= ny < fm.height:
+                adj_coord = xy_to_coord(nx, ny)
+                adj_dir = dkey
+                break
+        self.assertIsNotNone(adj_coord)
+        fm.rooms[adj_coord].room_type = "empty"
+        fm.rooms[adj_coord].cleared = True
+        self.plugin.save_manager.save_save("gm_dig", run)
+
+        not_obs = self.run_cmd(f"dig {adj_dir}", "gm_dig")
+        self.assertIn("不是障碍", not_obs)
+        self.assertEqual(self.plugin.save_manager.load_save("gm_dig").floor_map.player_coords["gm_dig"], xy_to_coord(sx, sy))
+
+        run = self.plugin.save_manager.load_save("gm_dig")
+        run.floor_map.rooms[adj_coord].room_type = "obstacle"
+        run.floor_map.rooms[adj_coord].cleared = False
+        run.floor_map.rooms[adj_coord].obstacle_sp = 2
+        run.player.sp = 3
+        run.player.exhaustion = 0
+        self.plugin.save_manager.save_save("gm_dig", run)
+
+        dug = self.run_cmd(f"dig {adj_dir}", "gm_dig")
+        self.assertIn("破除", dug)
+        after = self.plugin.save_manager.load_save("gm_dig")
+        self.assertEqual(after.player.sp, 1)
+        self.assertEqual(after.player.exhaustion, 0)
+        self.assertEqual(after.floor_map.player_coords["gm_dig"], adj_coord)
+        self.assertEqual(after.floor_map.rooms[adj_coord].room_type, "empty")
+
+        run2 = self._start_solo("gm_dig_od")
+        fm2 = run2.floor_map
+        sx2, sy2 = coord_to_xy(fm2.player_coords["gm_dig_od"])
+        adj2 = None
+        dir2 = None
+        for dkey, (dx, dy) in (("d", (1, 0)), ("w", (0, -1)), ("s", (0, 1)), ("a", (-1, 0))):
+            nx, ny = sx2 + dx, sy2 + dy
+            if 0 <= nx < fm2.width and 0 <= ny < fm2.height:
+                adj2 = xy_to_coord(nx, ny)
+                dir2 = dkey
+                break
+        self.assertIsNotNone(adj2)
+        fm2.rooms[adj2].room_type = "obstacle"
+        fm2.rooms[adj2].cleared = False
+        fm2.rooms[adj2].obstacle_sp = 2
+        run2.player.sp = 0
+        run2.player.exhaustion = 0
+        self.plugin.save_manager.save_save("gm_dig_od", run2)
+
+        forced = self.run_cmd(f"dg {dir2}", "gm_dig_od")
+        self.assertIn("强行突破", forced)
+        after2 = self.plugin.save_manager.load_save("gm_dig_od")
+        self.assertEqual(after2.player.exhaustion, 1)
+        self.assertEqual(after2.floor_map.player_coords["gm_dig_od"], adj2)
+        self.assertLess(after2.player.hp, after2.player.max_hp)
+
     def test_five_level_exhaustion_effects_and_death(self):
         run = self._start_solo("gm_exh")
         run.player.exhaustion = 4

@@ -184,6 +184,18 @@
     "status_title": "🏷️ 集换章：",
     "status_entry": "   【{name}】 {current}/{required}"
   },
+  "team_coordinate": {
+    "header": "🧭 团队实时位置｜第 {floor} 层 · {floor_name}",
+    "member_line": "  • {name}{marker}：({coord}) {room_name}｜{state}",
+    "you_marker": "（你）",
+    "state_downed": "已倒地",
+    "state_waiting_descend": "等待下楼",
+    "state_battle": "战斗中",
+    "state_ready": "探索中",
+    "not_in_coop": "❌ 当前未处于联机冒险队伍中。",
+    "not_started": "❌ 队伍尚未进入地牢，请先由队长执行 team start。",
+    "no_floor_map": "🪜 当前位于开局先古神殿，尚未进入地牢楼层。"
+  },
   "daily_blessing": {
     "first_exhaust_log": "🌙 [每日祝福·消耗领域] 本场战斗首次消耗触发，抽 {draw_count} 张牌并获得 {action_count}A。"
   }

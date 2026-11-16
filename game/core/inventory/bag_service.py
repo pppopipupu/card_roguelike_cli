@@ -3,28 +3,54 @@ from typing import List, Optional, Tuple
 from ...data.grid_map_config import PERMANENT_ICON_TYPES
 from ..world.grid_map_generator import coord_to_xy, xy_to_coord
 from ...data.locale_data import get_locale_text
-from ...data.potion_data import POTION_CONFIG, POTION_SLOT_LIMIT, get_potion_desc, get_potion_name
+from ...data.potion_data import POTION_CONFIG, get_potion_desc, get_potion_name, get_potion_rarity, get_potion_weight
 from ...data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT, ROGUE_ITEMS
 from ..i18n.locale_manager import LocaleManager
 from ..world.sp_system import reduce_exhaustion, restore_sp
 
 
-def get_item_weight(item_id: str) -> int:
+def get_item_weight(item_id: str) -> float:
     if item_id.startswith("potion:"):
-        return 0
+        return round(get_potion_weight(item_id.split(":", 1)[1]), 2)
     cfg = ROGUE_ITEMS.get(item_id)
     if cfg:
-        return int(cfg.get("weight", 1))
-    return 1
+        return round(float(cfg.get("weight", 1.0)), 2)
+    return 1.0
 
 
-def get_bag_weight(player) -> int:
+def format_weight(weight: float) -> str:
+    rounded = round(float(weight), 2)
+    if rounded == int(rounded):
+        return str(int(rounded))
+    return f"{rounded:g}"
+
+
+def get_bag_weight(player) -> float:
     items = getattr(player, "bag_items", None) or []
-    return sum(get_item_weight(it) for it in items)
+    return round(sum(get_item_weight(it) for it in items), 2)
 
 
 def get_bag_max_weight(player) -> int:
     return max(1, int(getattr(player, "bag_max_weight", BAG_DEFAULT_MAX_WEIGHT) or BAG_DEFAULT_MAX_WEIGHT))
+
+
+def get_item_rarity(item_id: str) -> str:
+    if item_id.startswith("potion:"):
+        return get_potion_rarity(item_id.split(":", 1)[1])
+    cfg = ROGUE_ITEMS.get(item_id)
+    if cfg:
+        return str(cfg.get("rarity", "common"))
+    return "common"
+
+
+def get_item_rarity_label(item_id: str) -> str:
+    rarity = get_item_rarity(item_id)
+    return get_locale_text(f"renderer_menu.rarity_{rarity}")
+
+
+def get_player_potions(player) -> List[Tuple[int, str]]:
+    items = getattr(player, "bag_items", None) or []
+    return [(idx, it.split(":", 1)[1]) for idx, it in enumerate(items) if it.startswith("potion:")]
 
 
 def is_item_carryover(item_id: str) -> bool:
@@ -95,25 +121,29 @@ def resolve_item_query(query: str, candidates: List[str]) -> Optional[str]:
 
 
 def add_bag_item(player, item_id: str) -> Tuple[bool, str]:
-    if item_id.startswith("potion:"):
-        pid = item_id.split(":", 1)[1]
-        if not hasattr(player, "potions") or player.potions is None:
-            player.potions = []
-        pname = get_potion_name(pid)
-        if len(player.potions) >= POTION_SLOT_LIMIT:
-            return False, get_locale_text("i18n_room_interact.bag.potion_full", count=len(player.potions), limit=POTION_SLOT_LIMIT, name=pname)
-        player.potions.append(pid)
-        return True, get_locale_text("i18n_room_interact.bag.take_potion_success", name=pname, count=len(player.potions), limit=POTION_SLOT_LIMIT)
     if not hasattr(player, "bag_items") or player.bag_items is None:
         player.bag_items = []
     w = get_item_weight(item_id)
     used = get_bag_weight(player)
     mx = get_bag_max_weight(player)
     dname = get_item_display_name(item_id)
-    if used + w > mx:
-        return False, get_locale_text("i18n_room_interact.bag.weight_full", used=used, max=mx, name=dname, weight=w)
+    new_used = round(used + w, 2)
+    if new_used > mx:
+        return False, get_locale_text(
+            "i18n_room_interact.bag.weight_full",
+            used=format_weight(used),
+            max=mx,
+            name=dname,
+            weight=format_weight(w),
+        )
     player.bag_items.append(item_id)
-    return True, get_locale_text("i18n_room_interact.bag.take_success", name=dname, weight=w, used=used + w, max=mx)
+    return True, get_locale_text(
+        "i18n_room_interact.bag.take_success",
+        name=dname,
+        weight=format_weight(w),
+        used=format_weight(new_used),
+        max=mx,
+    )
 
 
 def drop_bag_item(run, query: str) -> str:
@@ -127,8 +157,8 @@ def drop_bag_item(run, query: str) -> str:
     return get_locale_text(
         "i18n_room_interact.bag.drop_success",
         name=get_item_display_name(item_id),
-        weight=w,
-        used=get_bag_weight(p),
+        weight=format_weight(w),
+        used=format_weight(get_bag_weight(p)),
         max=get_bag_max_weight(p),
     )
 
@@ -161,6 +191,12 @@ def use_bag_item(engine, run, query: str) -> str:
     item_id = resolve_item_query(q, items)
     if not item_id:
         return get_locale_text("i18n_room_interact.bag.use_not_found", target=q)
+    if item_id.startswith("potion:"):
+        pid = item_id.split(":", 1)[1]
+        if run.node_type != "battle" and pid != "healing_potion":
+            return get_locale_text("i18n_cli_general_a.potion.battle_only")
+        items.remove(item_id)
+        return engine.potion_resolver.use_potion(run, pid, "p0", False)
     cfg = ROGUE_ITEMS.get(item_id)
     if not cfg:
         return get_locale_text("i18n_room_interact.bag.use_town_item", name=get_item_display_name(item_id), desc=get_item_desc(item_id))
@@ -248,22 +284,19 @@ def use_bag_item(engine, run, query: str) -> str:
     return get_locale_text("i18n_room_interact.bag.use_cannot_here", name=get_item_display_name(item_id))
 
 
-def carryin_from_stats(player, stats) -> None:
-    town_potions = list(getattr(stats, "town_potions", []) or [])
-    remaining_potions = []
-    for pid in town_potions:
-        if pid in POTION_CONFIG and len(player.potions) < POTION_SLOT_LIMIT:
-            player.potions.append(pid)
-        else:
-            remaining_potions.append(pid)
-    stats.town_potions = remaining_potions
+def _is_valid_carryover_item(item_id: str) -> bool:
+    if item_id.startswith("potion:"):
+        return item_id.split(":", 1)[1] in POTION_CONFIG
+    return item_id in ROGUE_ITEMS and is_item_carryover(item_id)
 
+
+def carryin_from_stats(player, stats) -> None:
     town_inv = list(getattr(stats, "town_inventory", []) or [])
     remaining_inv = []
     for item_id in town_inv:
-        if item_id in ROGUE_ITEMS and is_item_carryover(item_id):
+        if _is_valid_carryover_item(item_id):
             w = get_item_weight(item_id)
-            if get_bag_weight(player) + w <= get_bag_max_weight(player):
+            if round(get_bag_weight(player) + w, 2) <= get_bag_max_weight(player):
                 player.bag_items.append(item_id)
                 continue
         remaining_inv.append(item_id)
@@ -272,14 +305,8 @@ def carryin_from_stats(player, stats) -> None:
 
 def carryout_to_stats(player, stats) -> List[str]:
     carried = []
-    if not hasattr(stats, "town_potions") or stats.town_potions is None:
-        stats.town_potions = []
     if not hasattr(stats, "town_inventory") or stats.town_inventory is None:
         stats.town_inventory = []
-    for pid in list(getattr(player, "potions", []) or []):
-        if pid in POTION_CONFIG:
-            stats.town_potions.append(pid)
-            carried.append(get_potion_name(pid))
     for item_id in list(getattr(player, "bag_items", []) or []):
         if is_item_carryover(item_id):
             stats.town_inventory.append(item_id)

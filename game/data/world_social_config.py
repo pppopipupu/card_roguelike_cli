@@ -1,16 +1,17 @@
 WORLD_TOWN = "town"
 WORLD_SNOWFIELD = "snowfield"
 WORLD_OUTER_PLANE = "outer_plane"
+WORLD_COOP_PREFIX = "coop:"
 
 WORLD_PRESENCE_FILE = "world_presence.json"
 WORLD_PRESENCE_TIMEOUT_SECONDS = 300
 WORLD_MAILBOX_LIMIT = 50
 WORLD_LIVE_MESSAGE_LIMIT = 20
+WORLD_PENDING_LOG_LIMIT = 50
 WORLD_MESSAGE_MAX_LENGTH = 200
 
-WORLD_TALK_TARGET_KEY = "world_talk_target"
-WORLD_TALK_WORLD_KEY = "world_talk_world"
+WORLD_PLAYER_DIALOG_KEY = "world_player_dialog"
 
 WORLD_PLAYER_ICON = "🧑"
 
-WORLD_TALK_END_WORDS = ("结束", "结束对话", "离开", "退出", "bye", "exit")
+WORLD_PLAYER_DIALOG_EXIT_WORDS = ("0", "离开", "退出", "返回", "取消", "leave", "exit", "quit", "cancel", "q")

@@ -68,6 +68,22 @@ class BattleEngine(BaseBattleEngine):
         owners.append(owner_uid)
         logs.append(msg)
 
+    def _consume_pending_stats_logs(self, uid: str) -> TextDocument:
+        if not uid or self.save_manager is None:
+            return []
+        loader = getattr(self.save_manager, "load_stats", None)
+        saver = getattr(self.save_manager, "save_stats", None)
+        if not callable(loader) or not callable(saver):
+            return []
+        stats = loader(uid)
+        pending = getattr(stats, "pending_logs", None)
+        if not isinstance(pending, list) or not pending:
+            return []
+        nodes: TextDocument = [RenderedText(text=str(item)) for item in pending if str(item or "").strip()]
+        stats.pending_logs = []
+        saver(uid, stats)
+        return nodes
+
     def _take_battle_logs(self, run: GameRun, effective_uid: Optional[str] = None) -> TextDocument:
         target_uid = effective_uid or self._effective_log_uid(run)
         logs = run.node_data.pop("battle_logs", [])
@@ -89,6 +105,7 @@ class BattleEngine(BaseBattleEngine):
         if remaining:
             run.node_data["battle_logs"] = remaining
             run.node_data["battle_log_owners"] = remaining_owners
+        own_logs.extend(self._consume_pending_stats_logs(target_uid))
         return own_logs
 
     def _append_logs_to_res(self, run: GameRun, res: str) -> str:

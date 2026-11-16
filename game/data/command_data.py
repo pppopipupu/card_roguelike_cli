@@ -18,6 +18,7 @@ COMMAND_SECTION_ORDER = {
         "mode",
         "merc_talk",
         "grid_move",
+        "grid_dig",
         "grid_tp",
         "grid_map",
         "grid_talk",

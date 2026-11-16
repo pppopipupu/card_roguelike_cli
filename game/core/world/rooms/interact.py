@@ -300,6 +300,8 @@ def format_room_env_with_props(room, include_cleared_suffix: bool = True) -> str
 
 
 def format_room_extras(run, include_env: bool = True) -> List[str]:
+    from ....renderer.formatters import format_npcs_and_players_line
+    from ..presence import render_players_for
     room, _ = get_current_room(run)
     if room is None:
         return []
@@ -308,9 +310,11 @@ def format_room_extras(run, include_env: bool = True) -> List[str]:
         lines.append(format_room_env_with_props(room, include_cleared_suffix=True))
     defeated = set(getattr(room, "defeated_npcs", None) or [])
     alive_npcs = [nid for nid in (getattr(room, "npcs", None) or []) if nid not in defeated and nid in ROOM_NPCS]
-    if alive_npcs:
-        nnames = [f"【{get_locale_text(ROOM_NPCS[nid]['name_key'])}】" for nid in alive_npcs]
-        lines.append(get_locale_text("i18n_room_interact.room_ui.npcs_line", items="、".join(nnames)))
+    nnames = [f"【{get_locale_text(ROOM_NPCS[nid]['name_key'])}】" for nid in alive_npcs]
+    world_here = render_players_for(getattr(run, "user_id", ""), run=run)
+    npc_line = format_npcs_and_players_line(nnames, world_here)
+    if npc_line:
+        lines.append(npc_line)
     items = list(getattr(room, "items", None) or [])
     if items:
         inames = [f"【{get_item_display_name(it)}】" for it in items]

@@ -118,6 +118,10 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             if not isinstance(world_mailbox, list):
                 world_mailbox = []
             world_mailbox = [item for item in world_mailbox if isinstance(item, dict)][-50:]
+            pending_logs = d.get("pending_logs", [])
+            if not isinstance(pending_logs, list):
+                pending_logs = []
+            pending_logs = [str(item) for item in pending_logs if str(item or "").strip()][-50:]
             unlocked_achievements = d.get("unlocked_achievements", [])
             if not isinstance(unlocked_achievements, list):
                 unlocked_achievements = []
@@ -149,8 +153,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 locked_cards=locked_cards,
                 purchased_pool=d.get("purchased_pool", []),
                 defeated_town_npcs=d.get("defeated_town_npcs", []),
-                town_inventory=d.get("town_inventory", []),
-                town_potions=list(d.get("town_potions", []) or []),
+                town_inventory=list(d.get("town_inventory", []) or []) + [f"potion:{pid}" for pid in (d.get("town_potions", []) or [])],
                 town_flags=d.get("town_flags", {}),
                 town_health_bonus=d.get("town_health_bonus", 0),
                 player_name=d.get("player_name", "玩家"),
@@ -172,6 +175,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 projection_feed=projection_feed,
                 log_history=log_history,
                 team_log_history=team_log_history,
+                pending_logs=pending_logs,
                 unlocked_achievements=unlocked_achievements,
                 achievement_all_view=bool(d.get("achievement_all_view", False)),
                 achievement_stats=achievement_stats,

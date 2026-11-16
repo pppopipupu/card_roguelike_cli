@@ -7,7 +7,14 @@ from ..data.minion_data import MINION_CONFIG
 from ..data.locale_data import t
 from .menu import get_card_cost_str
 from .card_preview import render_card_description, replace_structured_number
-from .formatters import format_buff_detail, format_buff_list, format_relic_bar, format_relic_name_with_counter, get_effective_max_hp
+from .formatters import format_buff_detail, format_buff_list, format_npcs_and_players_line, format_relic_bar, format_relic_name_with_counter, get_effective_max_hp
+
+
+def _append_world_players_line(lines: list[str], run: GameRun) -> None:
+    from ..core.world.presence import render_players_for
+    npcs_line = format_npcs_and_players_line(None, render_players_for(run.user_id, run=run))
+    if npcs_line:
+        lines.append(npcs_line)
 
 def void_corrupt_text(text: str) -> str:
     import random
@@ -85,10 +92,12 @@ def render_battle(run: GameRun) -> str:
     p = run.player
     cur_max = get_effective_max_hp(p, run)
     relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
+    from ..core.inventory.bag_service import get_player_potions
+    potions = [pid for _, pid in get_player_potions(p)]
     potions_str = ""
-    if hasattr(p, "potions") and p.potions:
+    if potions:
         from ..data.potion_data import get_potion_name
-        potions_str = t("renderer.battle.potions_label") + " ".join([t("i18n_card_runtime.battle.potion_item", idx=idx, name=get_potion_name(r)) for idx, r in enumerate(p.potions, 1)])
+        potions_str = t("renderer.battle.potions_label") + " ".join([t("i18n_card_runtime.battle.potion_item", idx=idx, name=get_potion_name(r)) for idx, r in enumerate(potions, 1)])
     turn_count = run.node_data.get("turn_count", 1)
     lines = [
         t("renderer.battle.separator"),
@@ -102,6 +111,7 @@ def render_battle(run: GameRun) -> str:
             lines.append(t("renderer.battle.downed"))
     if p.buffs:
         lines.append(t("renderer.battle.buff_line", name=run.player.name) + format_buff_list(p.buffs))
+    _append_world_players_line(lines, run)
     lines.append("")
     lines.append(t("renderer.battle.ally_field"))
     if run.player_count() > 1:
@@ -226,10 +236,12 @@ def render_detailed_battle(run: GameRun) -> str:
     p = run.player
     cur_max = get_effective_max_hp(p, run)
     turn_count = run.node_data.get("turn_count", 1)
+    from ..core.inventory.bag_service import get_player_potions
+    potions = [pid for _, pid in get_player_potions(p)]
     detailed_potions = t("renderer.battle.none")
-    if hasattr(p, "potions") and p.potions:
+    if potions:
         from ..data.potion_data import get_potion_name, get_potion_desc
-        detailed_potions = " ".join([t("i18n_card_runtime.battle.detailed_potion_item", idx=idx, name=get_potion_name(r), desc=get_potion_desc(r)) for idx, r in enumerate(p.potions, 1)])
+        detailed_potions = " ".join([t("i18n_card_runtime.battle.detailed_potion_item", idx=idx, name=get_potion_name(r), desc=get_potion_desc(r)) for idx, r in enumerate(potions, 1)])
     lines = [
         t("renderer.battle.separator"),
         t("renderer.battle.detailed_title", turn=turn_count),
@@ -256,6 +268,7 @@ def render_detailed_battle(run: GameRun) -> str:
             lines.append(format_buff_detail(b, bdesc))
     else:
         lines.append(t("renderer.battle.buffs_none"))
+    _append_world_players_line(lines, run)
     lines.append("")
     lines.append(t("renderer.battle.detailed_ally_field"))
     if not p.minions and not p.amulets:

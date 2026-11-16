@@ -15,7 +15,8 @@ from ...data.balance_config import (
 from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
 from ...data.gem_data import GEM_CONFIG
 from ...data.locale_data import get_locale_text
-from ...data.potion_data import POTION_SLOT_LIMIT, get_potion_name
+from ...data.potion_data import get_potion_name
+from ..inventory.bag_service import add_bag_item, get_bag_max_weight, get_bag_weight, get_item_weight
 from ...data.relic_data import RELIC_CONFIG
 from ...data.reward_config import (
     LIFE_MERCHANT_EXCLUDED_MYTHIC_CARDS,
@@ -239,9 +240,7 @@ def handle_life_merchant(explore_engine, run, option_idx: int, target=None) -> s
         return finish_player_node(explore_engine.save_manager, explore_engine.map_engine, run, run.user_id, msg)
     if itype == "potion":
         pid = item.get("potion_id")
-        if not hasattr(p, "potions") or p.potions is None:
-            p.potions = []
-        if len(p.potions) >= POTION_SLOT_LIMIT:
+        if round(get_bag_weight(p) + get_item_weight(f"potion:{pid}"), 2) > get_bag_max_weight(p):
             return get_locale_text("i18n_explore_core.life_merchant_potion_full", potion_name=get_potion_name(pid))
 
     upgrade_candidates = []
@@ -322,7 +321,7 @@ def handle_life_merchant(explore_engine, run, option_idx: int, target=None) -> s
 
     if itype == "potion":
         pid = item.get("potion_id")
-        p.potions.append(pid)
+        add_bag_item(p, f"potion:{pid}")
         item["sold"] = True
         explore_engine.save_manager.save_save(run.user_id, run)
         return get_locale_text(

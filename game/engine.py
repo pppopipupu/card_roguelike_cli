@@ -152,6 +152,9 @@ class GameEngine:
         run.user_id = leader
         self.map_engine.init_new_run_map(run)
         self.save_manager.save_save(leader, run)
+        from .core.world.presence import sync_active
+        for uid in run.human_uids():
+            sync_active(uid, run=run)
         return run
     def start_new_game(self, user_id: str) -> Optional[GameRun]:
         stats = self.save_manager.load_stats(user_id)

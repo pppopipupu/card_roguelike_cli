@@ -109,6 +109,9 @@ class SaveCodecMixin:
         bag_max_weight = int(p_data.get("bag_max_weight", BAG_DEFAULT_MAX_WEIGHT) or BAG_DEFAULT_MAX_WEIGHT)
         if bag_max_weight < BAG_DEFAULT_MAX_WEIGHT:
             bag_max_weight = BAG_DEFAULT_MAX_WEIGHT
+        bag_items = list(p_data.get("bag_items", []) or [])
+        for legacy_pid in (p_data.get("potions", []) or []):
+            bag_items.append(f"potion:{legacy_pid}")
         player = PlayerState(
             hp=p_data["hp"],
             max_hp=p_data["max_hp"],
@@ -135,7 +138,6 @@ class SaveCodecMixin:
             relic_counters={k: int(v) for k, v in (p_data.get("relic_counters", {}) or {}).items()},
             subclass=p_data.get("subclass", ""),
             selected_class=p_data.get("selected_class", "法师"),
-            potions=p_data.get("potions", []),
             daily_blessing_id=p_data.get("daily_blessing_id", ""),
             downed=p_data.get("downed", False),
             is_mercenary=bool(p_data.get("is_mercenary", False)),
@@ -146,7 +148,7 @@ class SaveCodecMixin:
             max_sp=p_data.get("max_sp", 10),
             persistent_buffs=p_persistent_buffs,
             quest_relics=list(p_data.get("quest_relics", []) or []),
-            bag_items=list(p_data.get("bag_items", []) or []),
+            bag_items=bag_items,
             bag_max_weight=bag_max_weight,
         )
         legacy_ex = int(p_data.get("exhaustion", 0) or 0)

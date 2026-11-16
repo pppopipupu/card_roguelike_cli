@@ -1,11 +1,13 @@
 from datetime import datetime
 
+from ...data.balance_config import LOG_MAX_ENTRIES
 from ...data.locale_data import get_locale_text
 from ...data.world_social_config import (
     WORLD_MAILBOX_LIMIT,
     WORLD_MESSAGE_MAX_LENGTH,
-    WORLD_TALK_TARGET_KEY,
-    WORLD_TALK_WORLD_KEY,
+    WORLD_PENDING_LOG_LIMIT,
+    WORLD_PLAYER_DIALOG_EXIT_WORDS,
+    WORLD_PLAYER_DIALOG_KEY,
 )
 from .presence import WorldPresenceService
 
@@ -27,11 +29,13 @@ class WorldSocialService:
         location = self.presence.sync(uid, stats=stats, run=run)
         if stats is None:
             stats = self.save_manager.load_stats(uid)
-        target_world = str(stats.town_flags.get(WORLD_TALK_WORLD_KEY, "") or "")
-        if target_world and (location is None or location[0] != target_world):
-            stats.town_flags.pop(WORLD_TALK_TARGET_KEY, None)
-            stats.town_flags.pop(WORLD_TALK_WORLD_KEY, None)
-            self.save_manager.save_stats(uid, stats)
+        dialog = stats.town_flags.get(WORLD_PLAYER_DIALOG_KEY)
+        if isinstance(dialog, dict):
+            dlg_world = str(dialog.get("world", "") or "")
+            dlg_coord = str(dialog.get("coord", "") or "")
+            if location is None or location[0] != dlg_world or location[1] != dlg_coord:
+                stats.town_flags.pop(WORLD_PLAYER_DIALOG_KEY, None)
+                self.save_manager.save_stats(uid, stats)
         return location
 
     def visible(self, world: str, coord: str, exclude_uid: str) -> list[dict]:
@@ -47,26 +51,11 @@ class WorldSocialService:
             for name in names:
                 if not name:
                     continue
-                if raw == name:
+                if raw.lower() == name.lower():
                     return entry, ""
                 if raw.lower().startswith(name.lower() + " "):
                     return entry, raw[len(name):].strip()
         return None, raw
-
-    def _target_from_flags(self, uid: str, stats) -> tuple[dict | None, str, str]:
-        target_uid = str(stats.town_flags.get(WORLD_TALK_TARGET_KEY, "") or "")
-        world = str(stats.town_flags.get(WORLD_TALK_WORLD_KEY, "") or "")
-        if not target_uid or not world:
-            return None, "", ""
-        location = self.presence.resolve_location(uid, stats=stats)
-        if location is None or location[0] != world:
-            self.close(uid, stats)
-            return None, "", ""
-        target = self.presence.get(target_uid)
-        if target is None:
-            self.close(uid, stats)
-            return None, "", ""
-        return target, world, location[1]
 
     def _validate_target(self, uid: str, target_uid: str, world: str, coord: str) -> dict | None:
         for entry in self.presence.players(world, coord=coord, exclude_uid=uid):
@@ -74,26 +63,166 @@ class WorldSocialService:
                 return entry
         return None
 
-    def open_dialog(self, uid: str, target: dict, world: str, stats=None) -> str:
+    def has_dialog(self, uid: str, stats=None) -> bool:
+        if not uid:
+            return False
         if stats is None:
             stats = self.save_manager.load_stats(uid)
-        stats.town_flags[WORLD_TALK_TARGET_KEY] = target.get("user_id", "")
-        stats.town_flags[WORLD_TALK_WORLD_KEY] = world
+        return isinstance(stats.town_flags.get(WORLD_PLAYER_DIALOG_KEY), dict)
+
+    def clear_dialog(self, uid: str, stats=None) -> bool:
+        if not uid:
+            return False
+        if stats is None:
+            stats = self.save_manager.load_stats(uid)
+        if WORLD_PLAYER_DIALOG_KEY not in stats.town_flags:
+            return False
+        stats.town_flags.pop(WORLD_PLAYER_DIALOG_KEY, None)
         self.save_manager.save_stats(uid, stats)
-        name = _entry_name(target)
-        return get_locale_text(
-            "i18n_world_social.dialog.open",
-            name=name,
-            class_text=target.get("class_text", ""),
+        return True
+
+    def render_dialog(self, uid: str, stats=None) -> str:
+        if stats is None:
+            stats = self.save_manager.load_stats(uid)
+        dialog = stats.town_flags.get(WORLD_PLAYER_DIALOG_KEY)
+        if not isinstance(dialog, dict):
+            return ""
+        target_uid = str(dialog.get("target_uid", ""))
+        target_name = str(dialog.get("target_name", "") or get_locale_text("i18n_world_social.default_player_name"))
+        class_text = str(dialog.get("class_text", "") or "-")
+        is_friend = target_uid in (getattr(stats, "friends", []) or [])
+        friend_opt = (
+            get_locale_text("i18n_world_social.dialog.opt_friend_done", name=target_name)
+            if is_friend
+            else get_locale_text("i18n_world_social.dialog.opt_add_friend", name=target_name)
         )
+        lines = [
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            get_locale_text("i18n_world_social.dialog.title", name=target_name),
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            get_locale_text("i18n_world_social.dialog.intro", name=target_name, class_text=class_text),
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            f"  [1] {get_locale_text('i18n_world_social.dialog.opt_greet')}",
+            f"  [2] {friend_opt}",
+            f"  [3] {get_locale_text('i18n_world_social.dialog.opt_inspect')}",
+            f"  [0] {get_locale_text('i18n_world_social.dialog.opt_leave')}",
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+            get_locale_text("i18n_world_social.dialog.help", name=target_name),
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        ]
+        return "\n".join(lines)
+
+    def open_dialog(self, uid: str, target: dict, world: str, coord: str = "", stats=None) -> str:
+        if stats is None:
+            stats = self.save_manager.load_stats(uid)
+        stats.town_flags.pop("current_dialog", None)
+        stats.town_flags.pop("market_sub_menu", None)
+        stats.town_flags.pop("shop_sub_menu", None)
+        target_name = _entry_name(target)
+        stats.town_flags[WORLD_PLAYER_DIALOG_KEY] = {
+            "target_uid": str(target.get("user_id", "")),
+            "target_name": target_name,
+            "target_handle": str(target.get("player_id", "") or target_name),
+            "class_text": str(target.get("class_text", "") or ""),
+            "world": str(world),
+            "coord": str(coord or target.get("coord", "")),
+        }
+        self.save_manager.save_stats(uid, stats)
+        return self.render_dialog(uid, stats=stats)
+
+    def handle_dialog_choice(self, uid: str, raw: str, stats=None) -> str | None:
+        if stats is None:
+            stats = self.save_manager.load_stats(uid)
+        dialog = stats.town_flags.get(WORLD_PLAYER_DIALOG_KEY)
+        if not isinstance(dialog, dict):
+            return None
+        token = str(raw or "").strip().lower()
+        if token in WORLD_PLAYER_DIALOG_EXIT_WORDS:
+            return self.close(uid, stats=stats)
+        target_uid = str(dialog.get("target_uid", ""))
+        target_name = str(dialog.get("target_name", "") or get_locale_text("i18n_world_social.default_player_name"))
+        target_handle = str(dialog.get("target_handle", "") or target_uid)
+        world = str(dialog.get("world", ""))
+        coord = str(dialog.get("coord", ""))
+        if token in ("1", "打招呼", "问候", "greet"):
+            live = self._validate_target(uid, target_uid, world, coord)
+            if live is None:
+                stats.town_flags.pop(WORLD_PLAYER_DIALOG_KEY, None)
+                self.save_manager.save_stats(uid, stats)
+                return get_locale_text("i18n_world_social.dialog.target_left", name=target_name)
+            greet_text = get_locale_text("i18n_world_social.dialog.quick_greet_text")
+            msg = self.send(uid, live, greet_text)
+            return msg + "\n\n" + self.render_dialog(uid, stats=stats)
+        if token in ("2", "加好友", "好友", "friend", "add"):
+            if target_uid in (getattr(stats, "friends", []) or []):
+                msg = get_locale_text("i18n_world_social.dialog.already_friend_hint", name=target_name)
+            else:
+                from ..social.service import SocialService
+                msg = SocialService(self.save_manager).friend_add(uid, target_handle or target_name)
+                stats = self.save_manager.load_stats(uid)
+            return msg + "\n\n" + self.render_dialog(uid, stats=stats)
+        if token in ("3", "查看", "名片", "info", "inspect"):
+            target_stats = self.save_manager.load_stats(target_uid)
+            handle = getattr(target_stats, "player_handle", "") or target_handle or target_name
+            cls_base = getattr(target_stats, "selected_class", "")
+            cls_sub = getattr(target_stats, "selected_subclass", "")
+            sep = get_locale_text("i18n_social.common.class_separator")
+            cls_text = f"{cls_base}{sep}{cls_sub}" if cls_sub else cls_base
+            friend_flag = get_locale_text("i18n_world_social.dialog.friend_yes") if target_uid in (getattr(stats, "friends", []) or []) else get_locale_text("i18n_world_social.dialog.friend_no")
+            info = get_locale_text(
+                "i18n_world_social.dialog.inspect_card",
+                name=getattr(target_stats, "player_name", "") or target_name,
+                player_id=handle,
+                class_text=cls_text or "-",
+                friend_status=friend_flag,
+                coord=coord or "-",
+            )
+            return info + "\n\n" + self.render_dialog(uid, stats=stats)
+        return get_locale_text("global.invalid_option") + "\n\n" + self.render_dialog(uid, stats=stats)
 
     def close(self, uid: str, stats=None) -> str:
         if stats is None:
             stats = self.save_manager.load_stats(uid)
-        stats.town_flags.pop(WORLD_TALK_TARGET_KEY, None)
-        stats.town_flags.pop(WORLD_TALK_WORLD_KEY, None)
+        stats.town_flags.pop(WORLD_PLAYER_DIALOG_KEY, None)
         self.save_manager.save_stats(uid, stats)
         return get_locale_text("i18n_world_social.dialog.closed")
+
+    def push_log(self, target_uid: str, line: str, *, command: str = "", player_name: str = "", record_history: bool = True, coop_id: str = "") -> bool:
+        clean_line = str(line or "").strip()
+        if not target_uid or not clean_line:
+            return False
+        target_stats = self.save_manager.load_stats(target_uid)
+        pending = getattr(target_stats, "pending_logs", None)
+        if not isinstance(pending, list):
+            pending = []
+        pending.append(clean_line)
+        target_stats.pending_logs = pending[-WORLD_PENDING_LOG_LIMIT:]
+        if record_history:
+            history = getattr(target_stats, "log_history", None)
+            if not isinstance(history, list):
+                history = []
+            history.append({
+                "kind": "action",
+                "command": command or clean_line,
+                "text": clean_line,
+                "player": player_name,
+                "coop_id": coop_id or getattr(target_stats, "active_coop_id", ""),
+            })
+            target_stats.log_history = history[-LOG_MAX_ENTRIES:]
+        return self.save_manager.save_stats(target_uid, target_stats)
+
+    def pop_pending_logs(self, uid: str, stats=None) -> list[str]:
+        if not uid:
+            return []
+        if stats is None:
+            stats = self.save_manager.load_stats(uid)
+        pending = getattr(stats, "pending_logs", None)
+        if not isinstance(pending, list) or not pending:
+            return []
+        lines = [str(item) for item in pending if str(item or "").strip()]
+        stats.pending_logs = []
+        self.save_manager.save_stats(uid, stats)
+        return lines
 
     def _append_mail(self, target_uid: str, from_uid: str, from_name: str, text: str, kind: str = "player") -> bool:
         target_stats = self.save_manager.load_stats(target_uid)
@@ -123,8 +252,15 @@ class WorldSocialService:
             return get_locale_text("i18n_world_social.dialog.target_missing")
         source_stats = self.save_manager.load_stats(uid)
         source_name = getattr(source_stats, "player_name", "") or get_locale_text("i18n_world_social.default_player_name")
-        if not self.presence.send_live(target_uid, uid, source_name, clean):
-            return get_locale_text("i18n_world_social.dialog.target_left", name=_entry_name(target))
+        line = get_locale_text("i18n_world_social.live.entry", name=source_name, text=clean)
+        self.push_log(
+            target_uid,
+            line,
+            command=f"talk {source_name}",
+            player_name=source_name,
+            record_history=True,
+            coop_id=getattr(source_stats, "active_coop_id", ""),
+        )
         return get_locale_text(
             "i18n_world_social.dialog.sent",
             name=_entry_name(target),
@@ -167,26 +303,26 @@ class WorldSocialService:
             return get_locale_text("i18n_world_social.remote.no_friends")
         return get_locale_text("i18n_world_social.remote.not_friend", query=text.split()[0] if text else "")
 
-    def pop_live(self, uid: str) -> list[dict]:
-        return self.presence.pop_live(uid)
-
-    def render_live(self, message: dict) -> str:
-        return get_locale_text(
-            "i18n_world_social.live.entry",
-            name=message.get("from_name", ""),
-            text=message.get("text", ""),
-        )
-
-    def talk(self, uid: str, text: str) -> str:
-        stats = self.save_manager.load_stats(uid)
-        target, world, coord = self._target_from_flags(uid, stats)
-        if target is None:
-            return get_locale_text("i18n_world_social.dialog.no_target")
+    def _talk_target(self, uid: str, world: str, coord: str, target: dict, message: str, stats=None) -> str:
         live = self._validate_target(uid, target.get("user_id", ""), world, coord)
         if live is None:
-            self.close(uid, stats)
             return get_locale_text("i18n_world_social.dialog.target_left", name=_entry_name(target))
-        return self.send(uid, live, text)
+        if not message:
+            return self.open_dialog(uid, live, world, coord=coord, stats=stats)
+        return self.send(uid, live, message)
+
+    def try_talk(self, uid: str, query: str, stats=None, run=None) -> str | None:
+        raw = str(query or "").strip()
+        if not raw or not uid:
+            return None
+        location = self.presence.resolve_location(uid, stats=stats, run=run)
+        if location is None:
+            return None
+        world, coord = location
+        target, message = self.resolve_target(world, coord, raw, uid)
+        if target is None:
+            return None
+        return self._talk_target(uid, world, coord, target, message, stats=stats)
 
     def say_to_world(self, uid: str, world: str, coord: str, query: str) -> str:
         if not str(query or "").strip():
@@ -198,13 +334,7 @@ class WorldSocialService:
         target, message = self.resolve_target(world, coord, query, uid)
         if target is None:
             return get_locale_text("i18n_world_social.dialog.not_here", query=query)
-        if not message:
-            stats = self.save_manager.load_stats(uid)
-            return self.open_dialog(uid, target, world, stats=stats)
-        live = self._validate_target(uid, target.get("user_id", ""), world, coord)
-        if live is None:
-            return get_locale_text("i18n_world_social.dialog.target_left", name=_entry_name(target))
-        return self.send(uid, live, message)
+        return self._talk_target(uid, world, coord, target, message)
 
     def unread_count(self, uid: str) -> int:
         stats = self.save_manager.load_stats(uid)

@@ -14,10 +14,10 @@ from ..world.world_social import WorldSocialService
 from ..world.presence import set_active_service
 from ..telemetry.projection_service import ProjectionService
 from ..telemetry.log_service import LogService
+from ..text.pipeline import render_text_node
 from ...data.locale_data import get_locale_text
 from ...data.outer_plane_config import OUTER_PLANE_COMBAT_FLAG, OUTER_PLANE_TRIGGER_FLAG
-from ...data.world_social_config import WORLD_TALK_TARGET_KEY
-from ...data.yog_quest_config import YOG_FLOOR_WILDS
+from ...data.world_social_config import WORLD_PLAYER_DIALOG_EXIT_WORDS
 
 
 
@@ -124,6 +124,27 @@ class CLIRouter:
                 return result[:-len(suffix)].rstrip()
         return result
 
+    def _drain_unread_logs(self, user_id: str) -> list[str]:
+        after_run = self.save_manager.load_save(user_id)
+        if after_run is None:
+            return self.world_social.pop_pending_logs(user_id)
+        battle_engine = getattr(self.engine, "battle_engine", self.engine)
+        lines: list[str] = []
+        if hasattr(battle_engine, "_take_battle_logs"):
+            before_logs = list(after_run.node_data.get("battle_logs") or [])
+            nodes = battle_engine._take_battle_logs(after_run, user_id)
+            after_logs = list(after_run.node_data.get("battle_logs") or [])
+            if before_logs != after_logs:
+                self.save_manager.save_save(user_id, after_run)
+            for node in nodes:
+                rendered = render_text_node(node)
+                if rendered:
+                    lines.append(rendered)
+        extra_pending = self.world_social.pop_pending_logs(user_id)
+        if extra_pending:
+            lines.extend(extra_pending)
+        return lines
+
     def handle_command(self, user_id: str, parts: list[str], project: bool = True) -> Generator[str, None, None]:
         command = " ".join(str(part) for part in parts).strip()
         set_active_service(self.world_social.presence)
@@ -136,12 +157,11 @@ class CLIRouter:
             formatted = format_output_numbers(res)
             results.append(formatted)
             yield formatted
-        live_messages = self.world_social.pop_live(user_id)
+        for log_line in self._drain_unread_logs(user_id):
+            formatted_log = format_output_numbers(log_line)
+            results.append(formatted_log)
+            yield formatted_log
         self.world_social.refresh(user_id)
-        for message in live_messages:
-            live_text = self.world_social.render_live(message)
-            results.append(live_text)
-            yield live_text
         if command:
             from ..progress.achievement_service import AchievementService
             ach = AchievementService(self.save_manager)
@@ -173,6 +193,24 @@ class CLIRouter:
             stats = self.save_manager.load_stats(user_id)
         return resolve_game_state(run, stats)
 
+    def _try_player_dialog_input(self, user_id: str, parts: list[str], stats=None) -> str | None:
+        if not parts:
+            return None
+        if stats is None:
+            stats = self.save_manager.load_stats(user_id)
+        if not self.world_social.has_dialog(user_id, stats):
+            return None
+        head = parts[0].strip().lower()
+        choice_token = None
+        if len(parts) == 1 and (head.isdigit() or head in WORLD_PLAYER_DIALOG_EXIT_WORDS):
+            choice_token = head
+        elif head in ("选择", "c") and len(parts) == 2:
+            choice_token = parts[1].strip().lower()
+        if choice_token is not None:
+            return self.world_social.handle_dialog_choice(user_id, choice_token, stats=stats)
+        self.world_social.clear_dialog(user_id, stats=stats)
+        return None
+
     def _handle_command_raw(self, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         set_user_id(user_id)
         run = self.save_manager.load_save(user_id)
@@ -191,15 +229,16 @@ class CLIRouter:
         if run is None:
             stats = self.save_manager.load_stats(user_id)
             if stats.in_town:
+                player_dialog_res = self._try_player_dialog_input(user_id, parts, stats=stats)
+                if player_dialog_res is not None:
+                    yield player_dialog_res
+                    return
                 handler, _ = CommandHandler.resolve(parts[0].lower(), curr_state)
                 if handler:
                     yield "\n".join(list(handler.execute(self, user_id, parts)))
                     return
                 if curr_state == "outer_plane" and parts[0].strip().isdigit():
                     yield self.town_engine.outer_plane_engine.choose(user_id, stats, parts[0].strip())
-                    return
-                if stats.town_flags.get(WORLD_TALK_TARGET_KEY):
-                    yield self.world_social.talk(user_id, " ".join(parts).strip())
                     return
                 if stats.town_flags.get("current_dialog"):
                     yield self.town_engine.handle_dialog_input(user_id, " ".join(parts).strip())
@@ -215,6 +254,11 @@ class CLIRouter:
                 yield get_locale_text("i18n_cli_core.err_command_unavailable", cmd=parts[0].lower())
                 return
             yield get_locale_text("i18n_cli_core.unknown_subcommand")
+            return
+
+        player_dialog_res = self._try_player_dialog_input(user_id, parts)
+        if player_dialog_res is not None:
+            yield player_dialog_res
             return
 
         from ..party.mercenary import handle_merc_dialog_input, is_in_merc_dialog, render_merc_dialog
@@ -267,16 +311,6 @@ class CLIRouter:
                 return
         if exists:
             yield get_locale_text("i18n_cli_core.err_command_unavailable", cmd=sub)
-            return
-        stats = self.save_manager.load_stats(user_id)
-        floor_map = getattr(run, "floor_map", None)
-        if (
-            stats.town_flags.get(WORLD_TALK_TARGET_KEY)
-            and floor_map is not None
-            and floor_map.floor_flags.get("yog_quest")
-            and floor_map.floor_index == YOG_FLOOR_WILDS
-        ):
-            yield self.world_social.talk(user_id, " ".join(parts).strip())
             return
         res, term, success = self._execute_sub_action(user_id, run, parts)
         if is_town_combat:

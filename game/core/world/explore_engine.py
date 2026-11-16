@@ -17,7 +17,6 @@ from ...data.balance_config import (
     TREASURE_GOLD_MIN,
 )
 from ...data.reward_config import TREASURE_RELIC_POOL
-from ...data.potion_data import POTION_SLOT_LIMIT
 from ...data.locale_data import get_locale_text
 from ..inventory.deck_service import DeckService
 from .explore_nodes import resolve_node_handler
@@ -93,15 +92,12 @@ class ExploreEngine:
         
         if itype == "potion":
             pid = item.get("potion_id")
-            if not hasattr(p, "potions"):
-                p.potions = []
-            if len(p.potions) >= POTION_SLOT_LIMIT:
+            from ..inventory.bag_service import add_bag_item
+            ok, msg = add_bag_item(p, f"potion:{pid}")
+            if not ok:
                 item["taken"] = False
-                from ...data.potion_data import get_potion_name
-                return get_locale_text("i18n_explore_core.potion_slots_full", potion_name=get_potion_name(pid))
-            p.potions.append(pid)
-            from ...data.potion_data import get_potion_name
-            res = get_locale_text("i18n_explore_core.potion_gained", potion_name=get_potion_name(pid))
+                return msg
+            res = msg
         elif itype == "gold":
             amt = item.get("amount", 0)
             p.gold += amt

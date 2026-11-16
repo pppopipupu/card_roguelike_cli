@@ -43,7 +43,7 @@
     "hp_line": "  生命值：HP {hp}/{max_hp}",
     "shield_line": "  护盾值：{shield}",
     "actions_line": "  动作资源：{actions}A {bonus_actions}BA",
-    "potions_slot": "  药水槽：{potions}",
+    "potions_slot": "  携带药水：{potions}",
     "piles_status": "  牌堆状态：手牌 {hand}张 | 抽牌堆 {draw}张 | 弃牌堆 {discard}张 | 消耗堆 {exhaust}张 | 随从墓地 {minion_grave}个 | 敌人墓地 {enemy_grave}个",
     "none": "无",
     "relics_title": "  拥有遗物：",

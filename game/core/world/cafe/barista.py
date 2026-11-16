@@ -134,4 +134,9 @@ def render_cafe_room_extras(run) -> List[str]:
     if room.items:
         inames = [f"【{get_item_display_name(it)}】" for it in room.items]
         extras.append(get_locale_text("i18n_room_interact.room_ui.items_line", items="、".join(inames)))
+    from ....renderer.formatters import format_npcs_and_players_line
+    from ..presence import render_players_for
+    npcs_line = format_npcs_and_players_line(None, render_players_for(run.user_id, run=run))
+    if npcs_line:
+        extras.append(npcs_line)
     return extras

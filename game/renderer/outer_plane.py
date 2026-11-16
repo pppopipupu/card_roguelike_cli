@@ -1,5 +1,4 @@
 from ..data.locale_data import get_locale_text
-from ..data.world_social_config import WORLD_PLAYER_ICON
 from ..data.outer_plane_config import (
     OUTER_PLANE_ROOMS,
     OUTER_PLANE_VISITED_KEY,
@@ -7,6 +6,7 @@ from ..data.outer_plane_config import (
     ZONE_NAME_KEYS,
     ZONE_ORDER,
 )
+from .formatters import format_npcs_and_players_line
 
 
 def _zone_map(stats) -> str:
@@ -39,11 +39,8 @@ def render_outer_plane(stats, room_id, options, lucidity, max_lucidity, scene_te
         lines.append(scene_text)
         lines.append("")
     lines.append(get_locale_text(f"i18n_outer_plane.room.{room_id}.desc"))
-    if world_players:
-        separator = get_locale_text("i18n_social.common.list_separator")
-        names = separator.join(f"{WORLD_PLAYER_ICON}{entry.get('name', '')}" for entry in world_players)
-        lines.append(get_locale_text("i18n_world_social.world.outer_players", names=names))
-        lines.append(get_locale_text("i18n_world_social.world.talk_hint"))
+    if npc_line := format_npcs_and_players_line(None, world_players):
+        lines.append(npc_line)
     lines.append("")
     lines.append(get_locale_text("i18n_outer_plane.ui.current", name=get_locale_text(f"i18n_outer_plane.room.{room_id}.name")))
     lines.append(get_locale_text("i18n_outer_plane.ui.lucidity", lucidity=lucidity, max=max_lucidity))

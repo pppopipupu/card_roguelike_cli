@@ -61,6 +61,26 @@ def format_relic_bar(relics, relic_counters: Optional[dict] = None) -> str:
     )
 
 
+def format_world_player_names(world_players: Optional[list[dict]]) -> list[str]:
+    from ..data.world_social_config import WORLD_PLAYER_ICON
+    if not world_players:
+        return []
+    result: list[str] = []
+    for entry in world_players:
+        name = str(entry.get("name", "") or "").strip()
+        if name:
+            result.append(f"【{WORLD_PLAYER_ICON}{name}】")
+    return result
+
+
+def format_npcs_and_players_line(npc_labels: Optional[list[str]], world_players: Optional[list[dict]]) -> str:
+    items = list(npc_labels or []) + format_world_player_names(world_players)
+    if not items:
+        return ""
+    sep = get_locale_text("i18n_social.common.list_separator")
+    return get_locale_text("i18n_room_interact.room_ui.npcs_line", items=sep.join(items))
+
+
 def _format_digits_scientific(
     digits: str,
     precision: int = SCIENTIFIC_NOTATION_PRECISION,

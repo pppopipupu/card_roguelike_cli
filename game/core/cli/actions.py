@@ -142,6 +142,8 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                 if run.node_type in ("landmark", "downstairs", "battle_prompt"):
                     fm = getattr(run, "floor_map", None)
                     if fm is not None:
+                        if run.node_type == "downstairs" and isinstance(fm.floor_flags.get("downstairs_ready"), dict):
+                            fm.floor_flags["downstairs_ready"].pop(user_id, None)
                         sid = fm.player_session_map.get(user_id)
                         if sid:
                             from ..party.session import SessionContextScoper

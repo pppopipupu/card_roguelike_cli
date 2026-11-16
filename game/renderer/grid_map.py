@@ -1,5 +1,5 @@
 from ..core.world.grid_map_generator import coord_to_xy, neighbors_4, xy_to_coord
-from ..core.world.presence import render_players
+from ..core.world.presence import render_players_for
 from ..data.grid_map_config import (
     DIRECT_REVEAL_ADJACENT_TYPES,
     FLOOR_CONFIGS,
@@ -8,10 +8,8 @@ from ..data.grid_map_config import (
     ROOM_ICONS,
 )
 from ..data.locale_data import get_locale_text
-from ..data.world_social_config import WORLD_PLAYER_ICON, WORLD_SNOWFIELD
-from ..data.yog_quest_config import YOG_FLOOR_WILDS
 from ..models.state import GameRun
-from .formatters import format_persistent_buff_bar, format_relic_bar
+from .formatters import format_npcs_and_players_line, format_persistent_buff_bar, format_relic_bar
 from .world_grid import render_grid_view
 def _visible_cell_icon(fm, coord: str, viewer_coord: str, adj_set: set[str]) -> str:
     room = fm.rooms.get(coord)
@@ -68,10 +66,7 @@ def render_grid_map(run: GameRun) -> str:
     floor_name = get_locale_text(cfg["name_key"])
     uid = run.user_id
     viewer_coord = fm.player_coords.get(uid) or xy_to_coord(0, fm.height // 2)
-    world_entries = []
-    if fm.floor_flags.get("yog_quest") and fm.floor_index == YOG_FLOOR_WILDS:
-        world_entries = render_players(WORLD_SNOWFIELD, None, uid)
-    world_here = [entry for entry in world_entries if str(entry.get("coord", "")) == viewer_coord]
+    world_here = render_players_for(uid, run=run)
     adj_set = _adjacent_to_revealed(fm)
     relics_str = format_relic_bar(p.relics, getattr(p, "relic_counters", None))
     quest_str = ""
@@ -149,8 +144,6 @@ def render_grid_map(run: GameRun) -> str:
     cur_room = fm.rooms.get(viewer_coord)
     if cur_room is not None:
         lines.extend(_render_room_details(fm, cur_room, viewer_coord, p, world_here))
-        if world_here:
-            lines.append(get_locale_text("i18n_world_social.world.talk_hint"))
         if cur_room.room_type == "downstairs":
             if fm.floor_flags.get("yog_quest"):
                 lines.append(get_locale_text("i18n_yog_quest.gate.hint"))
@@ -192,12 +185,15 @@ def render_landmark(run: GameRun) -> str:
     title = run.node_data.get("title", "")
     desc = run.node_data.get("desc", "")
     options = run.node_data.get("options", [])
+    npcs_line = format_npcs_and_players_line(None, render_players_for(run.user_id, run=run))
     lines = [
         get_locale_text("i18n_grid_map.separator"),
         title,
         desc,
-        "",
     ]
+    if npcs_line:
+        lines.append(npcs_line)
+    lines.append("")
     for idx, opt in enumerate(options, 1):
         lines.append(f"  [{idx}] {opt.get('text', '')}")
     lines.append("")
@@ -206,7 +202,45 @@ def render_landmark(run: GameRun) -> str:
     return "\n".join(lines)
 
 
+def _render_downstairs_waiting(run: GameRun, npcs_line: str) -> str:
+    fm = getattr(run, "floor_map", None)
+    ready_map = fm.floor_flags.get("downstairs_ready", {}) if fm is not None else {}
+    if not isinstance(ready_map, dict):
+        ready_map = {}
+    sep = get_locale_text("i18n_social.common.list_separator")
+    ready_names: list[str] = []
+    pending_names: list[str] = []
+    for pid in run.all_human_uids():
+        pl = run.players.get(pid)
+        if pl is None or pl.downed or pl.hp <= 0:
+            continue
+        if ready_map.get(pid) or pid == run.user_id:
+            ready_names.append(pl.name)
+        else:
+            coord = fm.player_coords.get(pid, "?") if fm is not None else "?"
+            pending_names.append(f"{pl.name}({coord})")
+    lines = [
+        get_locale_text("i18n_grid_map.separator"),
+        get_locale_text("i18n_grid_map.downstairs.waiting_title"),
+        get_locale_text("i18n_grid_map.downstairs.waiting_desc"),
+    ]
+    if npcs_line:
+        lines.append(npcs_line)
+    lines.append("")
+    if ready_names:
+        lines.append(get_locale_text("i18n_grid_map.downstairs.ready_list", items=sep.join(ready_names)))
+    if pending_names:
+        lines.append(get_locale_text("i18n_grid_map.downstairs.pending_list", items=sep.join(pending_names)))
+    lines.append("")
+    lines.append(get_locale_text("i18n_grid_map.downstairs.waiting_hint"))
+    lines.append(get_locale_text("i18n_grid_map.separator"))
+    return "\n".join(lines)
+
+
 def render_downstairs(run: GameRun) -> str:
+    npcs_line = format_npcs_and_players_line(None, render_players_for(run.user_id, run=run))
+    if run.node_data.get("coop_done"):
+        return _render_downstairs_waiting(run, npcs_line)
     title = run.node_data.get("title", "")
     desc = run.node_data.get("desc", "")
     options = run.node_data.get("options", [])
@@ -214,8 +248,10 @@ def render_downstairs(run: GameRun) -> str:
         get_locale_text("i18n_grid_map.separator"),
         title,
         desc,
-        "",
     ]
+    if npcs_line:
+        lines.append(npcs_line)
+    lines.append("")
     for idx, opt in enumerate(options, 1):
         lines.append(f"  [{idx}] {opt.get('text', '')}")
     lines.append("")
@@ -251,18 +287,13 @@ def _describe_neighbor(fm, x: int, y: int) -> str:
 
 
 def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players: list[dict] | None = None) -> list[str]:
-    from ..core.inventory.bag_service import get_bag_max_weight, get_bag_weight, get_item_display_name
+    from ..core.inventory.bag_service import format_weight, get_bag_max_weight, get_bag_weight, get_item_display_name
     from ..core.world.rooms.interact import format_room_env_with_props
-    from ..data.potion_data import POTION_SLOT_LIMIT
     from ..data.room_interact_data import ROOM_NPCS
     shared = getattr(cur_room, "shared_payload", None) or {}
     name_key = shared.get("name_key")
     out = [get_locale_text(name_key)] if name_key else []
     out.append(format_room_env_with_props(cur_room, include_cleared_suffix=True))
-    if world_players:
-        separator = get_locale_text("i18n_social.common.list_separator")
-        names = separator.join(f"{WORLD_PLAYER_ICON}{entry.get('name', '')}" for entry in world_players)
-        out.append(get_locale_text("i18n_world_social.world.grid_players", names=names))
 
     cx, cy = coord_to_xy(viewer_coord)
     dirs = [
@@ -279,22 +310,22 @@ def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players:
 
     defeated = set(getattr(cur_room, "defeated_npcs", None) or [])
     alive_npcs = [nid for nid in (getattr(cur_room, "npcs", None) or []) if nid not in defeated]
-    if alive_npcs:
-        npc_names = [
-            f"【{get_locale_text(ROOM_NPCS[nid]['name_key'])}】" if nid in ROOM_NPCS else nid
-            for nid in alive_npcs
-        ]
-        out.append(get_locale_text("i18n_room_interact.room_ui.npcs_line", items="、".join(npc_names)))
+    npc_names = [
+        f"【{get_locale_text(ROOM_NPCS[nid]['name_key'])}】" if nid in ROOM_NPCS else nid
+        for nid in alive_npcs
+    ]
+    npcs_line = format_npcs_and_players_line(npc_names, world_players)
+    if npcs_line:
+        out.append(npcs_line)
 
     items = list(getattr(cur_room, "items", None) or [])
     if items:
         item_names = [f"【{get_item_display_name(it)}】" for it in items]
         out.append(get_locale_text("i18n_room_interact.room_ui.items_line", items="、".join(item_names)))
 
-    potions = list(getattr(player, "potions", None) or [])
     out.append(get_locale_text(
         "i18n_room_interact.bag.rogue_weight_line",
-        used=get_bag_weight(player),
+        used=format_weight(get_bag_weight(player)),
         max=get_bag_max_weight(player),
-    ) + get_locale_text("i18n_room_interact.bag.rogue_potion_inline", count=len(potions), limit=POTION_SLOT_LIMIT))
+    ))
     return out
