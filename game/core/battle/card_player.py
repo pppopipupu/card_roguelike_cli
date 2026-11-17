@@ -214,8 +214,21 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
                     has_damaged = True
                     break
         if has_damaged and run.node_data.get("extra_turns_left", 0) > 0:
-            end_turn_res = self.end_turn(run)
-            res += get_locale_text("i18n_battle_core.time_stop_extra_end_log", end_turn_res=end_turn_res)
+            from .pvp_service import PvpService, is_pvp_run
+            if is_pvp_run(run):
+                opponent_dead = not run.enemies or run.enemies[0].hp <= 0
+                if p.hp > 0 and not opponent_dead:
+                    extra_res = PvpService.consume_extra_turn(
+                        self.engine.save_manager,
+                        self.engine,
+                        run,
+                        run.uid_for(p),
+                        run_end_phase=True,
+                    )
+                    res += get_locale_text("i18n_battle_core.time_stop_extra_end_log", end_turn_res=extra_res)
+            else:
+                end_turn_res = self.end_turn(run)
+                res += get_locale_text("i18n_battle_core.time_stop_extra_end_log", end_turn_res=end_turn_res)
         if run.node_data.pop("force_end_turn", False):
             run.node_data.pop("force_end_turn_uid", None)
             if not self.engine.is_battle_won(run) and p.hp > 0:

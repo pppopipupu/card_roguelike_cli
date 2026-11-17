@@ -195,3 +195,122 @@ class TestTownCardShopAndPvp(unittest.TestCase):
         ghosts = self.plugin.save_manager.open_world_ghosts.list_at(WORLD_TOWN, "square")
         self.assertEqual(len(ghosts), 1)
         self.assertEqual(ghosts[0]["owner_uid"], self.bob)
+
+    def test_pvp_time_stop_grants_extra_turns_and_breaks_on_damage(self):
+        self._prepare_player(self.alice, "Alice", deck=["time_stop"] + ["fire_bolt"] * 5)
+        self._prepare_player(self.bob, "Bob", deck=["fire_bolt"] * 12)
+
+        self.cmd("atk Bob", self.alice)
+        self.cmd("1", self.bob)
+
+        cast = self.cmd("p sjt", self.alice)
+        self.assertIn("时间停止", cast)
+        self.assertNotIn("❌", cast)
+
+        first_extra = self.cmd("e", self.alice)
+        self.assertIn("额外回合进行中（剩余 2 个额外回合）", first_extra)
+
+        bob_blocked = self.cmd("e", self.bob)
+        self.assertIn("现在是【Alice】的回合", bob_blocked)
+
+        damaged = self.cmd("p 1 e1", self.alice)
+        self.assertIn("当前额外回合提前结束", damaged)
+        self.assertIn("额外回合进行中（剩余 1 个额外回合）", damaged)
+
+        second_extra = self.cmd("e", self.alice)
+        self.assertIn("额外回合进行中（剩余 0 个额外回合）", second_extra)
+
+        pass_turn = self.cmd("e", self.alice)
+        self.assertIn("等待【Bob】行动", pass_turn)
+
+        bob_turn = self.cmd("e", self.bob)
+        self.assertIn("等待【Alice】行动", bob_turn)
+
+    def test_pvp_hourglass_relic_grants_battle_start_extra_turn(self):
+        self._prepare_player(self.alice, "Alice", deck=["fire_bolt"] * 12, relics=["infinite_hourglass"])
+        self._prepare_player(self.bob, "Bob", deck=["fire_bolt"] * 12)
+
+        self.cmd("atk Bob", self.alice)
+        self.cmd("1", self.bob)
+
+        extra = self.cmd("e", self.alice)
+        self.assertIn("额外回合进行中（剩余 0 个额外回合）", extra)
+
+        bob_blocked = self.cmd("e", self.bob)
+        self.assertIn("现在是【Alice】的回合", bob_blocked)
+
+        pass_turn = self.cmd("e", self.alice)
+        self.assertIn("等待【Bob】行动", pass_turn)
+
+    def test_pvp_plane_shift_escapes_to_center_square(self):
+        self._prepare_player(
+            self.alice,
+            "Alice",
+            deck=["neutral_plane_shift"] + ["fire_bolt"] * 5,
+            bag=["espresso_beans"],
+            relics=["ancient_compass"],
+        )
+        self._prepare_player(self.bob, "Bob", deck=["fire_bolt"] * 6)
+
+        self.cmd("atk Bob", self.alice)
+        self.cmd("1", self.bob)
+
+        escape_out = self.cmd("p yjcs", self.alice)
+        self.assertIn("中心广场", escape_out)
+        self.assertIn("视为战败", escape_out)
+        self.assertNotIn("【敌方战场】", escape_out)
+        self.assertNotIn("❌", escape_out)
+
+        alice_stats = self.plugin.save_manager.load_stats(self.alice)
+        self.assertTrue(alice_stats.in_town)
+        self.assertEqual(alice_stats.town_pos, "square")
+        self.assertEqual(alice_stats.open_world_bag, ["espresso_beans"])
+        self.assertIn("ancient_compass", alice_stats.open_world_relics)
+        self.assertNotIn("neutral_plane_shift", [card.id for card in alice_stats.open_world_deck])
+        self.assertIsNone(self.plugin.save_manager.load_save(self.alice))
+        self.assertEqual(self.plugin.save_manager.open_world_ghosts.list_at(WORLD_TOWN, "square"), [])
+
+        bob_stats = self.plugin.save_manager.load_stats(self.bob)
+        self.assertEqual(bob_stats.gp, 500 + PVP_WIN_GP_REWARD)
+        self.assertIsNone(self.plugin.save_manager.load_save(self.bob))
+        bob_view = self.cmd("r", self.bob)
+        self.assertEqual(bob_view.count("赢得胜利"), 1)
+
+    def test_pvp_rope_only_ends_turn_without_forfeit(self):
+        self._prepare_player(self.alice, "Alice", deck=["fire_bolt"] * 6, gp=500)
+        self._prepare_player(self.bob, "Bob", deck=["fire_bolt"] * 6, gp=500)
+
+        self.cmd("atk Bob", self.alice)
+        self.cmd("1", self.bob)
+        self.cmd("e", self.alice)
+
+        first_future = time.time() + PVP_TURN_TIMEOUT_SECONDS + 5
+        with patch("game.core.battle.pvp_service.time.time", return_value=first_future):
+            first_rope = self.cmd("r", self.alice)
+        self.assertIn("烧绳超时", first_rope)
+        self.assertNotIn("判为战败", first_rope)
+
+        second_future = first_future + PVP_TURN_TIMEOUT_SECONDS + 5
+        with patch("game.core.battle.pvp_service.time.time", return_value=second_future):
+            second_rope = self.cmd("r", self.bob)
+        self.assertIn("烧绳超时", second_rope)
+        self.assertNotIn("判为战败", second_rope)
+
+        self.assertIsNotNone(self.plugin.save_manager.pvp.find_match_for_user(self.alice))
+        self.assertIsNotNone(self.plugin.save_manager.pvp.find_match_for_user(self.bob))
+        self.assertEqual(self.plugin.save_manager.load_stats(self.alice).gp, 500)
+        self.assertEqual(self.plugin.save_manager.load_stats(self.bob).gp, 500)
+        self.assertEqual(self.plugin.save_manager.open_world_ghosts.list_at(WORLD_TOWN, "square"), [])
+
+    def test_pvp_victory_message_is_not_duplicated(self):
+        self._prepare_player(self.alice, "Alice", deck=["neutral_astral_strike"] * 5)
+        self._prepare_player(self.bob, "Bob", deck=["fire_bolt"] * 6, gp=500)
+
+        self.cmd("atk Bob", self.alice)
+        self.cmd("1", self.bob)
+
+        self.cmd("p 1 e1", self.alice)
+        win_out = self.cmd("p 1 e1", self.alice)
+        self.assertEqual(win_out.count("PVP 切磋胜利"), 1)
+        self.assertIsNone(self.plugin.save_manager.load_save(self.alice))
+        self.assertEqual(self.plugin.save_manager.load_stats(self.alice).gp, 500 + PVP_WIN_GP_REWARD)

@@ -6,6 +6,7 @@ from ...data.map_config import MapConfig
 from ...data.enemy_data import ENEMY_CONFIG
 from ...data.enemy_data_normal import ENEMY_ENCOUNTER_CONFIG
 from ...data.enemy_data_boss import BOSS_POOLS
+from ...data.corpse_config import CorpseConfig
 from ...data.locale_data import get_locale_text
 from .base import BaseBattleEngine
 from .combat_resolver import CombatResolver
@@ -373,15 +374,17 @@ class BattleEngine(BaseBattleEngine):
         elif difficulty == "ghost":
             ghost_name = str(run.node_data.get("ghost_name", get_locale_text("i18n_battle_core.ghost_default_name")))
             ghost_hp = max(1, int(run.node_data.get("ghost_max_hp", 60) or 60))
+            ghost_actions = max(1, int(CorpseConfig.GHOST_ACTIONS))
+            ghost_bonus_actions = max(0, int(CorpseConfig.GHOST_BONUS_ACTIONS))
             run.enemies = [EnemyState(
                 name=ghost_name,
                 hp=ghost_hp,
                 max_hp=ghost_hp,
                 shield=0,
-                actions=1,
-                bonus_actions=0,
-                max_actions=1,
-                max_bonus_actions=0
+                actions=ghost_actions,
+                bonus_actions=ghost_bonus_actions,
+                max_actions=ghost_actions,
+                max_bonus_actions=ghost_bonus_actions
             )]
         elif difficulty == "npc_combat":
             npc_info = run.node_data.get("npc_combat") or {}

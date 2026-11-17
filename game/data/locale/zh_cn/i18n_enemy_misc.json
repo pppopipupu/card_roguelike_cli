@@ -24,10 +24,8 @@
   "ghost": {
     "intent_play_card": "打出【{card_name}】",
     "intent_attack": "怨念冲击 (造成 {damage} 伤害)",
-    "damage": "💀 【{name}】打出【{card_name}】，造成 {damage} 点伤害。",
-    "heal": "💀 【{name}】打出【{card_name}】，恢复 {heal} 点生命。",
-    "shield": "💀 【{name}】打出【{card_name}】，获得 {shield} 点护盾。",
-    "shield_fallback": "💀 【{name}】打出【{card_name}】，凝聚了 3 点护盾。"
+    "play_card": "💀 【{name}】打出【{card_name}】。",
+    "card_failed": "💀 【{name}】打出【{card_name}】时卡牌效果未能生效。"
   },
   "test_dummy": {
     "sweep": "横扫击打 (造成 10 点钝击伤害)",

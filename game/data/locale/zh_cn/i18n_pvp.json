@@ -45,12 +45,13 @@
     "wait_action_blocked": "⏳ 现在是【{opp}】的回合，请等待对方结束回合或烧绳超时（剩余 {seconds} 秒）。",
     "turn_ended_wait": "⏳ 你结束了第 {turn} 回合，正在等待【{opp}】行动...",
     "your_turn_notify": "🔔 对手【{opp}】已结束回合，现在轮到你的第 {turn} 回合！",
-    "rope_auto_end": "🔥 【烧绳超时】{name} 本回合超时未操作，系统已自动结束其回合！",
-    "rope_auto_forfeit": "🔥 【连续烧绳判负】{name} 连续超时未行动，判为战败！",
-    "opp_intent": "PVP 切磋对手（等待对方行动）",
-    "win_banner": "🏆 PVP 切磋胜利！你击败了【{loser}】，获得与击败他人冤魂同等的 {gp} GP 奖励！",
-    "lose_banner": "💀 PVP 切磋战败！你不敌【{winner}】，触发开放世界死亡结算：遗落了随身物品、遗物与卡组并留下冤魂，已返回主城中心广场。",
-    "abandon_forfeit": "🏳️ 你放弃了 PVP 切磋，视为战败！",
-    "opp_forfeit_notify": "🏆 对手【{loser}】主动放弃了切磋！你赢得胜利并获得 {gp} GP 奖励！"
+    "rope_auto_end": "🔥 【烧绳超时】{name} 本回合超时未操作,系统已自动结束其回合!",
+    "opp_intent": "PVP 切磋对手(等待对方行动)",
+    "win_banner": "🏆 PVP 切磋胜利!你击败了【{loser}】,获得与击败他人冤魂同等的 {gp} GP 奖励!",
+    "lose_banner": "💀 PVP 切磋战败!你不敌【{winner}】,触发开放世界死亡结算:遗落了随身物品、遗物与卡组并留下冤魂,已返回主城中心广场。",
+    "abandon_forfeit": "🏳️ 你放弃了 PVP 切磋,视为战败!",
+    "opp_forfeit_notify": "🏆 对手【{loser}】主动放弃了切磋!你赢得胜利并获得 {gp} GP 奖励!",
+    "escape_banner": "🏳️ 你使用【异界传送】逃离了与【{winner}】的切磋,视为战败,已回到主城中心广场。",
+    "opp_escape_notify": "🏆 对手【{loser}】使用【异界传送】逃离了切磋!你赢得胜利并获得 {gp} GP 奖励!"
   }
 }

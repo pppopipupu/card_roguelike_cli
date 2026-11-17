@@ -60,25 +60,75 @@ def finalize_victory(
 
 def check_battle_outcome(router, user_id, run, res, success):
     if is_pvp_run(run):
+        from ...data.pvp_config import PVP_ESCAPE_KEY
+        if run.node_data.pop(PVP_ESCAPE_KEY, False):
+            match = router.save_manager.pvp.get_match(run.node_data.get(PVP_MATCH_KEY))
+            parts = [res.strip()] if res and res.strip() else []
+            if match is not None:
+                p1_uid = str(match.get("p1_uid", ""))
+                p2_uid = str(match.get("p2_uid", ""))
+                opp_uid = p2_uid if str(user_id) == p1_uid else p1_uid
+                _, lose_msg = PvpService.settle_pvp_match(
+                    router.save_manager,
+                    router.town_engine,
+                    router.world_social,
+                    match["id"],
+                    opp_uid,
+                    user_id,
+                    reason="escape",
+                    actor_uid=user_id,
+                )
+                parts.append(lose_msg)
+            else:
+                router.save_manager.delete_save(user_id)
+            stats = router.save_manager.load_stats(user_id)
+            parts.append(router.town_engine.render_current_room(user_id, stats))
+            return "\n\n".join(part for part in parts if part), True, success
+        match = router.save_manager.pvp.get_match(run.node_data.get(PVP_MATCH_KEY))
+        if match is None:
+            if router.save_manager.load_save(user_id) is None:
+                return res, True, success
+            router.save_manager.delete_save(user_id)
+            stats = router.save_manager.load_stats(user_id)
+            stats.in_town = True
+            stats.town_pos = "square"
+            router.save_manager.save_stats(user_id, stats)
+            parts = [res.strip()] if res and res.strip() else []
+            parts.append(router.town_engine.render_current_room(user_id, stats))
+            return "\n\n".join(part for part in parts if part), True, success
         PvpService.sync_opponent_from_enemies(run)
         router.save_manager.save_save(user_id, run)
-        match = router.save_manager.pvp.get_match(run.node_data.get(PVP_MATCH_KEY))
-        if match is not None:
-            p1_uid = str(match.get("p1_uid", ""))
-            p2_uid = str(match.get("p2_uid", ""))
-            opp_uid = p2_uid if str(user_id) == p1_uid else p1_uid
-            if run.player.hp <= 0:
-                _, lose_msg = PvpService.settle_pvp_match(
-                    router.save_manager, router.town_engine, router.world_social, match["id"], opp_uid, user_id
-                )
-                merged = (res.rstrip() + "\n\n" + lose_msg).strip() if res and res.strip() else lose_msg
-                return merged, True, success
-            if (run.player2 is not None and run.player2.hp <= 0) or (run.enemies and run.enemies[0].hp <= 0):
-                win_msg, _ = PvpService.settle_pvp_match(
-                    router.save_manager, router.town_engine, router.world_social, match["id"], user_id, opp_uid
-                )
-                merged = (res.rstrip() + "\n\n" + win_msg).strip() if res and res.strip() else win_msg
-                return merged, True, success
+        p1_uid = str(match.get("p1_uid", ""))
+        p2_uid = str(match.get("p2_uid", ""))
+        opp_uid = p2_uid if str(user_id) == p1_uid else p1_uid
+        if run.player.hp <= 0:
+            _, lose_msg = PvpService.settle_pvp_match(
+                router.save_manager,
+                router.town_engine,
+                router.world_social,
+                match["id"],
+                opp_uid,
+                user_id,
+                actor_uid=user_id,
+            )
+            merged = (res.rstrip() + "\n\n" + lose_msg).strip() if res and res.strip() else lose_msg
+            return merged, True, success
+        if (
+            not run.enemies
+            or (run.player2 is not None and run.player2.hp <= 0)
+            or (run.enemies and run.enemies[0].hp <= 0)
+        ):
+            win_msg, _ = PvpService.settle_pvp_match(
+                router.save_manager,
+                router.town_engine,
+                router.world_social,
+                match["id"],
+                user_id,
+                opp_uid,
+                actor_uid=user_id,
+            )
+            merged = (res.rstrip() + "\n\n" + win_msg).strip() if res and res.strip() else win_msg
+            return merged, True, success
         return res, False, success
     if run.player.hp <= 0:
         return finalize_defeat(router.save_manager, user_id, run, res, success)

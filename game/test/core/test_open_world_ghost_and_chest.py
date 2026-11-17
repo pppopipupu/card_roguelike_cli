@@ -245,13 +245,17 @@ class TestOpenWorldGhostAndChest(unittest.TestCase):
             locked=["fire_bolt"],
             bag=["espresso_beans"],
             relics=["ancient_compass", "migo_lightning_gun"],
-            deck=["fire_bolt", "shield", "magic_missile", "warrior_defend"],
+            deck=["fire_bolt", "shield", "magic_missile", "warrior_defend", "elder_guidance"],
         )
         self._prepare_open_world_player(
             self.bob,
             "Bob",
             locked=["meteor_strike", "fireball"],
         )
+        bob_stats = self.plugin.save_manager.load_stats(self.bob)
+        bob_stats.open_world_max_hp = 200
+        bob_stats.open_world_hp = 200
+        self.plugin.save_manager.save_stats(self.bob, bob_stats)
 
         self.cmd("home", self.alice)
         self.cmd("a", self.alice)
@@ -281,13 +285,19 @@ class TestOpenWorldGhostAndChest(unittest.TestCase):
         battle_run = load_run(self.plugin, self.bob)
         self.assertEqual(battle_run.node_type, "battle")
         self.assertEqual(battle_run.enemies[0].name, "Alice的冤魂")
+        self.assertEqual(battle_run.enemies[0].max_actions, 2)
+        self.assertEqual(battle_run.enemies[0].max_bonus_actions, 1)
+        self.assertGreaterEqual(len(battle_run.enemies[0].intents), 2)
 
         intent_lines = set()
         for line in atk_bob.splitlines():
             if "意图" in line or "准备打出" in line:
                 intent_lines.add(line.strip())
-        for _ in range(5):
+        first_turn = ""
+        for turn_index in range(5):
             turn_out = self.cmd("e", self.bob)
+            if turn_index == 0:
+                first_turn = turn_out
             bob_check = self.plugin.save_manager.load_save(self.bob)
             if bob_check is None or bob_check.node_type != "battle":
                 break
@@ -295,6 +305,11 @@ class TestOpenWorldGhostAndChest(unittest.TestCase):
                 if "意图" in line or "准备打出" in line:
                     intent_lines.add(line.strip())
         self.assertGreater(len(intent_lines), 1)
+        self.assertIn("魔法飞弹", first_turn)
+        self.assertIn("造成", first_turn)
+        self.assertGreaterEqual(first_turn.count("💀 【Alice的冤魂】打出"), 2)
+        ghost_after = load_run(self.plugin, self.bob)
+        self.assertTrue(any(buff.id == "all_resonance" for buff in ghost_after.enemies[0].buffs))
 
         bob_gp_before = self.plugin.save_manager.load_stats(self.bob).gp
         win_bob = self._win_active_battle(self.bob)
@@ -321,13 +336,13 @@ class TestOpenWorldGhostAndChest(unittest.TestCase):
 
         self.cmd("atk Alice的冤魂", self.alice)
         win_alice = self._win_active_battle(self.alice)
-        self.assertIn("找回了旧卡牌（4 张）与旧遗物（2 件）", win_alice)
+        self.assertIn("找回了旧卡牌（5 张）与旧遗物（2 件）", win_alice)
         self.assertEqual(self.plugin.save_manager.open_world_ghosts.list_at(WORLD_SNOWFIELD, ghost_coord), [])
 
         stats_a_reclaimed = self.plugin.save_manager.load_stats(self.alice)
         self.assertEqual(
             [c.id for c in stats_a_reclaimed.open_world_deck],
-            ["fire_bolt", "shield", "magic_missile", "warrior_defend"],
+            ["fire_bolt", "shield", "magic_missile", "warrior_defend", "elder_guidance"],
         )
         self.assertIn("ancient_compass", stats_a_reclaimed.open_world_relics)
         self.assertIn("migo_lightning_gun", stats_a_reclaimed.open_world_relics)

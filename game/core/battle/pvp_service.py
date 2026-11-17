@@ -5,7 +5,6 @@ from typing import Optional
 
 from ...data.pvp_config import (
     PVP_MATCH_KEY,
-    PVP_MAX_CONSECUTIVE_TIMEOUTS,
     PVP_ROPE_WARNING_SECONDS,
     PVP_TURN_TIMEOUT_SECONDS,
     PVP_WIN_GP_REWARD,
@@ -48,7 +47,7 @@ def _world_origin(world: str) -> str:
     return "town"
 
 
-def _init_pvp_player(battle_engine, p_state: PlayerState, is_first: bool, user_id: str) -> None:
+def _init_pvp_player(battle_engine, p_state: PlayerState, is_first: bool, user_id: str) -> dict:
     p_state.hand.clear()
     p_state.draw_pile = DeckService.clone_cards(p_state.deck)
     random.shuffle(p_state.draw_pile)
@@ -65,6 +64,7 @@ def _init_pvp_player(battle_engine, p_state: PlayerState, is_first: bool, user_i
     stub = GameRun(user_id=user_id, node_type="battle", player=p_state, node_data={})
     battle_engine.card_player.draw_cards(p_state, 6, stub, ignore_focus=True)
     battle_engine.event_bus.dispatch(BattleStartEvent(stub))
+    return dict(stub.node_data)
 
 
 class PvpService:
@@ -210,8 +210,8 @@ class PvpService:
         challenger_stats = save_manager.load_stats(challenger_uid)
         p1_state = OpenWorldLoadoutService.build_player_state(challenger_uid, challenger_stats)
         p2_state = OpenWorldLoadoutService.build_player_state(target_uid, target_stats)
-        _init_pvp_player(battle_engine, p1_state, True, challenger_uid)
-        _init_pvp_player(battle_engine, p2_state, False, target_uid)
+        p1_battle_data = _init_pvp_player(battle_engine, p1_state, True, challenger_uid)
+        p2_battle_data = _init_pvp_player(battle_engine, p2_state, False, target_uid)
 
         match = save_manager.pvp.create_match({
             "p1_uid": challenger_uid,
@@ -227,12 +227,15 @@ class PvpService:
             "current_turn_uid": challenger_uid,
             "turn_count": 1,
             "turn_started_at": time.time(),
-            "timeout_counts": {challenger_uid: 0, target_uid: 0},
             "status": "active",
         })
 
-        PvpService._attach_run_for_player(save_manager, challenger_uid, match, p1_state, p2_state, world, coord)
-        PvpService._attach_run_for_player(save_manager, target_uid, match, p2_state, p1_state, world, coord)
+        PvpService._attach_run_for_player(
+            save_manager, challenger_uid, match, p1_state, p2_state, world, coord, p1_battle_data
+        )
+        PvpService._attach_run_for_player(
+            save_manager, target_uid, match, p2_state, p1_state, world, coord, p2_battle_data
+        )
 
         world_social.push_log(
             challenger_uid,
@@ -254,16 +257,18 @@ class PvpService:
         opp_state: PlayerState,
         world: str,
         coord: str,
+        battle_data: Optional[dict] = None,
     ) -> None:
         origin = str(match.get("p1_origin" if uid == match["p1_uid"] else "p2_origin", _world_origin(world)))
-        node_data = {
+        node_data = dict(battle_data or {})
+        node_data.update({
             PVP_MATCH_KEY: match["id"],
             OPEN_WORLD_COMBAT_FLAG: True,
             OPEN_WORLD_WORLD_KEY: world,
             OPEN_WORLD_COORD_KEY: coord,
             OPEN_WORLD_ORIGIN_KEY: origin,
             "turn_count": int(match.get("turn_count", 1)),
-        }
+        })
         existing = save_manager.load_save(uid)
         if existing is not None and getattr(existing, "floor_map", None) is not None and origin == "grid_map":
             from ..party.session import SessionContextScoper
@@ -334,7 +339,10 @@ class PvpService:
     @staticmethod
     def sync_opponent_from_enemies(run: GameRun) -> None:
         opp = getattr(run, "player2", None)
-        if opp is None or not run.enemies:
+        if opp is None:
+            return
+        if not run.enemies:
+            opp.hp = 0
             return
         main = run.enemies[0]
         opp.hp = max(0, int(main.hp))
@@ -442,19 +450,7 @@ class PvpService:
         if ts < float(match.get("turn_started_at", ts)) + PVP_TURN_TIMEOUT_SECONDS:
             return ""
         active_uid = str(match.get("current_turn_uid", ""))
-        opp_uid = str(match["p2_uid"] if active_uid == str(match["p1_uid"]) else match["p1_uid"])
         active_name = str(match["p1_name"] if active_uid == str(match["p1_uid"]) else match["p2_name"])
-        counts = match.setdefault("timeout_counts", {})
-        counts[active_uid] = int(counts.get(active_uid, 0)) + 1
-        save_manager.pvp.save_match(match)
-
-        if counts[active_uid] >= PVP_MAX_CONSECUTIVE_TIMEOUTS:
-            forfeit_msg = _t("i18n_pvp.battle.rope_auto_forfeit", name=active_name)
-            win_msg, lose_msg = PvpService.settle_pvp_match(
-                save_manager, town_engine, world_social, match["id"], opp_uid, active_uid, reason="timeout"
-            )
-            return forfeit_msg + "\n" + (lose_msg if str(uid) == active_uid else win_msg)
-
         active_run = save_manager.load_save(active_uid)
         if active_run is not None:
             PvpService.advance_pvp_turn(
@@ -464,10 +460,34 @@ class PvpService:
                 world_social,
                 active_run,
                 active_uid,
-                timed_out=True,
                 now=ts,
             )
         return _t("i18n_pvp.battle.rope_auto_end", name=active_name)
+
+    @staticmethod
+    def consume_extra_turn(
+        save_manager,
+        battle_engine,
+        run: GameRun,
+        uid: str,
+        *,
+        run_end_phase: bool,
+        now: Optional[float] = None,
+    ) -> str:
+        match_id = str(run.node_data.get(PVP_MATCH_KEY) or "")
+        if run_end_phase:
+            battle_engine.card_player._end_player_phase_events(run, run.player)
+            PvpService.sync_opponent_from_enemies(run)
+        remaining = max(0, int(run.node_data.get("extra_turns_left", 0) or 0) - 1)
+        run.node_data["extra_turns_left"] = remaining
+        battle_engine.card_player._begin_player_phase_events(run, run.player, advance_global=False)
+        PvpService.sync_enemies_from_opponent(run)
+        save_manager.save_save(uid, run)
+        match = save_manager.pvp.get_match(match_id)
+        if match is not None:
+            match["turn_started_at"] = time.time() if now is None else float(now)
+            save_manager.pvp.save_match(match)
+        return _t("i18n_battle_core.time_stop_extra_turn", count=remaining)
 
     @staticmethod
     def advance_pvp_turn(
@@ -478,7 +498,6 @@ class PvpService:
         run: GameRun,
         uid: str,
         *,
-        timed_out: bool = False,
         now: Optional[float] = None,
     ) -> str:
         match_id = str(run.node_data.get(PVP_MATCH_KEY) or "")
@@ -491,10 +510,6 @@ class PvpService:
         opp_name = str(match["p2_name"] if str(uid) == p1_uid else match["p1_name"])
         my_name = str(match["p1_name"] if str(uid) == p1_uid else match["p2_name"])
 
-        if not timed_out:
-            counts = match.setdefault("timeout_counts", {})
-            counts[str(uid)] = 0
-
         PvpService.sync_enemies_from_opponent(run)
         battle_engine.card_player._end_player_phase_events(run, run.player)
         PvpService.sync_opponent_from_enemies(run)
@@ -502,16 +517,25 @@ class PvpService:
 
         if run.player.hp <= 0:
             _, lose_msg = PvpService.settle_pvp_match(
-                save_manager, town_engine, world_social, match_id, opp_uid, str(uid)
+                save_manager, town_engine, world_social, match_id, opp_uid, str(uid), actor_uid=str(uid)
             )
             return lose_msg
         if run.player2 is not None and run.player2.hp <= 0:
             win_msg, _ = PvpService.settle_pvp_match(
-                save_manager, town_engine, world_social, match_id, str(uid), opp_uid
+                save_manager, town_engine, world_social, match_id, str(uid), opp_uid, actor_uid=str(uid)
             )
             return win_msg
 
         match = save_manager.pvp.get_match(match_id) or match
+        if int(run.node_data.get("extra_turns_left", 0) or 0) > 0:
+            return PvpService.consume_extra_turn(
+                save_manager,
+                battle_engine,
+                run,
+                uid,
+                run_end_phase=False,
+                now=now,
+            )
         match["current_turn_uid"] = opp_uid
         if opp_uid == p1_uid:
             match["turn_count"] = int(match.get("turn_count", 1)) + 1
@@ -526,7 +550,7 @@ class PvpService:
             save_manager.save_save(opp_uid, opp_run)
             if opp_run.player.hp <= 0:
                 win_msg, _ = PvpService.settle_pvp_match(
-                    save_manager, town_engine, world_social, match_id, str(uid), opp_uid
+                    save_manager, town_engine, world_social, match_id, str(uid), opp_uid, actor_uid=str(uid)
                 )
                 return win_msg
 
@@ -547,6 +571,7 @@ class PvpService:
         winner_uid: str,
         loser_uid: str,
         reason: str = "defeat",
+        actor_uid: str = "",
     ) -> tuple[str, str]:
         match = save_manager.pvp.remove_match(match_id) or {}
         p1_uid = str(match.get("p1_uid", winner_uid))
@@ -565,6 +590,8 @@ class PvpService:
 
         if reason == "abandon":
             win_msg = _t("i18n_pvp.battle.opp_forfeit_notify", loser=loser_name, gp=PVP_WIN_GP_REWARD)
+        elif reason == "escape":
+            win_msg = _t("i18n_pvp.battle.opp_escape_notify", loser=loser_name, gp=PVP_WIN_GP_REWARD)
         else:
             win_msg = _t("i18n_pvp.battle.win_banner", loser=loser_name, gp=PVP_WIN_GP_REWARD)
 
@@ -587,20 +614,33 @@ class PvpService:
         loser_run = save_manager.load_save(loser_uid)
         loser_stats = save_manager.load_stats(loser_uid)
         loser_player = loser_run.player if loser_run is not None else None
-        ghost_coord = str(getattr(loser_stats, "town_pos", "square") or "square") if world == WORLD_TOWN else coord
-        OpenWorldDeathService.handle_state_death(
-            save_manager,
-            town_engine,
-            loser_uid,
-            loser_stats,
-            world,
-            ghost_coord,
-            player=loser_player,
-            is_abandon=(reason == "abandon"),
-        )
-        save_manager.delete_save(loser_uid)
-        lose_msg = _t("i18n_pvp.battle.lose_banner", winner=winner_name)
+        if reason == "escape":
+            if loser_player is not None:
+                OpenWorldLoadoutService.sync_player_to_stats(loser_stats, loser_player)
+            OpenWorldDeathService._clear_outer_plane_flags(loser_stats)
+            OpenWorldDeathService._clear_transient_dialog_flags(loser_stats)
+            loser_stats.in_town = True
+            loser_stats.town_pos = "square"
+            save_manager.save_stats(loser_uid, loser_stats)
+            save_manager.delete_save(loser_uid)
+            lose_msg = _t("i18n_pvp.battle.escape_banner", winner=winner_name)
+        else:
+            ghost_coord = str(getattr(loser_stats, "town_pos", "square") or "square") if world == WORLD_TOWN else coord
+            OpenWorldDeathService.handle_state_death(
+                save_manager,
+                town_engine,
+                loser_uid,
+                loser_stats,
+                world,
+                ghost_coord,
+                player=loser_player,
+                is_abandon=(reason == "abandon"),
+            )
+            save_manager.delete_save(loser_uid)
+            lose_msg = _t("i18n_pvp.battle.lose_banner", winner=winner_name)
 
-        world_social.push_log(winner_uid, win_msg, command="pvp_win", player_name=loser_name)
-        world_social.push_log(loser_uid, lose_msg, command="pvp_lose", player_name=winner_name)
+        if str(actor_uid) != str(winner_uid):
+            world_social.push_log(winner_uid, win_msg, command="pvp_win", player_name=loser_name)
+        if str(actor_uid) != str(loser_uid):
+            world_social.push_log(loser_uid, lose_msg, command="pvp_lose", player_name=winner_name)
         return win_msg, lose_msg

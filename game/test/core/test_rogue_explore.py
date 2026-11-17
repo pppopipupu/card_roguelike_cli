@@ -501,7 +501,8 @@ class TestRogueExplore(unittest.TestCase):
         player.relics = ["ancient_compass"]
         run.node_data = {"ghost_name": "测试假人", "ghost_max_hp": 10}
         engine._init_battle_node(run, "ghost")
-        self.assertEqual(run.enemies[0].actions, 0)
+        self.assertEqual(run.enemies[0].max_actions, 2)
+        self.assertEqual(run.enemies[0].actions, 1)
         run.node_type = "battle"
         run.node_data["difficulty"] = "normal"
         player.stage = 32

@@ -47,6 +47,7 @@ class AbandonCommand(CommandHandler, names=["放弃", "abandon"], allowed_states
                         opp_uid,
                         user_id,
                         reason="abandon",
+                        actor_uid=user_id,
                     )
                     updated_stats = router.save_manager.load_stats(user_id)
                     yield lose_msg + "\n\n" + router.town_engine.render_current_room(user_id, updated_stats)

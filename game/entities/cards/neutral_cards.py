@@ -159,7 +159,12 @@ class NeutralPlaneShiftCard(Card):
         forbidden_stages = getattr(self, "forbidden_stages", (32,) if self.upgraded else (25, 32))
         if run.player.stage in forbidden_stages:
             return get_locale_text("i18n_cards_neutral.neutral.cards.plane_shift.forbidden")
-        
+
+        from ...data.pvp_config import PVP_ESCAPE_KEY, PVP_MATCH_KEY
+        if run.node_data.get(PVP_MATCH_KEY):
+            run.node_data[PVP_ESCAPE_KEY] = True
+            return get_locale_text("i18n_cards_neutral.neutral.cards.plane_shift.result_pvp")
+
         run.enemies.clear()
         if self.upgraded:
             gp_reward = getattr(self, "gp_reward", 40)
