@@ -1,6 +1,7 @@
 ENEMY_BOSS_CONFIG = {
     "pppopipupu": {
         "name": "pppopipupu",
+        "size": "micro",
         "type": "boss",
         "hp": "1",
         "actions": "1A 0BA",
@@ -12,6 +13,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "Icerainboww": {
         "name": "Icerainboww",
+        "size": "medium",
         "type": "boss",
         "hp": "190",
         "actions": "2A 1BA",
@@ -30,6 +32,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "远古红龙": {
         "name": "远古红龙",
+        "size": "gargantuan",
         "type": "boss",
         "hp": "145",
         "actions": "1A 2BA",
@@ -55,6 +58,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "腐化之心": {
         "name": "腐化之心",
+        "size": "gargantuan",
         "type": "boss",
         "hp": "200",
         "actions": "1A 2BA",
@@ -80,6 +84,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "雷霆领主": {
         "name": "雷霆领主",
+        "size": "huge",
         "type": "boss",
         "hp": "135",
         "actions": "1A 2BA",
@@ -93,6 +98,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "虚空之门·尤格-索托斯": {
         "name": "虚空之门·尤格-索托斯",
+        "size": "colossal",
         "type": "boss",
         "hp": "200",
         "actions": "2A 1BA",
@@ -111,6 +117,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "【觉醒】虚空之门·尤格-索托斯": {
         "name": "【觉醒】虚空之门·尤格-索托斯",
+        "size": "colossal",
         "type": "boss",
         "hp": "260",
         "actions": "2A 2BA",
@@ -130,6 +137,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "【终焉】虚空之门·尤格-索托斯": {
         "name": "【终焉】虚空之门·尤格-索托斯",
+        "size": "colossal",
         "type": "boss",
         "hp": "300",
         "actions": "3A 2BA",
@@ -149,6 +157,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "亚弗戈蒙": {
         "name": "亚弗戈蒙",
+        "size": "gargantuan",
         "type": "boss",
         "hp": "180",
         "actions": "2A 1BA",
@@ -160,6 +169,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "【时空主宰】亚弗戈蒙": {
         "name": "【时空主宰】亚弗戈蒙",
+        "size": "gargantuan",
         "type": "boss",
         "hp": "220",
         "actions": "3A 1BA",
@@ -173,6 +183,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "纯粹容器": {
         "name": "纯粹容器",
+        "size": "medium",
         "type": "boss",
         "hp": "155",
         "actions": "2A 1BA",
@@ -193,6 +204,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "伟大的克苏鲁": {
         "name": "伟大的克苏鲁",
+        "size": "colossal",
         "type": "boss",
         "hp": "150",
         "actions": "2A 1BA",
@@ -207,6 +219,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "【迷雾】伟大的克苏鲁": {
         "name": "【迷雾】伟大的克苏鲁",
+        "size": "not_applicable",
         "type": "boss",
         "hp": "1",
         "actions": "1A 0BA",
@@ -218,6 +231,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "裂隙暗影领主": {
         "name": "裂隙暗影领主",
+        "size": "huge",
         "type": "boss",
         "hp": "165",
         "actions": "1A 2BA",
@@ -230,6 +244,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "星渊审判官": {
         "name": "星渊审判官",
+        "size": "gargantuan",
         "type": "boss",
         "hp": "210",
         "actions": "2A 1BA",
@@ -242,6 +257,7 @@ ENEMY_BOSS_CONFIG = {
     },
     "深渊原初回响": {
         "name": "深渊原初回响",
+        "size": "gargantuan",
         "type": "boss",
         "hp": "255",
         "actions": "2A 2BA",

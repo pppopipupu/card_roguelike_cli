@@ -1,6 +1,7 @@
 ENEMY_NORMAL_CONFIG = {
     "训练假人": {
         "name": "训练假人",
+        "size": "medium",
         "type": "normal",
         "hp": "99999",
         "actions": "1A 0BA",
@@ -8,6 +9,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "测试训练假人": {
         "name": "测试训练假人",
+        "size": "medium",
         "type": "normal",
         "hp": "999999",
         "actions": "1A 0BA",
@@ -18,6 +20,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "NoobSlayer99": {
         "name": "NoobSlayer99",
+        "size": "medium",
         "type": "normal",
         "hp": "30",
         "actions": "1A 0BA",
@@ -28,6 +31,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "xXx_SniperElite_xXx": {
         "name": "xXx_SniperElite_xXx",
+        "size": "medium",
         "type": "normal",
         "hp": "50",
         "actions": "1A 0BA",
@@ -38,6 +42,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "地精百夫长": {
         "name": "地精百夫长",
+        "size": "small",
         "type": "elite",
         "hp": "32 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -50,6 +55,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "石像鬼祭司": {
         "name": "石像鬼祭司",
+        "size": "large",
         "type": "elite",
         "hp": "38 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -61,6 +67,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "狂暴兽王": {
         "name": "狂暴兽王",
+        "size": "large",
         "type": "elite",
         "hp": "34 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -79,6 +86,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "黑曜石巨灵": {
         "name": "黑曜石巨灵",
+        "size": "large",
         "type": "elite",
         "hp": "45 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -89,6 +97,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "幽灵大魔法师": {
         "name": "幽灵大魔法师",
+        "size": "medium",
         "type": "elite",
         "hp": "36 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -99,6 +108,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "暗影影魔": {
         "name": "暗影影魔",
+        "size": "large",
         "type": "elite",
         "hp": "34 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -109,6 +119,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "地精突袭者": {
         "name": "地精突袭者",
+        "size": "small",
         "type": "normal",
         "hp": "12 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -119,6 +130,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "石像鬼守卫": {
         "name": "石像鬼守卫",
+        "size": "large",
         "type": "normal",
         "hp": "18 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -129,6 +141,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "堕落学徒": {
         "name": "堕落学徒",
+        "size": "medium",
         "type": "normal",
         "hp": "14 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -139,6 +152,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "狂暴野兽": {
         "name": "狂暴野兽",
+        "size": "large",
         "type": "normal",
         "hp": "15 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -149,6 +163,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "幽灵法师": {
         "name": "幽灵法师",
+        "size": "medium",
         "type": "normal",
         "hp": "16 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -159,6 +174,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "冰霜史莱姆": {
         "name": "冰霜史莱姆",
+        "size": "small",
         "type": "normal",
         "hp": "10 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -169,6 +185,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "骷髅弓箭手": {
         "name": "骷髅弓箭手",
+        "size": "medium",
         "type": "normal",
         "hp": "12 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -179,6 +196,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "剧毒蜘蛛": {
         "name": "剧毒蜘蛛",
+        "size": "small",
         "type": "normal",
         "hp": "12 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -189,6 +207,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "黑曜石巨人": {
         "name": "黑曜石巨人",
+        "size": "large",
         "type": "normal",
         "hp": "28 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -199,6 +218,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "暗影刺客": {
         "name": "暗影刺客",
+        "size": "medium",
         "type": "normal",
         "hp": "20 (+ 2 * 关卡数)",
         "actions": "1A 1BA",
@@ -210,6 +230,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "魔仆": {
         "name": "魔仆",
+        "size": "tiny",
         "type": "summon",
         "hp": "5",
         "actions": "1A 0BA",
@@ -219,6 +240,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "狂暴猎犬": {
         "name": "狂暴猎犬",
+        "size": "medium",
         "type": "summon",
         "hp": "10",
         "actions": "1A 0BA",
@@ -228,6 +250,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "雷影魔仆": {
         "name": "雷影魔仆",
+        "size": "tiny",
         "type": "summon",
         "hp": "12",
         "actions": "1A 0BA",
@@ -238,6 +261,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "末日守卫": {
         "name": "末日守卫",
+        "size": "large",
         "type": "elite",
         "hp": "95 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -250,6 +274,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "亡灵巫师": {
         "name": "亡灵巫师",
+        "size": "medium",
         "type": "elite",
         "hp": "88 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -269,6 +294,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "传送门守卫者": {
         "name": "传送门守卫者",
+        "size": "huge",
         "type": "elite",
         "hp": "45 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -280,6 +306,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "火元素守卫": {
         "name": "火元素守卫",
+        "size": "large",
         "type": "elite",
         "hp": "30 (+ 2 * 关卡数)",
         "actions": "1A 1BA",
@@ -291,6 +318,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "狂暴魔仆": {
         "name": "狂暴魔仆",
+        "size": "small",
         "type": "normal",
         "hp": "15",
         "actions": "1A 0BA",
@@ -301,6 +329,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "骷髅兵": {
         "name": "骷髅兵",
+        "size": "medium",
         "type": "summon",
         "hp": "16",
         "actions": "1A 0BA",
@@ -310,6 +339,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "虚空游荡者": {
         "name": "虚空游荡者",
+        "size": "large",
         "type": "normal",
         "hp": "80 (+ 2 * 关卡数)",
         "actions": "1A 1BA",
@@ -320,6 +350,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "先古守卫": {
         "name": "先古守卫",
+        "size": "huge",
         "type": "elite",
         "hp": "120 (+ 3 * 关卡数)",
         "actions": "2A 0BA",
@@ -331,6 +362,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "星界猎犬": {
         "name": "星界猎犬",
+        "size": "large",
         "type": "elite",
         "hp": "110 (+ 3 * 关卡数)",
         "actions": "1A 2BA",
@@ -342,6 +374,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "虚空潜伏者": {
         "name": "虚空潜伏者",
+        "size": "large",
         "type": "elite",
         "hp": "90 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -352,6 +385,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "虚空潜影": {
         "name": "虚空潜影",
+        "size": "not_applicable",
         "type": "summon",
         "hp": "20",
         "actions": "1A 0BA",
@@ -361,6 +395,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "夺心魔": {
         "name": "夺心魔",
+        "size": "medium",
         "type": "elite",
         "hp": "48 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -373,6 +408,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "夺心魔奥术师": {
         "name": "夺心魔奥术师",
+        "size": "medium",
         "type": "elite",
         "hp": "52 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -386,6 +422,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "吉斯洋基海盗": {
         "name": "吉斯洋基海盗",
+        "size": "medium",
         "type": "normal",
         "hp": "18 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -397,6 +434,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "吉斯洋基至高指挥官": {
         "name": "吉斯洋基至高指挥官",
+        "size": "medium",
         "type": "elite",
         "hp": "55 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -416,6 +454,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "邪教徒咔咔": {
         "name": "邪教徒咔咔",
+        "size": "small",
         "type": "normal",
         "hp": "15 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -426,6 +465,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "星界幼犬": {
         "name": "星界幼犬",
+        "size": "tiny",
         "type": "summon",
         "hp": "15",
         "actions": "1A 0BA",
@@ -435,6 +475,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "虚空行者": {
         "name": "虚空行者",
+        "size": "large",
         "type": "normal",
         "hp": "22 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -445,6 +486,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "骨轻卒": {
         "name": "骨轻卒",
+        "size": "tiny",
         "type": "summon",
         "hp": "10",
         "actions": "1A 0BA",
@@ -454,6 +496,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "深潜者": {
         "name": "深潜者",
+        "size": "medium",
         "type": "normal",
         "hp": "14 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -464,6 +507,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "食尸鬼": {
         "name": "食尸鬼",
+        "size": "medium",
         "type": "normal",
         "hp": "15 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -474,6 +518,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "夜魇": {
         "name": "夜魇",
+        "size": "medium",
         "type": "normal",
         "hp": "20 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -484,6 +529,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "夏塔克鸟": {
         "name": "夏塔克鸟",
+        "size": "large",
         "type": "normal",
         "hp": "22 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -494,6 +540,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "空鬼": {
         "name": "空鬼",
+        "size": "large",
         "type": "normal",
         "hp": "26 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -504,6 +551,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "冷蛛": {
         "name": "冷蛛",
+        "size": "large",
         "type": "elite",
         "hp": "36 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -515,6 +563,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "米·戈": {
         "name": "米·戈",
+        "size": "medium",
         "type": "elite",
         "hp": "34 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -526,6 +575,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "修格斯": {
         "name": "修格斯",
+        "size": "huge",
         "type": "elite",
         "hp": "55 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -537,6 +587,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "星之精": {
         "name": "星之精",
+        "size": "huge",
         "type": "elite",
         "hp": "48 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -548,6 +599,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "克苏鲁之星之眷族": {
         "name": "克苏鲁之星之眷族",
+        "size": "gargantuan",
         "type": "elite",
         "hp": "130 (+ 3 * 关卡数)",
         "actions": "2A 0BA",
@@ -559,6 +611,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "纳奇姆": {
         "name": "纳奇姆",
+        "size": "medium",
         "type": "normal",
         "hp": "16 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -569,6 +622,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "故障机器人": {
         "name": "故障机器人",
+        "size": "medium",
         "type": "elite",
         "hp": "38 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -585,6 +639,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "幻梦境潜猎者": {
         "name": "幻梦境潜猎者",
+        "size": "large",
         "type": "normal",
         "hp": "20 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -595,6 +650,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "无面织梦者": {
         "name": "无面织梦者",
+        "size": "huge",
         "type": "elite",
         "hp": "48 (+ 3 * 关卡数)",
         "actions": "1A 1BA",
@@ -608,6 +664,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "DeepSeek V4.1 Flash": {
         "name": "DeepSeek V4.1 Flash",
+        "size": "not_applicable",
         "type": "normal",
         "hp": "30 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
@@ -623,6 +680,7 @@ ENEMY_NORMAL_CONFIG = {
     },
     "虚境之影": {
         "name": "虚境之影",
+        "size": "gargantuan",
         "type": "elite",
         "hp": "125 (+ 3 * 关卡数)",
         "actions": "2A 1BA",

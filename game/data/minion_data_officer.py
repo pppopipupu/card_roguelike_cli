@@ -1,12 +1,14 @@
 MINION_OFFICER_CONFIG = {
     "officer_recruit_vanguard": {
         "name": "新兵前锋",
+        "size": "medium",
         "rally_threshold": 6,
         "atk_buff": 2,
         "skills": []
     },
     "officer_recruit_vanguard+": {
         "name": "新兵前锋+",
+        "size": "medium",
         "rally_threshold": 6,
         "atk_buff": 4,
         "shield": 2,
@@ -14,6 +16,7 @@ MINION_OFFICER_CONFIG = {
     },
     "officer_banner_bearer": {
         "name": "执旗辅佐官",
+        "size": "medium",
         "max_count": 1,
         "attack_actions": 1,
         "atk_buff": 2,
@@ -31,6 +34,7 @@ MINION_OFFICER_CONFIG = {
     },
     "officer_banner_bearer+": {
         "name": "执旗辅佐官+",
+        "size": "medium",
         "max_count": 1,
         "attack_actions": 1,
         "atk_buff": 3,
@@ -50,6 +54,7 @@ MINION_OFFICER_CONFIG = {
     },
     "commander_patrol_captain": {
         "name": "巡逻队队长",
+        "size": "medium",
         "token_hp": 3,
         "token_atk": 1,
         "skills": [
@@ -67,6 +72,7 @@ MINION_OFFICER_CONFIG = {
     },
     "commander_patrol_captain+": {
         "name": "巡逻队队长+",
+        "size": "medium",
         "token_hp": 3,
         "token_atk": 1,
         "skills": [
@@ -84,18 +90,21 @@ MINION_OFFICER_CONFIG = {
     },
     "officer_royal_guard": {
         "name": "近卫铁骑",
+        "size": "large",
         "atk_buff": 1,
         "damage": 2,
         "skills": []
     },
     "officer_royal_guard+": {
         "name": "近卫铁骑+",
+        "size": "large",
         "atk_buff": 2,
         "damage": 3,
         "skills": []
     },
     "commander_garrison_leader": {
         "name": "要塞卫队长",
+        "size": "medium",
         "shield": 3,
         "skills": [
             {
@@ -112,6 +121,7 @@ MINION_OFFICER_CONFIG = {
     },
     "commander_garrison_leader+": {
         "name": "要塞卫队长+",
+        "size": "medium",
         "shield": 5,
         "skills": [
             {
@@ -128,12 +138,14 @@ MINION_OFFICER_CONFIG = {
     },
     "officer_squad_skirmisher": {
         "name": "突击轻步兵",
+        "size": "medium",
         "atk_buff": 2,
         "vulnerable_layers": 1,
         "skills": []
     },
     "officer_squad_skirmisher+": {
         "name": "突击轻步兵+",
+        "size": "medium",
         "atk_buff": 3,
         "vulnerable_layers": 1,
         "attack_actions": 2,
@@ -141,6 +153,7 @@ MINION_OFFICER_CONFIG = {
     },
     "commander_valiant_herald": {
         "name": "英勇传令官",
+        "size": "medium",
         "skills": [
             {
                 "id": "charge_signal",
@@ -155,6 +168,7 @@ MINION_OFFICER_CONFIG = {
     },
     "commander_valiant_herald+": {
         "name": "英勇传令官+",
+        "size": "medium",
         "skills": [
             {
                 "id": "charge_signal",
@@ -169,6 +183,7 @@ MINION_OFFICER_CONFIG = {
     },
     "commander_steelclad_tactician": {
         "name": "重甲战术家",
+        "size": "medium",
         "rally_threshold": 10,
         "coef": 1,
         "token_hp": 3,
@@ -188,6 +203,7 @@ MINION_OFFICER_CONFIG = {
     },
     "commander_steelclad_tactician+": {
         "name": "重甲战术家+",
+        "size": "medium",
         "rally_threshold": 10,
         "coef": 2,
         "token_hp": 4,
@@ -207,6 +223,7 @@ MINION_OFFICER_CONFIG = {
     },
     "officer_blade_dancer": {
         "name": "双刃轻卫",
+        "size": "medium",
         "coef": 1.5,
         "skills": [
             {
@@ -223,6 +240,7 @@ MINION_OFFICER_CONFIG = {
     },
     "officer_blade_dancer+": {
         "name": "双刃轻卫+",
+        "size": "medium",
         "coef": 2.0,
         "skills": [
             {
@@ -239,6 +257,7 @@ MINION_OFFICER_CONFIG = {
     },
     "commander_aurora_emperor": {
         "name": "极光圣帝·阿奎斯",
+        "size": "large",
         "skills": [
             {
                 "id": "aurora_judgment",
@@ -255,6 +274,7 @@ MINION_OFFICER_CONFIG = {
     },
     "commander_aurora_emperor+": {
         "name": "极光圣帝·阿奎斯+",
+        "size": "large",
         "skills": [
             {
                 "id": "aurora_judgment",
@@ -271,6 +291,7 @@ MINION_OFFICER_CONFIG = {
     },
     "officer_soldier_token": {
         "name": "步兵轻卒",
+        "size": "medium",
         "hp": 3,
         "atk": 1,
         "skills": [],
@@ -278,6 +299,7 @@ MINION_OFFICER_CONFIG = {
     },
     "officer_soldier_token+": {
         "name": "步兵轻卒+",
+        "size": "medium",
         "hp": 4,
         "atk": 2,
         "skills": [],

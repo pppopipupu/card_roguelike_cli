@@ -117,6 +117,46 @@ FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
         "rest_count": 0,
         "event_count": 0,
     },
+    1.5: {
+        "width": 6,
+        "height": 5,
+        "stage_min": 5,
+        "stage_max": 10,
+        "display_floor": 1.5,
+        "name_key": "i18n_bleak_falls.floor_1_5_name",
+        "has_cafe": False,
+        "has_shop": False,
+        "has_secret_boss": False,
+        "secret_mode": "",
+        "landmarks": [],
+        "secret_boss_name": "",
+        "obstacle_count": 0,
+        "high_danger_count": 0,
+        "elite_count": 0,
+        "treasure_count": 0,
+        "rest_count": 0,
+        "event_count": 0,
+    },
+    1.67777: {
+        "width": 6,
+        "height": 3,
+        "stage_min": 8,
+        "stage_max": 13,
+        "display_floor": 1.67777,
+        "name_key": "i18n_bleak_falls.floor_1_67777_name",
+        "has_cafe": False,
+        "has_shop": False,
+        "has_secret_boss": False,
+        "secret_mode": "",
+        "landmarks": [],
+        "secret_boss_name": "",
+        "obstacle_count": 0,
+        "high_danger_count": 0,
+        "elite_count": 0,
+        "treasure_count": 0,
+        "rest_count": 0,
+        "event_count": 0,
+    },
 }
 
 
@@ -195,6 +235,36 @@ LANDMARK_CONFIGS = {
         "desc_key": "i18n_grid_map.landmarks.ancient_stele.desc",
         "npc_key": "i18n_grid_map.landmarks.ancient_stele.npc",
     },
+    "bleak_falls_entrance": {
+        "name_key": "i18n_grid_map.room_name.bleak_falls_entrance",
+        "desc_key": "i18n_bleak_falls.entrance.desc",
+        "npc_key": "i18n_bleak_falls.entrance.desc",
+    },
+    "bleak_pillar_puzzle": {
+        "name_key": "i18n_grid_map.room_name.bleak_pillar_puzzle",
+        "desc_key": "i18n_bleak_falls.puzzles.pillar_desc",
+        "npc_key": "i18n_bleak_falls.puzzles.pillar_desc",
+    },
+    "bleak_sanctuary_gate": {
+        "name_key": "i18n_grid_map.room_name.bleak_sanctuary_gate",
+        "desc_key": "i18n_bleak_falls.entrance.sanctuary_gate_desc",
+        "npc_key": "i18n_bleak_falls.entrance.sanctuary_gate_desc",
+    },
+    "golden_claw_door": {
+        "name_key": "i18n_grid_map.room_name.golden_claw_door",
+        "desc_key": "i18n_bleak_falls.puzzles.claw_door_desc",
+        "npc_key": "i18n_bleak_falls.puzzles.claw_door_desc",
+    },
+    "word_wall": {
+        "name_key": "i18n_grid_map.room_name.word_wall",
+        "desc_key": "i18n_bleak_falls.word_wall.desc",
+        "npc_key": "i18n_bleak_falls.word_wall.desc",
+    },
+    "barrow_exit": {
+        "name_key": "i18n_grid_map.room_name.barrow_exit",
+        "desc_key": "i18n_bleak_falls.barrow_exit.desc",
+        "npc_key": "i18n_bleak_falls.barrow_exit.desc",
+    },
 }
 
 SECRET_RITUAL_PROTOCOLS = (
@@ -234,6 +304,13 @@ ROOM_ICONS = {
     "secret_boss": "👁️",
     "corpse": "❔",
     "player": "📍",
+    "solid_wall": "🧱",
+    "bleak_falls_entrance": "🕳️",
+    "bleak_pillar_puzzle": "🗿",
+    "bleak_sanctuary_gate": "🚪",
+    "golden_claw_door": "🦁",
+    "word_wall": "📜",
+    "barrow_exit": "🪜",
 }
 
 DIRECT_REVEAL_ADJACENT_TYPES = frozenset({
@@ -244,6 +321,13 @@ DIRECT_REVEAL_ADJACENT_TYPES = frozenset({
     "treasure",
     "life_merchant",
     "downstairs",
+    "solid_wall",
+    "bleak_falls_entrance",
+    "bleak_pillar_puzzle",
+    "bleak_sanctuary_gate",
+    "golden_claw_door",
+    "word_wall",
+    "barrow_exit",
 })
 
 PERMANENT_ICON_TYPES = frozenset({
@@ -253,6 +337,13 @@ PERMANENT_ICON_TYPES = frozenset({
     "landmark",
     "life_merchant",
     "downstairs",
+    "solid_wall",
+    "bleak_falls_entrance",
+    "bleak_pillar_puzzle",
+    "bleak_sanctuary_gate",
+    "golden_claw_door",
+    "word_wall",
+    "barrow_exit",
 })
 
 PASSABLE_ROOM_TYPES = frozenset({
@@ -271,4 +362,10 @@ PASSABLE_ROOM_TYPES = frozenset({
     "boss",
     "downstairs",
     "corpse",
+    "bleak_falls_entrance",
+    "bleak_pillar_puzzle",
+    "bleak_sanctuary_gate",
+    "golden_claw_door",
+    "word_wall",
+    "barrow_exit",
 })

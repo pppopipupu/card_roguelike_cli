@@ -7,6 +7,12 @@ from ..data.keyword_data import KEYWORD_CONFIG
 from ..data.gem_data import GEM_CONFIG
 from ..data.amulet_data import AMULET_CONFIG
 from ..data.potion_data import POTION_CONFIG
+from ..data.size_data import (
+    NON_CONFIG_ENEMY_SIZES,
+    get_size_label,
+    resolve_enemy_size,
+    resolve_minion_size,
+)
 from .menu import get_card_cost_str, append_card_subtype
 from ..data.locale_data import get_locale_text
 
@@ -208,6 +214,12 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
                 lines.append(get_locale_text("renderer_menu.minion_stats_line", hp=hp, atk=atk))
             elif "hp" in cfg and "atk" in cfg:
                 lines.append(get_locale_text("renderer_menu.minion_stats_line", hp=cfg["hp"], atk=cfg["atk"]))
+            lines.append(
+                get_locale_text(
+                    "i18n_size.minion_size_line",
+                    size=get_size_label(resolve_minion_size(mid, mname, cfg.get("size"))),
+                )
+            )
             skills = cfg.get("skills", [])
             if skills:
                 lines.append(get_locale_text("renderer_menu.skills_title"))
@@ -309,6 +321,12 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
             eact = cfg.get("actions", "1A 0BA")
             lines.append(get_locale_text("renderer_menu.enemy_title", name=ename, id=eid, type_ch=etype_ch))
             lines.append(get_locale_text("renderer_menu.enemy_stats_line", hp=ehp, actions=eact))
+            lines.append(
+                get_locale_text(
+                    "i18n_size.enemy_size_line",
+                    size=get_size_label(resolve_enemy_size(eid, cfg.get("size"))),
+                )
+            )
             passive = cfg.get("passive")
             if passive:
                 lines.append(get_locale_text("renderer_menu.enemy_passive_line", passive=passive))
@@ -336,6 +354,16 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
                 s_hp = summon_hound.get("hp", 0)
                 s_desc = summon_hound.get("intent_desc", "")
                 lines.append(get_locale_text("renderer_menu.enemy_summon_line", name=s_name, hp=s_hp, desc=s_desc))
+            lines.append("")
+
+    for eid, size_key in NON_CONFIG_ENEMY_SIZES.items():
+        if tier_filter or eid in ENEMY_CONFIG:
+            continue
+        if q_search == eid.lower() or (not eid.startswith("【") and q_search in eid.lower()):
+            found = True
+            etype_ch = get_locale_text("renderer_menu.enemy_type_normal")
+            lines.append(get_locale_text("renderer_menu.enemy_title", name=eid, id=eid, type_ch=etype_ch))
+            lines.append(get_locale_text("i18n_size.enemy_size_line", size=get_size_label(size_key)))
             lines.append("")
 
     from .town import _load_zh_cn

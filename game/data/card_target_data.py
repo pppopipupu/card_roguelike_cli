@@ -17,4 +17,5 @@ SELF_TARGET_SPELLS = {
     "wizard_prismatic_wall",
     "wizard_antimagic_field",
     "special_rlyeh_astrolabe",
+    "fus_ro_dah",
 }

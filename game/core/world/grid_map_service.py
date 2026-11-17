@@ -146,7 +146,11 @@ class GridMapService:
             return get_locale_text("i18n_grid_map.err_out_of_bounds")
         target_coord = xy_to_coord(nx, ny)
         room = fm.rooms.get(target_coord)
-        if room is None or room.room_type == "wall" or (room.room_type == "secret_boss" and not fm.secret_unlocked):
+        from .bleak_falls import check_move_blocked_by_claw_door
+        claw_blocked = check_move_blocked_by_claw_door(fm, cur, target_coord)
+        if claw_blocked:
+            return claw_blocked
+        if room is None or room.room_type in ("wall", "solid_wall") or (room.room_type == "secret_boss" and not fm.secret_unlocked):
             fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
             return get_locale_text("i18n_grid_map.err_blocked_wall")
         if room.locked:
@@ -193,9 +197,13 @@ class GridMapService:
                         direction=dkey,
                     )
             return self._break_obstacle_and_enter(run, fm, uid, room, target_coord)
+        was_explored = bool(room.explored)
         pending_map.pop(uid, None)
         fm.player_coords[uid] = target_coord
         self._reveal_coord(fm, target_coord)
+        if not was_explored:
+            from .map_quest_service import record_room_explored
+            record_room_explored(run, self.save_manager.load_stats(uid))
         self._sync_stage_for_coord(run, p, target_coord)
         from .presence import sync_active
         sync_active(uid, run=run)
@@ -262,7 +270,7 @@ class GridMapService:
         for c, r in fm.rooms.items():
             if not (r.explored or c in fm.revealed_coords):
                 continue
-            if r.room_type in ("wall", "obstacle") or (r.room_type == "secret_boss" and not fm.secret_unlocked):
+            if r.room_type in ("wall", "solid_wall", "obstacle") or (r.room_type == "secret_boss" and not fm.secret_unlocked):
                 continue
             label = self._room_display_label(r)
             entries.append((c, label))
@@ -287,7 +295,7 @@ class GridMapService:
             return get_locale_text("i18n_grid_map.tp_not_found", target=target)
         if not (room.explored or coord in fm.revealed_coords):
             return get_locale_text("i18n_grid_map.tp_unexplored", coord=coord)
-        if room.room_type in ("wall", "obstacle") or (room.room_type == "secret_boss" and not fm.secret_unlocked):
+        if room.room_type in ("wall", "solid_wall", "obstacle") or (room.room_type == "secret_boss" and not fm.secret_unlocked):
             return get_locale_text("i18n_grid_map.tp_blocked", coord=coord)
         fm.player_coords[uid] = coord
         self._sync_stage_for_coord(run, run.player, coord)
@@ -354,6 +362,11 @@ class GridMapService:
             self.save_manager.save_save(uid, run)
             return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
 
+        from .bleak_falls import BLEAK_LANDMARK_TYPES
+        if room.room_type in BLEAK_LANDMARK_TYPES:
+            self.save_manager.save_save(uid, run)
+            return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+
         if room.room_type == "cafe":
             existing_sid = self._find_session_at(fm, coord, "cafe")
             if existing_sid:
@@ -387,6 +400,12 @@ class GridMapService:
         elif room.room_type == "rest":
             self.map_engine.explore_engine._init_rest_node(run)
         elif room.room_type == "treasure":
+            bonus_item = room.shared_payload.pop("bonus_item", "")
+            if bonus_item:
+                from ..inventory.bag_service import add_bag_item
+                ok, _ = add_bag_item(run.player, bonus_item)
+                if not ok and bonus_item not in room.items:
+                    room.items.append(bonus_item)
             self.map_engine.explore_engine._init_treasure_node(run)
         elif room.room_type == "life_merchant":
             self.map_engine.explore_engine._init_life_merchant_node(run)
@@ -469,6 +488,9 @@ class GridMapService:
             from .yog_quest.floor import apply_quest_encounter
             apply_quest_encounter(run, room)
             self.map_engine.battle_engine.enemy_controller.roll_enemy_intent(run)
+        elif fm.floor_flags.get("bleak_falls_zone"):
+            from .bleak_falls import apply_bleak_falls_encounter
+            apply_bleak_falls_encounter(self.map_engine.battle_engine, run, room)
         self.save_manager.save_save(caller, run)
         from .rooms.interact import format_room_extras
         hazard_loss = room.shared_payload.get("hazard_loss", 0)

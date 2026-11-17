@@ -403,6 +403,11 @@ class MinionState:
     bonus_actions: int
     attack_actions: int = 1
     buffs: List[BuffState] = field(default_factory=list)
+    size: str = ""
+
+    def __post_init__(self):
+        from ..data.size_data import resolve_minion_size
+        self.size = resolve_minion_size(self.id, self.name, self.size or None)
 
 @dataclass
 class AmuletState:
@@ -515,8 +520,11 @@ class EnemyState:
     intent_ba2_val: int = 0
     intent_ba2_desc: str = ""
     _battle_init_done: bool = False
+    size: str = ""
 
     def __post_init__(self):
+        from ..data.size_data import resolve_enemy_size
+        self.size = resolve_enemy_size(self.name, self.size or None)
         if not self.intents:
             if self.intent_type or self.intent_desc:
                 self.intents.append(EnemyIntentState(

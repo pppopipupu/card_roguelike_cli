@@ -35,6 +35,19 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
             world, pos = _open_world_grid_location(run, coord)
             return OpenWorldGhostService.try_inspect_ghost(save_manager, world, pos, query, is_touch=False)
         return None
+    if nid in ("farengar_court_mage", "arvel_trapped", "map_surveyor", "brazier_keeper"):
+        from ..bleak_falls import build_bleak_npc_dialog
+        bleak_dlg = build_bleak_npc_dialog(save_manager, run, room, nid)
+        if bleak_dlg is not None:
+            SessionContextScoper.create_session(
+                run,
+                coord,
+                "room_dialog",
+                [run.user_id],
+                node_data={"npc_id": nid, "dialog_state": "start", "coord": coord, "bleak_dialog": bleak_dlg},
+            )
+            save_manager.save_save(run.user_id, run)
+            return render_room_dialog(run)
     SessionContextScoper.create_session(
         run,
         coord,
@@ -47,6 +60,10 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
 
 
 def _room_dialog_content(run) -> Tuple[str, str, List[str]]:
+    bleak_dlg = run.node_data.get("bleak_dialog")
+    if isinstance(bleak_dlg, dict):
+        opts = [o.get("text", "") for o in (bleak_dlg.get("options") or [])]
+        return bleak_dlg.get("name", ""), bleak_dlg.get("greeting", ""), opts
     nid = run.node_data.get("npc_id", "")
     dstate = run.node_data.get("dialog_state", "start")
     cfg = ROOM_NPCS.get(nid, {})
@@ -139,6 +156,11 @@ def handle_room_dialog_choice(map_engine, run, idx: int) -> str:
     _, opts = _room_dialog_content(run)[1:]
     if idx < 1 or idx > len(opts):
         return get_locale_text("err_invalid_option_idx")
+    bleak_dlg = run.node_data.get("bleak_dialog")
+    if isinstance(bleak_dlg, dict):
+        from ..bleak_falls import handle_bleak_npc_choice
+        chosen_opt = (bleak_dlg.get("options") or [])[idx - 1]
+        return handle_bleak_npc_choice(map_engine, run, bleak_dlg, chosen_opt)
     if nid == "wandering_smith":
         if dstate == "lore":
             if idx == 1:
@@ -437,6 +459,10 @@ def attack_in_room(map_engine, run, query: str) -> str:
     nid = resolve_npc_in_room(room, q)
     if not nid:
         return get_locale_text("i18n_room_interact.combat.attack_not_found", target=q)
+    if ROOM_NPCS.get(nid, {}).get("non_hostile"):
+        npc_cfg = ROOM_NPCS[nid]
+        nname = get_locale_text(npc_cfg["name_key"]) if npc_cfg.get("name_key") else nid
+        return get_locale_text("i18n_room_interact.combat.non_hostile_refuse", name=nname)
     return start_npc_combat(map_engine, run, nid, npc_source="grid")
 
 

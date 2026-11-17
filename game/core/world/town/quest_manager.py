@@ -154,7 +154,8 @@ def _active_quests(stats: UserStats) -> List[Dict[str, Any]]:
 
 class QuestManager:
     @classmethod
-    def render_quests(cls, stats: UserStats) -> str:
+    def render_quests(cls, stats: UserStats, run=None) -> str:
+        from ..map_quest_service import render_map_quests
         lines = [
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
             get_locale_text("i18n_town.quest_log_header"),
@@ -162,6 +163,12 @@ class QuestManager:
         ]
 
         has_any_quest = False
+        map_section = render_map_quests(stats, run=run)
+        if map_section:
+            has_any_quest = True
+            lines.append(map_section)
+            lines.append("")
+
         for quest in _active_quests(stats):
             has_any_quest = True
             status_text = (

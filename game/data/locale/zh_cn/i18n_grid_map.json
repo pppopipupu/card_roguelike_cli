@@ -74,7 +74,14 @@
     "event": "事件",
     "empty": "空房",
     "spawn": "出生点",
-    "corpse": "遗骸"
+    "corpse": "遗骸",
+    "solid_wall": "固体墙",
+    "bleak_falls_entrance": "古坟入口",
+    "bleak_pillar_puzzle": "三柱机关",
+    "bleak_sanctuary_gate": "圣所大门",
+    "golden_claw_door": "龙爪机关门",
+    "word_wall": "龙语墙",
+    "barrow_exit": "古坟密道"
   },
   "room_name": {
     "spawn": "出生点",
@@ -98,7 +105,14 @@
     "cleared": "已清空",
     "fog": "迷雾",
     "player": "自己",
-    "unknown": "未探明"
+    "unknown": "未探明",
+    "solid_wall": "固体墙",
+    "bleak_falls_entrance": "荒爆古坟入口",
+    "bleak_pillar_puzzle": "古诺德三柱谜题",
+    "bleak_sanctuary_gate": "荒爆圣所大门",
+    "golden_claw_door": "黄金龙爪机关门",
+    "word_wall": "龙语墙",
+    "barrow_exit": "荒爆圣所密道出口"
   },
   "battle_prompt": {
     "title": "⚔️ 遭遇敌群（{coord}）",

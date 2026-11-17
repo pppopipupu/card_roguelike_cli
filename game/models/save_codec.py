@@ -69,7 +69,8 @@ class SaveCodecMixin:
                 actions=v.get("actions", 1),
                 bonus_actions=v.get("bonus_actions", 1),
                 attack_actions=v.get("attack_actions", 1),
-                buffs=m_buffs
+                buffs=m_buffs,
+                size=v.get("size", "")
             )
         p_amulets = {k: AmuletState(**v) for k, v in p_data.get("amulets", {}).items()}
         p_buffs = []
@@ -212,7 +213,8 @@ class SaveCodecMixin:
                 intent_ba_desc=ed.get("intent_ba_desc", ""),
                 intent_ba2_type=ed.get("intent_ba2_type", ""),
                 intent_ba2_val=ed.get("intent_ba2_val", 0),
-                intent_ba2_desc=ed.get("intent_ba2_desc", "")
+                intent_ba2_desc=ed.get("intent_ba2_desc", ""),
+                size=ed.get("size", "")
             ))
         return enemies
 

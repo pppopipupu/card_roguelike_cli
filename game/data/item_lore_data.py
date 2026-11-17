@@ -55,4 +55,22 @@ ITEM_LORE = {
         "intro_key": "i18n_item_lore.items.barista_seal.intro",
         "hidden": "killed_yog",
     },
+    "qgp_bomb": {
+        "intro_key": "i18n_bleak_falls.lore.qgp_bomb_lore",
+    },
+    "golden_claw": {
+        "intro_key": "i18n_bleak_falls.lore.golden_claw_lore",
+    },
+    "dragonstone": {
+        "intro_key": "i18n_bleak_falls.lore.dragonstone_lore",
+    },
+    "arvel_journal": {
+        "intro_key": "i18n_bleak_falls.lore.arvel_journal_lore",
+    },
+    "nordic_mead": {
+        "intro_key": "i18n_bleak_falls.lore.nordic_mead_lore",
+    },
+    "survey_chart": {
+        "intro_key": "i18n_bleak_falls.lore.survey_chart_lore",
+    },
 }

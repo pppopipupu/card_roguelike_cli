@@ -244,6 +244,11 @@ class TownEngine:
         for npc_id in ("Gamer_Boy", "Crypto_Whale", "Lost_Bard", "Town_Guard", "Naughty_Child"):
             if stats.town_flags.get(f"pos_{npc_id}", "square") == stats.town_pos and npc_id not in visible:
                 visible.append(npc_id)
+        if room_data.get("id") == "tavern":
+            flags = getattr(stats, "town_flags", {}) or {}
+            if flags.get("bleak_falls_tavern_ready") or flags.get("quest_bleak_falls_state") == "completed":
+                if "Farengar_Secret_Fire" not in visible:
+                    visible.append("Farengar_Secret_Fire")
         return visible
 
     def _resolve_visible_entity(self, stats: UserStats, room_data: Dict[str, Any], target_name: str) -> Optional[str]:

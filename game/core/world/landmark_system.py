@@ -207,6 +207,13 @@ def open_room_talk(save_manager, run, uid: str) -> str:
     room = fm.rooms.get(coord)
     if room is None:
         return get_locale_text("i18n_grid_map.no_talk_target")
+    from .bleak_falls import BLEAK_LANDMARK_TYPES, build_bleak_landmark_data
+    if room.room_type in BLEAK_LANDMARK_TYPES or room.landmark_id in BLEAK_LANDMARK_TYPES:
+        data = build_bleak_landmark_data(run, room)
+        if data:
+            SessionContextScoper.create_session(run, coord, "landmark", [uid], node_data=data)
+            save_manager.save_save(uid, run)
+            return ""
     if room.room_type == "downstairs":
         ensure_descent_tunnel(room)
         data = build_downstairs_data(run, save_manager, uid)
@@ -295,6 +302,10 @@ def execute_landmark_option(save_manager, map_engine, run, idx: int) -> str:
     p = run.player
     fm = run.floor_map
     uid = run.user_id
+
+    if options[idx].get("bleak_landmark"):
+        from .bleak_falls import execute_bleak_landmark_option
+        return execute_bleak_landmark_option(save_manager, map_engine, run, options[idx])
 
     if action == "yog_landmark":
         return _execute_yog_landmark(save_manager, map_engine, run, options[idx])

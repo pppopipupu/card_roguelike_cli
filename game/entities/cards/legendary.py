@@ -189,6 +189,50 @@ class GlacierFortressCard(Card):
         engine._add_buff_to(p, buff_id, get_locale_text("i18n_cards_neutral.legendary.glacier_fortress.buff_name"), get_locale_text("i18n_cards_neutral.legendary.glacier_fortress.buff_desc"), buff_stacks)
         return get_locale_text("i18n_cards_neutral.legendary.glacier_fortress.result", shield_val=shield_val)
 
+@register_card("fus_ro_dah")
+class FusRoDahCard(Card):
+    def execute(self, run, target, engine) -> str:
+        from ...data.size_data import get_size_label, is_size_at_most
+        from ...core.text.events import JoinedText, LocaleText
+        from ...core.text.pipeline import render_text_node
+
+        stun_turns = getattr(self, "buff_turns", getattr(self, "stun_turns", 2))
+        max_size = getattr(self, "max_size", "large")
+        stun_name = get_locale_text("i18n_bleak_falls.cards.fus_ro_dah.stun_name")
+        stun_desc = get_locale_text("i18n_bleak_falls.cards.fus_ro_dah.stun_desc")
+        part_nodes = []
+        for enemy in list(run.enemies):
+            if getattr(enemy, "hp", 0) <= 0:
+                continue
+            esize = getattr(enemy, "size", "medium")
+            slabel = get_size_label(esize)
+            if is_size_at_most(esize, max_size):
+                engine._add_buff_to(enemy, "stun", stun_name, stun_desc, stun_turns)
+                if hasattr(engine, "_sync_enemy_intents"):
+                    engine._sync_enemy_intents(enemy)
+                part_nodes.append(
+                    LocaleText(
+                        key="i18n_bleak_falls.cards.fus_ro_dah.blown_part",
+                        params={"name": enemy.name, "size": slabel},
+                    )
+                )
+            else:
+                part_nodes.append(
+                    LocaleText(
+                        key="i18n_bleak_falls.cards.fus_ro_dah.resist_part",
+                        params={"name": enemy.name, "size": slabel},
+                    )
+                )
+        if not part_nodes:
+            return render_text_node(LocaleText(key="i18n_bleak_falls.cards.fus_ro_dah.none"))
+        sep = get_locale_text("i18n_bleak_falls.cards.fus_ro_dah.separator")
+        return render_text_node(
+            LocaleText(
+                key="i18n_bleak_falls.cards.fus_ro_dah.result",
+                params={"details": JoinedText(parts=part_nodes, separator=sep)},
+            )
+        )
+
 @register_card("abyss_erosion")
 class AbyssErosionCard(Card):
     def execute(self, run, target, engine) -> str:

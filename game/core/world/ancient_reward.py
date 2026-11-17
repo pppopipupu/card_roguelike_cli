@@ -26,6 +26,10 @@ def build_ancient_options(run, save_manager) -> dict:
     legends_pool = list(style_pools["legends"]) + list(ANCIENT_LEGEND_APPENDS)
     if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
         legends_pool.append(ANCIENT_ICERAINBOWW_LEGEND)
+    from ...entities.cards.market import is_card_available
+    from ...data.map_quest_config import CARD_FUS_RO_DAH
+    if is_card_available(CARD_FUS_RO_DAH, stats):
+        legends_pool.append(CARD_FUS_RO_DAH)
     available_relics = [r for r in style_pools["relics"] if r not in p.relics]
     if not available_relics:
         available_relics = list(style_pools["relics"])

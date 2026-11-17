@@ -294,7 +294,8 @@ class CombatResolver:
     def summon_minion(self, run: GameRun, minion_id: str, name: str, hp: int, atk: int, ba: int) -> Optional[str]:
         grid = self.get_free_grid(run.player)
         if grid:
-            m = MinionState(minion_id, name, hp, hp, atk, 1, ba)
+            from ...data.size_data import resolve_minion_size
+            m = MinionState(minion_id, name, hp, hp, atk, 1, ba, size=resolve_minion_size(minion_id, name))
             run.player.minions[grid] = m
             evt = MinionSummonEvent(run, m, grid)
             self.engine.event_bus.dispatch(evt)

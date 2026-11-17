@@ -293,6 +293,20 @@ NEUTRAL_CARD_SPELLS = {
         "buff_stacks": 1,
         "feedback": "筑起了冰川壁垒！"
     },
+    "fus_ro_dah": {
+        "name": "Fus Ro Dah!",
+        "color": "neutral",
+        "type": "spell",
+        "cost_a": 1,
+        "cost_ba": 0,
+        "exhaust": True,
+        "target_type": "self",
+        "rarity": "legendary",
+        "stun_turns": 2,
+        "max_size": "large",
+        "desc": "【龙吼】不屈之力！消耗 1A 吹飞战场上所有体型不大于大型的敌人，吹飞视作【眩晕】2 回合。消耗。",
+        "feedback": "震耳欲聋的龙吼响彻战场——FUS RO DAH！"
+    },
     "abyss_erosion": {
         "name": "深渊侵蚀",
         "color": "neutral",

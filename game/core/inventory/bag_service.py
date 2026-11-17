@@ -209,6 +209,24 @@ def use_bag_item(engine, run, query: str) -> str:
     if not cfg:
         return get_locale_text("i18n_room_interact.bag.use_town_item", name=get_item_display_name(item_id), desc=get_item_desc(item_id))
     fm = getattr(run, "floor_map", None)
+    if item_id == "qgp_bomb":
+        from ..world.bleak_falls import use_qgp_bomb
+        return use_qgp_bomb(engine, run)
+    if item_id == "arvel_journal":
+        return get_locale_text("i18n_bleak_falls.items.use_journal")
+    if item_id == "golden_claw":
+        return get_locale_text("i18n_bleak_falls.items.use_claw_in_bag")
+    if item_id == "dragonstone":
+        return get_locale_text("i18n_bleak_falls.items.use_dragonstone_in_bag")
+    if item_id == "survey_chart":
+        return get_locale_text("i18n_bleak_falls.items.use_survey_chart")
+    if item_id == "nordic_mead":
+        items.remove(item_id)
+        before_hp = p.hp
+        heal_amt = int(cfg.get("heal", 12))
+        p.hp = min(p.max_hp, p.hp + heal_amt)
+        sp_gained = restore_sp(p, int(cfg.get("sp_gain", 4)))
+        return get_locale_text("i18n_bleak_falls.items.use_nordic_mead", heal=p.hp - before_hp, sp=sp_gained)
     if item_id == "espresso_beans":
         sp = restore_sp(p, cfg["sp_gain"])
         items.remove(item_id)

@@ -310,6 +310,7 @@ class PvpService:
                     bonus_actions=int(m.bonus_actions),
                     buffs=list(getattr(m, "buffs", []) or []),
                     is_summon=True,
+                    size=getattr(m, "size", ""),
                 )
             )
         run.enemies = enemies

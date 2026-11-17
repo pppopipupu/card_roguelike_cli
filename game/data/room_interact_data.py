@@ -156,6 +156,62 @@ ROGUE_ITEMS = {
         "sp_gain": 4,
         "aliases": ["印章", "秘藏印章", "seal"],
     },
+    "qgp_bomb": {
+        "name_key": "i18n_room_interact.items.qgp_bomb.name",
+        "desc_key": "i18n_room_interact.items.qgp_bomb.desc",
+        "rarity": "rare",
+        "weight": 1,
+        "carryover": False,
+        "usable": True,
+        "aliases": ["QGP炸弹", "qgp炸弹", "qgp", "bomb", "炸弹"],
+    },
+    "golden_claw": {
+        "name_key": "i18n_room_interact.items.golden_claw.name",
+        "desc_key": "i18n_room_interact.items.golden_claw.desc",
+        "rarity": "legendary",
+        "weight": 1,
+        "carryover": True,
+        "usable": True,
+        "aliases": ["黄金龙爪", "龙爪", "claw", "golden_claw"],
+    },
+    "dragonstone": {
+        "name_key": "i18n_room_interact.items.dragonstone.name",
+        "desc_key": "i18n_room_interact.items.dragonstone.desc",
+        "rarity": "legendary",
+        "weight": 3,
+        "carryover": True,
+        "usable": True,
+        "aliases": ["龙石", "石板", "dragonstone"],
+    },
+    "arvel_journal": {
+        "name_key": "i18n_room_interact.items.arvel_journal.name",
+        "desc_key": "i18n_room_interact.items.arvel_journal.desc",
+        "rarity": "common",
+        "weight": 1,
+        "carryover": False,
+        "usable": True,
+        "aliases": ["阿尔维尔的日记", "日记", "journal"],
+    },
+    "nordic_mead": {
+        "name_key": "i18n_room_interact.items.nordic_mead.name",
+        "desc_key": "i18n_room_interact.items.nordic_mead.desc",
+        "rarity": "rare",
+        "weight": 1,
+        "carryover": True,
+        "usable": True,
+        "heal": 12,
+        "sp_gain": 4,
+        "aliases": ["诺德蜂蜜酒", "蜂蜜酒", "mead"],
+    },
+    "survey_chart": {
+        "name_key": "i18n_room_interact.items.survey_chart.name",
+        "desc_key": "i18n_room_interact.items.survey_chart.desc",
+        "rarity": "epic",
+        "weight": 1,
+        "carryover": True,
+        "usable": True,
+        "aliases": ["古代测绘残片", "测绘残片", "残片", "chart"],
+    },
 }
 
 ROOM_GROUND_ITEM_POOL = [
@@ -280,6 +336,21 @@ ROOM_PROPS = {
         "desc_key": "i18n_room_interact.props.temple_gate.desc",
         "aliases": ["神殿大门", "大门", "石门", "殿门", "gate", "door"],
     },
+    "nordic_urn": {
+        "name_key": "i18n_room_interact.props.nordic_urn.name",
+        "desc_key": "i18n_room_interact.props.nordic_urn.desc",
+        "aliases": ["骨灰瓮", "诺德骨灰瓮", "瓮", "urn"],
+    },
+    "bleak_clue_tablet": {
+        "name_key": "i18n_room_interact.props.bleak_clue_tablet.name",
+        "desc_key": "i18n_room_interact.props.bleak_clue_tablet.desc",
+        "aliases": ["刻纹石碑", "石碑", "壁画", "tablet", "clue"],
+    },
+    "nordic_brazier": {
+        "name_key": "i18n_room_interact.props.nordic_brazier.name",
+        "desc_key": "i18n_room_interact.props.nordic_brazier.desc",
+        "aliases": ["古坛火盆", "青铜火盆", "火盆", "brazier"],
+    },
 }
 
 DUNGEON_PROP_POOL = [
@@ -392,6 +463,30 @@ ROOM_NPCS = {
         "bonus_actions": 1,
         "reward_gold": 100,
         "reward_item": "barista_seal",
+    },
+    "farengar_court_mage": {
+        "name_key": "i18n_room_interact.npcs.farengar_court_mage.name",
+        "desc_key": "i18n_room_interact.npcs.farengar_court_mage.desc",
+        "aliases": ["白漫城宫廷法师", "宫廷法师", "法仁加", "法师", "farengar"],
+        "non_hostile": True,
+    },
+    "arvel_trapped": {
+        "name_key": "i18n_room_interact.npcs.arvel_trapped.name",
+        "desc_key": "i18n_room_interact.npcs.arvel_trapped.desc",
+        "aliases": ["敏捷的阿尔维尔", "阿尔维尔", "小偷", "arvel"],
+        "non_hostile": True,
+    },
+    "map_surveyor": {
+        "name_key": "i18n_room_interact.npcs.map_surveyor.name",
+        "desc_key": "i18n_room_interact.npcs.map_surveyor.desc",
+        "aliases": ["星界制图师", "制图师", "surveyor"],
+        "non_hostile": True,
+    },
+    "brazier_keeper": {
+        "name_key": "i18n_room_interact.npcs.brazier_keeper.name",
+        "desc_key": "i18n_room_interact.npcs.brazier_keeper.desc",
+        "aliases": ["古坛守望者", "守望者", "keeper"],
+        "non_hostile": True,
     },
 }
 

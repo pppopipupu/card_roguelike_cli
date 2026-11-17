@@ -126,6 +126,10 @@ class MapEngine:
                 ]
                 if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
                     cards_pool.append({"type": "contract", "relic": "glacier_chill", "card": "minion_icerainboww"})
+        from ...entities.cards.market import is_card_available
+        from ...data.map_quest_config import CARD_FUS_RO_DAH
+        if is_card_available(CARD_FUS_RO_DAH, stats):
+            cards_pool.append({"type": "contract", "relic": "blind_spot", "card": CARD_FUS_RO_DAH})
         relics_pool.append({"type": "double", "relic": "trash_mountain"})
         num_relics = random.choice(MAP_ANCIENT_RELIC_CHOICES)
         selected_relics = random.sample(relics_pool, min(len(relics_pool), num_relics))
@@ -140,6 +144,10 @@ class MapEngine:
 
     def init_new_run_map(self, run: GameRun):
         run.floor_map = generate_floor_map(run, 1, save_manager=self.save_manager)
+        stats = self.save_manager.load_stats(run.user_id) if self.save_manager is not None else None
+        from .map_quest_service import init_run_quests, populate_floor_quests
+        init_run_quests(run, stats)
+        populate_floor_quests(run, run.floor_map, stats)
         SessionContextScoper.ensure_full_party_order(run)
         spawn_coord = xy_to_coord(0, run.floor_map.height // 2)
         SessionContextScoper.create_session(run, spawn_coord, "start_ancient", list(run.all_human_uids()))
@@ -334,6 +342,9 @@ class MapEngine:
         next_floor = min(4, int(cur_floor) + 1)
         cfg = FLOOR_CONFIGS.get(next_floor, FLOOR_CONFIGS[4])
         run.floor_map = generate_floor_map(run, next_floor, save_manager=self.save_manager)
+        stats = self.save_manager.load_stats(actor_uid) if self.save_manager is not None else None
+        from .map_quest_service import populate_floor_quests
+        populate_floor_quests(run, run.floor_map, stats)
         return self._finalize_next_floor(run, actor_uid, cfg, yog_quest=False)
 
     def enter_ancient_node(self, run: GameRun):

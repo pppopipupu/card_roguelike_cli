@@ -143,6 +143,21 @@ def _normal_specs(npc_id: str) -> List[Dict[str, Any]]:
         specs.append(_option("challenge", _npc_label("option_challenge")))
     elif npc_id == "Harry_Du_Bois":
         specs.append(_option("hire_harry", _npc_label("option_hire_harry")))
+    elif npc_id == "Farengar_Secret_Fire":
+        specs.append(
+            _option(
+                "bleak_return_dragonstone",
+                _text_label(get_locale_text("i18n_bleak_falls.tavern.opt_return_dragonstone")),
+                condition=lambda s: bool((s.town_flags or {}).get("bleak_falls_tavern_ready")),
+            )
+        )
+        specs.append(
+            _option(
+                "bleak_deceive_keep",
+                _text_label(get_locale_text("i18n_bleak_falls.tavern.opt_deceive_keep")),
+                condition=lambda s: bool((s.town_flags or {}).get("bleak_falls_tavern_ready")),
+            )
+        )
     specs.append(_option("leave", _npc_label("option_leave", _global_label("leave_default", get_locale_text("global.leave_default")))))
     return specs
 
@@ -281,6 +296,14 @@ def build_dialog_menu(town_engine, stats: UserStats, npc_id: str, zh_cn: Dict[st
     else:
         if npc_id == "Crypto_Whale" and stats.town_flags.get("reported_whale"):
             welcome = get_locale_text("global.whale_reported_refuse")
+        elif npc_id == "Farengar_Secret_Fire":
+            flags = getattr(stats, "town_flags", {}) or {}
+            if flags.get("bleak_falls_tavern_ready"):
+                welcome = get_locale_text("i18n_bleak_falls.tavern.farengar_greet_pending")
+            elif flags.get("quest_bleak_falls_outcome") == "returned":
+                welcome = get_locale_text("i18n_bleak_falls.tavern.farengar_after_returned")
+            elif flags.get("quest_bleak_falls_outcome") == "kept":
+                welcome = get_locale_text("i18n_bleak_falls.tavern.farengar_after_kept")
         specs = _normal_specs(npc_id)
 
     return {
@@ -721,5 +744,90 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         if getattr(stats, "active_coop_id", "") or getattr(stats, "active_lobby_id", ""):
             msg += "\n" + get_locale_text("i18n_mercenary.hire_in_coop_party")
         return msg + "\n\n" + rerender()
+
+    if action == "bleak_return_dragonstone":
+        from ....data.map_quest_config import (
+            BLEAK_FALLS_REWARDS,
+            CARD_FUS_RO_DAH,
+            ITEM_DRAGONSTONE,
+            QUEST_BLEAK_FALLS,
+            TOWN_FLAG_BLEAK_ITEMS,
+            TOWN_FLAG_BLEAK_OUTCOME,
+            TOWN_FLAG_BLEAK_STAGE,
+            TOWN_FLAG_BLEAK_STATE,
+            TOWN_FLAG_BLEAK_TAVERN_READY,
+            TOWN_FLAG_FUS_RO_DAH_UNLOCKED,
+            TOWN_FLAG_MULTI_QUESTS,
+        )
+        flags = stats.town_flags if isinstance(stats.town_flags, dict) else {}
+        stats.town_flags = flags
+        retained = list(flags.get(TOWN_FLAG_BLEAK_ITEMS) or [])
+        has_stone = (
+            ITEM_DRAGONSTONE in stats.town_inventory
+            or ITEM_DRAGONSTONE in getattr(stats, "town_chest", [])
+            or ITEM_DRAGONSTONE in retained
+        )
+        if not has_stone:
+            return get_locale_text("i18n_bleak_falls.tavern.return_missing") + "\n\n" + rerender()
+        while ITEM_DRAGONSTONE in stats.town_inventory:
+            stats.town_inventory.remove(ITEM_DRAGONSTONE)
+        chest = getattr(stats, "town_chest", None)
+        if isinstance(chest, list):
+            while ITEM_DRAGONSTONE in chest:
+                chest.remove(ITEM_DRAGONSTONE)
+        retained = [x for x in retained if x != ITEM_DRAGONSTONE]
+        flags[TOWN_FLAG_BLEAK_ITEMS] = retained
+        flags[TOWN_FLAG_BLEAK_STATE] = "completed"
+        flags[TOWN_FLAG_BLEAK_OUTCOME] = "returned"
+        flags[TOWN_FLAG_BLEAK_STAGE] = "done_returned"
+        flags[TOWN_FLAG_BLEAK_TAVERN_READY] = False
+        flags[TOWN_FLAG_FUS_RO_DAH_UNLOCKED] = True
+        if CARD_FUS_RO_DAH not in stats.unlocked_new_cards:
+            stats.unlocked_new_cards.append(CARD_FUS_RO_DAH)
+        stats.gp += BLEAK_FALLS_REWARDS["tavern_gp_reward"]
+        multi = flags.setdefault(TOWN_FLAG_MULTI_QUESTS, {})
+        entry = dict(multi.get(QUEST_BLEAK_FALLS) or {"kind": "multi", "history": []})
+        entry["status"] = "completed"
+        entry["stage"] = "done_returned"
+        hist = list(entry.get("history") or [])
+        if "done_returned" not in hist:
+            hist.append("done_returned")
+        entry["history"] = hist
+        multi[QUEST_BLEAK_FALLS] = entry
+        save()
+        return get_locale_text("i18n_bleak_falls.tavern.return_success") + "\n\n" + rerender()
+
+    if action == "bleak_deceive_keep":
+        from ....data.map_quest_config import (
+            ITEM_DRAGONSTONE,
+            ITEM_GOLDEN_CLAW,
+            QUEST_BLEAK_FALLS,
+            TOWN_FLAG_BLEAK_OUTCOME,
+            TOWN_FLAG_BLEAK_STAGE,
+            TOWN_FLAG_BLEAK_STATE,
+            TOWN_FLAG_BLEAK_TAVERN_READY,
+            TOWN_FLAG_MULTI_QUESTS,
+        )
+        flags = stats.town_flags if isinstance(stats.town_flags, dict) else {}
+        stats.town_flags = flags
+        chest = getattr(stats, "town_chest", []) or []
+        for keep_id in (ITEM_DRAGONSTONE, ITEM_GOLDEN_CLAW):
+            if keep_id not in stats.town_inventory and keep_id not in chest:
+                stats.town_inventory.append(keep_id)
+        flags[TOWN_FLAG_BLEAK_STATE] = "completed"
+        flags[TOWN_FLAG_BLEAK_OUTCOME] = "kept"
+        flags[TOWN_FLAG_BLEAK_STAGE] = "done_kept"
+        flags[TOWN_FLAG_BLEAK_TAVERN_READY] = False
+        multi = flags.setdefault(TOWN_FLAG_MULTI_QUESTS, {})
+        entry = dict(multi.get(QUEST_BLEAK_FALLS) or {"kind": "multi", "history": []})
+        entry["status"] = "completed"
+        entry["stage"] = "done_kept"
+        hist = list(entry.get("history") or [])
+        if "done_kept" not in hist:
+            hist.append("done_kept")
+        entry["history"] = hist
+        multi[QUEST_BLEAK_FALLS] = entry
+        save()
+        return get_locale_text("i18n_bleak_falls.tavern.deceive_success") + "\n\n" + rerender()
 
     return get_locale_text("global.invalid_option")

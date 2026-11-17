@@ -119,9 +119,10 @@ class SettlementMixin:
             carried = carryout_to_stats(run.player, stats)
             if carried:
                 carryover_note = get_locale_text("i18n_room_interact.bag.settle_carryover", items="、".join(carried))
+        from ..core.world.map_quest_service import sync_run_to_stats
+        sync_run_to_stats(run, stats)
+        self.save_stats(user_id, stats)
         if stage < 5:
-            if carryover_note:
-                self.save_stats(user_id, stats)
             if delete_personal:
                 self.delete_save(user_id)
             return get_locale_text("i18n_models.manager.settle_too_shallow", stage=stage, corpse_note=corpse_note, carryover_note=carryover_note)

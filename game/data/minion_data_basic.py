@@ -1,6 +1,7 @@
 MINION_BASIC_CONFIG = {
     "mercenary": {
         "name": "雇佣兵",
+        "size": "medium",
         "atk_buff": 1,
         "skills": [
             {
@@ -25,6 +26,7 @@ MINION_BASIC_CONFIG = {
     },
     "shield_guard": {
         "name": "盾卫",
+        "size": "medium",
         "skills": [
             {
                 "id": "defend",
@@ -49,6 +51,7 @@ MINION_BASIC_CONFIG = {
     },
     "find_familiar": {
         "name": "召唤魔宠",
+        "size": "tiny",
         "skills": [
             {
                 "id": "assist",
@@ -72,6 +75,7 @@ MINION_BASIC_CONFIG = {
     },
     "water_elemental": {
         "name": "寒冰元素",
+        "size": "large",
         "skills": [
             {
                 "id": "touch",
@@ -97,6 +101,7 @@ MINION_BASIC_CONFIG = {
     },
     "arcane_golem": {
         "name": "奥术傀儡",
+        "size": "large",
         "skills": [
             {
                 "id": "overload",
@@ -122,6 +127,7 @@ MINION_BASIC_CONFIG = {
     },
     "minion_icerainboww": {
         "name": "Icerainboww",
+        "size": "medium",
         "skills": [
             {
                 "id": "icerain_spray",
@@ -148,6 +154,7 @@ MINION_BASIC_CONFIG = {
     },
     "mercenary+": {
         "name": "雇佣兵+",
+        "size": "medium",
         "atk_buff": 2,
         "skills": [
             {
@@ -172,6 +179,7 @@ MINION_BASIC_CONFIG = {
     },
     "shield_guard+": {
         "name": "盾卫+",
+        "size": "medium",
         "skills": [
             {
                 "id": "defend",
@@ -196,6 +204,7 @@ MINION_BASIC_CONFIG = {
     },
     "find_familiar+": {
         "name": "召唤魔宠+",
+        "size": "tiny",
         "skills": [
             {
                 "id": "assist",
@@ -219,6 +228,7 @@ MINION_BASIC_CONFIG = {
     },
     "water_elemental+": {
         "name": "寒冰元素+",
+        "size": "large",
         "skills": [
             {
                 "id": "touch",
@@ -245,6 +255,7 @@ MINION_BASIC_CONFIG = {
     },
     "arcane_golem+": {
         "name": "奥术傀儡+",
+        "size": "large",
         "skills": [
             {
                 "id": "overload",
@@ -270,6 +281,7 @@ MINION_BASIC_CONFIG = {
     },
     "minion_icerainboww+": {
         "name": "Icerainboww+",
+        "size": "medium",
         "skills": [
             {
                 "id": "icerain_spray",
@@ -295,6 +307,7 @@ MINION_BASIC_CONFIG = {
     },
     "gate_guard": {
         "name": "门扉守卫",
+        "size": "large",
         "skills": [
             {
                 "id": "guard_strike",
@@ -310,6 +323,7 @@ MINION_BASIC_CONFIG = {
     },
     "elf_archer_xiaomei": {
         "name": "精灵射手小梅",
+        "size": "medium",
         "enter_damage": 16,
         "enter_hit_thresholds": [4, 6, 8],
         "enter_current_card_bonus": 1,
@@ -319,6 +333,7 @@ MINION_BASIC_CONFIG = {
     },
     "gate_guard+": {
         "name": "门扉守卫+",
+        "size": "large",
         "skills": [
             {
                 "id": "gate_strike",
@@ -334,11 +349,13 @@ MINION_BASIC_CONFIG = {
     },
     "neutral_tau": {
         "name": "Tau",
+        "size": "small",
         "no_attack_actions": True,
         "skills": []
     },
     "neutral_tau+": {
         "name": "Tau+",
+        "size": "small",
         "no_attack_actions": True,
         "skills": []
     }

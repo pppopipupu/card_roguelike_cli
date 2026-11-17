@@ -290,7 +290,8 @@ class BattleEngine(BaseBattleEngine):
             raise ValueError(f"invalid enemy config: {name}")
         return int(hp_match.group(1)), int(actions_match.group(1)), int(bonus_match.group(1))
 
-    def _build_enemy_state(self, name: str, hp: int, actions: int, bonus_actions: int) -> EnemyState:
+    def _build_enemy_state(self, name: str, hp: int, actions: int, bonus_actions: int, size: str = "") -> EnemyState:
+        from ...data.size_data import resolve_enemy_size
         return EnemyState(
             name=name,
             hp=hp,
@@ -299,7 +300,8 @@ class BattleEngine(BaseBattleEngine):
             actions=actions,
             bonus_actions=bonus_actions,
             max_actions=actions,
-            max_bonus_actions=bonus_actions
+            max_bonus_actions=bonus_actions,
+            size=resolve_enemy_size(name, size or None),
         )
 
     def _stage_enemy_pool(self, pools, stage):

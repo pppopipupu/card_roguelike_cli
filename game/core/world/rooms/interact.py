@@ -232,6 +232,29 @@ def _touch_dusty_bookshelf(run, room, cfg, p, fm, coord):
     return get_locale_text("i18n_room_interact.touch.dusty_bookshelf")
 
 
+@register_prop_handler("nordic_urn")
+def _touch_nordic_urn(run, room, cfg, p, fm, coord):
+    from ....data.map_quest_config import BLEAK_FALLS_REWARDS
+    gold = BLEAK_FALLS_REWARDS["urn_gold"]
+    p.gold += gold
+    return get_locale_text("i18n_bleak_falls.props.nordic_urn_res", gold=gold)
+
+
+@register_prop_handler("bleak_clue_tablet")
+def _touch_bleak_clue_tablet(run, room, cfg, p, fm, coord):
+    return get_locale_text("i18n_bleak_falls.props.bleak_clue_res")
+
+
+@register_prop_handler("nordic_brazier")
+def _touch_nordic_brazier(run, room, cfg, p, fm, coord):
+    from ....data.map_quest_config import BLEAK_FALLS_REWARDS
+    from ..map_quest_service import record_brazier_lit
+    heal = BLEAK_FALLS_REWARDS["brazier_heal"]
+    p.hp = min(p.max_hp, p.hp + heal)
+    record_brazier_lit(run)
+    return get_locale_text("i18n_bleak_falls.props.nordic_brazier_res")
+
+
 def touch_in_room(save_manager, run, query: str) -> str:
     q = (query or "").strip()
     if not q:

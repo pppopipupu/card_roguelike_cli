@@ -23,16 +23,19 @@ def _skill_entry():
 ANNA_MINION_CONFIG = {
     "manaeria_queen_anne": {
         "name": "马纳历亚女王‧安",
+        "size": "medium",
         "attack_damage_type": ANNE_ATTACK_DAMAGE_TYPE,
         "skills": [_skill_entry()],
     },
     "manaeria_queen_anne+": {
         "name": "马纳历亚女王‧安+",
+        "size": "medium",
         "attack_damage_type": ANNE_ATTACK_DAMAGE_TYPE,
         "skills": [_skill_entry()],
     },
     "anna_great_spirit": {
         "name": "安的巨大英灵",
+        "size": "huge",
         "attack_damage_type": ANNE_SPIRIT_CONFIG["attack_damage_type"],
         "ward": ANNE_SPIRIT_CONFIG["ward"],
         "skills": [],

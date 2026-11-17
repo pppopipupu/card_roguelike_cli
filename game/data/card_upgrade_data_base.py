@@ -365,6 +365,11 @@ CARD_UPGRADE_CONFIG_BASE = {
         "shield_amount": 28,
         "desc": "获得 28 点护盾，且在本场战斗中，你在回合结束时获得的护盾量增加 6 点。消耗。"
     },
+    "fus_ro_dah": {
+        "cost_a": 0,
+        "cost_ba": 1,
+        "desc": "【龙吼】不屈之力+！消耗 0A 1BA 吹飞战场上所有体型不大于大型的敌人，吹飞视作【眩晕】2 回合。消耗。"
+    },
     "abyss_altar": {
         "cost_a": 2,
         "cost_ba": 0,

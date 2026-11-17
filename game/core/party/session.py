@@ -126,6 +126,8 @@ class SessionContextScoper:
         fm = getattr(run, "floor_map", None)
         if fm is None:
             return
+        pending_floor1_boss = None
+        pending_bleak_clear = None
         session = fm.active_sessions.pop(sid, None)
         if session is not None:
             for uid in list(session.participants):
@@ -133,16 +135,25 @@ class SessionContextScoper:
                     fm.player_session_map.pop(uid, None)
             if mark_cleared and session.coord and session.coord in fm.rooms:
                 room = fm.rooms[session.coord]
+                was_bleak_combat = bool(
+                    fm.floor_flags.get("bleak_falls_zone")
+                    or run.node_data.get("bleak_falls_combat_tag")
+                )
                 if room.room_type == "boss":
-                    if fm.floor_flags.get("yog_quest"):
+                    if fm.floor_flags.get("yog_quest") or fm.floor_flags.get("bleak_falls_zone"):
                         room.cleared = True
                         room.explored = True
                     else:
+                        floor_idx = getattr(fm, "floor_index", 1)
                         room.room_type = "downstairs"
                         room.cleared = False
                         room.explored = True
                         from ..world.landmark_system import ensure_descent_tunnel
                         ensure_descent_tunnel(room)
+                        if floor_idx == 1:
+                            pending_floor1_boss = room.coord
+                    if was_bleak_combat:
+                        pending_bleak_clear = room.coord
                 elif room.room_type == "secret_boss":
                     room.cleared = True
                     room.explored = True
@@ -150,8 +161,17 @@ class SessionContextScoper:
                 else:
                     room.cleared = True
                     room.explored = True
+                    if was_bleak_combat:
+                        pending_bleak_clear = room.coord
+        combat_tag = run.node_data.get("bleak_falls_combat_tag", "")
         full = SessionContextScoper.ensure_full_party_order(run)
         run.party_order = list(full)
         run.node_type = "grid_map"
         run.enemies = []
         run.node_data = {}
+        if pending_floor1_boss:
+            run.node_data["bleak_falls_pending_floor1_boss"] = pending_floor1_boss
+        if pending_bleak_clear:
+            run.node_data["bleak_falls_pending_clear"] = pending_bleak_clear
+            if combat_tag:
+                run.node_data["bleak_falls_combat_tag"] = combat_tag

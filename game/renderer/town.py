@@ -120,6 +120,10 @@ def get_npc_quest_indicator(npc_id: str, stats: UserStats) -> str:
     elif npc_id == "NoobSlayer99":
         if q_ham == "started" and "smith_hammer" not in stats.town_inventory and "fake_hammer" not in stats.town_inventory and not stats.town_flags.get("noob_coerced_hammer"):
             return " ❓"
+    elif npc_id == "Farengar_Secret_Fire":
+        flags = getattr(stats, "town_flags", {}) or {}
+        if flags.get("bleak_falls_tavern_ready"):
+            return " ❗"
     return ""
 
 def render_town(stats: UserStats, room_data: Dict[str, Any], world_players: List[Dict[str, Any]] | None = None, ghost_names: List[str] | None = None) -> str:
@@ -154,6 +158,13 @@ def render_town(stats: UserStats, room_data: Dict[str, Any], world_players: List
             npc_name = entities_loc.get(npc_id, {}).get("name", npc_id)
             ind = get_npc_quest_indicator(npc_id, stats)
             visible_npcs.append(f"{npc_name}{ind}")
+
+    if current_id == "tavern":
+        flags = getattr(stats, "town_flags", {}) or {}
+        if flags.get("bleak_falls_tavern_ready") or flags.get("quest_bleak_falls_state") == "completed":
+            f_name = entities_loc.get("Farengar_Secret_Fire", {}).get("name", "Farengar_Secret_Fire")
+            f_ind = get_npc_quest_indicator("Farengar_Secret_Fire", stats)
+            visible_npcs.append(f"{f_name}{f_ind}")
 
     for entry in world_here:
         visible_npcs.append(f"{WORLD_PLAYER_ICON}{entry.get('name', '')}")

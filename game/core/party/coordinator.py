@@ -138,6 +138,20 @@ def finish_player_node(save_manager, map_engine, run, uid, prefix="", on_all_rea
                         break
         advance = on_all_ready or map_engine.enter_next_stage
         advance(run)
+        if run.node_type == "grid_map" and run.floor_map is not None:
+            pending_boss = run.node_data.pop("bleak_falls_pending_floor1_boss", None)
+            if pending_boss and pending_boss in run.floor_map.rooms:
+                from ..world.bleak_falls import on_floor1_boss_cleared
+                on_floor1_boss_cleared(run, run.floor_map.rooms[pending_boss], save_manager=save_manager)
+            pending_bleak = run.node_data.pop("bleak_falls_pending_clear", None)
+            if pending_bleak and pending_bleak in run.floor_map.rooms:
+                from ..world.bleak_falls import on_bleak_combat_resolved
+                on_bleak_combat_resolved(run, run.floor_map.rooms[pending_bleak], save_manager=save_manager)
+            post_notices = run.node_data.pop("post_session_notices", [])
+            if post_notices:
+                joined = "\n\n".join(str(n) for n in post_notices if n)
+                if joined:
+                    prefix = f"{prefix}\n\n{joined}".strip() if prefix else joined
         save_manager.save_save(run.user_id, run)
         if merc_notices:
             joined_notices = "\n".join(merc_notices)

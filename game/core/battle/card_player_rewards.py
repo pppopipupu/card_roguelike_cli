@@ -249,7 +249,8 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
             return
         run.enemies.clear()
         ach = AchievementService(self.engine.save_manager)
-        is_stage_boss = difficulty == "boss"
+        is_bleak_zone = bool(run.floor_map and run.floor_map.floor_flags.get("bleak_falls_zone"))
+        is_stage_boss = difficulty == "boss" and not is_bleak_zone
         if is_stage_boss and stage in (MapConfig.FINAL_BOSS_STAGE, MapConfig.GATE_BOSS_STAGE):
             roll_battle_gold(difficulty)
             roll_potion(self.engine.save_manager.load_stats(run.user_id), difficulty)
@@ -301,13 +302,26 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
             for uid in run.human_uids():
                 stats = self.engine.save_manager.load_stats(uid)
                 player = run.players.get(uid)
-                if player and player.max_hp <= 1:
-                    ach.record_stat(uid, "one_hp_boss_kills", 1, stats=stats, save=False)
-                if stage == 12:
-                    ach.record_stat(uid, "act1_boss_kills", 1, stats=stats, save=False)
-                elif stage == MapConfig.AVERGOMON_STAGE:
-                    ach.record_stat(uid, "avergomon_kills", 1, stats=stats, save=False)
+                if not is_bleak_zone:
+                    if player and player.max_hp <= 1:
+                        ach.record_stat(uid, "one_hp_boss_kills", 1, stats=stats, save=False)
+                    if stage == 12:
+                        ach.record_stat(uid, "act1_boss_kills", 1, stats=stats, save=False)
+                    elif stage == MapConfig.AVERGOMON_STAGE:
+                        ach.record_stat(uid, "avergomon_kills", 1, stats=stats, save=False)
+                from ..world.map_quest_service import record_battle_won
+                record_battle_won(run, stats, True)
                 ach.reconcile(uid, stats=stats, save=False)
+                self.engine.save_manager.save_stats(uid, stats)
+            if is_bleak_zone:
+                self.init_boss_chest(run)
+                self.engine._reindex_minions(run.player)
+                return
+        elif difficulty == "elite":
+            for uid in run.human_uids():
+                stats = self.engine.save_manager.load_stats(uid)
+                from ..world.map_quest_service import record_battle_won
+                record_battle_won(run, stats, True)
                 self.engine.save_manager.save_stats(uid, stats)
         self.init_rewards(run, difficulty)
         self.engine._reindex_minions(run.player)
