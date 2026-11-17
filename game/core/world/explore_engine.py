@@ -238,9 +238,9 @@ class ExploreEngine:
             })
             
         available_relics = [rid for rid in ["lucky_coin", "red_bottle", "leather_armor", "whetstone", "ready_pack", "arcane_rune", "pen_nib", "prayer_wheel"] if rid not in run.player.relics]
+        from ...data.relic_data import BACKPACK_RELIC_IDS, RELIC_CONFIG
         if available_relics:
             rid = random.choice(available_relics)
-            from ...data.relic_data import RELIC_CONFIG
             r_cfg = RELIC_CONFIG[rid]
             r_price = int(r_cfg["price"] * discount)
             items.append({
@@ -249,6 +249,15 @@ class ExploreEngine:
                 "price": r_price,
                 "sold": False
             })
+        for backpack_rid in BACKPACK_RELIC_IDS:
+            if backpack_rid not in run.player.relics:
+                bp_cfg = RELIC_CONFIG[backpack_rid]
+                items.append({
+                    "type": "relic",
+                    "relic_id": backpack_rid,
+                    "price": int(bp_cfg["price"] * discount),
+                    "sold": False
+                })
             
         from ...data.gem_data import GEM_CONFIG
         gem_pool = list(GEM_CONFIG.keys())

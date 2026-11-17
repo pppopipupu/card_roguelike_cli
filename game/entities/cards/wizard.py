@@ -2,6 +2,7 @@ from typing import Optional, List
 from ...models.state import Card
 from ...data.card_data import CARD_CONFIG
 from ...data.locale_data import get_locale_text
+from ...core.battle.target_selector import SelectionStepSpec, pop_selected_pile_cards
 from .registry import register_card
 
 THUNDERWAVE_ACTION_LOSS = 1
@@ -195,21 +196,59 @@ class MagicNetworkCard(Card):
 
 @register_card("fleeting_spark")
 class FleetingSparkCard(Card):
+    def get_selection_spec(self, run, engine) -> Optional[dict]:
+        return {
+            "phase": "post_play",
+            "can_cancel": False,
+            "steps": [
+                SelectionStepSpec(
+                    step_id="target",
+                    kind="enemy",
+                    min_count=1,
+                    max_count=1,
+                    required=True,
+                    auto_single=True,
+                    allow_simple_auto=True,
+                ),
+                SelectionStepSpec(
+                    step_id="discard_card",
+                    kind="hand",
+                    min_count=1,
+                    max_count=1,
+                    required=True,
+                    auto_single=True,
+                    prompt_key="i18n_cli_core.select_prompt_default",
+                    error_key="i18n_cli_core.err_force_discard_required",
+                    invalid_index_key="i18n_cli_core.err_invalid_hand_index",
+                ),
+            ],
+        }
+
     def execute(self, run, target, engine) -> str:
         dmg = getattr(self, "base_dmg", 9 if self.upgraded else 6)
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         name = engine._get_target_name(run, target)
         engine._damage_target(run, target, dmg, damage_type=self.damage_type, card=self, damage_ready=True)
-        
         draw_count = getattr(self, "draw_count", 3 if self.upgraded else 2)
         engine._draw_cards(run.player, draw_count, run)
         p = run.player
         if p.hand:
-            run.node_data["pending_discard"] = True
-            run.node_data["pending_discard_source"] = self.id
-            return get_locale_text("i18n_cards_warrior_wizard.wizard.fleeting_spark.discard", name=self.name, target=name, dmg=dmg, draw_count=draw_count)
-        else:
-            return get_locale_text("i18n_cards_warrior_wizard.wizard.fleeting_spark.empty", name=self.name, target=name, dmg=dmg, draw_count=draw_count)
+            return get_locale_text("i18n_cards_warrior_wizard.wizard.fleeting_spark.discard", name=self.name, target=name, dmg=dmg, draw_count=draw_count, options="")
+        return get_locale_text("i18n_cards_warrior_wizard.wizard.fleeting_spark.empty", name=self.name, target=name, dmg=dmg, draw_count=draw_count)
+
+    def execute_post_selections(self, run, selections: dict, engine) -> str:
+        p = run.player
+        selected = selections.get("discard_card", [])
+        if not selected or not p.hand:
+            return ""
+        popped = pop_selected_pile_cards(p.hand, selected)
+        if not popped:
+            return ""
+        effect_msg = engine._discard_card(run, popped[0])
+        res = get_locale_text("i18n_cli_core.discard_result", card_name=selected[0]["label"])
+        if effect_msg:
+            res += f"\n{effect_msg}"
+        return res
 
 @register_card("chain_lightning")
 class ChainLightningCard(Card):

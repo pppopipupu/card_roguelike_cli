@@ -132,9 +132,21 @@ class TestAnnaCard(unittest.TestCase):
     def test_excellent_crit_requires_ally_target(self):
         uid = "anna_crit_target_user"
         piles = [CardState(id="fire_bolt")] * 10
-        self.build_battle(uid, [CardState(id="excellent_crit")], piles, [], deck=list(piles))
+        from game.models.state import MinionState
+        self.build_battle(
+            uid,
+            [CardState(id="excellent_crit")],
+            piles,
+            [],
+            deck=list(piles),
+            minions={"1": MinionState("mercenary", "雇佣兵", 30, 30, 4, 1, 0)},
+        )
         res = self.run_cmd("p 1", uid)
         self.assertIn("己方目标", res)
+        res_pick = self.run_cmd("m1", uid)
+        self.assertIn("雇佣兵", res_pick)
+        after = load_run(self.plugin, uid)
+        self.assertEqual(after.player.minions["1"].hp, 10)
 
     def test_disappear_keyword_is_queryable(self):
         uid = "anna_keyword_user"

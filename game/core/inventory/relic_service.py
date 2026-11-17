@@ -1,4 +1,5 @@
 from ...data.relic_data import RELIC_CONFIG
+from ...data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 
 
 def init_relic_counter_map(counters: dict, relic_id: str) -> None:
@@ -27,6 +28,10 @@ def grant_relic(player, relic_id: str) -> bool:
     if relic_id not in player.relics:
         player.relics.append(relic_id)
         init_relic_counter(player, relic_id)
+        weight_bonus = int(RELIC_CONFIG.get(relic_id, {}).get("bag_weight_bonus", 0) or 0)
+        if weight_bonus > 0:
+            current_max = int(getattr(player, "bag_max_weight", BAG_DEFAULT_MAX_WEIGHT) or BAG_DEFAULT_MAX_WEIGHT)
+            player.bag_max_weight = max(BAG_DEFAULT_MAX_WEIGHT, current_max) + weight_bonus
         return True
     init_relic_counter(player, relic_id)
     return False

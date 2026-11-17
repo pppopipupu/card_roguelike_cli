@@ -578,6 +578,7 @@ for cid, cfg in _get_card_config().items():
     exhaust = cfg.get("exhaust", False)
     fleeting = cfg.get("fleeting", False)
     agile = cfg.get("agile", False)
+    cryptic = cfg.get("cryptic", False)
     retain = cfg.get("retain", False)
 
     from ...models.state import Card
@@ -620,6 +621,7 @@ for cid, cfg in _get_card_config().items():
     inst.fleeting_total = 1 if fleeting else 0
     inst.fleeting_remaining = inst.fleeting_total
     inst.agile = agile
+    inst.cryptic = cryptic
     inst.retain = retain
     inst.innate = cfg.get("innate", False)
     inst.ethereal = cfg.get("ethereal", False)

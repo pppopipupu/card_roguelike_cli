@@ -35,8 +35,6 @@ def ensure_sigil(stats) -> bool:
 
 
 def can_start(stats) -> tuple[bool, str]:
-    if stats.town_flags.get(YOG_QUEST_FLAG) == "completed":
-        return False, get_locale_text("i18n_yog_quest.enter.finished")
     if int(getattr(stats, "yog_sothoth_kill_count", 0) or 0) <= 0:
         return False, get_locale_text("i18n_yog_quest.enter.need_kill")
     if not stats.town_flags.get(YOG_INFO_FLAG):
@@ -80,8 +78,6 @@ def _party_quest_members(save_manager, user_id: str, stats) -> tuple[list[str] |
             return [], get_locale_text("i18n_world_social.team_quest.member_not_town", name=profile_name)
         if not ready.get(member_uid) and member_uid != user_id:
             return [], get_locale_text("i18n_world_social.team_quest.member_not_ready", name=profile_name)
-        if member_stats.town_flags.get(YOG_QUEST_FLAG) == "completed":
-            return [], get_locale_text("i18n_yog_quest.enter.finished")
         if not member_stats.town_flags.get(YOG_INFO_FLAG):
             return [], get_locale_text("i18n_yog_quest.enter.need_info")
     return members, ""
@@ -116,7 +112,8 @@ def _start_party_quest(save_manager, engine, user_id: str, members: list[str]) -
     run.user_id = user_id
     for member_uid in members:
         stats = member_stats[member_uid]
-        stats.town_flags[YOG_QUEST_FLAG] = "started"
+        if stats.town_flags.get(YOG_QUEST_FLAG) != "completed":
+            stats.town_flags[YOG_QUEST_FLAG] = "started"
         stats.town_flags[YOG_QUEST_ZONE_KEY] = 0
         stats.in_town = False
         stats.active_coop_id = coop_id
@@ -162,7 +159,8 @@ def start_quest_run(save_manager, engine, user_id: str) -> Optional[str]:
     )
     run.floor_map = generate_yog_quest_floor(run, YOG_FLOOR_WILDS)
     player.stage = int(FLOOR_CONFIGS[YOG_FLOOR_WILDS]["stage_min"])
-    stats.town_flags[YOG_QUEST_FLAG] = "started"
+    if stats.town_flags.get(YOG_QUEST_FLAG) != "completed":
+        stats.town_flags[YOG_QUEST_FLAG] = "started"
     stats.town_flags[YOG_QUEST_ZONE_KEY] = 0
     stats.in_town = False
     save_manager.save_stats(user_id, stats)
@@ -183,8 +181,12 @@ def finish_quest(save_manager, map_engine, run: GameRun) -> str:
     stats_by_uid = {}
     for member_uid in members:
         stats = save_manager.load_stats(member_uid)
+        prev_flags = stats.town_flags.get("yog_quest_flags")
+        merged_flags = dict(flags)
+        if isinstance(prev_flags, dict) and prev_flags.get("altar_defiled"):
+            merged_flags["altar_defiled"] = True
         stats.town_flags[YOG_QUEST_FLAG] = "completed"
-        stats.town_flags["yog_quest_flags"] = flags
+        stats.town_flags["yog_quest_flags"] = merged_flags
         stats.town_flags[YOG_QUEST_ROUTE_KEY] = "butcher" if butcher else "standard"
         if NECRONOMICON_ITEM not in stats.town_inventory:
             stats.town_inventory.append(NECRONOMICON_ITEM)

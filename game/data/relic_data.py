@@ -530,6 +530,36 @@ RELIC_CONFIG = {
         "counter_init": 5,
         "counter_max": 5,
         "price": 120
+    },
+    "backpack_small": {
+        "name": "轻便背包",
+        "rarity": "common",
+        "desc": "本局行囊负重上限永久增加 20 KG。",
+        "bag_weight_bonus": 20,
+        "price": 50
+    },
+    "backpack_medium": {
+        "name": "结实背包",
+        "rarity": "rare",
+        "desc": "本局行囊负重上限永久增加 45 KG。",
+        "bag_weight_bonus": 45,
+        "price": 100
+    },
+    "backpack_large": {
+        "name": "远征背包",
+        "rarity": "epic",
+        "desc": "本局行囊负重上限永久增加 100 KG。",
+        "bag_weight_bonus": 100,
+        "price": 200
+    },
+    "backpack_giant": {
+        "name": "次元行囊",
+        "rarity": "legendary",
+        "desc": "本局行囊负重上限永久增加 300 KG。",
+        "bag_weight_bonus": 300,
+        "price": 500
     }
 }
+
+BACKPACK_RELIC_IDS = ["backpack_small", "backpack_medium", "backpack_large", "backpack_giant"]
 

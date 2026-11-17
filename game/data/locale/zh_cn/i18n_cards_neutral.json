@@ -110,6 +110,13 @@
         "result": "丢弃了所有的手牌（共 {discard_count} 张），并重新抽取了 {discard_count} 张牌。",
         "empty": "手牌已空，没有丢弃任何卡牌。"
       },
+      "moyai_trio": {
+        "discard": "使用了【{name}】，获得了 {shield} 点护盾。请丢弃一张手牌（输入 c <手牌序号>）。",
+        "prompt": "🗿 请为【{card_name}】选择一张要丢弃的手牌（输入 c <序号> / 数字 / h<序号>，exit 取消）：\n{options}",
+        "invalid": "❌ 无效的手牌序号或选择器，当前可选手牌有 {count} 张。",
+        "empty": "使用了【{name}】，获得了 {shield} 点护盾（当前无手牌可丢弃）。",
+        "result": "使用了【{name}】，获得了 {shield} 点护盾，并丢弃了【{discarded}】。{effect}"
+      },
       "mana_potion": {
         "result_upgraded": "饮用了【魔力药水+】，获得了 1A 并抽了 2 张牌。",
         "result": "饮用了【魔力药水】，获得了 1BA 并抽了 1 张牌。"
@@ -170,7 +177,7 @@
         "self_selected": "❌ 不能选择正在被打出的霸瞳天星作为保留卡牌。",
         "out_of_range": "❌ 提供的手牌序号 {keep_idx} 超出范围。打出霸瞳天星前你共有 {hand_count} 张手牌。",
         "invalid_arg": "❌ 参数必须为数字代表的手牌序号。",
-        "prompt": "👁️ 【霸瞳天星】已发动。请选择你要保留的手牌（输入 c <序号>，除此牌外的所有手牌都将被消耗）：\n{hand_list}"
+        "prompt": "👁️ 【霸瞳天星】已发动。请选择你要保留的手牌（输入 c <序号> / 数字 / h<序号>，除此牌外的所有手牌都将被消耗）：\n{options}"
       },
       "astral_strike": {
         "invalid_target": "❌ 请指定敌方目标（例如：p 卡牌序号 e1）。",

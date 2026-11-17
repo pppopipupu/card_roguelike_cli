@@ -17,7 +17,11 @@ class ActionRouter:
         if not parts:
             return "", False, False
         state_stack = run.node_data.setdefault("state_stack", [])
-        if run.node_type == "battle" and run.node_data.get("pending_discard"):
+        if (
+            run.node_type == "battle"
+            and run.node_data.get("pending_discard")
+            and not (state_stack and state_stack[-1].get("type") == "card_selection")
+        ):
             run.node_data.pop("pending_discard", None)
             run.node_data.pop("pending_discard_source", None)
             state_stack.append({"type": "force_discard", "required_count": 1})
@@ -28,7 +32,10 @@ class ActionRouter:
         if state_stack:
             top_state = state_stack[-1]
             stype = top_state.get("type")
-            if stype == "cthulhu_puzzle_choice":
+            if stype == "card_selection":
+                from ..battle.selection_session import handle_selection_input
+                return handle_selection_input(self, router, user_id, run, parts)
+            elif stype == "cthulhu_puzzle_choice":
                 head = parts[0].lower()
                 if head in ("取消", "cancel"):
                     state_stack.pop()

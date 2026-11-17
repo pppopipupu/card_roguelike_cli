@@ -269,6 +269,7 @@ class Card:
     rarity: str = "common"
     fleeting: bool = False
     agile: bool = False
+    cryptic: bool = False
     retain: bool = False
     innate: bool = False
     ethereal: bool = False
@@ -330,7 +331,20 @@ class Card:
     def can_play_error(self, run: 'GameRun', target: Optional[str], engine) -> Optional[str]:
         return None
 
+    def get_selection_spec(self, run: 'GameRun', engine) -> Optional[dict]:
+        return None
+
     def execute(self, run: 'GameRun', target: Optional[str], engine) -> str:
+        return ""
+
+    def execute_with_selections(self, run: 'GameRun', selections: dict, engine) -> str:
+        for items in selections.values():
+            for item in items:
+                if item.get("value"):
+                    return self.execute(run, item["value"], engine)
+        return self.execute(run, None, engine)
+
+    def execute_post_selections(self, run: 'GameRun', selections: dict, engine) -> str:
         return ""
 
     def special_action(self, run: 'GameRun', target: Optional[str] = None) -> str:

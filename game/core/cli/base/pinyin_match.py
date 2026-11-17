@@ -1,7 +1,6 @@
 import re
 from bisect import bisect_right
 from typing import Optional
-from ....entities import ALL_CARDS
 from ....models.state import ensure_card_state
 
 try:
@@ -135,17 +134,30 @@ def find_entry_by_query(entries: list[tuple[str, str]], query: str) -> Optional[
     return None
 
 
+def find_candidate_index_by_query(items: list, name_fn, query: str) -> Optional[int]:
+    entries = []
+    for idx, item in enumerate(items):
+        name = name_fn(item)
+        if name:
+            entries.append((str(idx), str(name)))
+    matched = find_entry_by_query(entries, query)
+    if matched is None:
+        return None
+    return int(matched)
+
+
 def find_hand_index_by_initials(hand: list, query: str) -> Optional[int]:
+    from ....entities import ALL_CARDS
     normalized = normalize_initial_query(query)
     if not normalized:
         return None
-    for idx, entry in enumerate(hand, 1):
+
+    def _card_name(entry) -> str:
         try:
             card = ALL_CARDS.get(ensure_card_state(entry))
         except (TypeError, ValueError):
             card = None
-        if not card:
-            continue
-        if greedy_initial_match(normalized, name_initial_pattern(card.name)):
-            return idx
-    return None
+        return card.name if card else ""
+
+    idx = find_candidate_index_by_query(hand, _card_name, normalized)
+    return idx + 1 if idx is not None else None

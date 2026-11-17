@@ -48,6 +48,7 @@
   "reshuffle_log": "🔄 弃牌堆已重新洗入抽牌堆。",
   "mindflayer_brain_log": "🧠 [夺心魔脑核] 触发！弃牌对【{name}】造成 3 点心灵伤害！",
   "agile_discard_log": "✨ 触发[灵巧]：丢弃【{name}】时自动打出！效果：{effect}",
+  "cryptic_discard_log": "🌑 触发[诡秘]：丢弃【{name}】时免费打出！效果：{effect}",
   "not_in_battle_card": "❌ 只有在战斗中才能使用卡牌。",
   "downed_cannot_play": "💀 你已倒地，无法出牌。你可以输入 status 观战，等待队友获胜后在下一层以 1 HP 复活。",
   "invalid_hand_index": "❌ 无效的手牌序号。",

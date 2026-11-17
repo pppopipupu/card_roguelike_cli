@@ -1,8 +1,10 @@
 import random
+from typing import Optional
 from ...data.anna_card_config import EXCELLENT_CRIT_CONFIG, EXCELLENT_CRIT_ID
 from ...data.locale_data import get_locale_text
 from ...models.state import Card
 from ...core.battle.vanish import count_cards_in_piles
+from ...core.battle.target_selector import SelectionStepSpec
 from .neutral_base import SummonMinionCard
 from .registry import register_card
 
@@ -14,12 +16,38 @@ class AnneMinionCard(SummonMinionCard):
 
 @register_card(EXCELLENT_CRIT_ID)
 class ExcellentCritCard(Card):
+    def get_selection_spec(self, run, engine) -> Optional[dict]:
+        return {
+            "phase": "pre_play",
+            "can_cancel": True,
+            "steps": [
+                SelectionStepSpec(
+                    step_id="ally_target",
+                    kind="self_and_allies",
+                    min_count=1,
+                    max_count=1,
+                    required=True,
+                    auto_single=True,
+                    prompt_key="i18n_cards_anna.crit_prompt",
+                    error_key="i18n_cards_anna.crit_need_ally_target",
+                    invalid_index_key="i18n_cards_anna.crit_invalid",
+                )
+            ],
+        }
+
     def can_play_error(self, run, target, engine):
+        if target is None:
+            return None
         if isinstance(target, str):
             lowered = target.strip().lower()
             if lowered == "p0" or lowered.startswith("p") or lowered.startswith("a"):
                 return None
         return get_locale_text("i18n_cards_anna.crit_need_ally_target")
+
+    def execute_with_selections(self, run, selections: dict, engine) -> str:
+        selected = selections.get("ally_target", [])
+        target_val = selected[0]["value"] if selected else "p0"
+        return self.execute(run, target_val, engine)
 
     def execute(self, run, target, engine) -> str:
         cfg = EXCELLENT_CRIT_CONFIG

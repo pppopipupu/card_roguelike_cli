@@ -8,8 +8,10 @@ from ..cli.state_resolver import resolve_game_state
 from ..cli.base import CommandHandler
 from ..cli.base.aliases import (
     NODE_EXIT_ALIASES, NODE_CANCEL_ALIASES,
-    STATE_STACK_CANCEL_ALIASES, has_pending_node_cancel,
+    STATE_STACK_CANCEL_ALIASES, STATE_STACK_BACK_ALIASES, STATE_STACK_DONE_ALIASES,
+    has_pending_node_cancel,
 )
+from ..battle.target_selector import TargetSelectorParser
 from ...renderer.menu import get_reader_total_pages, render_reader_page
 from ...renderer import GameRenderer, format_output_numbers
 from ...cards import resolve_card_id, ALL_CARDS
@@ -168,8 +170,15 @@ class HeadlessGameServer:
 
         first_word = parts[0].lower()
         is_game_cmd = False
-        if run and run.node_data.get("state_stack") and first_word in STATE_STACK_CANCEL_ALIASES:
-            is_game_cmd = True
+        if run and run.node_data.get("state_stack"):
+            if (
+                first_word in STATE_STACK_CANCEL_ALIASES
+                or first_word in STATE_STACK_BACK_ALIASES
+                or first_word in STATE_STACK_DONE_ALIASES
+                or first_word in ("选择", "c")
+                or TargetSelectorParser.is_explicit_selector(first_word)
+            ):
+                is_game_cmd = True
         curr_state = self._get_current_state(user_id, run, stats)
         _, exists = CommandHandler.resolve(first_word, curr_state)
         if exists:

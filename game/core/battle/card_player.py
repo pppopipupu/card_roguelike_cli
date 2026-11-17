@@ -5,6 +5,8 @@ from ...models.state import GameRun, PlayerState
 from .card_player_rewards import CardPlayerRewardsMixin
 from .card_player_turn import CardPlayerTurnMixin
 from .coop_targeting import validate_coop_target, normalize_coop_target
+from .selection_session import start_card_selection
+from .target_selector import TargetSelectorParser
 from ..inventory.deck_service import DeckService
 from ...data.locale_data import get_locale_text
 from ...data.buff_data import BUFF_CONFIG
@@ -300,7 +302,9 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         if not card:
             p.discard_pile.append(c_state)
             return self.engine._append_logs_to_res(run, "")
-        if getattr(card, "agile", False):
+        is_agile = getattr(card, "agile", False)
+        is_cryptic = getattr(card, "cryptic", False)
+        if is_agile or is_cryptic:
             target = None
             if card.type == "spell":
                 if getattr(card, "target_type", "enemy") == "self":
@@ -309,11 +313,20 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
                     target = self.engine._get_first_alive_enemy(run)
                 if target == "0" or target == "e0":
                     target = "e1"
+            elif card.type == "ability":
+                target = "p0"
+            elif card.type in ("minion", "amulet"):
+                if getattr(card, "target_type", "enemy") == "enemy":
+                    target = self.engine._get_first_alive_enemy(run)
+                else:
+                    target = self.engine._get_free_grid(run.player) or "p1"
             run.node_data["extra_play_msgs"] = []
+            play_source = "agile" if is_agile else "cryptic"
             res = self.engine._execute_card_effect(run, card, target)
-            res, _ = self._finalize_card_play(run, p, card, c_state, target, res, source="agile", register=False)
+            res, _ = self._finalize_card_play(run, p, card, c_state, target, res, source=play_source, register=False)
             self._reindex_minions(p)
-            return self.engine._append_logs_to_res(run, get_locale_text("i18n_battle_core.agile_discard_log", name=card.name, effect=res))
+            log_key = "i18n_battle_core.agile_discard_log" if is_agile else "i18n_battle_core.cryptic_discard_log"
+            return self.engine._append_logs_to_res(run, get_locale_text(log_key, name=card.name, effect=res))
         else:
             p.discard_pile.append(c_state)
             self._reindex_minions(p)
@@ -337,68 +350,13 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         if getattr(card, "unplayable", False):
             return get_locale_text("i18n_battle_core.card_unplayable")
         base_id = card.id
-        is_discover = base_id == "discover"
-        is_emperor_eye = base_id.startswith("neutral_emperor_eye")
         is_coop_card = bool(getattr(card, "coop_only", False))
         is_any_other = getattr(card, "target_type", "enemy") == "any_other"
-        if is_coop_card:
-            target = normalize_coop_target(run, card, base_id, target)
-        if is_coop_card:
-            error = validate_coop_target(self.engine, run, card, base_id, target)
-            if error:
-                return error
-        if not is_discover:
-            if target is None:
-                if is_emperor_eye or is_coop_card or base_id.startswith("curse_shou_hui"):
-                    pass
-                elif card.type == "spell":
-                    if getattr(card, "target_type", "enemy") == "self":
-                        target = "p0"
-                    else:
-                        target = self.engine._get_first_alive_enemy(run)
+        is_self_spell = getattr(card, "target_type", "enemy") == "self"
 
-            if target is not None:
-                if is_emperor_eye:
-                    pass
-                else:
-                    if isinstance(target, str) and target.isdigit():
-                        target = f"e{target}"
-                    if target == "0" or target == "e0":
-                        target = "e1"
-                    elif target == "p":
-                        target = "p0"
-                    if target.lower().startswith("a"):
-                        resolved = self.engine.combat_resolver.resolve_ally(run, target)
-                        if is_coop_card or is_any_other:
-                            if not resolved:
-                                return get_locale_text("i18n_battle_misc.coop_ally_not_found", target=target)
-                        elif getattr(card, "target_type", "enemy") == "self" and resolved and resolved[0] == run.uid_for(p):
-                            if resolved[2] is not None and resolved[2] not in p.minions:
-                                return get_locale_text("i18n_battle_core.own_grid_empty", grid=resolved[2])
-                            target = "p0" if resolved[2] is None else f"p{resolved[2]}"
-                        else:
-                            return get_locale_text("i18n_battle_core.invalid_target")
-                    elif target.startswith("e"):
-                        try:
-                            grid = int(target[1:]) - 1
-                        except ValueError:
-                            grid = 0
-                        if grid < 0 or grid >= len(run.enemies):
-                            return get_locale_text("i18n_battle_core.enemy_grid_empty", target=target)
-                    elif target == "p0":
-                        pass
-                    elif target.startswith("p"):
-                        grid = target[1:]
-                        if grid not in p.minions:
-                            return get_locale_text("i18n_battle_core.own_grid_empty", grid=grid)
-                    else:
-                        return get_locale_text("i18n_battle_core.invalid_target")
         if card.type in ("minion", "amulet") and self.engine._get_free_grid(p) is None:
             return get_locale_text("i18n_battle_core.battlefield_full")
-        play_err = card.can_play_error(run, target, self.engine)
-        if play_err:
-            return play_err
-        
+
         req_a = card.cost_a
         req_ba = card.cost_ba
         real_x_a = 0
@@ -409,15 +367,75 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         if req_ba == -1:
             real_x_ba = p.bonus_actions
             req_ba = p.bonus_actions
-
         if "chemical_x" in p.relics:
             if card.cost_a == -1:
                 real_x_a += 2
             if card.cost_ba == -1:
                 real_x_ba += 2
-
         run.node_data["last_x_cost_a"] = real_x_a
         run.node_data["last_x_cost_ba"] = real_x_ba
+
+        selection_spec = card.get_selection_spec(run, self.engine)
+        if selection_spec is not None:
+            return start_card_selection(self, run, card, cid, hand_idx, target, req_a, req_ba, selection_spec)
+
+        if is_coop_card:
+            target = normalize_coop_target(run, card, base_id, target)
+        if target is not None:
+            resolved_target, resolve_err = TargetSelectorParser.resolve_simple_target(
+                run,
+                target,
+                is_self_spell=is_self_spell,
+                is_coop_card=is_coop_card,
+                is_any_other=is_any_other,
+                engine=self.engine,
+            )
+            if resolve_err:
+                return resolve_err
+            target = resolved_target
+        if is_coop_card:
+            error = validate_coop_target(self.engine, run, card, base_id, target)
+            if error:
+                return error
+
+        if target is None and not is_coop_card and not is_any_other:
+            if card.type == "spell":
+                if is_self_spell:
+                    target = "p0"
+                else:
+                    target = self.engine._get_first_alive_enemy(run)
+
+        if target is not None:
+            if target.lower().startswith("a"):
+                resolved = self.engine.combat_resolver.resolve_ally(run, target)
+                if is_coop_card or is_any_other:
+                    if not resolved:
+                        return get_locale_text("i18n_battle_misc.coop_ally_not_found", target=target)
+                elif is_self_spell and resolved and resolved[0] == run.uid_for(p):
+                    if resolved[2] is not None and resolved[2] not in p.minions:
+                        return get_locale_text("i18n_battle_core.own_grid_empty", grid=resolved[2])
+                    target = "p0" if resolved[2] is None else f"p{resolved[2]}"
+                else:
+                    return get_locale_text("i18n_battle_core.invalid_target")
+            elif target.startswith("e"):
+                try:
+                    grid = int(target[1:]) - 1
+                except ValueError:
+                    grid = 0
+                if grid < 0 or grid >= len(run.enemies):
+                    return get_locale_text("i18n_battle_core.enemy_grid_empty", target=target)
+            elif target == "p0":
+                pass
+            elif target.startswith("p"):
+                grid = target[1:]
+                if grid not in p.minions:
+                    return get_locale_text("i18n_battle_core.own_grid_empty", grid=grid)
+            else:
+                return get_locale_text("i18n_battle_core.invalid_target")
+
+        play_err = card.can_play_error(run, target, self.engine)
+        if play_err:
+            return play_err
 
         play_evt = CardPlayEvent(run, card, target, req_a, req_ba)
         self.engine.event_bus.dispatch(play_evt)
@@ -561,12 +579,18 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
             return get_locale_text("i18n_battle_core.not_in_battle_minion_attack")
         if p.downed:
             return get_locale_text("i18n_battle_core.downed_cannot_command")
+        if my_grid not in p.minions:
             return get_locale_text("i18n_battle_core.own_grid_empty", grid=my_grid)
         m = p.minions[my_grid]
         if m.attack_actions < 1:
             return get_locale_text("i18n_battle_core.minion_no_attack_actions")
         if opp_grid is None:
             opp_grid = self.engine._get_first_alive_enemy(run)
+        else:
+            resolved_opp, opp_err = TargetSelectorParser.resolve_simple_target(run, opp_grid, engine=self.engine)
+            if opp_err or not resolved_opp or not resolved_opp.startswith("e"):
+                return get_locale_text("i18n_battle_core.enemy_grid_invalid", target=opp_grid)
+            opp_grid = resolved_opp
         m.attack_actions -= 1
         try:
             opp_idx = int(opp_grid.replace("e", "")) - 1
@@ -592,6 +616,7 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
             return get_locale_text("i18n_battle_core.not_in_battle_minion_skill")
         if p.downed:
             return get_locale_text("i18n_battle_core.downed_cannot_skill")
+        if my_grid not in p.minions:
             return get_locale_text("i18n_battle_core.own_grid_empty", grid=my_grid)
         m = p.minions[my_grid]
         if m.id not in ALL_MINIONS:
@@ -617,6 +642,11 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         if needs_target:
             if target is None:
                 target = self.engine._get_first_alive_enemy(run)
+            else:
+                resolved_target, target_err = TargetSelectorParser.resolve_simple_target(run, target, engine=self.engine)
+                if target_err:
+                    return get_locale_text("i18n_battle_core.invalid_target_enemy_only")
+                target = resolved_target
             if target is None:
                 return get_locale_text("i18n_battle_core.enemy_target_missing", target="")
             if isinstance(target, str) and target.isdigit():

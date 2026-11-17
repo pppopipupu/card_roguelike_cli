@@ -224,6 +224,88 @@ class TestTempleAndTokens(unittest.TestCase):
         finally:
             self._cleanup(uid)
 
+    def test_yog_quest_completed_can_reenter_snowfield_from_west_gate(self):
+        uid = "test_yog_reenter_snowfield_user"
+        self._cleanup(uid)
+        try:
+            self._run(".rogue 主城", uid)
+            stats = self.sm.load_stats(uid)
+            stats.yog_sothoth_kill_count = 1
+            stats.town_flags["yog_quest_info_received"] = True
+            stats.town_flags["quest_yog_death_state"] = "completed"
+            if "star_sigil" not in stats.town_inventory:
+                stats.town_inventory.append("star_sigil")
+            self.sm.save_stats(uid, stats)
+
+            self._run(".rogue a", uid)
+            self._run(".rogue a", uid)
+            gate_talk = self._run(".rogue talk 西大门", uid)
+            self.assertIn("出城前往雪原", gate_talk)
+            opt_num = None
+            for line in gate_talk.splitlines():
+                if "出城前往雪原" in line and "." in line:
+                    opt_num = line.split(".", 1)[0].strip()
+                    break
+            self.assertIsNotNone(opt_num)
+
+            enter_res = self._run(f".rogue {opt_num}", uid)
+            self.assertIn("雾隐雪原", enter_res)
+            run = require_run(self.sm.load_save(uid))
+            self.assertEqual(run.node_type, "grid_map")
+            self.assertTrue(floor_of(run).floor_flags.get("yog_quest"))
+            self.assertEqual(self.sm.load_stats(uid).town_flags.get("quest_yog_death_state"), "completed")
+        finally:
+            self._cleanup(uid)
+
+    def test_defiled_altar_route_fountain_outer_plane(self):
+        uid = "test_defiled_fountain_outer_plane_user"
+        self._cleanup(uid)
+        try:
+            self._run(".rogue 主城", uid)
+            stats = self.sm.load_stats(uid)
+            stats.gp = 10
+            stats.town_flags["quest_yog_death_state"] = "completed"
+            stats.town_flags["yog_quest_flags"] = {}
+            self.sm.save_stats(uid, stats)
+
+            self._run(".rogue d", uid)
+            no_defile_talk = self._run(".rogue talk 许愿喷泉", uid)
+            self.assertNotIn("向喷泉投入 1 GP 硬币", no_defile_talk)
+            self._run(".rogue 1", uid)
+
+            stats = self.sm.load_stats(uid)
+            stats.town_flags["yog_quest_flags"] = {"altar_defiled": True}
+            self.sm.save_stats(uid, stats)
+
+            talk1 = self._run(".rogue talk 许愿喷泉", uid)
+            self.assertIn("向喷泉投入 1 GP 硬币", talk1)
+            self.assertNotIn("跳入喷泉", talk1)
+            toss_num = None
+            for line in talk1.splitlines():
+                if "向喷泉投入 1 GP 硬币" in line and "." in line:
+                    toss_num = line.split(".", 1)[0].strip()
+                    break
+            self.assertIsNotNone(toss_num)
+
+            gp_before = self.sm.load_stats(uid).gp
+            talk2 = self._run(f".rogue {toss_num}", uid)
+            self.assertIn("跳入喷泉", talk2)
+            self.assertEqual(self.sm.load_stats(uid).gp, gp_before - 1)
+            jump_num = None
+            for line in talk2.splitlines():
+                if "跳入喷泉" in line and "." in line:
+                    jump_num = line.split(".", 1)[0].strip()
+                    break
+            self.assertIsNotNone(jump_num)
+
+            enter_res = self._run(f".rogue {jump_num}", uid)
+            self.assertIn("外层位面", enter_res)
+            self.assertIn("漂泊之岸", enter_res)
+            updated = self.sm.load_stats(uid)
+            self.assertTrue(updated.town_flags.get("outer_plane_active"))
+        finally:
+            self._cleanup(uid)
+
 
 if __name__ == "__main__":
     unittest.main()

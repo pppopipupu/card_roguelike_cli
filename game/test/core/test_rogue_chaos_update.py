@@ -276,7 +276,7 @@ class TestRogueChaosUpdate(unittest.TestCase):
         )
         run = GameRun(user_id="test_eye_suspend", node_type="battle", player=player, enemies=[EnemyState("e1", 10, 10, 0)])
         ge.play_card(run, 1, None)
-        self.assertEqual(run.node_data["state_stack"][-1]["type"], "overload_star_select")
+        self.assertEqual(run.node_data["state_stack"][-1]["type"], "card_selection")
         self.assertEqual(len(player.exhaust_pile), 0)
         has_copy = any(getattr(cid, "id", cid) == "neutral_emperor_eye" for cid in player.hand)
         self.assertFalse(has_copy)
@@ -290,7 +290,7 @@ class TestRogueChaosUpdate(unittest.TestCase):
         user_id = "test_discover_resolve_cmd"
         plugin.save_manager.delete_save(user_id)
         stats = plugin.save_manager.load_stats(user_id)
-        stats.locked_cards = ["discover:gems:gem_copy_1", "first_aid"]
+        stats.locked_cards = ["discover:gems:gem_copy_1", "first_aid", "mana_potion"]
         plugin.save_manager.save_stats(user_id, stats)
 
         async def go():
@@ -301,12 +301,13 @@ class TestRogueChaosUpdate(unittest.TestCase):
             await run_command(plugin, ".rogue 2", user_id)
             for _ in range(8):
                 run = load_run(plugin, user_id)
-                fa_idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == "first_aid"), None)
-                if fa_idx is not None:
-                    await run_command(plugin, f".rogue p {fa_idx}", user_id)
-                run = load_run(plugin, user_id)
+                for cid in ("first_aid", "mana_potion"):
+                    c_idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == cid), None)
+                    if c_idx is not None:
+                        await run_command(plugin, f".rogue p {c_idx}", user_id)
+                        run = load_run(plugin, user_id)
                 disc_idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == "discover"), None)
-                if disc_idx is not None and run.player.exhaust_pile:
+                if disc_idx is not None and len(run.player.exhaust_pile) >= 2:
                     res = await run_command(plugin, f".rogue p {disc_idx}", user_id)
                     self.assertIn("请选择一张卡牌发掘", res)
                     run_mid = load_run(plugin, user_id)
@@ -327,7 +328,7 @@ class TestRogueChaosUpdate(unittest.TestCase):
         user_id = "test_discover_cancel_cmd"
         plugin.save_manager.delete_save(user_id)
         stats = plugin.save_manager.load_stats(user_id)
-        stats.locked_cards = ["discover:gems:gem_copy_1", "first_aid"]
+        stats.locked_cards = ["discover:gems:gem_copy_1", "first_aid", "mana_potion"]
         plugin.save_manager.save_stats(user_id, stats)
 
         async def go():
@@ -338,12 +339,13 @@ class TestRogueChaosUpdate(unittest.TestCase):
             await run_command(plugin, ".rogue 2", user_id)
             for _ in range(8):
                 run = load_run(plugin, user_id)
-                fa_idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == "first_aid"), None)
-                if fa_idx is not None:
-                    await run_command(plugin, f".rogue p {fa_idx}", user_id)
-                run = load_run(plugin, user_id)
+                for cid in ("first_aid", "mana_potion"):
+                    c_idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == cid), None)
+                    if c_idx is not None:
+                        await run_command(plugin, f".rogue p {c_idx}", user_id)
+                        run = load_run(plugin, user_id)
                 disc_idx = next((i for i, c in enumerate(run.player.hand, 1) if c.id == "discover"), None)
-                if disc_idx is not None and run.player.exhaust_pile:
+                if disc_idx is not None and len(run.player.exhaust_pile) >= 2:
                     actions_before = run.player.actions
                     await run_command(plugin, f".rogue p {disc_idx}", user_id)
                     await run_command(plugin, ".rogue exit", user_id)

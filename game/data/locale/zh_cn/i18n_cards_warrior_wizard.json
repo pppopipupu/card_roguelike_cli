@@ -161,7 +161,9 @@
     "valiant_herald": {
       "rally": "\n📣 [入场曲] 协作达到了 {rally}！从卡组中检索并抽取了士兵随从牌【{name}】，并使其本回合获得【保留】且动作费用 A 减少了 1！",
       "draw": "\n📣 [入场曲] 从卡组中检索并抽取了士兵随从牌【{name}】。",
-      "fail": "\n📣 [入场曲] 检索失败，卡组中没有士兵随从牌。"
+      "fail": "\n📣 [入场曲] 检索失败，卡组中没有士兵随从牌。",
+      "prompt": "📣 请为【{card_name}】选择要从抽牌堆检索的士兵随从牌（已乱序展示，输入 选择 <序号> / 数字 / dr<序号>，exit 取消）：\n{options}",
+      "invalid": "❌ 无效的抽牌堆士兵牌序号，当前可选共 {count} 张。"
     },
     "blade_dancer": {
       "rally_bonus": "，且玩家获得了 {gain_a}A",
@@ -208,7 +210,8 @@
       "unknown_card": "未知卡牌",
       "success": "✨ 你使用【{name}】发掘了消耗堆中的【{names}】并加入了手牌。",
       "invalid": "❌ 提供的消耗堆序号不合法或消耗堆中没有对应的卡牌。",
-      "prompt": "🔮 请选择一张卡牌发掘并加入手牌（使用 选择 <序号>）：\n{exhaust_list}"
+      "prompt": "🔮 请选择一张卡牌发掘并加入手牌（使用 选择 <序号> / 数字 / ex<序号>）：\n{options}",
+      "continue": "✨ 你已选择【{chosen_name}】，请继续选择第 {next_index} 张发掘卡牌：\n{options}"
     },
     "strike_of_all": {
       "result": "对【{name}】造成了 {dmg} 点挥砍伤害（X={x}）。",
@@ -291,8 +294,9 @@
       "feedback": "使用了【魔网天成】，本回合内你的法术将与魔网产生共鸣。"
     },
     "fleeting_spark": {
-      "discard": "使用了【{name}】，对【{target}】造成了 {dmg} 点伤害，并抽了 {draw_count} 张牌。请选择一张手牌丢弃。输入 选择 <手牌序号> 进行丢弃。",
-      "empty": "使用了【{name}】，对【{target}】造成了 {dmg} 点伤害，并抽了 {draw_count} 张牌，但手牌已空，无需丢弃。"
+      "discard": "使用了【{name}】，对【{target}】造成了 {dmg} 点伤害，并抽了 {draw_count} 张牌。请选择一张手牌丢弃。输入 选择 <手牌序号>、数字或 h<序号> 进行丢弃：\n{options}",
+      "empty": "使用了【{name}】，对【{target}】造成了 {dmg} 点伤害，并抽了 {draw_count} 张牌，但手牌已空，无需丢弃。",
+      "auto_discard": "使用了【{name}】，对【{target}】造成了 {dmg} 点伤害，并抽了 {draw_count} 张牌，自动丢弃了【{discarded}】。{effect}"
     },
     "chain_lightning": {
       "bonus": " ⚡ [链式闪电+] 触发单体暴击，造成 1.5 倍伤害！",

@@ -532,7 +532,7 @@ class BattleEngine(BaseBattleEngine):
         self.save_manager.save_save(run.user_id, run)
         return self._append_logs_to_res(run, res_str)
 
-    def resolve_suspended_card(self, run: GameRun):
+    def resolve_suspended_card(self, run: GameRun, target: Optional[str] = None):
         self.current_run = run
         suspended_state = run.node_data.pop("suspended_card_cid", None)
         if not suspended_state:
@@ -550,7 +550,7 @@ class BattleEngine(BaseBattleEngine):
         if not card:
             return
         
-        res, _ = self.card_player._finalize_card_play(run, p, card, suspended_state, None, "", source="played", register=True)
+        res, _ = self.card_player._finalize_card_play(run, p, card, suspended_state, target, "", source="played", register=True)
         if res.strip():
             self._log_event(run, res.strip())
 

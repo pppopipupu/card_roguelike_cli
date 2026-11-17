@@ -1,7 +1,9 @@
+from typing import Optional
 from ...models.state import Card
 from ...data.card_data import CARD_CONFIG
 from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
 from ...data.locale_data import get_locale_text
+from ...core.battle.target_selector import SelectionStepSpec, pop_selected_pile_cards
 from .registry import register_card
 
 @register_card("tactical_focus")
@@ -227,3 +229,63 @@ class MasterKeyCard(Card):
         if lw_logs:
             res_str += "\n" + "\n".join(lw_logs)
         return res_str
+
+
+@register_card("moyai_trio")
+class MoyaiTrioCard(Card):
+    def get_selection_spec(self, run, engine) -> Optional[dict]:
+        return {
+            "phase": "pre_play",
+            "can_cancel": True,
+            "steps": [
+                SelectionStepSpec(
+                    step_id="discard_card",
+                    kind="hand",
+                    min_count=1,
+                    max_count=1,
+                    required=True,
+                    auto_single=True,
+                    exclude_playing_card=True,
+                    prompt_key="i18n_cards_neutral.neutral.cards.moyai_trio.prompt",
+                    error_key="i18n_cli_core.err_force_discard_required",
+                    invalid_index_key="i18n_cards_neutral.neutral.cards.moyai_trio.invalid",
+                )
+            ],
+        }
+
+    def execute_with_selections(self, run, selections: dict, engine) -> str:
+        shield = getattr(self, "shield_amount", 10)
+        engine._gain_shield(run, "p0", shield)
+        p = run.player
+        selected = selections.get("discard_card", [])
+        if not selected or not p.hand:
+            return get_locale_text("i18n_cards_neutral.neutral.cards.moyai_trio.empty", name=self.name, shield=shield)
+        popped = pop_selected_pile_cards(p.hand, selected)
+        if not popped:
+            return get_locale_text("i18n_cards_neutral.neutral.cards.moyai_trio.empty", name=self.name, shield=shield)
+        effect_msg = engine._discard_card(run, popped[0])
+        return get_locale_text(
+            "i18n_cards_neutral.neutral.cards.moyai_trio.result",
+            name=self.name,
+            shield=shield,
+            discarded=selected[0]["label"],
+            effect=effect_msg or "",
+        )
+
+    def execute(self, run, target, engine) -> str:
+        shield = getattr(self, "shield_amount", 10)
+        engine._gain_shield(run, "p0", shield)
+        p = run.player
+        if p.hand:
+            popped = p.hand.pop(0)
+            effect_msg = engine._discard_card(run, popped)
+            from .base import ALL_CARDS
+            dname = ALL_CARDS[popped].name if popped in ALL_CARDS else str(popped)
+            return get_locale_text(
+                "i18n_cards_neutral.neutral.cards.moyai_trio.result",
+                name=self.name,
+                shield=shield,
+                discarded=dname,
+                effect=effect_msg or "",
+            )
+        return get_locale_text("i18n_cards_neutral.neutral.cards.moyai_trio.empty", name=self.name, shield=shield)

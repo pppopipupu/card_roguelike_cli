@@ -35,6 +35,7 @@ COMMAND_SECTION_ORDER = {
         "minion",
         "skill",
         "special",
+        "back",
         "end_turn",
         "fold",
         "queue",

@@ -6,7 +6,13 @@ from ....cards import ALL_CARDS
 from ....entities.cards.market import get_market_price
 from ....data.locale_data import get_locale_text
 from ....data.starting_deck_config import LOCK_PRICE_GP, LOCK_SLOT_LIMIT
-from ....data.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
+from ....data.yog_quest_config import (
+    FOUNTAIN_GP_TOSSED_FLAG,
+    FOUNTAIN_OUTER_PLANE_COST_GP,
+    YOG_INFO_FLAG,
+    YOG_QUEST_FLAG,
+    YOG_SIGIL_ITEM,
+)
 from ....data.open_world_config import TOWN_CHEST_NPC_ID
 from ....data.town_card_shop_data import TOWN_CARD_MERCHANT_NPC_ID
 from .chest_dialog import build_chest_menu, process_chest_choice
@@ -74,6 +80,13 @@ def _materialize_options(specs: List[Dict[str, Any]], stats: UserStats, npc_data
     return options
 
 
+def _can_fountain_outer_plane(stats: UserStats) -> bool:
+    if stats.town_flags.get(YOG_QUEST_FLAG) != "completed":
+        return False
+    yog_flags = stats.town_flags.get("yog_quest_flags")
+    return isinstance(yog_flags, dict) and bool(yog_flags.get("altar_defiled"))
+
+
 def _normal_specs(npc_id: str) -> List[Dict[str, Any]]:
     specs = []
     specs.append(_option(
@@ -121,8 +134,10 @@ def _normal_specs(npc_id: str) -> List[Dict[str, Any]]:
     elif npc_id == "Fountain":
         specs.append(_option("wish", _npc_label("option_wish"), condition=lambda s: "lucky_coin" in s.town_inventory))
         specs.append(_option("wash_herb", _npc_label("option_wash_herb"), condition=lambda s: s.town_flags.get("quest_brew_state", "unstarted") == "started" and "void_herb" in s.town_inventory))
+        specs.append(_option("toss_gp_coin", _npc_label("option_toss_gp_coin"), condition=lambda s: _can_fountain_outer_plane(s) and not s.town_flags.get(FOUNTAIN_GP_TOSSED_FLAG)))
+        specs.append(_option("jump_fountain", _npc_label("option_jump_fountain"), condition=lambda s: _can_fountain_outer_plane(s) and bool(s.town_flags.get(FOUNTAIN_GP_TOSSED_FLAG))))
     elif npc_id == "West_Gate":
-        specs.append(_option("enter_quest", _text_label(get_locale_text("i18n_yog_quest.npc.gate_option")), condition=lambda s: YOG_SIGIL_ITEM in (getattr(s, "town_inventory", None) or []) and s.town_flags.get(YOG_QUEST_FLAG) != "completed"))
+        specs.append(_option("enter_quest", _text_label(get_locale_text("i18n_yog_quest.npc.gate_option")), condition=lambda s: YOG_SIGIL_ITEM in (getattr(s, "town_inventory", None) or [])))
         specs.append(_option("knock", _npc_label("option_knock")))
     elif npc_id in ("Dummy", "NoobSlayer99", "xXx_SniperElite_xXx", "pppopipupu"):
         specs.append(_option("challenge", _npc_label("option_challenge")))
@@ -539,6 +554,20 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
             res = npc_data.get("wish_success_hp", "")
         save()
         return res + "\n\n" + rerender()
+
+    if action == "toss_gp_coin":
+        if stats.gp < FOUNTAIN_OUTER_PLANE_COST_GP:
+            return get_locale_text("global.gp_insufficient", req=FOUNTAIN_OUTER_PLANE_COST_GP, owned=stats.gp)
+        stats.gp -= FOUNTAIN_OUTER_PLANE_COST_GP
+        stats.town_flags[FOUNTAIN_GP_TOSSED_FLAG] = True
+        save()
+        return npc_data.get("toss_gp_coin_success", "") + "\n\n" + rerender()
+
+    if action == "jump_fountain":
+        stats.town_flags.pop("current_dialog", None)
+        stats.town_flags.pop(FOUNTAIN_GP_TOSSED_FLAG, None)
+        save()
+        return town_engine.outer_plane_engine.enter_quest(user_id, stats)
 
     if action == "enter_quest":
         stats.town_flags.pop("current_dialog", None)

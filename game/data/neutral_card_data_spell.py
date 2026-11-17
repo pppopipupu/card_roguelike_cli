@@ -637,6 +637,19 @@ NEUTRAL_CARD_SPELLS = {
         "target_type": "any_other",
         "target_hp_cap": 5,
         "feedback": "发动了因果律反制：【寿回✋😡✋】！"
+    },
+    "moyai_trio": {
+        "name": "🗿🗿🗿",
+        "color": "neutral",
+        "type": "spell",
+        "cost_a": 1,
+        "cost_ba": 0,
+        "desc": "获得 10 点护盾，丢弃一张手牌。",
+        "rarity": "common",
+        "target_type": "self",
+        "shield_amount": 10,
+        "discard_count": 1,
+        "feedback": "使用了【🗿🗿🗿】，获得了 {shield} 点护盾。"
     }
 }
 

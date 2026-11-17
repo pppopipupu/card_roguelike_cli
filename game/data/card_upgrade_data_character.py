@@ -106,7 +106,7 @@ CARD_UPGRADE_CONFIG_CHARACTER = {
         "buff_stacks": 4,
         "action_gain": 1,
         "gain_a": 1,
-        "desc": "本场战斗中，你在回合开始时获得 4 层力量。且在使用时额外获得 1A。"
+        "desc": "本场战斗中，你在回合开始时获得 4 层力量。且在使用时额外获得 1A。诡秘。"
     },
     "impervious": {
         "shield_amount": 50,
@@ -164,7 +164,7 @@ CARD_UPGRADE_CONFIG_CHARACTER = {
         "damage_amount": 9,
         "base_dmg": 9,
         "buff_stacks": 1,
-        "desc": "生命 8，攻击 4。在场被动：击杀敌人时召唤一个【步兵轻卒+】且该轻卒本回合可额外攻击一次。消耗卡牌时攻击 +3 并施加给全体敌人 1 层轻度易伤。入场曲：协作达到 8 以上时，造成 9 挥砍伤害并眩晕；否则造成 5 伤害。"
+        "desc": "生命 8，攻击 4。在场被动：击杀敌人时召唤一个【步兵轻卒+】且该轻卒本回合可额外攻击一次。消耗卡牌时攻击 +3 并施加给全体敌人 1 层轻度易伤。入场曲：协作达到 8 以上时，造成 9 挥砍伤害并眩晕；否则造成 5 伤害。诡秘。"
     },
     "commander_valiant_herald": {
         "minion_hp": 11,

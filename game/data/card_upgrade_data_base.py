@@ -79,7 +79,7 @@ CARD_UPGRADE_CONFIG_BASE = {
     "mercenary": {
         "minion_hp": 14,
         "minion_atk": 5,
-        "desc": "生命 14，攻击 5。拥有普通攻击（消耗 1A），且进场时立即对首个敌人发动一次普攻。"
+        "desc": "生命 14，攻击 5。拥有普通攻击（消耗 1A），且进场时立即对首个敌人发动一次普攻。诡秘。"
     },
     "shield_guard": {
         "minion_hp": 20,
@@ -212,14 +212,14 @@ CARD_UPGRADE_CONFIG_BASE = {
         "minion_atk": 8,
         "shield_amount": 10,
         "hit_count": 2,
-        "desc": "生命 26，攻击 8。仅有普通攻击，但进场时获得 10 护盾，且本回合傀儡可以攻击 2 次。"
+        "desc": "生命 26，攻击 8。仅有普通攻击，但进场时获得 10 护盾，且本回合傀儡可以攻击 2 次。诡秘。"
     },
     "water_elemental": {
         "minion_hp": 16,
         "minion_atk": 4,
         "base_dmg": 6,
         "buff_turns": 1,
-        "desc": "生命 16，攻击 4。技能：寒冰触碰（消耗 1BA，使一个敌方单位下回合减少 2BA），霜冻冰枪造成 6 伤害并使目标眩晕 1 回合。"
+        "desc": "生命 16，攻击 4。技能：寒冰触碰（消耗 1BA，使一个敌方单位下回合减少 2BA），霜冻冰枪造成 6 伤害并使目标眩晕 1 回合。诡秘。"
     },
     "echo_form": {
         "cost_a": 1,
@@ -300,7 +300,7 @@ CARD_UPGRADE_CONFIG_BASE = {
         "minion_atk": 3,
         "base_dmg": 8,
         "buff_turns": 1,
-        "desc": "生命 16，攻击 3。入场曲：使一个敌人眩晕 1 回合。技能：守卫痛击（消耗 1A，造成 8 点钝击伤害并使目标下回合动作 A 减少 1）。"
+        "desc": "生命 16，攻击 3。入场曲：使一个敌人眩晕 1 回合。技能：守卫痛击（消耗 1A，造成 8 点钝击伤害并使目标下回合动作 A 减少 1）。诡秘。"
     },
     "master_key": {
         "reduction": 3,
@@ -404,5 +404,9 @@ CARD_UPGRADE_CONFIG_BASE = {
         "cost_a": 1,
         "cost_ba": 0,
         "desc": "生命 1，攻击 0，没有 AA 点与主动技能。入场曲：触发自身所有遗物的“战斗开始时”效果一次，并无视动作点触发己方场上所有随从的 1 技能各一次。"
+    },
+    "moyai_trio": {
+        "shield_amount": 14,
+        "desc": "获得 14 点护盾，丢弃一张手牌。"
     },
 }

@@ -1,6 +1,8 @@
+from typing import Optional
 from ...models.state import Card
 from ...data.locale_data import get_locale_text
 from ...core.inventory.deck_service import DeckService
+from ...core.battle.target_selector import SelectionStepSpec, pop_selected_pile_cards
 from .registry import register_card
 
 AURORA_ENTRY_SHIELD = 12
@@ -162,22 +164,60 @@ class OfficerSquadSkirmisherCard(Card):
 
 @register_card("commander_valiant_herald")
 class CommanderValiantHeraldCard(Card):
+    def get_selection_spec(self, run, engine) -> Optional[dict]:
+        return {
+            "phase": "pre_play",
+            "can_cancel": True,
+            "steps": [
+                SelectionStepSpec(
+                    step_id="recruit_card",
+                    kind="draw",
+                    min_count=1,
+                    max_count=1,
+                    required=True,
+                    auto_single=True,
+                    filter_fn=lambda _cs, card_obj, _run: bool(
+                        card_obj
+                        and card_obj.type == "minion"
+                        and (card_obj.id.startswith("officer_") or card_obj.id.startswith("commander_"))
+                    ),
+                    prompt_key="i18n_cards_warrior_wizard.warrior.valiant_herald.prompt",
+                    error_key="i18n_cli_core.select_required_default",
+                    invalid_index_key="i18n_cards_warrior_wizard.warrior.valiant_herald.invalid",
+                )
+            ],
+        }
+
+    def execute_with_selections(self, run, selections: dict, engine) -> str:
+        selected = selections.get("recruit_card", [])
+        return self._summon_and_recruit(run, engine, selected)
+
     def execute(self, run, target, engine) -> str:
+        return self._summon_and_recruit(run, engine, None)
+
+    def _summon_and_recruit(self, run, engine, selected: Optional[list[dict]]) -> str:
         hp = getattr(self, "minion_hp", 11 if self.upgraded else 8)
         atk = getattr(self, "minion_atk", 4 if self.upgraded else 3)
         grid = engine._summon_minion(run, self.id, self.name, hp, atk, 0)
         if grid:
             msg = get_locale_text("i18n_cards_warrior_wizard.warrior.minion.summon", grid=grid, name=self.name)
-            eligible = []
             from .base import ALL_CARDS
-            for cid in run.player.draw_pile:
-                card = ALL_CARDS.get(cid)
-                if card and card.type == "minion" and (card.id.startswith("officer_") or card.id.startswith("commander_")):
-                    eligible.append(cid)
-            if eligible:
-                import random
-                chosen = random.choice(eligible)
-                run.player.draw_pile.remove(chosen)
+            chosen = None
+            if selected:
+                popped = pop_selected_pile_cards(run.player.draw_pile, selected)
+                if popped:
+                    chosen = popped[0]
+            elif selected is None:
+                eligible = []
+                for cid in run.player.draw_pile:
+                    card = ALL_CARDS.get(cid)
+                    if card and card.type == "minion" and (card.id.startswith("officer_") or card.id.startswith("commander_")):
+                        eligible.append(cid)
+                if eligible:
+                    import random
+                    chosen = random.choice(eligible)
+                    run.player.draw_pile.remove(chosen)
+            if chosen is not None:
                 DeckService.add_card_to_hand(run.player, chosen)
                 cname = ALL_CARDS[chosen].name
                 rally = run.node_data.get("rally_count", 0)

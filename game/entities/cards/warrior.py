@@ -3,6 +3,7 @@ from ...models.state import Card
 from ...data.card_data import CARD_CONFIG
 from ...data.locale_data import get_locale_text
 from ...core.inventory.deck_service import DeckService
+from ...core.battle.target_selector import SelectionStepSpec, pop_selected_pile_cards
 from .registry import register_card
 from .warrior_officer import (
     AURORA_ENTRY_SHIELD,
@@ -383,6 +384,49 @@ class WarriorHematopoiesisCard(Card):
 
 @register_card("discover")
 class DiscoverCard(Card):
+    def get_selection_spec(self, run, engine) -> Optional[dict]:
+        max_count = getattr(self, "max_count", 2 if self.upgraded else 1)
+        return {
+            "phase": "pre_play",
+            "can_cancel": True,
+            "cancel_key": "i18n_cli_core.err_cancel_discover",
+            "empty_abort_check": True,
+            "steps": [
+                SelectionStepSpec(
+                    step_id="discover_cards",
+                    kind="exhaust",
+                    min_count=1,
+                    max_count=max_count,
+                    required=True,
+                    auto_single=True,
+                    filter_fn=lambda c_state, _card_obj, _run: c_state.id != "discover",
+                    prompt_key="i18n_cards_warrior_wizard.warrior.discover.prompt",
+                    continue_key="i18n_cards_warrior_wizard.warrior.discover.continue",
+                    error_key="i18n_cli_core.err_force_discover_required",
+                    invalid_index_key="i18n_cli_core.err_invalid_exhaust_index",
+                    empty_key="i18n_cards_warrior_wizard.warrior.discover.no_cards",
+                )
+            ],
+        }
+
+    def execute_with_selections(self, run, selections: dict, engine) -> str:
+        from .base import ALL_CARDS
+        p = run.player
+        selected = selections.get("discover_cards", [])
+        if not selected:
+            return get_locale_text("i18n_cards_warrior_wizard.warrior.discover.no_cards", name=self.name)
+        popped = pop_selected_pile_cards(p.exhaust_pile, selected)
+        selected_names = []
+        for cid in popped:
+            DeckService.add_card_to_hand(p, cid)
+            selected_names.append(ALL_CARDS[cid].name if cid in ALL_CARDS else get_locale_text("i18n_cards_warrior_wizard.warrior.discover.unknown_card"))
+        if not selected_names:
+            return get_locale_text("i18n_cards_warrior_wizard.warrior.discover.no_cards", name=self.name)
+        names_str = "，".join(selected_names)
+        if run.node_data.get("suspended_card_cid") is not None:
+            return get_locale_text("i18n_cli_core.discover_complete", selected_cards_str=names_str)
+        return get_locale_text("i18n_cards_warrior_wizard.warrior.discover.success", name=self.name, names=names_str)
+
     def execute(self, run, target, engine) -> str:
         from .base import ALL_CARDS
         p = run.player
@@ -390,44 +434,14 @@ class DiscoverCard(Card):
         valid_exhaust = [c for c in p.exhaust_pile if c.id != "discover"]
         if not valid_exhaust:
             return get_locale_text("i18n_cards_warrior_wizard.warrior.discover.no_cards", name=self.name)
-
-        if target is not None:
-            parts_str = str(target)
-            if "," in parts_str:
-                parts = parts_str.split(",")
-            else:
-                parts = parts_str.split()
-            
-            indices = []
-            for p_str in parts:
-                p_str = p_str.strip()
-                if p_str.isdigit():
-                    indices.append(int(p_str) - 1)
-            
-            valid_indices = [idx for idx in indices if 0 <= idx < len(valid_exhaust)]
-            valid_indices = valid_indices[:max_count]
-            
-            if valid_indices:
-                valid_indices.sort(reverse=True)
-                selected_names = []
-                for idx in valid_indices:
-                    target_card = valid_exhaust[idx]
-                    real_idx = p.exhaust_pile.index(target_card)
-                    cid = p.exhaust_pile.pop(real_idx)
-                    DeckService.add_card_to_hand(p, cid)
-                    selected_names.append(ALL_CARDS[cid].name if cid in ALL_CARDS else get_locale_text("i18n_cards_warrior_wizard.warrior.discover.unknown_card"))
-                selected_names.reverse()
-                return get_locale_text("i18n_cards_warrior_wizard.warrior.discover.success", name=self.name, names=", ".join(selected_names))
-            else:
-                return get_locale_text("i18n_cards_warrior_wizard.warrior.discover.invalid")
-
-        run.node_data.setdefault("state_stack", []).append({
-            "type": "discover_selection",
-            "count": max_count,
-            "selected": []
-        })
-        exhaust_list = "\n".join(f"{i+1}. {ALL_CARDS[c].name}" for i, c in enumerate(valid_exhaust))
-        return get_locale_text("i18n_cards_warrior_wizard.warrior.discover.prompt", exhaust_list=exhaust_list)
+        chosen = valid_exhaust[:max_count]
+        selected_names = []
+        for target_card in chosen:
+            real_idx = p.exhaust_pile.index(target_card)
+            cid = p.exhaust_pile.pop(real_idx)
+            DeckService.add_card_to_hand(p, cid)
+            selected_names.append(ALL_CARDS[cid].name if cid in ALL_CARDS else get_locale_text("i18n_cards_warrior_wizard.warrior.discover.unknown_card"))
+        return get_locale_text("i18n_cards_warrior_wizard.warrior.discover.success", name=self.name, names=", ".join(selected_names))
 
 @register_card("strike_of_all")
 class StrikeOfAllCard(Card):

@@ -431,6 +431,7 @@ class TestRogueSystem(unittest.TestCase):
             run.player.exhaust_pile = [
                 CardState(id="discover", upgraded=False),
                 CardState(id="dagger_throw"),
+                CardState(id="fire_bolt"),
                 CardState(id="discover", upgraded=True)
             ]
             run.player.hand = [
@@ -441,9 +442,10 @@ class TestRogueSystem(unittest.TestCase):
             save_manager.save_save("test_user_discover", run)
             res_excl = await run_command(plugin, "使用 1", sender_id="test_user_discover")
             self.assertIn("1. 匕首投掷", res_excl)
+            self.assertIn("2. 火焰弹", res_excl)
             self.assertNotIn("发掘+", res_excl)
-            self.assertNotIn("2. ", res_excl.split("━━━━━━━━━━━━━━━━━━━━")[0])
-            res_sel_fail = await run_command(plugin, "选择 2", sender_id="test_user_discover")
+            self.assertNotIn("3. ", res_excl.split("━━━━━━━━━━━━━━━━━━━━")[0])
+            res_sel_fail = await run_command(plugin, "选择 3", sender_id="test_user_discover")
             self.assertIn("无效的消耗堆序号", res_sel_fail)
             res_sel_ok = await run_command(plugin, "选择 1", sender_id="test_user_discover")
             self.assertIn("获得了【匕首投掷】", res_sel_ok)

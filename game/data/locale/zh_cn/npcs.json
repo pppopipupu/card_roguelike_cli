@@ -140,11 +140,14 @@
     "welcome": "泉水自龙口倾泻而下，水花在阳光下闪烁，池底躺着不少亮闪闪的硬币。",
     "option_wish": "投掷 【幸运硬币】 许愿",
     "option_wash_herb": "在泉水中冲刷洗练 【虚空草药】",
+    "option_toss_gp_coin": "向喷泉投入 1 GP 硬币",
+    "option_jump_fountain": "跳入喷泉",
     "option_leave": "离开",
     "wish_success_gp": "⛲ 许愿喷泉闪烁微光，你直接获得了 200 GP！",
     "wish_success_card": "⛲ 许愿喷泉倒映出神秘符文，你锁定了下一局开局必带卡牌【发掘】！",
     "wish_success_hp": "⛲ 泉水流过你的指尖，你的肉鸽初始生命上限永久 +5！",
-    "wish_no_coin": "⛲ 泉水欢快地流着。你需要在喷泉处投掷【幸运硬币】才能触发许愿彩蛋。"
+    "wish_no_coin": "⛲ 泉水欢快地流着。你需要在喷泉处投掷【幸运硬币】才能触发许愿彩蛋。",
+    "toss_gp_coin_success": "⛲ 你向喷泉投入了 1 GP 硬币。硬币沉入池底的瞬间，水面泛起一阵异样的星辉波纹，仿佛通往另一重空间。"
   },
   "West_Gate": {
     "name": "西大门",

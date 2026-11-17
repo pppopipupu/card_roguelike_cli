@@ -17,17 +17,21 @@ class UseCommand(CommandHandler, names=["使用", "p"], allowed_states=["battle"
         if full_arg.startswith("[") or "," in full_arg:
             is_queue = True
         if is_queue:
-            clean_arg = full_arg.replace("[", "").replace("]", "").replace(" ", "")
-            items = clean_arg.split(",")
+            from ...base import split_by_comma_with_brackets
+            clean_arg = full_arg.strip()
+            if clean_arg.startswith("[") and clean_arg.endswith("]"):
+                clean_arg = clean_arg[1:-1].strip()
+            items = split_by_comma_with_brackets(clean_arg)
             converted_items = []
             for item in items:
-                if not item:
+                item_str = item.strip()
+                if not item_str:
                     continue
-                if ":" in item:
-                    idx_str, target = item.split(":", 1)
-                    converted_items.append(f"使用 {idx_str} {target}")
+                if ":" in item_str:
+                    idx_str, target = item_str.split(":", 1)
+                    converted_items.append(f"使用 {idx_str.strip()} {target.strip()}")
                 else:
-                    converted_items.append(f"使用 {item}")
+                    converted_items.append(f"使用 {item_str}")
             queue_str = "[" + ", ".join(converted_items) + "]"
             results = []
             success = router._execute_queue(user_id, run, queue_str, results)

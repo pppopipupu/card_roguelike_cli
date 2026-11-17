@@ -170,7 +170,7 @@ def _pick_discard_index(merc: PlayerState) -> int:
         state = ensure_card_state(raw_c)
         card_obj = ALL_CARDS.get(state)
         prio: tuple[int, int]
-        if card_obj and getattr(card_obj, "agile", False):
+        if card_obj and (getattr(card_obj, "agile", False) or getattr(card_obj, "cryptic", False)):
             prio = (0, -_score_card_obj(merc, card_obj))
         elif card_obj is None or getattr(card_obj, "type", "") == "curse" or getattr(card_obj, "unplayable", False):
             prio = (1, 0)
@@ -256,7 +256,13 @@ def _resolve_merc_interactions(battle_engine, run: GameRun, merc_uid: str, merc:
             continue
         top = state_stack.pop()
         stype = top.get("type")
-        if stype == "force_discard":
+        if stype == "card_selection":
+            from ..battle.selection_session import resolve_session_for_mercenary
+            state_stack.append(top)
+            extra_notes.extend(
+                resolve_session_for_mercenary(battle_engine, run, merc_uid, merc, top, _score_card_obj)
+            )
+        elif stype == "force_discard":
             req_count = int(top.get("required_count", 1) or 1)
             already_cnt = len(top.get("discarded", []))
             need = max(0, req_count - already_cnt)

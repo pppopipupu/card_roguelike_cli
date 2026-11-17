@@ -11,5 +11,7 @@
   "skill_result_empty": "🔥 【{name}】试图令卡牌消失，但抽牌堆与弃牌堆已空；仍将 {damage} 点火焰伤害随机分配给所有存活敌人。",
   "crit_result": "💥 【{card}】对【{ally}】与【{enemy}】各造成 {force} 点力场伤害与 {true} 点真实伤害（抽牌堆与弃牌堆合计 {pile} 张）。",
   "crit_result_no_enemy": "💥 【{card}】对【{ally}】造成 {force} 点力场伤害与 {true} 点真实伤害，场上没有可供选取的敌方目标（抽牌堆与弃牌堆合计 {pile} 张）。",
-  "crit_need_ally_target": "❌ 需要指定一个己方目标：自己的随从、队友或队友的随从。"
+  "crit_need_ally_target": "❌ 需要指定一个己方目标：自己的随从、队友或队友的随从。",
+  "crit_prompt": "🎯 请为【{card_name}】选择一个己方目标（输入 选择 <序号>、直接输入数字或选择器 p0/m1/a1m1，exit 取消）：\n{options}",
+  "crit_invalid": "❌ 无效的己方目标（请从自己的角色、随从、队友或队友随从中选择，共 {count} 个可选）。"
 }

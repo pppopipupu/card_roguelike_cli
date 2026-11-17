@@ -1,5 +1,7 @@
-from ...models.state import Card
+from typing import Optional
+from ...models.state import Card, ensure_card_state
 from ...data.locale_data import get_locale_text
+from ...core.battle.target_selector import SelectionStepSpec
 from .registry import register_card
 from .neutral_cards_base import (
     TacticalFocusCard,
@@ -169,33 +171,57 @@ class NeutralPlaneShiftCard(Card):
 
 @register_card("neutral_emperor_eye")
 class NeutralEmperorEyeCard(Card):
+    def get_selection_spec(self, run, engine) -> Optional[dict]:
+        return {
+            "phase": "pre_play",
+            "can_cancel": True,
+            "cancel_key": "i18n_cli_core.err_cancel_overload",
+            "steps": [
+                SelectionStepSpec(
+                    step_id="keep_card",
+                    kind="hand",
+                    min_count=1,
+                    max_count=1,
+                    required=True,
+                    auto_single=True,
+                    exclude_playing_card=True,
+                    prompt_key="i18n_cards_neutral.neutral.cards.emperor_eye.prompt",
+                    error_key="i18n_cli_core.err_overload_required",
+                    invalid_index_key="i18n_cli_core.err_invalid_hand_index",
+                )
+            ],
+        }
+
+    def execute_with_selections(self, run, selections: dict, engine) -> str:
+        p = run.player
+        selected = selections.get("keep_card", [])
+        if not selected or not p.hand:
+            return engine.execute_emperor_eye_resolve(run, -1, self.upgraded)
+        cand = selected[0]
+        keep_idx = self._find_hand_index(p.hand, cand)
+        return engine.execute_emperor_eye_resolve(run, keep_idx, self.upgraded)
+
     def execute(self, run, target, engine) -> str:
         p = run.player
-        if target is not None:
-            try:
-                keep_idx = int(target)
-                hand_idx = run.node_data.get("current_playing_card_hand_idx", 0) + 1
-                if keep_idx == hand_idx:
-                    return get_locale_text("i18n_cards_neutral.neutral.cards.emperor_eye.self_selected")
-                if keep_idx < hand_idx:
-                    remaining_idx = keep_idx - 1
-                else:
-                    remaining_idx = keep_idx - 2
-                if 0 <= remaining_idx < len(p.hand):
-                    return engine.execute_emperor_eye_resolve(run, remaining_idx, self.upgraded)
-                else:
-                    return get_locale_text("i18n_cards_neutral.neutral.cards.emperor_eye.out_of_range", keep_idx=keep_idx, hand_count=len(p.hand) + 1)
-            except ValueError:
-                return get_locale_text("i18n_cards_neutral.neutral.cards.emperor_eye.invalid_arg")
         if not p.hand:
             return engine.execute_emperor_eye_resolve(run, -1, self.upgraded)
-        run.node_data.setdefault("state_stack", []).append({
-            "type": "overload_star_select",
-            "upgraded": self.upgraded
-        })
-        from .base import ALL_CARDS
-        hand_list = "\n".join(f"{i+1}. {ALL_CARDS[c].name}" for i, c in enumerate(p.hand))
-        return get_locale_text("i18n_cards_neutral.neutral.cards.emperor_eye.prompt", hand_list=hand_list)
+        return engine.execute_emperor_eye_resolve(run, 0, self.upgraded)
+
+    @staticmethod
+    def _find_hand_index(hand: list, cand: dict) -> int:
+        src_idx = cand.get("source_idx")
+        card_id = cand.get("card_id")
+        upgraded = bool(cand.get("upgraded", False))
+        gems = list(cand.get("gems", []) or [])
+        if isinstance(src_idx, int) and 0 <= src_idx < len(hand):
+            st = ensure_card_state(hand[src_idx])
+            if st.id == card_id and bool(st.upgraded) == upgraded and list(st.gems or []) == gems:
+                return src_idx
+        for i, raw_c in enumerate(hand):
+            st = ensure_card_state(raw_c)
+            if st.id == card_id and bool(st.upgraded) == upgraded and list(st.gems or []) == gems:
+                return i
+        return -1
 
 @register_card("neutral_astral_strike")
 class AstralStrikeCard(Card):

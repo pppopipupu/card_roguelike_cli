@@ -1,6 +1,8 @@
 YOG_QUEST_FLAG = "quest_yog_death_state"
 YOG_INFO_FLAG = "yog_quest_info_received"
 YOG_SIGIL_ITEM = "star_sigil"
+FOUNTAIN_GP_TOSSED_FLAG = "fountain_1gp_tossed"
+FOUNTAIN_OUTER_PLANE_COST_GP = 1
 
 YOG_FLOOR_WILDS = 5
 YOG_FLOOR_TEMPLE = 6
