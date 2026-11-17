@@ -199,6 +199,14 @@ class CLIRouter:
             user_id,
         )
         self.world_social.refresh(user_id)
+        status_refresh = not parts or str(parts[0]).strip().lower() in ("状态", "status", "r", "rogue", "肉鸽")
+        if status_refresh:
+            invite_popup = PvpService.render_invite_popup(self.save_manager, user_id)
+            if invite_popup:
+                status_run = self.save_manager.load_save(user_id)
+                if status_run is None or status_run.node_type != "battle":
+                    yield invite_popup
+                    return
         before_run = self.save_manager.load_save(user_id) if command else None
         kind = "battle" if before_run is not None and before_run.node_type == "battle" else "action"
         actor_name = before_run.player.name if before_run is not None and before_run.player else ""
@@ -272,27 +280,20 @@ class CLIRouter:
         invite = pvp.get_invite(user_id)
         if invite is None:
             return None
-        joined = " ".join(parts).strip().lower()
+        from ..battle.pvp_service import PvpService
+        action = PvpService.match_invite_action(parts)
+        if action is None:
+            return None
         head = parts[0].strip().lower()
-        action = None
-        if head in ("接受", "accept") or joined in ("接受", "accept"):
-            action = "accept"
-        elif head in ("不接受", "拒绝", "decline", "reject") or joined in ("不接受", "拒绝", "decline", "reject"):
-            action = "decline"
-        elif joined in ("关闭pvp", "关闭 pvp", "pvp off"):
-            action = "disable"
-        elif len(parts) == 1 and head in ("1", "2", "3"):
+        if len(parts) == 1 and head in ("1", "2", "3"):
             if stats is None:
                 stats = self.save_manager.load_stats(user_id)
             if (
-                curr_state not in ("dialog", "battle", "outer_plane", "explore", "cafe")
-                and not stats.town_flags.get("current_dialog")
-                and not self.world_social.has_dialog(user_id, stats)
+                curr_state in ("dialog", "battle", "outer_plane", "explore", "cafe")
+                or stats.town_flags.get("current_dialog")
+                or self.world_social.has_dialog(user_id, stats)
             ):
-                action = {"1": "accept", "2": "decline", "3": "disable"}[head]
-        if action is None:
-            return None
-        from ..battle.pvp_service import PvpService
+                return None
         battle_engine = getattr(self.engine, "battle_engine", self.engine)
         _, msg = PvpService.respond_invite(
             self.save_manager, battle_engine, self.world_social, user_id, action

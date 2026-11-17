@@ -69,6 +69,22 @@ def _init_pvp_player(battle_engine, p_state: PlayerState, is_first: bool, user_i
 
 class PvpService:
     @staticmethod
+    def match_invite_action(parts: list[str]) -> Optional[str]:
+        if not parts:
+            return None
+        joined = " ".join(str(part) for part in parts).strip().lower()
+        head = str(parts[0]).strip().lower()
+        if head in ("接受", "accept") or joined in ("接受", "accept"):
+            return "accept"
+        if head in ("不接受", "拒绝", "decline", "reject") or joined in ("不接受", "拒绝", "decline", "reject"):
+            return "decline"
+        if joined in ("关闭pvp", "关闭 pvp", "pvp off"):
+            return "disable"
+        if len(parts) == 1 and head in ("1", "2", "3"):
+            return {"1": "accept", "2": "decline", "3": "disable"}[head]
+        return None
+
+    @staticmethod
     def toggle_pvp(save_manager, uid: str, raw_arg: str = "") -> str:
         stats = save_manager.load_stats(uid)
         arg = str(raw_arg or "").strip().lower()

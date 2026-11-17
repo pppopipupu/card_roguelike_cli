@@ -9,7 +9,7 @@ from game.data.pvp_config import PVP_TURN_TIMEOUT_SECONDS, PVP_WIN_GP_REWARD
 from game.data.town_card_shop_data import TOWN_CARD_SHOP_CATALOG
 from game.data.world_social_config import WORLD_TOWN
 from game.models.state import CardState
-from game.test.core.base import CorePlugin, run_command
+from game.test.core.base import CorePlugin, require_run, run_command
 
 
 class TestTownCardShopAndPvp(unittest.TestCase):
@@ -27,6 +27,18 @@ class TestTownCardShopAndPvp(unittest.TestCase):
 
     def cmd(self, text: str, uid: str) -> str:
         return asyncio.run(run_command(self.plugin, text, uid))
+
+    def im_cmd(self, text: str, uid: str) -> str | None:
+        return asyncio.run(
+            self.plugin.server.handle_rogue_message(
+                uid,
+                uid,
+                text,
+                shortcut_prefix=[".rogue"],
+                enable_shortcut=True,
+                force_execute=False,
+            )
+        )
 
     def _prepare_player(self, uid: str, name: str, *, gp: int = 500, bag=None, relics=None, deck=None):
         stats = self.plugin.save_manager.load_stats(uid)
@@ -79,6 +91,7 @@ class TestTownCardShopAndPvp(unittest.TestCase):
 
         bob_screen = self.cmd("r", self.bob)
         self.assertIn("PVP 切磋请求", bob_screen)
+        self.assertNotIn("先古主城", bob_screen)
         self.assertIn("[1] 接受", bob_screen)
         self.assertIn("[2] 不接受", bob_screen)
         self.assertIn("[3] 关闭PVP", bob_screen)
@@ -101,6 +114,27 @@ class TestTownCardShopAndPvp(unittest.TestCase):
 
         toggle_status = self.cmd("pvp status", self.bob)
         self.assertIn("已开启", toggle_status)
+
+    def test_pvp_invite_reply_accepts_without_command_prefix(self):
+        self._prepare_player(self.alice, "Alice", deck=["fire_bolt", "shield", "dagger_throw"] * 3)
+        self._prepare_player(self.bob, "Bob", deck=["fire_bolt", "shield", "dagger_throw"] * 3)
+        for uid in (self.alice, self.bob):
+            stats = self.plugin.save_manager.load_stats(uid)
+            stats.rogue_mode = True
+            self.plugin.save_manager.save_stats(uid, stats)
+
+        sent = self.im_cmd(".rogue atk Bob", self.alice) or ""
+        self.assertIn("PVP 切磋请求", sent)
+
+        status_view = self.im_cmd("status", self.bob) or ""
+        self.assertIn("PVP 切磋请求", status_view)
+        self.assertNotIn("先古主城", status_view)
+
+        accepted = self.im_cmd("1", self.bob) or ""
+        self.assertIn("战斗开始", accepted)
+        self.assertIn("等待【Alice】行动", accepted)
+        self.assertEqual(require_run(self.plugin.save_manager.load_save(self.bob)).node_type, "battle")
+        self.assertEqual(require_run(self.plugin.save_manager.load_save(self.alice)).node_type, "battle")
 
     def test_pvp_battle_turn_wait_rope_and_death_reward_settlement(self):
         self._prepare_player(

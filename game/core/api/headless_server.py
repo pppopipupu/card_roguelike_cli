@@ -208,6 +208,12 @@ class HeadlessGameServer:
         if self._has_player_dialog(user_id, stats):
             if first_word.isdigit() or first_word in WORLD_PLAYER_DIALOG_EXIT_WORDS:
                 is_game_cmd = True
+        if not is_game_cmd:
+            pvp_registry = getattr(self.save_manager, "pvp", None)
+            if pvp_registry is not None and pvp_registry.get_invite(user_id) is not None:
+                from ..battle.pvp_service import PvpService
+                if PvpService.match_invite_action(parts) is not None:
+                    is_game_cmd = True
         if is_game_cmd:
             lock = self._get_user_lock(user_id)
             async with lock:
