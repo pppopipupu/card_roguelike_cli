@@ -9,7 +9,7 @@ MAP_CARD_CONFIG = {
         "draw_count": 1,
         "exhaust": True,
         "target_type": "self",
-        "rarity": "rare",
+        "rarity": "epic",
         "desc": "消耗 3 点 SP（SP 为 0 时可强行打出并叠加力竭）；立即将当前剩余的主动作 A 与附赠动作 BA 翻倍，抽 1 张牌。消耗。",
         "feedback": "发动【加速术】！消耗 {sp_cost} 点 SP，剩余动作翻倍为 {actions}A {bonus_actions}BA，并抽了 {draw_count} 张牌。"
     },

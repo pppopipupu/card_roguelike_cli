@@ -3,7 +3,7 @@ from typing import Optional
 
 import msgspec
 
-from .state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, BuffState, RoomState, EncounterSession, FloorMapState
+from .state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, BuffState, RoomState, BigRoomState, EncounterSession, FloorMapState
 from ..core.text.events import TextNode
 from ..data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 
@@ -241,6 +241,28 @@ class SaveCodecMixin:
                 props=list(rdata.get("props") or []),
                 interacted_props=list(rdata.get("interacted_props") or []),
                 defeated_npcs=list(rdata.get("defeated_npcs") or []),
+                big_room_id=str(rdata.get("big_room_id", "") or ""),
+            )
+        big_rooms = {}
+        for gid, bdata in (fm_data.get("big_rooms") or {}).items():
+            big_rooms[gid] = BigRoomState(
+                group_id=str(bdata.get("group_id", gid) or gid),
+                template_id=str(bdata.get("template_id", "") or ""),
+                cells=list(bdata.get("cells") or []),
+                width=int(bdata.get("width", 1) or 1),
+                height=int(bdata.get("height", 1) or 1),
+                reveal_mode=str(bdata.get("reveal_mode", "whole") or "whole"),
+                share_npcs=bool(bdata.get("share_npcs", True)),
+                share_items=bool(bdata.get("share_items", False)),
+                share_props=bool(bdata.get("share_props", False)),
+                keep_icon_on_clear=bool(bdata.get("keep_icon_on_clear", True)),
+                npcs=list(bdata.get("npcs") or []),
+                defeated_npcs=list(bdata.get("defeated_npcs") or []),
+                items=list(bdata.get("items") or []),
+                props=list(bdata.get("props") or []),
+                interacted_props=list(bdata.get("interacted_props") or []),
+                cleared=bool(bdata.get("cleared", False)),
+                shared_payload=dict(bdata.get("shared_payload") or {}),
             )
         sessions = {}
         for sid, sdata in (fm_data.get("active_sessions") or {}).items():
@@ -280,6 +302,7 @@ class SaveCodecMixin:
             secret_unlocked=bool(fm_data.get("secret_unlocked", False)),
             secret_clue_found=bool(fm_data.get("secret_clue_found", False)),
             floor_flags=dict(fm_data.get("floor_flags") or {}),
+            big_rooms=big_rooms,
         )
 
     def from_dict(self, d: dict) -> Optional[GameRun]:

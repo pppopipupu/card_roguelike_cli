@@ -1,5 +1,16 @@
 from ..core.world.grid_map_generator import coord_to_xy, neighbors_4, xy_to_coord
 from ..core.world.presence import render_players_for
+from ..core.world.rooms.big_room import (
+    get_big_room,
+    get_big_room_icon,
+    get_big_room_name,
+    get_effective_alive_npcs,
+    get_effective_interacted_props,
+    get_effective_items,
+    get_effective_props,
+    is_big_room_direct_adjacent,
+)
+from ..core.world.rooms.hostile_npc import ensure_room_hostile_npcs, ensure_treasure_chest_prop
 from ..data.grid_map_config import (
     DIRECT_REVEAL_ADJACENT_TYPES,
     FLOOR_CONFIGS,
@@ -20,6 +31,8 @@ def _visible_cell_icon(fm, coord: str, viewer_coord: str, adj_set: set[str]) -> 
     if coord == viewer_coord:
         return ROOM_ICONS["player"]
     if revealed:
+        if room.room_type == "big_room":
+            return get_big_room_icon(fm, room)
         if room.room_type == "secret_boss":
             return ROOM_ICONS["secret_boss"] if fm.secret_unlocked else ROOM_ICONS["wall"]
         if room.room_type in ("wall", "obstacle", "downstairs"):
@@ -30,6 +43,8 @@ def _visible_cell_icon(fm, coord: str, viewer_coord: str, adj_set: set[str]) -> 
             return ROOM_ICONS["cleared"]
         return ROOM_ICONS.get(room.room_type, ROOM_ICONS["unknown"])
     if coord in adj_set:
+        if room.room_type == "big_room":
+            return get_big_room_icon(fm, room) if is_big_room_direct_adjacent(fm, room) else ROOM_ICONS["unknown"]
         if room.room_type == "secret_boss":
             return ROOM_ICONS["secret_boss"] if fm.secret_unlocked else ROOM_ICONS["wall"]
         if room.room_type in ("wall", "obstacle"):
@@ -129,10 +144,23 @@ def render_grid_map(run: GameRun) -> str:
         ("secret_boss", "i18n_grid_map.legend.secret_boss"),
     ]
     legend_parts = []
+    used_legend_icons = set()
     for k, lkey in legend_order:
         icon = ROOM_ICONS[k]
         if icon in seen_icons:
             legend_parts.append(f"{icon}{get_locale_text(lkey)}")
+            used_legend_icons.add(icon)
+    for br in (getattr(fm, "big_rooms", None) or {}).values():
+        if not br.cells:
+            continue
+        rep_room = fm.rooms.get(br.cells[0])
+        if rep_room is None:
+            continue
+        b_icon = get_big_room_icon(fm, rep_room)
+        if b_icon in seen_icons and b_icon not in used_legend_icons:
+            b_name = get_big_room_name(fm, rep_room)
+            legend_parts.append(f"{b_icon}{b_name}")
+            used_legend_icons.add(b_icon)
     if legend_parts:
         lines.append(get_locale_text("i18n_grid_map.legend_title") + " ".join(legend_parts))
 
@@ -146,11 +174,15 @@ def render_grid_map(run: GameRun) -> str:
     cur_room = fm.rooms.get(viewer_coord)
     if cur_room is not None:
         lines.extend(_render_room_details(fm, cur_room, viewer_coord, p, world_here))
+        eff_props = get_effective_props(fm, cur_room)
+        eff_done = set(get_effective_interacted_props(fm, cur_room))
         if cur_room.room_type == "downstairs":
             if fm.floor_flags.get("yog_quest"):
                 lines.append(get_locale_text("i18n_yog_quest.gate.hint"))
             else:
                 lines.append(get_locale_text("i18n_grid_map.tunnel_hint"))
+        elif "treasure_chest" in eff_props and "treasure_chest" not in eff_done:
+            lines.append(get_locale_text("i18n_grid_map.treasure_hint"))
         elif cur_room.room_type == "landmark" or (viewer_coord == fm.ritual_coord and not fm.secret_unlocked):
             lines.append(get_locale_text("i18n_grid_map.talk_hint"))
 
@@ -262,7 +294,7 @@ def render_downstairs(run: GameRun) -> str:
     return "\n".join(lines)
 
 
-def _describe_neighbor(fm, x: int, y: int) -> str:
+def _describe_neighbor(fm, x: int, y: int, viewer_big_room_id: str = "") -> str:
     from ..data.room_interact_data import OBSTACLE_STYLES
     if not (0 <= x < fm.width and 0 <= y < fm.height):
         return get_locale_text("i18n_room_interact.dir.void_edge")
@@ -273,15 +305,26 @@ def _describe_neighbor(fm, x: int, y: int) -> str:
     if room.room_type == "secret_boss" and not fm.secret_unlocked:
         return get_locale_text("i18n_room_interact.dir.secret_locked")
     revealed = coord in fm.revealed_coords or room.explored
+    if viewer_big_room_id and getattr(room, "big_room_id", "") == viewer_big_room_id:
+        return get_locale_text("i18n_big_room.ui.neighbor_same_room", name=get_big_room_name(fm, room))
     if room.room_type == "obstacle":
         style = room.obstacle_style or "collapsed_boulders"
         scfg = OBSTACLE_STYLES.get(style, OBSTACLE_STYLES["collapsed_boulders"])
         return get_locale_text("i18n_room_interact.dir.obstacle", name=get_locale_text(scfg["name_key"]))
     if not revealed:
+        if room.room_type == "big_room" and is_big_room_direct_adjacent(fm, room):
+            label = get_big_room_name(fm, room)
+            return get_locale_text("i18n_room_interact.dir.room_open", room_label=label)
         if room.room_type in DIRECT_REVEAL_ADJACENT_TYPES:
             label = get_locale_text(f"i18n_grid_map.room_name.{room.room_type}")
             return get_locale_text("i18n_room_interact.dir.room_open", room_label=label)
         return get_locale_text("i18n_room_interact.dir.unexplored")
+    if room.room_type == "big_room":
+        label = get_big_room_name(fm, room)
+        br = get_big_room(fm, room)
+        if br is not None and br.cleared and not br.keep_icon_on_clear:
+            return get_locale_text("i18n_room_interact.dir.room_cleared", room_label=label)
+        return get_locale_text("i18n_room_interact.dir.room_open", room_label=label)
     label = get_locale_text(f"i18n_grid_map.room_name.{room.room_type}")
     if room.cleared and room.room_type not in PERMANENT_ICON_TYPES:
         return get_locale_text("i18n_room_interact.dir.room_cleared", room_label=label)
@@ -292,12 +335,25 @@ def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players:
     from ..core.inventory.bag_service import format_weight, get_bag_max_weight, get_bag_weight, get_item_display_name
     from ..core.world.rooms.interact import format_room_env_with_props
     from ..data.room_interact_data import ROOM_NPCS
+    ensure_room_hostile_npcs(fm, cur_room)
+    ensure_treasure_chest_prop(cur_room)
     shared = getattr(cur_room, "shared_payload", None) or {}
     name_key = shared.get("name_key")
     out = [get_locale_text(name_key)] if name_key else []
-    out.append(format_room_env_with_props(cur_room, include_cleared_suffix=True))
+    br = get_big_room(fm, cur_room)
+    if br is not None:
+        bname = get_big_room_name(fm, cur_room)
+        out.append(get_locale_text("i18n_big_room.ui.room_banner", name=bname, coord=viewer_coord, count=len(br.cells)))
+        if br.share_npcs and br.share_items:
+            out.append(get_locale_text("i18n_big_room.ui.shared_hint_all_shared"))
+        elif br.share_npcs:
+            out.append(get_locale_text("i18n_big_room.ui.shared_hint_npcs_shared"))
+        else:
+            out.append(get_locale_text("i18n_big_room.ui.shared_hint_local"))
+    out.append(format_room_env_with_props(cur_room, include_cleared_suffix=True, fm=fm))
 
     cx, cy = coord_to_xy(viewer_coord)
+    viewer_br_id = getattr(cur_room, "big_room_id", "") or ""
     dirs = [
         ("i18n_room_interact.dir.north", cx, cy - 1),
         ("i18n_room_interact.dir.south", cx, cy + 1),
@@ -305,13 +361,12 @@ def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players:
         ("i18n_room_interact.dir.east", cx + 1, cy),
     ]
     dir_parts = [
-        get_locale_text("i18n_room_interact.dir.entry", dir=get_locale_text(dkey), desc=_describe_neighbor(fm, nx, ny))
+        get_locale_text("i18n_room_interact.dir.entry", dir=get_locale_text(dkey), desc=_describe_neighbor(fm, nx, ny, viewer_big_room_id=viewer_br_id))
         for dkey, nx, ny in dirs
     ]
     out.append(get_locale_text("i18n_room_interact.dir.line_header") + " | ".join(dir_parts))
 
-    defeated = set(getattr(cur_room, "defeated_npcs", None) or [])
-    alive_npcs = [nid for nid in (getattr(cur_room, "npcs", None) or []) if nid not in defeated]
+    alive_npcs = get_effective_alive_npcs(fm, cur_room)
     npc_names = [
         f"【{get_locale_text(ROOM_NPCS[nid]['name_key'])}】" if nid in ROOM_NPCS else nid
         for nid in alive_npcs
@@ -340,7 +395,7 @@ def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players:
             )
         )
 
-    items = list(getattr(cur_room, "items", None) or [])
+    items = get_effective_items(fm, cur_room)
     if items:
         item_names = [f"【{get_item_display_name(it)}】" for it in items]
         out.append(get_locale_text("i18n_room_interact.room_ui.items_line", items="、".join(item_names)))

@@ -36,6 +36,14 @@ ROOM_ENVIRONMENTS = {
     "boss": ["boss_throne"],
     "secret_boss": ["secret_rift"],
     "downstairs": ["downstairs_hall"],
+    "big_room": [
+        "big_armory_hall",
+        "big_scriptorium_hall",
+        "big_catacomb_hall",
+        "big_bazaar_hall",
+        "big_observatory_hall",
+        "big_treasury_hall",
+    ],
 }
 
 ROGUE_ITEMS = {
@@ -351,6 +359,11 @@ ROOM_PROPS = {
         "desc_key": "i18n_room_interact.props.nordic_brazier.desc",
         "aliases": ["古坛火盆", "青铜火盆", "火盆", "brazier"],
     },
+    "treasure_chest": {
+        "name_key": "i18n_room_interact.props.treasure_chest.name",
+        "desc_key": "i18n_room_interact.props.treasure_chest.desc",
+        "aliases": ["宝箱", "尘封宝箱", "铁箱", "箱子", "chest", "treasure"],
+    },
 }
 
 DUNGEON_PROP_POOL = [
@@ -488,7 +501,93 @@ ROOM_NPCS = {
         "aliases": ["古坛守望者", "守望者", "keeper"],
         "non_hostile": True,
     },
+    "dungeon_raiders": {
+        "name_key": "i18n_room_interact.npcs.dungeon_raiders.name",
+        "desc_key": "i18n_room_interact.npcs.dungeon_raiders.desc",
+        "aliases": ["游荡魔物", "魔物", "怪物", "敌群", "raiders", "monster"],
+        "hostile": True,
+        "encounter_difficulty": "normal",
+    },
+    "elite_guardian": {
+        "name_key": "i18n_room_interact.npcs.elite_guardian.name",
+        "desc_key": "i18n_room_interact.npcs.elite_guardian.desc",
+        "aliases": ["精英守卫", "精英", "守卫", "elite", "guardian"],
+        "hostile": True,
+        "encounter_difficulty": "elite",
+    },
+    "abyssal_hazard_fiend": {
+        "name_key": "i18n_room_interact.npcs.abyssal_hazard_fiend.name",
+        "desc_key": "i18n_room_interact.npcs.abyssal_hazard_fiend.desc",
+        "aliases": ["深渊魔物", "高危魔物", "裂隙魔物", "fiend"],
+        "hostile": True,
+        "encounter_difficulty": "high_danger",
+    },
+    "floor_boss": {
+        "name_key": "i18n_room_interact.npcs.floor_boss.name",
+        "desc_key": "i18n_room_interact.npcs.floor_boss.desc",
+        "aliases": ["层关首领", "首领", "领主", "boss"],
+        "hostile": True,
+        "encounter_difficulty": "boss",
+    },
+    "secret_boss_avatar": {
+        "name_key": "i18n_room_interact.npcs.secret_boss_avatar.name",
+        "desc_key": "i18n_room_interact.npcs.secret_boss_avatar.desc",
+        "aliases": ["隐秘首领", "隐秘存在", "secret_boss"],
+        "hostile": True,
+        "encounter_difficulty": "secret_boss",
+    },
+    "corpse_wraith": {
+        "name_key": "i18n_room_interact.npcs.corpse_wraith.name",
+        "desc_key": "i18n_room_interact.npcs.corpse_wraith.desc",
+        "aliases": ["遗骸怨灵", "怨灵", "ghost", "wraith"],
+        "hostile": True,
+        "encounter_difficulty": "ghost",
+    },
+    "armory_automaton": {
+        "name_key": "i18n_room_interact.npcs.armory_automaton.name",
+        "desc_key": "i18n_room_interact.npcs.armory_automaton.desc",
+        "aliases": ["军械魔像", "魔像", "automaton"],
+        "hostile": True,
+        "encounter_difficulty": "elite",
+    },
+    "crypt_warden": {
+        "name_key": "i18n_room_interact.npcs.crypt_warden.name",
+        "desc_key": "i18n_room_interact.npcs.crypt_warden.desc",
+        "aliases": ["墓穴守卫", "守墓者", "warden"],
+        "hostile": True,
+        "encounter_difficulty": "normal",
+    },
+    "rift_sentinel": {
+        "name_key": "i18n_room_interact.npcs.rift_sentinel.name",
+        "desc_key": "i18n_room_interact.npcs.rift_sentinel.desc",
+        "aliases": ["星渊哨兵", "裂隙哨兵", "哨兵", "sentinel"],
+        "hostile": True,
+        "encounter_difficulty": "elite",
+    },
 }
+
+STEALTH_PEACE_BUFF_IDS = frozenset({"stealth_cloak", "ghost_veil", "shadow_cloak", "invisibility"})
+
+TRUE_SIGHT_ENEMIES = frozenset({
+    "虚空之门·尤格-索托斯",
+    "【觉醒】虚空之门·尤格-索托斯",
+    "【终焉】虚空之门·尤格-索托斯",
+    "【万物归一】虚空之门·尤格-索托斯",
+    "远古红龙",
+    "亚弗戈蒙",
+    "【时空主宰】亚弗戈蒙",
+    "伟大的克苏鲁",
+    "【迷雾】伟大的克苏鲁",
+    "腐化之心",
+    "裂隙暗影领主",
+    "星渊审判官",
+    "深渊原初回响",
+    "冰封少女·欧吕尔的化身",
+    "星之精",
+    "克苏鲁之星之眷族",
+})
+
+TRUE_SIGHT_NPCS = frozenset({"secret_boss_avatar"})
 
 DUNGEON_NPC_POOL = [
     "wandering_smith",

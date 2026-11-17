@@ -210,7 +210,25 @@ class PotionResolver:
                     except ValueError:
                         pass
                 return get_locale_text("i18n_battle_core.potion_no_effect", name=name, target_name=target_name)
-                
+
+        elif potion_id == "invisibility_potion":
+            from ...data.buff_data import BUFF_CONFIG
+            from ..world.persistent_buffs import set_persistent_buff
+            stacks = int(potion_cfg.get("buff_stacks", 3))
+            bcfg = BUFF_CONFIG["invisibility"]
+            if run.node_type != "battle":
+                set_persistent_buff(p, "invisibility", stacks, name=bcfg["name"], desc=bcfg["desc"])
+                return get_locale_text("i18n_battle_core.invisibility_potion_map_log", name=name, stacks=stacks)
+            if target == "p0":
+                resolver.add_buff_to(p, "invisibility", bcfg["name"], bcfg["desc"], stacks)
+                return get_locale_text("i18n_battle_core.invisibility_potion_battle_log", name=name, target_name=target_name, stacks=stacks)
+            if ally_info:
+                ally = ally_info[1]
+                if ally_info[2] is None:
+                    resolver.add_buff_to(ally, "invisibility", bcfg["name"], bcfg["desc"], stacks)
+                    return get_locale_text("i18n_battle_core.invisibility_potion_ally_log", ally=ally.name, name=name, stacks=stacks)
+            return get_locale_text("i18n_battle_core.potion_no_effect", name=name, target_name=target_name)
+
         elif potion_id == "iron_potion":
             max_hp_gain = potion_cfg["max_hp_gain"]
             shield = potion_cfg["shield_amount"]

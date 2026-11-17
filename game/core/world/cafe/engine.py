@@ -18,8 +18,7 @@ from ....data.cafe_data import (
 )
 from ....data.locale_data import get_locale_text
 from .dialog import CafeDialogMixin
-from ...inventory.deck_service import DeckService
-from ....data.reward_config import NORMAL_CARD_RARITIES
+from ...inventory.card_distribution import CardDistributor
 class CafeEngine(CafeDialogMixin):
     def __init__(self, save_manager, map_engine):
         self.save_manager = save_manager
@@ -82,11 +81,11 @@ class CafeEngine(CafeDialogMixin):
                 member_stats = self.save_manager.load_stats(uid)
                 member_class = getattr(member_stats, "selected_class", "法师")
                 other_color = "wizard" if member_class == "战士" else "warrior"
-                for cid in DeckService.eligible_card_ids(member_stats, colors=(other_color,), rarities=NORMAL_CARD_RARITIES):
+                for cid in CardDistributor.get_pool("cafe_cross_class", run, None, member_stats, colors=(other_color,)):
                     if cid not in seen:
                         seen.add(cid)
                         pool.append(cid)
-            cafe_data["card_master_stock"] = random.sample(pool, min(len(pool), CAFE_CARD_MASTER_STOCK))
+            cafe_data["card_master_stock"] = CardDistributor.roll_from_pool(pool, CAFE_CARD_MASTER_STOCK)
 
         if "艾琳" in selected_npcs:
             rare_gems = [k for k, v in GEM_CONFIG.items() if v.get("rarity") == "rare"]

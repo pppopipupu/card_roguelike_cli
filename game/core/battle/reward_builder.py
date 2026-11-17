@@ -5,7 +5,6 @@ from ...data.balance_config import (
     ELITE_BATTLE_GOLD_MAX,
     ELITE_BATTLE_GOLD_MIN,
     ELITE_POTION_CHANCE,
-    KEY_SCHOLAR_REPLACE_CHANCE,
     NORMAL_BATTLE_GOLD_BASE,
     NORMAL_BATTLE_GOLD_MAX,
     NORMAL_BATTLE_GOLD_MIN,
@@ -13,8 +12,8 @@ from ...data.balance_config import (
     REWARD_CARD_COUNT,
 )
 from ...data.potion_data import roll_potion as _roll_potion
-from ...data.reward_config import ELITE_RELIC_MAP, NORMAL_REWARD_EXCLUDED_RARITIES
-from ..inventory.deck_service import DeckService
+from ...data.reward_config import ELITE_RELIC_MAP
+from ..inventory.card_distribution import CardDistributor
 
 
 def base_enemy_name(name: str) -> str:
@@ -45,25 +44,16 @@ def elite_relic_id(elite_name, player, exact=False):
     return ""
 
 
-def _reward_card_item(run, player, stats, include_coop):
-    from ...entities import ALL_CARDS
-    from ...models.state import check_and_replace_fireball
-
-    pool = DeckService.get_reward_card_pool(run, player, stats, include_coop=include_coop)
-    cards = random.sample(pool, min(REWARD_CARD_COUNT, len(pool))) if pool else []
-    final_cards = []
-    for cid in cards:
-        cid = check_and_replace_fireball(run, cid)
-        if (
-            not include_coop
-            and getattr(player, "subclass", "") == "秘钥学者"
-            and ALL_CARDS.get(cid)
-            and ALL_CARDS[cid].color == "wizard"
-            and ALL_CARDS[cid].rarity not in NORMAL_REWARD_EXCLUDED_RARITIES
-            and random.random() < KEY_SCHOLAR_REPLACE_CHANCE
-        ):
-            cid = "key_resonance"
-        final_cards.append(cid)
+def _reward_card_item(run, player, stats, include_coop, difficulty="normal"):
+    channel = CardDistributor.resolve_battle_channel(difficulty)
+    final_cards = CardDistributor.roll(
+        channel,
+        run,
+        player,
+        stats,
+        count=REWARD_CARD_COUNT,
+        include_coop=include_coop,
+    )
     return {"type": "card_reward", "cards": final_cards, "taken": False, "force": False}
 
 
@@ -91,7 +81,7 @@ def build_reward_items(save_manager, run, player, difficulty):
             items.append({"type": "gold_skip", "taken": True})
         else:
             items.append({"type": "gold", "amount": gold, "taken": False})
-        items.append(_reward_card_item(run, player, stats, True))
+        items.append(_reward_card_item(run, player, stats, True, difficulty))
         potion_id = roll_potion(stats, difficulty)
         if potion_id:
             items.append({"type": "potion", "potion_id": potion_id, "taken": False})
@@ -105,5 +95,5 @@ def build_reward_items(save_manager, run, player, difficulty):
         potion_id = roll_potion(stats, difficulty)
         if potion_id:
             items.append({"type": "potion", "potion_id": potion_id, "taken": False})
-        items.append(_reward_card_item(run, player, stats, False))
+        items.append(_reward_card_item(run, player, stats, False, difficulty))
     return items

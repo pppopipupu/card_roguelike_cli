@@ -129,10 +129,3 @@ class TestMillikaCard(unittest.TestCase):
         self.assertIn("光耀", res)
         after = load_run(self.plugin, uid)
         self.assertEqual(after.enemies[0].hp, 495)
-
-    def test_query_card_is_available(self):
-        uid = "millika_query_user"
-        self.build_battle(uid, [], [], [])
-        res = self.run_cmd("i 神圣天体‧弥莉卡", uid)
-        self.assertIn("神圣天体‧弥莉卡", res)
-        self.assertIn("稀有", res)

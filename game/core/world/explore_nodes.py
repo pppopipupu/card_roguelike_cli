@@ -17,7 +17,7 @@ from ...data.balance_config import (
 )
 from ...data.reward_config import TREASURE_RELIC_POOL
 from ...data.locale_data import get_locale_text
-from ..inventory.deck_service import DeckService
+from ..inventory.card_distribution import CardDistributor
 from ..party.coordinator import add_notice, finish_player_node, restore_player, swap_player, vote_option
 
 class _TeamEventSaveManager:
@@ -269,10 +269,7 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
                     p.max_hp += 5
                     p.hp += 5
             stats = engine.save_manager.load_stats(run.user_id) if hasattr(engine.save_manager, "load_stats") else None
-            card_pool = DeckService.get_epic_card_pool(run, p, stats)
-            reward_cards = random.sample(card_pool, 3) if len(card_pool) >= 3 else card_pool
-            from ...models.state import check_and_replace_fireball
-            reward_cards = [check_and_replace_fireball(run, cid_) for cid_ in reward_cards]
+            reward_cards = CardDistributor.roll("treasure", run, p, stats, count=3)
             from ...data.gem_data import GEM_CONFIG
             gift_gem_id = random.choice(list(GEM_CONFIG.keys()))
             box_items = [
@@ -544,10 +541,7 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
         for it in items:
             it["taken"] = True
         stats = engine.save_manager.load_stats(run.user_id)
-        class_cards = DeckService.get_class_spell_pool(p, stats, include_coop=multi)
-        reward_cards = random.sample(class_cards, min(REWARD_CARD_COUNT, len(class_cards))) if class_cards else []
-        from ...models.state import check_and_replace_fireball
-        reward_cards = [check_and_replace_fireball(run, cid) for cid in reward_cards]
+        reward_cards = CardDistributor.roll("rest_meditate", run, p, stats, count=REWARD_CARD_COUNT, include_coop=multi)
         engine.start_card_select(run, reward_cards, "rest", init_event=False, title_key="i18n_explore_core.meditate_title", desc_key="i18n_explore_core.meditate_desc")
         engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("msg_rest_meditate")

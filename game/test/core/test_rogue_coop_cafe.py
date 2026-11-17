@@ -284,13 +284,13 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         p2.relics = []
         p1.hp = 20
         p1.max_hp = 40
-        p2.hp = 30
-        p2.max_hp = 40
+        p2.hp = 50
+        p2.max_hp = 60
         p2.shield = 0
         p1.actions = 8
         p1.bonus_actions = 4
-        p1.minions["1"] = MinionState("mercenary", "己方佣兵", 25, 30, 3, 1, 0)
-        p2.minions["1"] = MinionState("mercenary", "队友佣兵", 25, 30, 3, 1, 0)
+        p1.minions["1"] = MinionState("mercenary", "己方佣兵", 45, 50, 3, 1, 0)
+        p2.minions["1"] = MinionState("mercenary", "队友佣兵", 45, 50, 3, 1, 0)
         p1.minions["1"].buffs.append(BuffState("weak", "虚弱", 2, desc="desc"))
         p2.minions["1"].buffs.append(BuffState("weak", "虚弱", 2, desc="desc"))
         p1.buffs.append(BuffState("strength", "力量", 2, desc="desc"))
@@ -313,18 +313,18 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         self.assertIn("阳炎爆", sun_res)
         after_sun = load_run(self.plugin, uids[0])
         self.assertEqual(after_sun.players[uids[0]].hp, 20)
-        self.assertEqual(after_sun.players[uids[1]].hp, 14)
-        self.assertEqual(after_sun.players[uids[0]].minions["1"].hp, 9)
-        self.assertEqual(after_sun.players[uids[1]].minions["1"].hp, 9)
-        self.assertEqual(after_sun.enemies[0].hp, 184)
+        self.assertEqual(after_sun.players[uids[1]].hp, 18)
+        self.assertEqual(after_sun.players[uids[0]].minions["1"].hp, 13)
+        self.assertEqual(after_sun.players[uids[1]].minions["1"].hp, 13)
+        self.assertEqual(after_sun.enemies[0].hp, 168)
 
         heal_res = self.run_cmd("p 1", uids[0])
         self.assertIn("群体治愈真言", heal_res)
         after_heal = load_run(self.plugin, uids[0])
         self.assertEqual(after_heal.players[uids[0]].hp, 28)
-        self.assertEqual(after_heal.players[uids[1]].hp, 22)
-        self.assertEqual(after_heal.players[uids[0]].minions["1"].hp, 17)
-        self.assertEqual(after_heal.players[uids[1]].minions["1"].hp, 17)
+        self.assertEqual(after_heal.players[uids[1]].hp, 26)
+        self.assertEqual(after_heal.players[uids[0]].minions["1"].hp, 21)
+        self.assertEqual(after_heal.players[uids[1]].minions["1"].hp, 21)
 
         qs_res = self.run_cmd("p 1 e1", uids[0])
         self.assertIn("迅捷打击", qs_res)

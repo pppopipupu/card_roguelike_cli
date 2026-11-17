@@ -296,7 +296,7 @@ class ChainLightningCard(Card):
 @register_card("sunburst")
 class SunburstCard(Card):
     def execute(self, run, target, engine) -> str:
-        dmg = getattr(self, "base_dmg", 22 if self.upgraded else 16)
+        dmg = getattr(self, "base_dmg", 44 if self.upgraded else 32)
         dmg = engine.get_modified_spell_damage(run, self, dmg)
         for idx in range(len(run.enemies) - 1, -1, -1):
             engine._damage_target(run, f"e{idx+1}", dmg, damage_type="radiant", card=self, damage_ready=True)

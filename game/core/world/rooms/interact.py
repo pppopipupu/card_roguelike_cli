@@ -5,7 +5,18 @@ from ....data.potion_data import get_potion_name, roll_potion
 from ....data.room_interact_data import ROOM_NPCS, ROOM_PROPS
 from ...inventory.bag_service import add_bag_item, get_item_display_name, resolve_item_query
 from ...cli.base.pinyin_match import find_entry_by_query
+from ..persistent_buffs import break_map_invisibility
 from ..sp_system import reduce_exhaustion, restore_sp
+from .big_room import (
+    add_effective_item,
+    get_effective_alive_npcs,
+    get_effective_interacted_props,
+    get_effective_items,
+    get_effective_props,
+    mark_effective_prop_interacted,
+    remove_effective_item,
+)
+from .hostile_npc import ensure_room_hostile_npcs, ensure_treasure_chest_prop
 
 PROP_HANDLERS = {}
 
@@ -48,11 +59,13 @@ def _reveal_any_special(fm, count: int = 1) -> List[str]:
     return chosen
 
 
-def resolve_npc_in_room(room, query: str) -> Optional[str]:
+def resolve_npc_in_room(room, query: str, fm=None, include_hostile: bool = True) -> Optional[str]:
     if room is None:
         return None
-    defeated = set(getattr(room, "defeated_npcs", None) or [])
-    alive = [nid for nid in (getattr(room, "npcs", None) or []) if nid not in defeated]
+    ensure_room_hostile_npcs(fm, room)
+    alive = get_effective_alive_npcs(fm, room)
+    if not include_hostile:
+        alive = [nid for nid in alive if not ROOM_NPCS.get(nid, {}).get("hostile")]
     if not alive:
         return None
     q = (query or "").strip()
@@ -75,10 +88,11 @@ def resolve_npc_in_room(room, query: str) -> Optional[str]:
     return find_entry_by_query(entries, q)
 
 
-def resolve_prop_in_room(room, query: str) -> Optional[str]:
+def resolve_prop_in_room(room, query: str, fm=None) -> Optional[str]:
     if room is None:
         return None
-    props = list(getattr(room, "props", None) or [])
+    ensure_treasure_chest_prop(room)
+    props = get_effective_props(fm, room)
     if not props:
         return None
     q = (query or "").strip()
@@ -136,7 +150,7 @@ def _touch_bloodied_pack(run, room, cfg, p, fm, coord):
     p.gold += cfg["gold_gain"]
     ok, _ = add_bag_item(p, cfg["item"])
     if not ok:
-        room.items.append(cfg["item"])
+        add_effective_item(fm, room, cfg["item"])
     return get_locale_text("i18n_room_interact.touch.bloodied_pack", gold=cfg["gold_gain"])
 
 
@@ -228,7 +242,7 @@ def _touch_dusty_bookshelf(run, room, cfg, p, fm, coord):
     add_persistent_buff(p, buff_id, stacks)
     ok, _ = add_bag_item(p, cfg["item"])
     if not ok:
-        room.items.append(cfg["item"])
+        add_effective_item(fm, room, cfg["item"])
     return get_locale_text("i18n_room_interact.touch.dusty_bookshelf")
 
 
@@ -255,17 +269,41 @@ def _touch_nordic_brazier(run, room, cfg, p, fm, coord):
     return get_locale_text("i18n_bleak_falls.props.nordic_brazier_res")
 
 
-def touch_in_room(save_manager, run, query: str) -> str:
+def _open_treasure_chest(save_manager, run, room, coord: str, map_engine=None) -> str:
+    from ....renderer import GameRenderer
+    from ...party.session import SessionContextScoper
+    fm = getattr(run, "floor_map", None)
+    uid = run.user_id
+    bonus_item = room.shared_payload.pop("bonus_item", "")
+    if bonus_item:
+        ok, _ = add_bag_item(run.player, bonus_item)
+        if not ok:
+            add_effective_item(fm, room, bonus_item)
+    SessionContextScoper.create_session(run, coord, "treasure", [uid])
+    if map_engine is not None and hasattr(map_engine, "explore_engine"):
+        map_engine.explore_engine._init_treasure_node(run)
+    else:
+        from ...battle.engine import BattleEngine
+        from ..explore_engine import ExploreEngine
+        from ..map_engine import MapEngine
+        me = MapEngine(save_manager, BattleEngine(save_manager))
+        ExploreEngine(save_manager, me)._init_treasure_node(run)
+    save_manager.save_save(uid, run)
+    return GameRenderer.render_game(run)
+
+
+def touch_in_room(save_manager, run, query: str, map_engine=None) -> str:
     q = (query or "").strip()
     if not q:
         return get_locale_text("i18n_room_interact.touch.need_arg")
     room, coord = get_current_room(run)
     if room is None:
         return get_locale_text("i18n_grid_map.err_no_floor_map")
+    fm = getattr(run, "floor_map", None)
     if room.room_type == "downstairs":
         from ..landmark_system import ensure_descent_tunnel
         ensure_descent_tunnel(room)
-    prop_id = resolve_prop_in_room(room, q)
+    prop_id = resolve_prop_in_room(room, q, fm=fm)
     if not prop_id:
         from ....data.open_world_config import WORLD_YOG_TEMPLE
         from ....data.world_social_config import WORLD_SNOWFIELD
@@ -274,33 +312,47 @@ def touch_in_room(save_manager, run, query: str) -> str:
         from ..open_world.loadout_service import is_open_world_run
 
         if is_open_world_run(run):
-            fm = getattr(run, "floor_map", None)
             floor_idx = getattr(fm, "floor_index", 0) if fm is not None else 0
             world = WORLD_YOG_TEMPLE if floor_idx == YOG_FLOOR_TEMPLE else WORLD_SNOWFIELD
             ghost_msg = OpenWorldGhostService.try_inspect_ghost(save_manager, world, coord, q, is_touch=True)
             if ghost_msg is not None:
+                broken_msg = break_map_invisibility(run, reason="interact")
+                if broken_msg:
+                    save_manager.save_save(run.user_id, run)
+                    return f"{broken_msg}\n{ghost_msg}"
                 return ghost_msg
         return get_locale_text("i18n_room_interact.touch.not_found", target=q)
     cfg = ROOM_PROPS.get(prop_id, {})
     pname = get_locale_text(cfg["name_key"]) if cfg.get("name_key") else prop_id
+    broken_msg = break_map_invisibility(run, reason="interact")
     if prop_id in ("descent_tunnel", "temple_gate"):
         from ..landmark_system import open_room_talk
         from ....renderer import GameRenderer
         err = open_room_talk(save_manager, run, run.user_id)
         if err:
+            if broken_msg:
+                save_manager.save_save(run.user_id, run)
             return err
-        return GameRenderer.render_game(run)
-    done = room.interacted_props
+        save_manager.save_save(run.user_id, run)
+        rendered = GameRenderer.render_game(run)
+        return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
+    done = get_effective_interacted_props(fm, room)
     if prop_id in done:
-        return get_locale_text("i18n_room_interact.touch.already_done", name=pname)
-    done.append(prop_id)
+        if broken_msg:
+            save_manager.save_save(run.user_id, run)
+        already_msg = get_locale_text("i18n_room_interact.touch.already_done", name=pname)
+        return f"{broken_msg}\n{already_msg}" if broken_msg else already_msg
+    mark_effective_prop_interacted(fm, room, prop_id)
+    if prop_id == "treasure_chest":
+        res = _open_treasure_chest(save_manager, run, room, coord, map_engine=map_engine)
+        return f"{broken_msg}\n\n{res}" if broken_msg else res
     handler = PROP_HANDLERS.get(prop_id)
     if handler:
-        msg = handler(run, room, cfg, run.player, run.floor_map, coord)
+        msg = handler(run, room, cfg, run.player, fm, coord)
     else:
         msg = get_locale_text("i18n_room_interact.touch.already_done", name=pname)
     save_manager.save_save(run.user_id, run)
-    return msg
+    return f"{broken_msg}\n{msg}" if broken_msg else msg
 
 
 def take_in_room(save_manager, run, query: str) -> str:
@@ -310,24 +362,26 @@ def take_in_room(save_manager, run, query: str) -> str:
     room, _ = get_current_room(run)
     if room is None:
         return get_locale_text("i18n_grid_map.err_no_floor_map")
-    items = list(getattr(room, "items", None) or [])
+    fm = getattr(run, "floor_map", None)
+    items = get_effective_items(fm, room)
     item_id = resolve_item_query(q, items)
     if not item_id:
         return get_locale_text("i18n_room_interact.bag.take_not_found", target=q)
     ok, msg = add_bag_item(run.player, item_id)
     if ok:
-        room.items.remove(item_id)
+        remove_effective_item(fm, room, item_id)
         save_manager.save_save(run.user_id, run)
     return msg
 
 
-def format_room_env_with_props(room, include_cleared_suffix: bool = True) -> str:
+def format_room_env_with_props(room, include_cleared_suffix: bool = True, fm=None) -> str:
+    ensure_treasure_chest_prop(room)
     env_id = getattr(room, "env_id", "") or "dungeon_corridor"
     env_text = get_locale_text(f"i18n_room_interact.env.{env_id}")
     if include_cleared_suffix and room.cleared and room.room_type not in ("spawn", "empty", "shop", "cafe", "landmark", "downstairs"):
         env_text += get_locale_text("i18n_room_interact.env.cleared_suffix")
-    done_props = set(getattr(room, "interacted_props", None) or [])
-    for pid in getattr(room, "props", None) or []:
+    done_props = set(get_effective_interacted_props(fm, room))
+    for pid in get_effective_props(fm, room):
         if pid not in ROOM_PROPS:
             continue
         skey = f"i18n_room_interact.props.{pid}.done_scene" if pid in done_props else f"i18n_room_interact.props.{pid}.scene"
@@ -341,17 +395,18 @@ def format_room_extras(run, include_env: bool = True) -> List[str]:
     room, _ = get_current_room(run)
     if room is None:
         return []
+    fm = getattr(run, "floor_map", None)
+    ensure_room_hostile_npcs(fm, room)
     lines = []
     if include_env:
-        lines.append(format_room_env_with_props(room, include_cleared_suffix=True))
-    defeated = set(getattr(room, "defeated_npcs", None) or [])
-    alive_npcs = [nid for nid in (getattr(room, "npcs", None) or []) if nid not in defeated and nid in ROOM_NPCS]
+        lines.append(format_room_env_with_props(room, include_cleared_suffix=True, fm=fm))
+    alive_npcs = [nid for nid in get_effective_alive_npcs(fm, room) if nid in ROOM_NPCS]
     nnames = [f"【{get_locale_text(ROOM_NPCS[nid]['name_key'])}】" for nid in alive_npcs]
     world_here = render_players_for(getattr(run, "user_id", ""), run=run)
     npc_line = format_npcs_and_players_line(nnames, world_here)
     if npc_line:
         lines.append(npc_line)
-    items = list(getattr(room, "items", None) or [])
+    items = get_effective_items(fm, room)
     if items:
         inames = [f"【{get_item_display_name(it)}】" for it in items]
         lines.append(get_locale_text("i18n_room_interact.room_ui.items_line", items="、".join(inames)))

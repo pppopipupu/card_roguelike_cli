@@ -1,7 +1,7 @@
 from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
-from .....data.potion_data import get_potion_name
+from .....data.potion_data import POTION_CONFIG, get_potion_name
 from .....data.command_data import POTION_LIST_ALIASES, POTION_DRINK_ALIASES, POTION_THROW_ALIASES, POTION_DROP_ALIASES, POTION_CONTAINER_ALIASES
 from .....data.locale_data import get_locale_text
 from ....inventory.bag_service import drop_bag_item, format_weight, get_bag_max_weight, get_bag_weight, get_player_potions, resolve_item_query
@@ -130,7 +130,7 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
                 yield get_locale_text("i18n_cli_general_a.potion.invalid_target")
                 return
 
-        if run.node_type != "battle" and potion_id != "healing_potion":
+        if run.node_type != "battle" and not POTION_CONFIG.get(potion_id, {}).get("usable_out_of_battle", False):
             yield get_locale_text("i18n_cli_general_a.potion.battle_only")
             return
 

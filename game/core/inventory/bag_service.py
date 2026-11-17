@@ -201,7 +201,7 @@ def use_bag_item(engine, run, query: str) -> str:
         return get_locale_text("i18n_room_interact.bag.use_not_found", target=q)
     if item_id.startswith("potion:"):
         pid = item_id.split(":", 1)[1]
-        if run.node_type != "battle" and pid != "healing_potion":
+        if run.node_type != "battle" and not POTION_CONFIG.get(pid, {}).get("usable_out_of_battle", False):
             return get_locale_text("i18n_cli_general_a.potion.battle_only")
         items.remove(item_id)
         return engine.potion_resolver.use_potion(run, pid, "p0", False)

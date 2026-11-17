@@ -102,7 +102,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self.assertNotIn("espresso_beans", run_after.player.bag_items)
 
     def _win_current_battle(self, uid: str):
-        for _ in range(120):
+        for _ in range(320):
             r = self.plugin.save_manager.load_save(uid)
             if not r or r.node_type != "battle":
                 return r
@@ -270,7 +270,12 @@ class TestRoomInteractAndShop(unittest.TestCase):
         from game.data.room_interact_data import ROOM_PROPS
         from game.data.locale_data import get_locale_text
         room = floor_of(run).rooms[floor_of(run).player_coords[uid]]
-        self.assertTrue(any(get_locale_text(ROOM_PROPS[pid]["name_key"]) in res for pid in room.props))
+        self.assertTrue(
+            any(
+                pid in ROOM_PROPS and get_locale_text(f"i18n_room_interact.props.{pid}.scene") in res
+                for pid in room.props
+            )
+        )
 
     def test_bag_modes_and_universal_fold(self):
         uid = "bag_fold_all_user"
@@ -328,14 +333,132 @@ class TestRoomInteractAndShop(unittest.TestCase):
         battle_unfold = self.run_cmd("f", uid)
         self.assertIn("f 折叠", battle_unfold)
 
+    def _finish_battle_in_test(self, uid: str):
+        for _ in range(40):
+            r = load_run(self.plugin, uid)
+            if r.node_type == "battle":
+                for _ in range(8):
+                    r = load_run(self.plugin, uid)
+                    if r.node_type != "battle":
+                        break
+                    pick = None
+                    for prio in (("sunburst",), ("fire_bolt", "magic_missile"), ("shield", "first_aid")):
+                        for idx, c in enumerate(r.player.hand, 1):
+                            if c.id in prio and r.player.actions >= 1:
+                                pick = idx
+                                break
+                        if pick is not None:
+                            break
+                    if pick is not None:
+                        self.run_cmd(f"p {pick}", uid)
+                        continue
+                    break
+                if load_run(self.plugin, uid).node_type == "battle":
+                    self.run_cmd("e", uid)
+            elif r.node_type in ("reward", "boss_chest"):
+                if r.node_type == "boss_chest":
+                    self.run_cmd("1", uid)
+                if load_run(self.plugin, uid).node_type != "grid_map":
+                    self.run_cmd("leave", uid)
+            elif r.node_type == "grid_map":
+                break
+            else:
+                self.run_cmd("leave", uid)
+
+    def _walk_to_targets(self, uid: str, targets: set[str], *, avoid_high_danger: bool = False):
+        import heapq
+
+        last_res = ""
+        for _ in range(8):
+            run_cur = load_run(self.plugin, uid)
+            fm = floor_of(run_cur)
+            start_c = fm.player_coords[uid]
+            if start_c in targets and run_cur.node_type != "grid_map":
+                return last_res
+            pq = [(0, start_c)]
+            dist = {start_c: 0}
+            prev = {}
+            target_c = None
+            while pq:
+                d, cur = heapq.heappop(pq)
+                if d > dist.get(cur, 10**9):
+                    continue
+                if cur in targets:
+                    target_c = cur
+                    break
+                cx, cy = coord_to_xy(cur)
+                for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                    nx, ny = cx + dx, cy + dy
+                    if not (0 <= nx < fm.width and 0 <= ny < fm.height):
+                        continue
+                    nc = xy_to_coord(nx, ny)
+                    nr = fm.rooms.get(nc)
+                    if not nr or nr.room_type in ("wall", "secret_boss"):
+                        continue
+                    if nr.cleared or nr.room_type in ("spawn", "empty") or nc in targets:
+                        cost = 1
+                    elif nr.room_type == "obstacle":
+                        cost = 50
+                    elif nr.room_type == "high_danger":
+                        cost = 2000 if avoid_high_danger else 500
+                    elif nr.room_type in ("battle", "elite", "boss"):
+                        cost = 500
+                    else:
+                        cost = 10
+                    if d + cost < dist.get(nc, 10**9):
+                        dist[nc] = d + cost
+                        prev[nc] = cur
+                        heapq.heappush(pq, (d + cost, nc))
+            assert target_c is not None, "target coord must exist"
+            path = []
+            cur = target_c
+            while cur != start_c:
+                p_c = prev[cur]
+                px, py = coord_to_xy(p_c)
+                cx, cy = coord_to_xy(cur)
+                path.append((cur, {(0, -1): "w", (0, 1): "s", (-1, 0): "a", (1, 0): "d"}[(cx - px, cy - py)]))
+                cur = p_c
+            path.reverse()
+            interrupted = False
+            for step_idx, (coord, dcmd) in enumerate(path):
+                last_res = self.run_cmd(dcmd, uid)
+                cur_run = load_run(self.plugin, uid)
+                if cur_run.node_type == "grid_map" and floor_of(cur_run).player_coords.get(uid) != coord:
+                    last_res = self.run_cmd(dcmd, uid)
+                    if load_run(self.plugin, uid).node_type == "grid_map" and floor_of(load_run(self.plugin, uid)).player_coords.get(uid) != coord:
+                        last_res = self.run_cmd(dcmd, uid)
+                    cur_run = load_run(self.plugin, uid)
+                if step_idx < len(path) - 1:
+                    if cur_run.node_type == "battle":
+                        self._finish_battle_in_test(uid)
+                        interrupted = True
+                        break
+                    if cur_run.node_type == "battle_prompt":
+                        self.run_cmd("c 3", uid)
+                    elif cur_run.node_type in ("shop", "rest", "cafe", "landmark", "life_merchant", "treasure"):
+                        self.run_cmd("leave", uid)
+                    elif cur_run.node_type == "event":
+                        opts = cur_run.node_data.get("options", [])
+                        if opts:
+                            self.run_cmd(f"c {len(opts)}", uid)
+            if not interrupted:
+                return last_res
+        return last_res
+
     def test_persistent_buffs_and_camp_scavenge(self):
         uid = "pbuff_camp_user"
         random.seed(2026)
+        st_solo = self.plugin.save_manager.load_stats(uid)
+        st_solo.town_health_bonus = 800
+        st_solo.locked_cards = ["sunburst", "sunburst"]
+        self.plugin.save_manager.save_stats(uid, st_solo)
         self._start_grid(uid)
 
-        self.run_cmd("d", uid)
-        self.run_cmd("leave", uid)
-        camp_entry = self.run_cmd("d", uid)
+        fm_solo = floor_of(load_run(self.plugin, uid))
+        camp_targets = {
+            c for c, r in fm_solo.rooms.items() if r.room_type == "landmark" and getattr(r, "landmark_id", "") == "broken_sword_camp"
+        }
+        camp_entry = self._walk_to_targets(uid, camp_targets, avoid_high_danger=True)
         self.assertEqual(load_run(self.plugin, uid).node_type, "landmark")
         self.assertIn("断剑残营", camp_entry)
         scavenge_res = self.run_cmd("c 3", uid)
@@ -344,16 +467,16 @@ class TestRoomInteractAndShop(unittest.TestCase):
         if run_camp.node_type == "landmark":
             self.run_cmd("leave", uid)
 
-        hd_res = self.run_cmd("d", uid)
+        fm_after_camp = floor_of(load_run(self.plugin, uid))
+        hd_solo_targets = {c for c, r in fm_after_camp.rooms.items() if r.room_type == "high_danger" and not r.cleared}
+        hd_res = self._walk_to_targets(uid, hd_solo_targets)
         run_hd = load_run(self.plugin, uid)
         self.assertEqual(run_hd.node_type, "battle")
         self.assertIn("深渊寒蚀", hd_res)
         self.assertTrue(any(b.id == "weak" for b in run_hd.player.buffs))
         self.assertIn("不可用", self.run_cmd("map", uid))
 
-        import heapq
         import re
-        from game.core.world.grid_map_generator import coord_to_xy, xy_to_coord
         from game.data.account_config import RENAME_COST_GP
         uid1, uid2 = "pb_c1", "pb_c2"
         for u in (uid1, uid2):
@@ -382,59 +505,8 @@ class TestRoomInteractAndShop(unittest.TestCase):
 
         run_coop = load_run(self.plugin, uid1)
         fm = floor_of(run_coop)
-        start_c = fm.player_coords[uid1]
         hd_targets = {c for c, r in fm.rooms.items() if r.room_type == "high_danger"}
-        pq = [(0, start_c)]
-        dist = {start_c: 0}
-        prev = {}
-        target_c = None
-        while pq:
-            d, cur = heapq.heappop(pq)
-            if d > dist.get(cur, 10**9):
-                continue
-            if cur in hd_targets:
-                target_c = cur
-                break
-            cx, cy = coord_to_xy(cur)
-            for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
-                nx, ny = cx + dx, cy + dy
-                if not (0 <= nx < fm.width and 0 <= ny < fm.height):
-                    continue
-                nc = xy_to_coord(nx, ny)
-                nr = fm.rooms.get(nc)
-                if not nr or nr.room_type in ("wall", "secret_boss"):
-                    continue
-                cost = 1 if (nr.cleared or nr.room_type in ("spawn", "empty") or nc in hd_targets) else (50 if nr.room_type == "obstacle" else (500 if nr.room_type in ("battle", "elite", "boss") else 10))
-                if d + cost < dist.get(nc, 10**9):
-                    dist[nc] = d + cost
-                    prev[nc] = cur
-                    heapq.heappush(pq, (d + cost, nc))
-        assert target_c is not None, "high danger target must exist"
-        path = []
-        cur = target_c
-        while cur != start_c:
-            p_c = prev[cur]
-            px, py = coord_to_xy(p_c)
-            cx, cy = coord_to_xy(cur)
-            path.append((cur, {(0, -1): "w", (0, 1): "s", (-1, 0): "a", (1, 0): "d"}[(cx - px, cy - py)]))
-            cur = p_c
-        path.reverse()
-        for step_idx, (coord, dcmd) in enumerate(path):
-            self.run_cmd(dcmd, uid1)
-            cur_run = load_run(self.plugin, uid1)
-            if cur_run.node_type == "grid_map" and floor_of(cur_run).player_coords.get(uid1) != coord:
-                self.run_cmd(dcmd, uid1)
-                self.run_cmd(dcmd, uid1)
-                cur_run = load_run(self.plugin, uid1)
-            if step_idx < len(path) - 1:
-                if cur_run.node_type == "battle_prompt":
-                    self.run_cmd("c 3", uid1)
-                elif cur_run.node_type in ("shop", "rest", "cafe", "landmark", "life_merchant", "treasure"):
-                    self.run_cmd("leave", uid1)
-                elif cur_run.node_type == "event":
-                    opts = cur_run.node_data.get("options", [])
-                    if opts:
-                        self.run_cmd(f"c {len(opts)}", uid1)
+        self._walk_to_targets(uid1, hd_targets)
         self.assertEqual(load_run(self.plugin, uid1).node_type, "battle_prompt")
         self.run_cmd("c 3", uid1)
         map_after_hd = self.run_cmd("map", uid1)

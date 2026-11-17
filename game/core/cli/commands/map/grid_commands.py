@@ -4,6 +4,7 @@ from .....data.locale_data import get_locale_text
 from .....renderer import GameRenderer
 from ....inventory.bag_service import drop_bag_item, use_bag_item
 from ....world.landmark_system import open_room_talk
+from ....world.persistent_buffs import break_map_invisibility
 from ....party.mercenary import find_mercenary_uid, open_merc_dialog
 from ....world.rooms.npc_dialog import attack_in_room, talk_room_npc
 from ....world.rooms.interact import take_in_room, touch_in_room
@@ -66,9 +67,10 @@ class GridTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
                 return
             merc_uid, _ = find_mercenary_uid(run, query, user_id)
             if merc_uid:
+                broken_msg = break_map_invisibility(run, reason="interact")
                 res = open_merc_dialog(run, user_id, merc_uid)
                 router.save_manager.save_save(user_id, run)
-                yield res
+                yield f"{broken_msg}\n\n{res}" if broken_msg else res
                 return
             npc_res = talk_room_npc(router.save_manager, run, query)
             if npc_res:
@@ -78,7 +80,11 @@ class GridTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
             return
         err = open_room_talk(router.save_manager, run, user_id)
         if not err:
-            yield GameRenderer.render_game(run)
+            broken_msg = break_map_invisibility(run, reason="interact")
+            if broken_msg:
+                router.save_manager.save_save(user_id, run)
+            rendered = GameRenderer.render_game(run)
+            yield f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
             return
         npc_res = talk_room_npc(router.save_manager, run, "")
         if npc_res:
@@ -86,9 +92,10 @@ class GridTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
             return
         merc_uid, _ = find_mercenary_uid(run, "", user_id)
         if merc_uid:
+            broken_msg = break_map_invisibility(run, reason="interact")
             res = open_merc_dialog(run, user_id, merc_uid)
             router.save_manager.save_save(user_id, run)
-            yield res
+            yield f"{broken_msg}\n\n{res}" if broken_msg else res
             return
         yield err
 
@@ -103,14 +110,14 @@ class GridAttackCommand(CommandHandler, names=["攻击", "attack", "atk", "打"]
         yield attack_in_room(router.engine.map_engine, run, query)
 
 
-class GridTouchCommand(CommandHandler, names=["触摸", "touch", "tch", "摸", "调查", "inspect"], allowed_states=["grid_map", "explore", "cafe"], help_key="grid_touch"):
+class GridTouchCommand(CommandHandler, names=["触摸", "touch", "tch", "摸", "调查", "inspect", "打开", "open"], allowed_states=["grid_map", "explore", "cafe"], help_key="grid_touch"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:
             yield get_locale_text("i18n_cli_general_b.err_no_active_game")
             return
         query = " ".join(parts[1:]).strip() if len(parts) > 1 else ""
-        yield touch_in_room(router.save_manager, run, query)
+        yield touch_in_room(router.save_manager, run, query, map_engine=router.engine.map_engine)
 
 
 class GridTakeCommand(CommandHandler, names=["拿取", "捡起", "take", "pick"], allowed_states=["grid_map", "explore", "cafe"], help_key="grid_take"):

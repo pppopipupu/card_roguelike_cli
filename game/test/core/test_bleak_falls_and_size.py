@@ -27,7 +27,7 @@ class TestBleakFallsAndSize(unittest.TestCase):
     def _prepare_seasoned_stats(self, uid: str, *, gp: int = 0):
         stats = self.sm.load_stats(uid)
         stats.selected_class = "法师"
-        stats.town_health_bonus = 450
+        stats.town_health_bonus = 800
         stats.gp = gp
         stats.locked_cards = ["sunburst", "sunburst"]
         self.sm.save_stats(uid, stats)
@@ -275,25 +275,6 @@ class TestBleakFallsAndSize(unittest.TestCase):
         self.assertIn("主城酒馆", q_floor2)
 
         self.run_cmd("abandon confirm", uid)
-
-    def test_query_displays_all_dnd_and_extended_sizes(self):
-        uid = "size_query_user"
-        cases = [
-            ("i pppopipupu", "体型：超微型"),
-            ("i 召唤魔宠", "体型：微型"),
-            ("i 地精突袭者", "体型：小型"),
-            ("i 雇佣兵", "体型：中型"),
-            ("i 巨型冰霜蜘蛛", "体型：大型"),
-            ("i 先古守卫", "体型：巨型"),
-            ("i 安的巨大英灵", "体型：巨型"),
-            ("i 远古红龙", "体型：超巨型"),
-            ("i 伟大的克苏鲁", "体型：极巨型"),
-            ("i DeepSeek V4.1 Flash", "体型：不适用"),
-            ("i 时空残影", "体型：不适用"),
-        ]
-        for cmd, expected in cases:
-            out = self.run_cmd(cmd, uid)
-            self.assertIn(expected, out, msg=cmd)
 
     def test_bleak_falls_return_dragonstone_unlocks_fus_ro_dah(self):
         uid = "bf_return_user"

@@ -108,5 +108,10 @@
   "dream_eater_passive_name": "食梦帷幕",
   "dream_eater_passive_desc": "每当玩家消耗卡牌时，获得 4 点护盾并恢复 3 点生命",
   "confusion_recoil_log": "🌀 【{entity}】因【混乱】心智错乱，受到 {dmg} 点心灵反噬伤害！",
-  "tremor_burst_log": "💢 【{entity}】体内的【震颤】迸发，额外受到 {dmg} 点钝击伤害！"
+  "tremor_burst_log": "💢 【{entity}】体内的【震颤】迸发，额外受到 {dmg} 点钝击伤害！",
+  "invisibility_dodge_log": "🫥 【{name}】凭借【隐身】闪避了【{enemy}】的攻击！",
+  "invisibility_true_sight_pierce_log": "👁️ 【{enemy}】的真实视觉看穿了【{name}】的【隐身】！",
+  "invisibility_true_sight_ambush_notice": "👁️ 【{enemy}】拥有真实视觉，直接看穿了你的【隐身】并袭来！",
+  "invisibility_map_broken_battle_log": "🫥 你已进入战斗，地图【隐身】效果随之消散。",
+  "invisibility_map_broken_interact_log": "🫥 你进行了交互，身上的【隐身】状态解除了。"
 }

@@ -387,12 +387,10 @@ def build_bleak_landmark_data(run: GameRun, room: RoomState) -> Optional[dict[st
 
 
 def _grant_word_wall_card(run: GameRun, stats: Optional[UserStats]) -> str:
+    from ..inventory.card_distribution import CardDistributor
+
     p = run.player
-    color = DeckService._class_color(p)
-    pool = DeckService.eligible_card_ids(stats, colors=(color, "neutral"), rarities=("rare",))
-    if not pool:
-        pool = DeckService.eligible_card_ids(stats, rarities=("rare",))
-    cid = random.choice(pool) if pool else "first_aid"
+    cid = CardDistributor.roll_one("word_wall", run, p, stats, fallback="first_aid") or "first_aid"
     DeckService.add_card_to_deck(p, cid)
     card_obj = ALL_CARDS.get(cid)
     return card_obj.name if card_obj else cid

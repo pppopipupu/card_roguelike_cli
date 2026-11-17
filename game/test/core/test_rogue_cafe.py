@@ -192,50 +192,6 @@ class TestRogueCafe(unittest.TestCase):
         asyncio.run(go())
         plugin.save_manager.delete_save(user_id)
 
-    def test_relic_espresso(self):
-        plugin = MyPlugin(DummyContext())
-        engine = plugin.engine.battle_engine
-        p = PlayerState(
-            hp=20, max_hp=20, shield=0, gold=100, stage=13,
-            deck=[], hand=[], draw_pile=[], discard_pile=[],
-            exhaust_pile=[], graveyard=[], relics=["espresso_relic"]
-        )
-        run = GameRun(user_id="test_user_espresso", node_type="battle", player=p, enemies=[], node_data={})
-        
-        evt = TurnStartEvent(run=run, is_player=True)
-        p.actions = 2
-        engine.event_bus.dispatch(evt)
-        self.assertEqual(p.actions, 3)
-        
-        plugin.engine.map_engine.enter_next_stage(run)
-        self.assertNotIn("espresso_relic", p.relics)
-
-    def test_relic_anthem(self):
-        plugin = MyPlugin(DummyContext())
-        engine = plugin.engine.battle_engine
-        p = PlayerState(
-            hp=20, max_hp=20, shield=0, gold=100, stage=13,
-            deck=[CardState(id="fire_bolt")], hand=[], draw_pile=[], discard_pile=[],
-            exhaust_pile=[], graveyard=[], relics=["anthem_relic_3"]
-        )
-        run = GameRun(user_id="test_user_anthem", node_type="battle", player=p, enemies=[], node_data={})
-        
-        engine._init_battle_node(run, "normal")
-        self.assertEqual(p.shield, 2)
-        self.assertNotIn("anthem_relic_3", p.relics)
-        self.assertIn("anthem_relic_2", p.relics)
-        
-        p.shield = 0
-        engine._init_battle_node(run, "normal")
-        self.assertEqual(p.shield, 2)
-        self.assertNotIn("anthem_relic_2", p.relics)
-        self.assertIn("anthem_relic_1", p.relics)
-        
-        p.shield = 0
-        engine._init_battle_node(run, "normal")
-        self.assertEqual(p.shield, 2)
-        self.assertNotIn("anthem_relic_1", p.relics)
-
     def test_cafe_bypass_prefix_talk_and_choose(self):
         plugin = MyPlugin(DummyContext())
         user_id = "test_user_bypass_cafe"

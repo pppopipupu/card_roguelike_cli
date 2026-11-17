@@ -29,14 +29,16 @@ class StunBuff(BuffImpl):
         if not event.is_player and entity in event.run.enemies:
             buff_state.stacks -= 1
             if buff_state.stacks <= 0:
-                entity.buffs.remove(buff_state)
+                if buff_state in entity.buffs:
+                    entity.buffs.remove(buff_state)
             entity.actions = 0
             entity.bonus_actions = 0
             event.engine._log_event(event.run, get_locale_text("i18n_buffs.stun_enemy_log", entity=entity.name))
         elif event.is_player and entity == event.run.player:
             buff_state.stacks -= 1
             if buff_state.stacks <= 0:
-                entity.buffs.remove(buff_state)
+                if buff_state in entity.buffs:
+                    entity.buffs.remove(buff_state)
             entity.actions = 0
             entity.bonus_actions = 0
             event.engine._log_event(event.run, get_locale_text("i18n_buffs.stun_player_log"))

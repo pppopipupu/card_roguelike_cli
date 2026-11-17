@@ -140,6 +140,11 @@ class SessionContextScoper:
                     or run.node_data.get("bleak_falls_combat_tag")
                 )
                 if room.room_type == "boss":
+                    from ..world.rooms.big_room import mark_effective_npc_defeated
+                    hostile_id = str((session.node_data or {}).get("hostile_npc_id") or "") or "floor_boss"
+                    mark_effective_npc_defeated(fm, room, hostile_id)
+                    if hostile_id in room.npcs:
+                        room.npcs.remove(hostile_id)
                     if fm.floor_flags.get("yog_quest") or fm.floor_flags.get("bleak_falls_zone"):
                         room.cleared = True
                         room.explored = True
@@ -155,12 +160,33 @@ class SessionContextScoper:
                     if was_bleak_combat:
                         pending_bleak_clear = room.coord
                 elif room.room_type == "secret_boss":
+                    from ..world.rooms.big_room import mark_effective_npc_defeated
+                    hostile_id = str((session.node_data or {}).get("hostile_npc_id") or "") or "secret_boss_avatar"
+                    mark_effective_npc_defeated(fm, room, hostile_id)
                     room.cleared = True
                     room.explored = True
                     room.secret_unlocked = True
                 else:
-                    room.cleared = True
+                    from ..world.rooms.big_room import get_big_room, mark_effective_npc_defeated, sync_big_room_clear_state
+                    from ..world.rooms.hostile_npc import get_alive_hostile_npcs
+                    hostile_id = str((session.node_data or {}).get("hostile_npc_id") or "")
+                    if hostile_id:
+                        mark_effective_npc_defeated(fm, room, hostile_id)
+                    elif session.node_type == "battle":
+                        for hid in list(get_alive_hostile_npcs(fm, room)):
+                            mark_effective_npc_defeated(fm, room, hid)
+                    remaining_hostiles = get_alive_hostile_npcs(fm, room)
+                    br = get_big_room(fm, room)
+                    if not remaining_hostiles:
+                        room.cleared = True
+                        if br is not None and br.share_npcs and session.node_type == "battle":
+                            br.cleared = True
+                            for cell_c in br.cells:
+                                if cell_c in fm.rooms:
+                                    fm.rooms[cell_c].cleared = True
                     room.explored = True
+                    if br is not None:
+                        sync_big_room_clear_state(fm, room)
                     if was_bleak_combat:
                         pending_bleak_clear = room.coord
         combat_tag = run.node_data.get("bleak_falls_combat_tag", "")

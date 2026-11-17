@@ -3,6 +3,7 @@ from dataclasses import asdict, replace
 from ...models.state import CardState, ensure_card_state
 from ...data.reward_config import EPIC_CARD_RARITY, NORMAL_CARD_RARITIES
 from ...data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
+from .card_distribution import CardDistributor, CardFilterSpec, CardPoolResolver
 
 UPGRADE_SUFFIX = "+"
 
@@ -77,92 +78,50 @@ class DeckService:
 
     @staticmethod
     def _class_color(player):
-        return "warrior" if getattr(player, "selected_class", "法师") == "战士" else "wizard"
+        return CardDistributor.class_color(player)
 
     @staticmethod
     def eligible_card_ids(stats, *, colors=None, rarities=None, card_types=None, allow_coop=False, allow_curse=False, allow_duel=False, allow_event=False, allow_token=False, require_available=True, exclude_upgraded=True):
-        from ...entities import ALL_CARDS
-        from ...entities.cards.base import card_matches_color
-        from ...entities.cards.market import is_card_available
-        color_allow = None if colors is None else tuple(colors)
-        rarity_allow = None if rarities is None else tuple(rarities)
-        type_allow = None if card_types is None else tuple(card_types)
-        pool = []
-        for cid, card in ALL_CARDS.items():
-            if exclude_upgraded and cid.endswith(UPGRADE_SUFFIX):
-                continue
-            if not allow_curse and cid.startswith("curse_"):
-                continue
-            if not allow_duel and cid.startswith("duel_"):
-                continue
-            if color_allow is not None and not any(card_matches_color(card, c) for c in color_allow):
-                continue
-            if rarity_allow is not None and getattr(card, "rarity", "common") not in rarity_allow:
-                continue
-            if type_allow is not None and getattr(card, "type", "") not in type_allow:
-                continue
-            if not allow_coop and getattr(card, "coop_only", False):
-                continue
-            if not allow_event and (getattr(card, "event_only", False) or getattr(card, "life_merchant_only", False)):
-                continue
-            if not allow_token and getattr(card, "token", False):
-                continue
-            if require_available and not is_card_available(cid, stats):
-                continue
-            pool.append(cid)
-        return pool
+        spec = CardFilterSpec(
+            colors=None if colors is None else tuple(colors),
+            rarities=None if rarities is None else tuple(rarities),
+            card_types=None if card_types is None else tuple(card_types),
+            allow_coop=allow_coop,
+            allow_curse=allow_curse,
+            allow_duel=allow_duel,
+            allow_event=allow_event,
+            allow_token=allow_token,
+            require_available=require_available,
+            exclude_upgraded=exclude_upgraded,
+        )
+        return CardPoolResolver.filter_cards(stats, spec)
 
     @staticmethod
-    def get_reward_card_pool(run, player, stats, *, include_coop=False):
-        from ...entities.cards.market import is_coop_only
-        color = DeckService._class_color(player)
-        pool = DeckService.eligible_card_ids(
+    def get_reward_card_pool(run, player, stats, *, include_coop=False, difficulty=None):
+        if difficulty is not None:
+            channel = CardDistributor.resolve_battle_channel(difficulty)
+            return CardDistributor.get_pool(channel, run, player, stats, include_coop=include_coop)
+        return CardDistributor.get_pool(
+            "battle_elite",
+            run,
+            player,
             stats,
-            colors=(color, "neutral"),
+            include_coop=include_coop,
             rarities=NORMAL_CARD_RARITIES,
         )
-        if include_coop:
-            pool.extend(
-                cid
-                for cid in DeckService.eligible_card_ids(
-                    stats,
-                    rarities=NORMAL_CARD_RARITIES,
-                    allow_coop=True,
-                )
-                if is_coop_only(cid)
-            )
-        return pool
 
     @staticmethod
     def get_shop_card_pool(run, player, stats, *, include_coop=False):
-        color = DeckService._class_color(player)
         allow_coop = (run is not None and run.player_count() > 1) or include_coop
-        return DeckService.eligible_card_ids(
-            stats,
-            colors=(color, "neutral"),
-            rarities=NORMAL_CARD_RARITIES,
-            allow_coop=allow_coop,
-        )
+        return CardDistributor.get_pool("shop", run, player, stats, include_coop=allow_coop)
 
     @staticmethod
     def get_epic_card_pool(run, player, stats):
-        color = DeckService._class_color(player)
-        return DeckService.eligible_card_ids(
-            stats,
-            colors=(color, "neutral"),
-            rarities=(EPIC_CARD_RARITY,),
-        )
+        return CardDistributor.get_pool("treasure", run, player, stats, rarities=(EPIC_CARD_RARITY,))
 
     @staticmethod
     def get_class_spell_pool(player, stats, include_coop=False):
-        color = DeckService._class_color(player)
-        return DeckService.eligible_card_ids(
-            stats,
-            colors=(color,),
-            card_types=("spell",),
-            rarities=NORMAL_CARD_RARITIES,
-            allow_coop=include_coop,
-        )
+        return CardDistributor.get_pool("rest_meditate", None, player, stats, include_coop=include_coop)
 
     @staticmethod
     def serialize_cards(cards) -> list[dict]:
@@ -198,7 +157,7 @@ class DeckService:
 
         deck = list(CLASS_STARTING_CARDS.get(selected_class, CLASS_STARTING_CARDS["法师"])) + list(locked_cards)
         if include_random_rolls:
-            allowed_colors = ["warrior", "neutral"] if selected_class == "战士" else ["wizard", "neutral"]
+            allowed_colors = [CardDistributor.class_color(stats), "neutral"]
             commons = [
                 cid
                 for cid in DeckService.eligible_card_ids(stats, colors=allowed_colors, rarities=("common",))

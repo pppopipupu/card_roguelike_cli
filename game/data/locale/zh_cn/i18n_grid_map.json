@@ -23,6 +23,7 @@
   "legend_title": "📌 图例：",
   "revealed_facilities": "🧭 已发现设施：",
   "talk_hint": "💬 当前格子有设施可交互，输入 talk 触发。",
+  "treasure_hint": "📦 房间中静置着宝箱，可先搜寻四周，或输入 touch 宝箱 开启。",
   "tunnel_hint": "🌀 厅中显现【下降隧道】，输入 touch 下降隧道 领取先古赐福并下楼，也可输入 talk 交互。",
   "controls_hint": "🎮 w/a/s/d 移动 | tp 传送 | m 地图 | bag 背包 | f 折叠",
   "guide_folded": "🎮 f 展开提示",
@@ -81,7 +82,8 @@
     "bleak_sanctuary_gate": "圣所大门",
     "golden_claw_door": "龙爪机关门",
     "word_wall": "龙语墙",
-    "barrow_exit": "古坟密道"
+    "barrow_exit": "古坟密道",
+    "big_room": "大型厅室"
   },
   "room_name": {
     "spawn": "出生点",
@@ -112,7 +114,8 @@
     "bleak_sanctuary_gate": "荒爆圣所大门",
     "golden_claw_door": "黄金龙爪机关门",
     "word_wall": "龙语墙",
-    "barrow_exit": "荒爆圣所密道出口"
+    "barrow_exit": "荒爆圣所密道出口",
+    "big_room": "大型厅室"
   },
   "battle_prompt": {
     "title": "⚔️ 遭遇敌群（{coord}）",

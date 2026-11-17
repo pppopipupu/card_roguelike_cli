@@ -14,6 +14,22 @@ from .grid_map_generator import compute_effective_stage, coord_to_xy, xy_to_coor
 from .landmark_system import build_landmark_options, ensure_descent_tunnel
 from ..party.coordinator import apply_and_scope, restore_player, swap_player
 from ..party.session import SessionContextScoper
+from .rooms.big_room import (
+    get_big_room,
+    get_big_room_icon,
+    get_big_room_name,
+    reveal_big_room_if_needed,
+    sync_big_room_clear_state,
+)
+from .rooms.hostile_npc import (
+    ensure_room_hostile_npcs,
+    ensure_treasure_chest_prop,
+    get_alive_hostile_npcs,
+    has_stealth_buff,
+    resolve_room_true_sight_enemy,
+    trigger_hostile_npc_battle,
+)
+from .persistent_buffs import break_map_invisibility
 from .sp_system import check_exhaustion_death, consume_sp
 
 
@@ -79,11 +95,7 @@ class GridMapService:
         return res
 
     def _reveal_coord(self, fm, coord: str):
-        room = fm.rooms.get(coord)
-        if room is not None:
-            room.explored = True
-        if coord not in fm.revealed_coords:
-            fm.revealed_coords.append(coord)
+        reveal_big_room_if_needed(fm, coord)
 
     def _sync_stage_for_coord(self, run, player, coord: str):
         fm = run.floor_map
@@ -123,6 +135,9 @@ class GridMapService:
         fm.player_coords[uid] = target_coord
         self._reveal_coord(fm, target_coord)
         self._sync_stage_for_coord(run, p, target_coord)
+        broken_msg = break_map_invisibility(run, reason="interact", player=p)
+        if broken_msg:
+            prefix = f"{prefix}\n{broken_msg}"
         self.save_manager.save_save(uid, run)
         sync_active(uid, run=run)
         return f"{prefix}\n\n{GameRenderer.render_game(run)}"
@@ -223,7 +238,11 @@ class GridMapService:
         stats.town_flags[YOG_QUEST_ZONE_KEY] = zone
         self.save_manager.save_stats(run.user_id, stats)
 
-    def _room_display_label(self, room) -> str:
+    def _room_display_label(self, room, fm=None) -> str:
+        if getattr(room, "big_room_id", "") and fm is not None:
+            bname = get_big_room_name(fm, room)
+            if bname:
+                return bname
         shared = getattr(room, "shared_payload", None) or {}
         name_key = shared.get("name_key")
         if name_key:
@@ -247,8 +266,8 @@ class GridMapService:
                 continue
             if r.room_type == "secret_boss" and not fm.secret_unlocked:
                 continue
-            icon = ROOM_ICONS.get(r.room_type, "")
-            entries.append(f"  {icon} {c} · {self._room_display_label(r)}")
+            icon = get_big_room_icon(fm, r) if getattr(r, "big_room_id", "") else ROOM_ICONS.get(r.room_type, "")
+            entries.append(f"  {icon} {c} · {self._room_display_label(r, fm=fm)}")
         if not entries:
             return get_locale_text("i18n_grid_map.tp_list_empty")
         return get_locale_text("i18n_grid_map.tp_list_header", items="\n".join(entries))
@@ -272,7 +291,7 @@ class GridMapService:
                 continue
             if r.room_type in ("wall", "solid_wall", "obstacle") or (r.room_type == "secret_boss" and not fm.secret_unlocked):
                 continue
-            label = self._room_display_label(r)
+            label = self._room_display_label(r, fm=fm)
             entries.append((c, label))
             type_name = get_locale_text(f"i18n_grid_map.room_name.{r.room_type}")
             if type_name != label:
@@ -298,24 +317,57 @@ class GridMapService:
         if room.room_type in ("wall", "solid_wall", "obstacle") or (room.room_type == "secret_boss" and not fm.secret_unlocked):
             return get_locale_text("i18n_grid_map.tp_blocked", coord=coord)
         fm.player_coords[uid] = coord
+        self._reveal_coord(fm, coord)
         self._sync_stage_for_coord(run, run.player, coord)
         from .presence import sync_active
         sync_active(uid, run=run)
-        if room.room_type in PERMANENT_ICON_TYPES or not room.cleared:
+        if room.room_type in PERMANENT_ICON_TYPES or room.room_type == "big_room" or not room.cleared:
             return self._enter_room(run, uid, coord)
         self.save_manager.save_save(uid, run)
         return f"{get_locale_text('i18n_grid_map.tp_success', coord=coord)}\n\n{GameRenderer.render_game(run)}"
 
     def _enter_room(self, run, uid: str, coord: str) -> str:
         from ...renderer import GameRenderer
+        from ...data.room_interact_data import ROOM_NPCS
         fm = run.floor_map
         room = fm.rooms[coord]
         p = run.player
         if fm.floor_flags.get("yog_quest"):
             self._update_quest_zone(run, room)
 
+        ensure_room_hostile_npcs(fm, room)
+        ensure_treasure_chest_prop(room)
+
         if room.room_type in ("empty", "spawn"):
             room.cleared = True
+            self.save_manager.save_save(uid, run)
+            return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+
+        alive_hostiles = get_alive_hostile_npcs(fm, room)
+        if alive_hostiles:
+            if has_stealth_buff(p):
+                hid = alive_hostiles[0]
+                true_sight_enemy = resolve_room_true_sight_enemy(fm, room, hid, p)
+                if true_sight_enemy:
+                    break_map_invisibility(run, reason="battle", player=p)
+                    pierce_notice = get_locale_text("i18n_buffs.invisibility_true_sight_ambush_notice", enemy=true_sight_enemy)
+                    res_text = trigger_hostile_npc_battle(self, run, uid, coord, room, hid)
+                    return f"{pierce_notice}\n{res_text}"
+                ncfg = ROOM_NPCS.get(hid, {})
+                nname = get_locale_text(ncfg["name_key"]) if ncfg.get("name_key") else hid
+                notice = get_locale_text("i18n_big_room.ui.stealth_bypass_notice", npc=nname)
+                self.save_manager.save_save(uid, run)
+                return f"{notice}\n\n{GameRenderer.render_game(run)}"
+            return trigger_hostile_npc_battle(self, run, uid, coord, room, alive_hostiles[0])
+
+        if room.room_type == "big_room":
+            if "treasure_chest" not in room.props or "treasure_chest" in room.interacted_props:
+                room.cleared = True
+            sync_big_room_clear_state(fm, room)
+            self.save_manager.save_save(uid, run)
+            return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+
+        if room.room_type == "treasure":
             self.save_manager.save_save(uid, run)
             return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
 
@@ -323,39 +375,13 @@ class GridMapService:
             self.save_manager.save_save(uid, run)
             return f"{get_locale_text('i18n_grid_map.moved_cleared', coord=coord)}\n\n{GameRenderer.render_game(run)}"
 
-        from .open_world.loadout_service import is_open_world_run
-        if room.room_type == "corpse" and not is_open_world_run(run):
-            corpse_id = room.shared_payload.get("corpse_id", "")
-            corpse = self.save_manager.corpses.get(corpse_id) if corpse_id else None
-            if not corpse or corpse.get("claimed_by"):
-                room.room_type = "empty"
-                room.cleared = True
-                self.save_manager.save_save(uid, run)
-                return f"{get_locale_text('i18n_grid_map.corpse_gone', coord=coord)}\n\n{GameRenderer.render_game(run)}"
-            return self._start_or_prompt_battle(run, uid, coord, room, "ghost", corpse=corpse)
-
-        if room.room_type in ("battle", "elite", "high_danger", "boss", "secret_boss"):
-            if room.room_type == "high_danger" and not room.shared_payload.get("hazard_applied"):
-                from .persistent_buffs import add_persistent_buff
-                loss = max(HIGH_DANGER_CONFIG["hazard_hp_min"], int(p.max_hp * HIGH_DANGER_CONFIG["hazard_hp_ratio"]))
-                p.hp = max(1, p.hp - loss)
-                add_persistent_buff(p, "abyss_chill", 1)
-                room.shared_payload["hazard_applied"] = True
-                room.shared_payload["hazard_loss"] = loss
-            diff = {
-                "battle": "normal",
-                "elite": "elite",
-                "high_danger": "elite",
-                "boss": "boss",
-                "secret_boss": "secret_boss",
-            }[room.room_type]
-            return self._start_or_prompt_battle(run, uid, coord, room, diff)
-
         if room.room_type == "landmark":
+            broken_msg = break_map_invisibility(run, reason="interact", player=p)
             data = build_landmark_options(run, uid)
             SessionContextScoper.create_session(run, coord, "landmark", [uid], node_data=data)
             self.save_manager.save_save(uid, run)
-            return GameRenderer.render_game(run)
+            rendered = GameRenderer.render_game(run)
+            return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
 
         if room.room_type == "downstairs":
             ensure_descent_tunnel(room)
@@ -368,6 +394,7 @@ class GridMapService:
             return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
 
         if room.room_type == "cafe":
+            broken_msg = break_map_invisibility(run, reason="interact", player=p)
             existing_sid = self._find_session_at(fm, coord, "cafe")
             if existing_sid:
                 sess = fm.active_sessions[existing_sid]
@@ -386,12 +413,15 @@ class GridMapService:
                 fm.player_session_map[uid] = existing_sid
                 SessionContextScoper.bind_to_run(run, uid)
                 self.save_manager.save_save(uid, run)
-                return GameRenderer.render_game(run)
+                rendered = GameRenderer.render_game(run)
+                return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
             SessionContextScoper.create_session(run, coord, "cafe", [uid])
             from .cafe.engine import CafeEngine
             CafeEngine(self.save_manager, self.map_engine).init_cafe(run, persist=True, player_count=len(run.all_human_uids()))
-            return GameRenderer.render_game(run)
+            rendered = GameRenderer.render_game(run)
+            return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
 
+        broken_msg = break_map_invisibility(run, reason="interact", player=p)
         SessionContextScoper.create_session(run, coord, room.room_type, [uid])
         if room.room_type == "event":
             self.map_engine.explore_engine._init_event_node(run, event_id=room.shared_payload.get("event_id", ""))
@@ -410,15 +440,21 @@ class GridMapService:
         elif room.room_type == "life_merchant":
             self.map_engine.explore_engine._init_life_merchant_node(run)
         self.save_manager.save_save(uid, run)
-        return GameRenderer.render_game(run)
+        rendered = GameRenderer.render_game(run)
+        return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
 
     def _find_session_at(self, fm, coord: str, node_type: str) -> str:
+        br = get_big_room(fm, coord)
         for sid, sess in fm.active_sessions.items():
-            if sess.coord == coord and sess.node_type == node_type:
+            if sess.node_type != node_type:
+                continue
+            if sess.coord == coord:
+                return sid
+            if br is not None and br.share_npcs and sess.coord in br.cells:
                 return sid
         return ""
 
-    def _start_or_prompt_battle(self, run, uid: str, coord: str, room, difficulty: str, corpse: dict | None = None) -> str:
+    def _start_or_prompt_battle(self, run, uid: str, coord: str, room, difficulty: str, corpse: dict | None = None, hostile_npc_id: str = "") -> str:
         from ...renderer import GameRenderer
         fm = run.floor_map
         existing_sid = self._find_session_at(fm, coord, "battle")
@@ -441,6 +477,7 @@ class GridMapService:
                 "is_high_danger": room.is_high_danger,
                 "hazard_loss": room.shared_payload.get("hazard_loss", 0),
                 "corpse_id": room.shared_payload.get("corpse_id", ""),
+                "hostile_npc_id": hostile_npc_id,
                 "idle_uids": idle,
                 "options": [
                     {"action": "solo", "text": get_locale_text("i18n_grid_map.battle_prompt.opt_solo")},
@@ -452,9 +489,9 @@ class GridMapService:
             self.save_manager.save_save(uid, run)
             return GameRenderer.render_game(run)
 
-        return self._launch_battle_session(run, coord, [uid], room, difficulty, corpse=corpse)
+        return self._launch_battle_session(run, coord, [uid], room, difficulty, corpse=corpse, hostile_npc_id=hostile_npc_id)
 
-    def _launch_battle_session(self, run, coord: str, participants: list[str], room, difficulty: str, corpse: dict | None = None, include_render: bool = True) -> str:
+    def _launch_battle_session(self, run, coord: str, participants: list[str], room, difficulty: str, corpse: dict | None = None, include_render: bool = True, hostile_npc_id: str = "") -> str:
         from ...renderer import GameRenderer
         fm = run.floor_map
         caller = run.user_id
@@ -463,6 +500,11 @@ class GridMapService:
             if u in run.players:
                 self._sync_stage_for_coord(run, run.players[u], coord)
         node_data = {}
+        if hostile_npc_id:
+            node_data["hostile_npc_id"] = hostile_npc_id
+        preset_boss = str(room.shared_payload.get("preset_boss_name") or "")
+        if preset_boss:
+            node_data["preset_boss_name"] = preset_boss
         if room.is_high_danger or room.room_type == "high_danger":
             node_data["is_high_danger"] = True
         if room.room_type == "secret_boss":
@@ -498,7 +540,7 @@ class GridMapService:
         if hazard_loss > 0:
             intro_lines.append(get_locale_text("i18n_grid_map.high_danger_entry", loss=hazard_loss))
         if include_render:
-            room_label = self._room_display_label(room)
+            room_label = self._room_display_label(room, fm=fm)
             intro_lines.append(get_locale_text("i18n_room_interact.combat.room_entry_intro", label=room_label, coord=coord))
             intro_lines.extend(format_room_extras(run, include_env=True))
         prefix = ("\n".join(intro_lines) + "\n") if intro_lines else ""
@@ -517,6 +559,7 @@ class GridMapService:
         coord = run.node_data.get("coord", "")
         difficulty = run.node_data.get("difficulty", "normal")
         corpse_id = run.node_data.get("corpse_id", "")
+        hostile_npc_id = run.node_data.get("hostile_npc_id", "")
         room = fm.rooms.get(coord)
         if action == "retreat" or room is None:
             SessionContextScoper.close_session(run, sid, mark_cleared=False)
@@ -529,4 +572,4 @@ class GridMapService:
             participants = [uid]
         SessionContextScoper.close_session(run, sid, mark_cleared=False)
         corpse = self.save_manager.corpses.get(corpse_id) if corpse_id else None
-        return self._launch_battle_session(run, coord, participants, room, difficulty, corpse=corpse, include_render=False)
+        return self._launch_battle_session(run, coord, participants, room, difficulty, corpse=corpse, include_render=False, hostile_npc_id=hostile_npc_id)

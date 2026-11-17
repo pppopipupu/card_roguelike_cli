@@ -140,3 +140,25 @@ def consume_persistent_buff_in_battle(player, buff_id: str, stacks: int = 1) -> 
         else:
             b_entry.stacks = remaining
     return remaining
+
+
+def has_map_invisibility(player) -> bool:
+    return get_persistent_buff_stacks(player, "invisibility") > 0
+
+
+def consume_map_invisibility(player) -> bool:
+    if get_persistent_buff(player, "invisibility") is None:
+        return False
+    remove_persistent_buff(player, "invisibility")
+    return True
+
+
+def break_map_invisibility(run, reason: str = "interact", player=None) -> str:
+    target = player if player is not None else getattr(run, "player", None)
+    if target is None:
+        return ""
+    if not consume_map_invisibility(target):
+        return ""
+    if reason == "battle":
+        return get_locale_text("i18n_buffs.invisibility_map_broken_battle_log")
+    return get_locale_text("i18n_buffs.invisibility_map_broken_interact_log")

@@ -311,6 +311,7 @@ ROOM_ICONS = {
     "golden_claw_door": "🦁",
     "word_wall": "📜",
     "barrow_exit": "🪜",
+    "big_room": "🏛️",
 }
 
 DIRECT_REVEAL_ADJACENT_TYPES = frozenset({
@@ -328,6 +329,7 @@ DIRECT_REVEAL_ADJACENT_TYPES = frozenset({
     "golden_claw_door",
     "word_wall",
     "barrow_exit",
+    "big_room",
 })
 
 PERMANENT_ICON_TYPES = frozenset({
@@ -344,6 +346,7 @@ PERMANENT_ICON_TYPES = frozenset({
     "golden_claw_door",
     "word_wall",
     "barrow_exit",
+    "big_room",
 })
 
 PASSABLE_ROOM_TYPES = frozenset({
@@ -368,4 +371,5 @@ PASSABLE_ROOM_TYPES = frozenset({
     "golden_claw_door",
     "word_wall",
     "barrow_exit",
+    "big_room",
 })

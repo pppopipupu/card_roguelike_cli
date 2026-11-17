@@ -588,6 +588,27 @@ class RoomState:
     props: List[str] = field(default_factory=list)
     interacted_props: List[str] = field(default_factory=list)
     defeated_npcs: List[str] = field(default_factory=list)
+    big_room_id: str = ""
+
+@dataclass
+class BigRoomState:
+    group_id: str
+    template_id: str
+    cells: List[str] = field(default_factory=list)
+    width: int = 1
+    height: int = 1
+    reveal_mode: str = "whole"
+    share_npcs: bool = True
+    share_items: bool = False
+    share_props: bool = False
+    keep_icon_on_clear: bool = True
+    npcs: List[str] = field(default_factory=list)
+    defeated_npcs: List[str] = field(default_factory=list)
+    items: List[str] = field(default_factory=list)
+    props: List[str] = field(default_factory=list)
+    interacted_props: List[str] = field(default_factory=list)
+    cleared: bool = False
+    shared_payload: Dict = field(default_factory=dict)
 
 @dataclass
 class EncounterSession:
@@ -616,6 +637,7 @@ class FloorMapState:
     secret_unlocked: bool = False
     secret_clue_found: bool = False
     floor_flags: Dict = field(default_factory=dict)
+    big_rooms: Dict[str, BigRoomState] = field(default_factory=dict)
 @dataclass
 class GameRun:
     user_id: str

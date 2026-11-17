@@ -18,7 +18,7 @@ from ...data.balance_config import (
 )
 from ...data.reward_config import TREASURE_RELIC_POOL
 from ...data.locale_data import get_locale_text
-from ..inventory.deck_service import DeckService
+from ..inventory.card_distribution import CardDistributor
 from .explore_nodes import resolve_node_handler
 from ..party.coordinator import apply_and_scope, begin_party_gem, end_party_gem, finish_player_node, restore_player, swap_player
 
@@ -210,10 +210,14 @@ class ExploreEngine:
         stats = None
         if hasattr(self.save_manager, "load_stats"):
             stats = self.save_manager.load_stats(run.user_id)
-        card_pool = DeckService.get_shop_card_pool(run, run.player, stats, include_coop=run.player_count() > 1)
-        shop_cards = random.sample(card_pool, min(3, len(card_pool)))
-        from ...models.state import check_and_replace_fireball
-        shop_cards = [check_and_replace_fireball(run, cid) for cid in shop_cards]
+        shop_cards = CardDistributor.roll(
+            "shop",
+            run,
+            run.player,
+            stats,
+            count=3,
+            include_coop=run.player_count() > 1,
+        )
         items = []
         discount = 1.0
         if "gold_compass" in run.player.relics:
@@ -358,10 +362,7 @@ class ExploreEngine:
                 got_relic = random.choice(available_relics) if available_relics else ""
             
             stats = self.save_manager.load_stats(run.user_id)
-            card_pool = DeckService.get_epic_card_pool(run, p, stats)
-            reward_cards = random.sample(card_pool, 3) if len(card_pool) >= 3 else card_pool
-            from ...models.state import check_and_replace_fireball
-            reward_cards = [check_and_replace_fireball(run, cid) for cid in reward_cards]
+            reward_cards = CardDistributor.roll("treasure", run, p, stats, count=3)
             
             from ...data.gem_data import GEM_CONFIG
             gift_gem_id = random.choice(list(GEM_CONFIG.keys()))

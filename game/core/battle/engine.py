@@ -254,7 +254,10 @@ class BattleEngine(BaseBattleEngine):
         p.minions.clear()
         p.amulets.clear()
         p.buffs.clear()
-        from ..world.persistent_buffs import sync_persistent_buffs_to_battle
+        from ..world.persistent_buffs import break_map_invisibility, sync_persistent_buffs_to_battle
+        broken_msg = break_map_invisibility(run, reason="battle", player=p)
+        if broken_msg:
+            self._log_event(run, broken_msg)
         sync_persistent_buffs_to_battle(p)
         p.actions = 2
         p.bonus_actions = 1
@@ -318,7 +321,10 @@ class BattleEngine(BaseBattleEngine):
     def _generate_battle_enemies(self, run: GameRun, difficulty: str):
         p = run.player
         if difficulty == "boss":
-            if p.stage == MapConfig.GATE_BOSS_STAGE:
+            preset_boss = str((run.node_data or {}).get("preset_boss_name") or "")
+            if preset_boss:
+                boss_name = preset_boss
+            elif p.stage == MapConfig.GATE_BOSS_STAGE:
                 boss_name = random.choice(BOSS_POOLS["gate"])
             elif p.stage == MapConfig.AVERGOMON_STAGE:
                 boss_name = BOSS_POOLS["aforgomon"][0]

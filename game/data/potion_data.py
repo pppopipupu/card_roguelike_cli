@@ -14,6 +14,7 @@ POTION_CONFIG = {
         "rarity": "common",
         "weight": 0.5,
         "heal_amount": 10,
+        "usable_out_of_battle": True,
         "drink_desc": "回复你 10 点生命值。",
         "throw_desc": "回复目标 10 点生命值。"
     },
@@ -84,6 +85,16 @@ POTION_CONFIG = {
         "weight": 1.0,
         "drink_desc": "清除自身所有负面状态且本回合免疫负面状态。",
         "throw_desc": "清除目标的所有状态（驱散敌人正面 Buff 或解除随从 Debuff）。"
+    },
+    "invisibility_potion": {
+        "name": "隐身药水",
+        "rarity": "rare",
+        "weight": 0.5,
+        "buff_stacks": 3,
+        "dodge_chance": 0.70,
+        "usable_out_of_battle": True,
+        "drink_desc": "获得 3 回合【隐身】状态，战斗中有 70% 概率闪避敌方攻击；在地图上可绕过普通敌对 NPC 警戒，持续至下一次战斗或与 NPC、物体交互。",
+        "throw_desc": "使友方目标获得 3 回合【隐身】状态。"
     },
     "iron_potion": {
         "name": "钢铁药水",

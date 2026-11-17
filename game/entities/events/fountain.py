@@ -2,8 +2,8 @@ import random
 from .base import EventOption
 from ...data.event_data import EVENT_CONFIG
 from ..cards import ALL_CARDS
+from ...core.inventory.card_distribution import CardDistributor
 from ...core.inventory.deck_service import DeckService
-from ...data.reward_config import NORMAL_CARD_RARITIES
 from ...data.locale_data import get_locale_text
 
 class DrinkFountainOption(EventOption, action="drink_fountain", text=get_locale_text("i18n_events_b.option_drink_fountain")):
@@ -24,9 +24,8 @@ class CoinFountainOption(EventOption, action="coin_fountain", text=get_locale_te
             return get_locale_text("i18n_events_b.err_gold_not_enough_10")
         p.gold -= gold_cost
         stats = engine.save_manager.load_stats(run.user_id) if hasattr(engine.save_manager, "load_stats") else None
-        wizards = DeckService.eligible_card_ids(stats, colors=("wizard",), rarities=NORMAL_CARD_RARITIES)
         sample_count = cfg.get("wizard_sample_count", 3)
-        reward_cards = random.sample(wizards, sample_count) if len(wizards) >= sample_count else wizards
+        reward_cards = CardDistributor.roll("event_fountain", run, p, stats, count=sample_count)
         run.node_type = "card_select"
         run.node_data = {
             "title": get_locale_text("i18n_events_b.wishing_title"),

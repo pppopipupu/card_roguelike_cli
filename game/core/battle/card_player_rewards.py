@@ -101,6 +101,7 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
 
     def init_boss_chest(self, run: GameRun):
         caller = run.user_id
+        hostile_npc_id = str((run.node_data or {}).get("hostile_npc_id") or "")
         views = {}
         stage_ready = {}
         for uid in run.party_order:
@@ -129,6 +130,8 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
             "player_views": views,
             "stage_ready": stage_ready,
         }
+        if hostile_npc_id:
+            run.node_data["hostile_npc_id"] = hostile_npc_id
         apply_and_scope(run, caller)
         self.engine.save_manager.save_save(caller, run)
 
@@ -161,6 +164,7 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
 
     def init_rewards(self, run: GameRun, difficulty: str):
         caller = run.user_id
+        hostile_npc_id = str((run.node_data or {}).get("hostile_npc_id") or "")
         quest = str(run.node_data.get("quest") or "")
         pending_gems = list(run.node_data.get("pending_gems", []))
         elite_name = str(run.node_data.get("elite_name", ""))
@@ -204,6 +208,8 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
             "coop_relic_pool": relic_pool,
             "stage_ready": stage_ready,
         }
+        if hostile_npc_id:
+            run.node_data["hostile_npc_id"] = hostile_npc_id
         apply_and_scope(run, caller)
         self.engine.save_manager.save_save(caller, run)
 

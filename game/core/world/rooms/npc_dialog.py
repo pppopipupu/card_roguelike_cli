@@ -5,10 +5,14 @@ from ....data.potion_data import roll_potion
 from ....data.room_interact_data import CAFE_GUEST_COMBAT_STATS, ROOM_NPCS
 from ...inventory.bag_service import add_bag_item, get_item_display_name
 from ...cli.base.pinyin_match import find_entry_by_query
+from ...inventory.card_distribution import CardDistributor
 from ...inventory.deck_service import DeckService
 from ...party.coordinator import apply_and_scope
 from .interact import _reveal_any_special, get_current_room, resolve_npc_in_room
+from .big_room import add_effective_item, mark_effective_npc_defeated, sync_big_room_clear_state
+from .hostile_npc import is_hostile_npc, trigger_hostile_npc_battle
 from ...party.session import SessionContextScoper
+from ..persistent_buffs import break_map_invisibility
 from ..sp_system import reduce_exhaustion, restore_sp
 from ....data.open_world_config import WORLD_YOG_TEMPLE
 from ....data.world_social_config import WORLD_SNOWFIELD
@@ -29,12 +33,20 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
     room, coord = get_current_room(run)
     if room is None:
         return None
-    nid = resolve_npc_in_room(room, query)
+    fm = getattr(run, "floor_map", None)
+    nid = resolve_npc_in_room(room, query, fm=fm, include_hostile=False)
     if not nid:
         if run.node_type == "grid_map" and is_open_world_run(run):
             world, pos = _open_world_grid_location(run, coord)
-            return OpenWorldGhostService.try_inspect_ghost(save_manager, world, pos, query, is_touch=False)
+            ghost_msg = OpenWorldGhostService.try_inspect_ghost(save_manager, world, pos, query, is_touch=False)
+            if ghost_msg is not None:
+                broken_msg = break_map_invisibility(run, reason="interact")
+                if broken_msg:
+                    save_manager.save_save(run.user_id, run)
+                    return f"{broken_msg}\n{ghost_msg}"
+            return ghost_msg
         return None
+    broken_msg = break_map_invisibility(run, reason="interact")
     if nid in ("farengar_court_mage", "arvel_trapped", "map_surveyor", "brazier_keeper"):
         from ..bleak_falls import build_bleak_npc_dialog
         bleak_dlg = build_bleak_npc_dialog(save_manager, run, room, nid)
@@ -47,7 +59,8 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
                 node_data={"npc_id": nid, "dialog_state": "start", "coord": coord, "bleak_dialog": bleak_dlg},
             )
             save_manager.save_save(run.user_id, run)
-            return render_room_dialog(run)
+            rendered = render_room_dialog(run)
+            return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
     SessionContextScoper.create_session(
         run,
         coord,
@@ -56,7 +69,8 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
         node_data={"npc_id": nid, "dialog_state": "start", "coord": coord},
     )
     save_manager.save_save(run.user_id, run)
-    return render_room_dialog(run)
+    rendered = render_room_dialog(run)
+    return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
 
 
 def _room_dialog_content(run) -> Tuple[str, str, List[str]]:
@@ -263,8 +277,7 @@ def handle_room_dialog_choice(map_engine, run, idx: int) -> str:
                 return get_locale_text("i18n_room_interact.dialog.err_hp")
             p.hp -= hpc
             from ....entities import ALL_CARDS
-            pool = DeckService.eligible_card_ids(None, colors=("wizard", "neutral"), rarities=("rare",))
-            cid = random.choice(pool) if pool else "fireball"
+            cid = CardDistributor.roll_one("npc_scholar", run, p, None, fallback="fireball") or "fireball"
             DeckService.add_card_to_deck(p, cid)
             close_room_dialog(map_engine.save_manager, run)
             return get_locale_text("i18n_room_interact.dialog.scholar_study_ok", card=ALL_CARDS[cid].name)
@@ -456,9 +469,12 @@ def attack_in_room(map_engine, run, query: str) -> str:
         return get_locale_text("i18n_room_interact.combat.attack_not_found", target=q)
     if room is None:
         return get_locale_text("i18n_grid_map.err_no_floor_map")
-    nid = resolve_npc_in_room(room, q)
+    fm = getattr(run, "floor_map", None)
+    nid = resolve_npc_in_room(room, q, fm=fm, include_hostile=True)
     if not nid:
         return get_locale_text("i18n_room_interact.combat.attack_not_found", target=q)
+    if is_hostile_npc(nid):
+        return trigger_hostile_npc_battle(map_engine.grid_map_service, run, run.user_id, coord, room, nid)
     if ROOM_NPCS.get(nid, {}).get("non_hostile"):
         npc_cfg = ROOM_NPCS[nid]
         nname = get_locale_text(npc_cfg["name_key"]) if npc_cfg.get("name_key") else nid
@@ -476,8 +492,9 @@ def handle_npc_combat_win(card_rewards, run) -> None:
     fm = getattr(run, "floor_map", None)
     if fm is not None and coord in fm.rooms:
         room = fm.rooms[coord]
-        if npc_id and npc_id not in room.defeated_npcs:
-            room.defeated_npcs.append(npc_id)
+        if npc_id:
+            mark_effective_npc_defeated(fm, room, npc_id)
+            sync_big_room_clear_state(fm, room)
         if npc_source == "shop":
             room.shared_payload["merchant_defeated"] = True
         elif npc_source == "cafe_barista":
@@ -494,11 +511,10 @@ def handle_npc_combat_win(card_rewards, run) -> None:
     if reward_item:
         ok, _ = add_bag_item(p, reward_item)
         if not ok and fm is not None and coord in fm.rooms:
-            fm.rooms[coord].items.append(reward_item)
+            add_effective_item(fm, fm.rooms[coord], reward_item)
         note_item = get_locale_text("i18n_room_interact.combat.npc_win_item_note", item=get_item_display_name(reward_item))
     loot_note = get_locale_text("i18n_room_interact.combat.npc_win_loot", gold=reward_gold, item_note=note_item)
-    pool = DeckService.eligible_card_ids(None, colors=("wizard", "warrior", "neutral"), rarities=("common", "rare"))
-    card_picks = random.sample(pool, min(3, len(pool)))
+    card_picks = CardDistributor.roll("npc_combat", run, p, None, count=3)
     items = [
         {"type": "gold", "amount": reward_gold, "taken": False},
         {"type": "card_reward", "cards": card_picks, "taken": False},

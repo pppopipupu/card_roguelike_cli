@@ -1,6 +1,7 @@
 import random
 from collections import deque
 from ...data.balance_config import LIFE_MERCHANT_MAX_PER_RUN, LIFE_MERCHANT_STAGE_CONFIG
+from ...data.big_room_config import BIG_ROOM_FLOOR_RULES, BIG_ROOM_SHAPES, BIG_ROOM_TEMPLATES
 from ...data.grid_map_config import (
     FLOOR_CONFIGS,
     MAP_EVENT_IDS,
@@ -137,6 +138,70 @@ def _roll_life_merchant(run, floor_index: int) -> bool:
     return False
 
 
+def _plan_big_rooms(
+    floor_index: int | float,
+    width: int,
+    height: int,
+    rooms: dict[str, RoomState],
+    spawn_xy: tuple[int, int],
+    boss_xy: tuple[int, int],
+) -> list[tuple[str, str, list[str]]]:
+    min_cnt, max_cnt = BIG_ROOM_FLOOR_RULES.get(floor_index, (0, 0))
+    if max_cnt <= 0:
+        return []
+    passable_coords = {c for c, r in rooms.items() if r.room_type != "wall"}
+    sig = f"br:{floor_index}:{width}x{height}:{sorted(passable_coords)}"
+    rng = random.Random(sig)
+    target_cnt = rng.randint(min_cnt, max_cnt)
+    if target_cnt <= 0:
+        return []
+
+    tpl_ids = list(BIG_ROOM_TEMPLATES.keys())
+    rng.shuffle(tpl_ids)
+    reserved = {spawn_xy, boss_xy}
+    placed_cells: set[tuple[int, int]] = set()
+    plans: list[tuple[str, str, list[str]]] = []
+
+    occupied = {coord_to_xy(c) for c in passable_coords}
+    for idx in range(target_cnt):
+        if not tpl_ids:
+            tpl_ids = list(BIG_ROOM_TEMPLATES.keys())
+            rng.shuffle(tpl_ids)
+        tpl_id = tpl_ids.pop(0)
+        tpl = BIG_ROOM_TEMPLATES[tpl_id]
+        shapes = list(tpl.get("shapes") or ["rect_2x2"])
+        rng.shuffle(shapes)
+        chosen_cells: list[tuple[int, int]] | None = None
+        for shape_id in shapes:
+            offsets = BIG_ROOM_SHAPES.get(shape_id)
+            if not offsets:
+                continue
+            anchors = [(x, y) for y in range(height) for x in range(width)]
+            rng.shuffle(anchors)
+            for ax, ay in anchors:
+                abs_cells = [(ax + dx, ay + dy) for dx, dy in offsets]
+                if any(not (0 <= cx < width and 0 <= cy < height) for cx, cy in abs_cells):
+                    continue
+                cell_set = set(abs_cells)
+                if cell_set & reserved or cell_set & placed_cells or cell_set & occupied:
+                    continue
+                connected = any(
+                    any((nx, ny) in occupied and rooms[xy_to_coord(nx, ny)].room_type not in ("wall", "secret_boss", "obstacle") for nx, ny in neighbors_4(cx, cy, width, height))
+                    for cx, cy in abs_cells
+                )
+                if not connected:
+                    continue
+                chosen_cells = abs_cells
+                break
+            if chosen_cells is not None:
+                break
+        if chosen_cells is not None:
+            occupied.update(chosen_cells)
+            placed_cells.update(chosen_cells)
+            plans.append((f"br_{idx + 1}_{tpl_id}", tpl_id, [xy_to_coord(cx, cy) for cx, cy in chosen_cells]))
+    return plans
+
+
 def generate_floor_map(run, floor_index: int, save_manager=None) -> FloorMapState:
     cfg = FLOOR_CONFIGS.get(floor_index, FLOOR_CONFIGS[1])
     width = int(cfg["width"])
@@ -147,6 +212,7 @@ def generate_floor_map(run, floor_index: int, save_manager=None) -> FloorMapStat
     boss_coord = xy_to_coord(*boss_xy)
 
     passable_xys = _carve_passable_set(width, height, spawn_xy, boss_xy)
+
     rooms: dict[str, RoomState] = {}
     for y in range(height):
         for x in range(width):
@@ -283,13 +349,18 @@ def generate_floor_map(run, floor_index: int, save_manager=None) -> FloorMapStat
         else:
             ritual_protocol = random.choice(SECRET_RITUAL_PROTOCOLS)
 
+    big_room_plans = _plan_big_rooms(floor_index, width, height, rooms, spawn_xy, boss_xy)
+    for _, _, cell_coords in big_room_plans:
+        for c in cell_coords:
+            rooms[c].room_type = "empty"
+
     _populate_room_details(rooms)
     player_coords = {}
     if run is not None:
         for uid in run.all_human_uids():
             player_coords[uid] = spawn_coord
 
-    return FloorMapState(
+    fm = FloorMapState(
         floor_index=floor_index,
         width=width,
         height=height,
@@ -305,7 +376,14 @@ def generate_floor_map(run, floor_index: int, save_manager=None) -> FloorMapStat
         secret_unlocked=False,
         secret_clue_found=False,
         floor_flags={},
+        big_rooms={},
     )
+    if big_room_plans:
+        from .rooms.big_room import create_big_room_instance
+        rng = random.Random(f"br:{floor_index}:{'|'.join(g for g, _, _ in big_room_plans)}:{len(rooms)}")
+        for group_id, tpl_id, cell_coords in big_room_plans:
+            create_big_room_instance(fm, group_id, tpl_id, cell_coords, rng=rng)
+    return fm
 
 
 def _populate_room_details(rooms: dict) -> None:
@@ -318,6 +396,7 @@ def _populate_room_details(rooms: dict) -> None:
         ROOM_GROUND_ITEM_POOL,
         ROOM_POPULATE_CHANCES,
     )
+    from .rooms.hostile_npc import ensure_room_hostile_npcs, ensure_treasure_chest_prop
     sig = "|".join(f"{c}:{rooms[c].room_type}" for c in sorted(rooms.keys()))
     rng = random.Random(sig)
     neutral_potions = [pid for pid in POTION_CONFIG.keys() if pid not in ("fury_potion", "intellect_potion")]
@@ -331,6 +410,8 @@ def _populate_room_details(rooms: dict) -> None:
             continue
         envs = ROOM_ENVIRONMENTS.get(room.room_type, ROOM_ENVIRONMENTS["empty"])
         room.env_id = rng.choice(envs)
+        ensure_room_hostile_npcs(None, room)
+        ensure_treasure_chest_prop(room)
         if room.room_type == "shop":
             room.npcs = ["shop_merchant"]
             room.props = ["shop_scale", "shop_display"]
@@ -347,10 +428,14 @@ def _populate_room_details(rooms: dict) -> None:
             continue
         pmin = ROOM_POPULATE_CHANCES["props_min"]
         pmax = min(len(DUNGEON_PROP_POOL), ROOM_POPULATE_CHANCES["props_max"])
-        room.props = rng.sample(DUNGEON_PROP_POOL, rng.randint(pmin, pmax))
+        for prop_id in rng.sample(DUNGEON_PROP_POOL, rng.randint(pmin, pmax)):
+            if prop_id not in room.props:
+                room.props.append(prop_id)
         if room.room_type not in ("boss", "secret_boss", "downstairs"):
             if rng.random() < ROOM_POPULATE_CHANCES["npc_chance"]:
-                room.npcs = [rng.choice(DUNGEON_NPC_POOL)]
+                npc_pick = rng.choice(DUNGEON_NPC_POOL)
+                if npc_pick not in room.npcs:
+                    room.npcs.append(npc_pick)
             if rng.random() < ROOM_POPULATE_CHANCES["item_chance"]:
                 if rng.random() < ROOM_POPULATE_CHANCES["potion_drop_chance"] and neutral_potions:
                     room.items = [f"potion:{rng.choice(neutral_potions)}"]

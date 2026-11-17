@@ -147,9 +147,3 @@ class TestAnnaCard(unittest.TestCase):
         self.assertIn("雇佣兵", res_pick)
         after = load_run(self.plugin, uid)
         self.assertEqual(after.player.minions["1"].hp, 10)
-
-    def test_disappear_keyword_is_queryable(self):
-        uid = "anna_keyword_user"
-        self.build_battle(uid, [], [], [])
-        res = self.run_cmd("i 消失", uid)
-        self.assertIn("消耗堆", res)

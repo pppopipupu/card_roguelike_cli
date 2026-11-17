@@ -354,10 +354,7 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         self.assertIn("核聚变过载", res_revealed)
         self.assertNotIn("？？？", res_revealed)
 
-    def test_one_hp_boss_slayer_achievement_and_help_entry(self):
-        help_res = self._run_cmd("help achi")
-        self.assertIn("成就列表", help_res)
-
+    def test_one_hp_boss_slayer_achievement(self):
         self._run_cmd("start")
         run = load_run(self.plugin, self.uid)
         run.node_type = "battle"

@@ -651,6 +651,43 @@ class BladesongBuff(BuffImpl):
         else:
             event.engine._log_event(event.run, get_locale_text("i18n_grid_map.bladesong_shield_log", shield=proc_shield))
 
+
+class InvisibilityBuff(BuffImpl):
+    def on_damage_calculate_defend(self, event, buff_state, entity):
+        if entity != event.run.player or event.target != "p0" or event.modified_damage <= 0:
+            return
+        source = str(getattr(event, "source", "") or "")
+        enemy_name = ""
+        if source.startswith("enemy:"):
+            enemy_name = source[6:]
+        elif source.startswith("e"):
+            try:
+                idx = int(source[1:]) - 1
+            except ValueError:
+                idx = -1
+            if 0 <= idx < len(event.run.enemies):
+                enemy_name = event.run.enemies[idx].name
+        else:
+            return
+        from ...data.room_interact_data import TRUE_SIGHT_ENEMIES
+        base_name = enemy_name.rsplit(" ", 1)[0] if (" " in enemy_name and len(enemy_name.rsplit(" ", 1)[1]) == 1) else enemy_name
+        pname = getattr(entity, "name", get_locale_text("i18n_buffs.player_display_name"))
+        ename = enemy_name or get_locale_text("i18n_buffs.unknown_display_name")
+        if enemy_name in TRUE_SIGHT_ENEMIES or base_name in TRUE_SIGHT_ENEMIES:
+            event.engine._log_event(event.run, get_locale_text("i18n_buffs.invisibility_true_sight_pierce_log", enemy=ename, name=pname))
+            return
+        import random
+        chance = float(_stat(self, "invisibility", "dodge_chance", 0.70))
+        if random.random() < chance:
+            event.modified_damage = 0
+            event.engine._log_event(event.run, get_locale_text("i18n_buffs.invisibility_dodge_log", name=pname, enemy=ename))
+
+    def on_turn_start(self, event, buff_state, entity):
+        if event.is_player and entity == event.run.player:
+            buff_state.stacks -= 1
+            if buff_state.stacks <= 0 and buff_state in entity.buffs:
+                entity.buffs.remove(buff_state)
+
 for name, obj in list(globals().items()):
     if isinstance(obj, type) and issubclass(obj, BuffImpl) and obj is not BuffImpl:
         if not getattr(obj, "auto_register", True):

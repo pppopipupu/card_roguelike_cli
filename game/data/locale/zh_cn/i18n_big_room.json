@@ -1,0 +1,36 @@
+{
+  "ui": {
+    "room_banner": "🏛️ 【大房间 · {name}】（{coord} · 占 {count} 格）",
+    "shared_hint_npcs_shared": "此区域内人物与敌对威胁全室互通，各自格子散落着不同物品。",
+    "shared_hint_all_shared": "此区域内人物、威胁与存放物品均全室互通。",
+    "shared_hint_local": "此区域内各格子各自藏有不同物品、设施与潜伏威胁。",
+    "neighbor_same_room": "仍属于当前【{name}】的连通区域",
+    "stealth_bypass_notice": "🫥 你凭隐匿气息绕开了【{npc}】的警戒，可自由搜刮或输入 atk 主动出击。"
+  },
+  "templates": {
+    "forgotten_armory": {
+      "name": "旧式军械库",
+      "desc": "成排倾倒的铁甲架横贯数间石室，守护整座军械库的古旧魔像在阴影里发出低沉的齿轮轰鸣。"
+    },
+    "sunken_scriptorium": {
+      "name": "沉没抄经厅",
+      "desc": "宽敞的拱顶大厅铺满积灰羊皮卷，几排残破书架分隔出不同角落，迷途学者正穿梭其间整理典籍。"
+    },
+    "labyrinth_catacomb": {
+      "name": "错综地穴墓室",
+      "desc": "石棺与塌陷的拱门交织出昏暗多格墓道，视线受石柱阻隔，拐角暗影里随时可能潜伏着守墓者。"
+    },
+    "smuggler_bazaar": {
+      "name": "地下走私集市",
+      "desc": "红灯笼挑在数座相连石棚顶上，整片集市的货摊与走私掮客互相照应，摊位之间摆着各式奇货。"
+    },
+    "shattered_observatory_wing": {
+      "name": "碎裂星象翼廊",
+      "desc": "半塌的天文长廊残柱林立，虚空哨兵游弋整条翼廊，中央共用的星象仪镜面仍折射着深邃星光。"
+    },
+    "abandoned_treasury_hall": {
+      "name": "废墟珍宝殿堂",
+      "desc": "昔日王室金库碎成数片相连石厅，珍宝与铁箱散落各处，唯有某处角落还盘踞着未眠的守卫。"
+    }
+  }
+}

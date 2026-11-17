@@ -152,11 +152,14 @@ async def async_move_to_room(plugin, uid: str, target_types, rally: bool = False
                 continue
             if nr.cleared or nr.room_type in ("spawn", "empty"):
                 step_cost = 1
+            elif nr.room_type == "big_room":
+                from game.core.world.rooms.hostile_npc import get_alive_hostile_npcs
+                step_cost = 500 if get_alive_hostile_npcs(fm, nr) else 1
             elif nr.room_type in target_types:
                 step_cost = 1
-            elif nr.room_type in ("cafe", "shop", "rest", "landmark", "life_merchant"):
+            elif nr.room_type in ("cafe", "shop", "rest", "landmark", "life_merchant", "treasure"):
                 step_cost = 6
-            elif nr.room_type in ("treasure", "event"):
+            elif nr.room_type in ("event",):
                 step_cost = 25
             elif nr.room_type == "obstacle":
                 step_cost = 50
