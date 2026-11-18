@@ -44,8 +44,22 @@
       "name": "游戏教程",
       "usage": "tutorial",
       "brief": "查看完整的游戏机制与流程教程",
-      "desc": "输出长篇教程，覆盖局内流程、牌组循环、战斗机制与联机规则。",
+      "desc": "输出长篇教程，覆盖局内流程、牌组循环、战斗机制与联机规则；输入 tutorial play 可进入示例地图体验新手教程。",
       "example": "tutorial"
+    },
+    "newbie_tutorial": {
+      "name": "新手教程",
+      "usage": "newbie",
+      "brief": "进入示例地图重玩交互式新手教程",
+      "desc": "在向导长老的指引下进入 5×3 示例地图，亲手演练基础移动、卡牌出牌、随从、护符、破障、宝箱、篝火与商店机制。",
+      "example": "新手教程"
+    },
+    "skip_tutorial": {
+      "name": "跳过教程",
+      "usage": "skip_tutorial",
+      "brief": "跳过当前进行中的新手教程",
+      "desc": "在新手试炼回廊中随时跳过并结束新手教程，直接回到主菜单或主城。",
+      "example": "跳过教程"
     },
     "changelog": {
       "name": "更新日志",

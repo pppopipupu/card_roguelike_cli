@@ -82,6 +82,20 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
             rendered = render_room_dialog(run)
             prefix = "\n".join(x for x in (broken_msg, *trigger_logs) if x)
             return f"{prefix}\n\n{rendered}" if prefix else rendered
+    if nid == "tutorial_elder":
+        from ..tutorial import build_tutorial_elder_dialog
+        tut_dlg = build_tutorial_elder_dialog(run)
+        SessionContextScoper.create_session(
+            run,
+            coord,
+            "room_dialog",
+            [run.user_id],
+            node_data={"npc_id": nid, "dialog_state": "start", "coord": coord, "tutorial_dialog": tut_dlg},
+        )
+        save_manager.save_save(run.user_id, run)
+        rendered = render_room_dialog(run)
+        prefix = "\n".join(x for x in (broken_msg, *trigger_logs) if x)
+        return f"{prefix}\n\n{rendered}" if prefix else rendered
     SessionContextScoper.create_session(
         run,
         coord,
@@ -104,6 +118,10 @@ def _room_dialog_content(run, save_manager=None) -> Tuple[str, str, List[str]]:
     if isinstance(chireiden_dlg, dict):
         opts = [o.get("text", "") for o in (chireiden_dlg.get("options") or [])]
         return chireiden_dlg.get("name", ""), chireiden_dlg.get("greeting", ""), opts
+    tut_dlg = run.node_data.get("tutorial_dialog")
+    if isinstance(tut_dlg, dict):
+        opts = [o.get("text", "") for o in (tut_dlg.get("options") or [])]
+        return tut_dlg.get("name", ""), tut_dlg.get("greeting", ""), opts
     from .chaos_npcs import EXISTING_NPC_GREETING_KEYS, get_chaos_dialog_content, pick_greeting_for
 
     chaos_content = get_chaos_dialog_content(run, save_manager=save_manager)
@@ -211,6 +229,11 @@ def handle_room_dialog_choice(map_engine, run, idx: int) -> str:
         from ..chireiden import handle_rin_npc_choice
         chosen_opt = (chireiden_dlg.get("options") or [])[idx - 1]
         return handle_rin_npc_choice(map_engine, run, chireiden_dlg, chosen_opt)
+    tut_dlg = run.node_data.get("tutorial_dialog")
+    if isinstance(tut_dlg, dict):
+        from ..tutorial import handle_tutorial_elder_choice
+        chosen_opt = (tut_dlg.get("options") or [])[idx - 1]
+        return handle_tutorial_elder_choice(map_engine, run, chosen_opt)
     from .chaos_npcs import handle_chaos_dialog_choice
 
     chaos_res = handle_chaos_dialog_choice(

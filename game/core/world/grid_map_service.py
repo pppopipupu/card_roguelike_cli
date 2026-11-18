@@ -556,6 +556,9 @@ class GridMapService:
         elif fm.floor_flags.get("chireiden_zone"):
             from .chireiden import apply_chireiden_encounter
             apply_chireiden_encounter(self.map_engine.battle_engine, run, room)
+        elif fm.floor_flags.get("tutorial_zone"):
+            from .tutorial import apply_tutorial_encounter
+            apply_tutorial_encounter(self.map_engine.battle_engine, run, room)
         self.save_manager.save_save(caller, run)
         from .rooms.interact import format_room_extras
         hazard_loss = room.shared_payload.get("hazard_loss", 0)

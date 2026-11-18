@@ -26,7 +26,12 @@ async def main():
     if run:
         print(GameRenderer.render_game(run))
     else:
-        print(GameRenderer.render_menu())
+        stats = server.save_manager.load_stats("console_player")
+        if not getattr(stats, "tutorial_done", False):
+            _, tut_text = server.engine.start_tutorial_run("console_player")
+            print(tut_text)
+        else:
+            print(GameRenderer.render_menu(stats))
         
     while True:
         try:

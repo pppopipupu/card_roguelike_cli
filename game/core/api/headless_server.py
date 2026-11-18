@@ -199,6 +199,10 @@ class HeadlessGameServer:
             if not is_game_cmd and run is not None:
                 if first_word.isdigit():
                     is_game_cmd = True
+                elif first_word in ("skip", "跳过") and not run.node_data.get("state_stack"):
+                    from ..world.tutorial import is_tutorial_run
+                    if is_tutorial_run(run):
+                        is_game_cmd = True
                 elif curr_state == "explore" and not run.node_data.get("state_stack"):
                     if first_word in NODE_EXIT_ALIASES:
                         is_game_cmd = True

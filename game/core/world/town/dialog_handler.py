@@ -101,6 +101,7 @@ def _normal_specs(npc_id: str) -> List[Dict[str, Any]]:
         specs.append(_option("quest_complete", _npc_label("option_quest_complete"), condition=lambda s: s.town_flags.get("quest_town_tour_state", "unstarted") == "started" and len(s.town_flags.get("quest_town_tour_visited", [])) >= 11))
         specs.append(_option("yog_info", _text_label(get_locale_text("i18n_yog_quest.npc.elder_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and not s.town_flags.get(YOG_INFO_FLAG)))
         specs.append(_option("yog_hint", _text_label(get_locale_text("i18n_yog_quest.npc.elder_hint_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and bool(s.town_flags.get(YOG_INFO_FLAG)) and s.town_flags.get(YOG_QUEST_FLAG) != "completed"))
+        specs.append(_option("replay_tutorial", _npc_label("option_replay_tutorial")))
     elif npc_id == "Bartender_Jack":
         specs.append(_option("gift_glass", _npc_label("option_gift_glass"), condition=lambda s: "wine_glass" in s.town_inventory and not s.town_flags.get("jack_gift_given", 0)))
         specs.append(_option("buy_beer", _npc_label("option_buy_beer")))
@@ -351,6 +352,16 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         if ensure_sigil(stats):
             save()
         return get_locale_text("i18n_yog_quest.npc.elder_hint") + "\n\n" + rerender()
+
+    if action == "replay_tutorial":
+        from ..tutorial import start_tutorial_run
+        _, tut_text = start_tutorial_run(
+            town_engine.save_manager,
+            town_engine.engine,
+            user_id,
+            return_to_town=True,
+        )
+        return get_locale_text("i18n_tutorial.flow.replay_started") + "\n\n" + tut_text
 
     if action == "leave":
         stats.town_flags.pop("current_dialog", None)

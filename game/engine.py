@@ -135,6 +135,10 @@ class GameEngine:
         from .core.world.yog_quest.service import start_quest_run
         return start_quest_run(self.save_manager, self, user_id)
 
+    def start_tutorial_run(self, user_id: str, return_to_town: bool = False):
+        from .core.world.tutorial import start_tutorial_run
+        return start_tutorial_run(self.save_manager, self, user_id, return_to_town=return_to_town)
+
     def enter_next_stage(self, run: GameRun):
         self.map_engine.enter_next_stage(run)
 

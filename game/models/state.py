@@ -100,6 +100,7 @@ class UserStats:
     town_chest_relic_counters: Dict[str, int] = field(default_factory=dict)
     pvp_enabled: bool = True
     encountered_entities: List[str] = field(default_factory=list)
+    tutorial_done: bool = False
 
     def __post_init__(self):
         self.open_world_deck = [ensure_card_state(c) for c in (self.open_world_deck or [])]

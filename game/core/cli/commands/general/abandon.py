@@ -53,6 +53,10 @@ class AbandonCommand(CommandHandler, names=["放弃", "abandon"], allowed_states
                     yield lose_msg + "\n\n" + router.town_engine.render_current_room(user_id, updated_stats)
                     return
             from ....party.session import SessionContextScoper
+            from ....world.tutorial import finish_tutorial_run, is_tutorial_run
+            if is_tutorial_run(run):
+                yield finish_tutorial_run(router.save_manager, router.town_engine, user_id, skipped=True)
+                return
             run.party_order = SessionContextScoper.ensure_full_party_order(run)
             multi = run.player_count() > 1
             open_world = is_open_world_run(run)

@@ -1,6 +1,26 @@
 from typing import Any
 
 FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
+    0: {
+        "width": 5,
+        "height": 3,
+        "stage_min": 1,
+        "stage_max": 1,
+        "display_floor": 0,
+        "name_key": "i18n_tutorial.floor_name",
+        "has_cafe": False,
+        "has_shop": True,
+        "has_secret_boss": False,
+        "secret_mode": "",
+        "landmarks": ["tutorial_shrine", "tutorial_exit"],
+        "secret_boss_name": "",
+        "obstacle_count": 1,
+        "high_danger_count": 0,
+        "elite_count": 0,
+        "treasure_count": 1,
+        "rest_count": 1,
+        "event_count": 0,
+    },
     1: {
         "width": 8,
         "height": 6,
@@ -288,6 +308,16 @@ LANDMARK_CONFIGS = {
         "name_key": "i18n_grid_map.landmarks.chireiden_penning_stabilizer.name",
         "desc_key": "i18n_grid_map.landmarks.chireiden_penning_stabilizer.desc",
         "npc_key": "i18n_grid_map.landmarks.chireiden_penning_stabilizer.npc",
+    },
+    "tutorial_shrine": {
+        "name_key": "i18n_tutorial.shrine.title",
+        "desc_key": "i18n_tutorial.shrine.desc",
+        "npc_key": "i18n_tutorial.elder.name",
+    },
+    "tutorial_exit": {
+        "name_key": "i18n_tutorial.exit.title",
+        "desc_key": "i18n_tutorial.exit.desc",
+        "npc_key": "i18n_tutorial.elder.name",
     },
 }
 

@@ -408,6 +408,10 @@ class CLIRouter:
             res, term, success = self._execute_sub_action(user_id, run, parts)
             yield self._post_command_settle(user_id, run, is_town_combat, is_open_world, res)
             return
+        from ..world.tutorial import finish_tutorial_run, is_tutorial_run
+        if is_tutorial_run(run) and sub in ("skip", "跳过"):
+            yield finish_tutorial_run(self.save_manager, self.town_engine, user_id, skipped=True)
+            return
         handler, exists = CommandHandler.resolve(sub, curr_state)
         if handler:
             res_list = list(handler.execute(self, user_id, parts))

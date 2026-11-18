@@ -14,6 +14,7 @@
     "option_quest_accept": "接受新手任务：主城观光 (奖励 2000 GP)",
     "option_quest_status": "查询新手任务进度",
     "option_quest_complete": "交付新手任务 (领取 2000 GP)",
+    "option_replay_tutorial": "重玩新手教程（进入示例地图）",
     "option_leave": "离开交谈",
     "quest_accepted": "👴 向导长老：'很好！请利用 WASD/UP/DOWN/LEFT/RIGHT 游览商业 A 区的全部 11 个房间。当你全部游览完后回来找我，我会赠予你 2000 GP 的启动资金！'",
     "quest_doing": "👴 向导长老：'你还需要继续游览未访问的房间。当前进度：({progress}/11)。等你走完所有房间后，我会发放奖励！'",

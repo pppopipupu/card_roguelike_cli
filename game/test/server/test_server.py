@@ -204,6 +204,21 @@ class ServerTests(unittest.TestCase):
         self.assertIsNone(self.app.state.service.accounts.get_by_im("im-user-1"))
 
     def test_web_state_and_uuid(self):
+        tutorial_start = self.post(
+            {"command": "start confirm", "channel": "web"}, self.web_headers()
+        ).json()
+        self.assertTrue(tutorial_start["ok"])
+        self.assertIsNotNone(tutorial_start["state"])
+        self.assertEqual(tutorial_start["state"]["screen"], "grid_map")
+        self.assertTrue(tutorial_start["state"]["tutorial"])
+        self.assertIn("新手试炼回廊", tutorial_start["text"])
+
+        skipped = self.post(
+            {"command": "跳过教程", "channel": "web"}, self.web_headers()
+        ).json()
+        self.assertTrue(skipped["ok"])
+        self.assertTrue(skipped["state"]["stats"]["tutorial_done"])
+
         start = self.post(
             {"command": "start confirm", "channel": "web"}, self.web_headers()
         ).json()
@@ -744,9 +759,23 @@ class ServerTests(unittest.TestCase):
         self.assertTrue(started["ok"])
         self.assertTrue(started["handled"])
         self.assertIsNotNone(started["account"])
-        self.assertIn("契约", started["text"])
+        self.assertIn("新手试炼回廊", started["text"])
+        self.assertIn("向导长老", started["text"])
         self.assertIsNotNone(store.get_by_im(qq_id))
         self.assertIsNone(store.get_by_im(matrix_id))
+
+        skipped = self.post(
+            {"command": ".rogue 跳过教程", "channel": "im", "force": False},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertTrue(skipped["ok"])
+        self.assertIn("已跳过新手教程", skipped["text"])
+
+        real_start = self.post(
+            {"command": ".rogue start", "channel": "im", "force": False},
+            self.im_headers(qq_id),
+        ).json()
+        self.assertIn("契约", real_start["text"])
 
         started_matrix = self.post(
             {"command": "/rogue 开启", "channel": "im", "force": True, "name": "矩阵用户"},
@@ -754,7 +783,7 @@ class ServerTests(unittest.TestCase):
         ).json()
         self.assertTrue(started_matrix["ok"])
         self.assertIsNotNone(started_matrix["account"])
-        self.assertIn("契约", started_matrix["text"])
+        self.assertIn("新手试炼回廊", started_matrix["text"])
         self.assertIsNotNone(store.get_by_im(matrix_id))
 
     def test_import_legacy_copies_saves_and_registry(self):
@@ -1070,6 +1099,59 @@ class ServerTests(unittest.TestCase):
             self.im_headers("12345678901234"),
         ).json()
         self.assertIn(uid, myid["text"])
+
+    def test_new_user_registration_enters_tutorial_and_can_skip_or_replay(self):
+        first_login = self.post(
+            {"command": "", "channel": "web"},
+            self.web_headers("web-newbie-tutorial"),
+        ).json()
+        self.assertTrue(first_login["ok"])
+        self.assertTrue(first_login["state"]["tutorial"])
+        self.assertFalse(first_login["state"]["stats"]["tutorial_done"])
+        self.assertEqual(first_login["state"]["screen"], "grid_map")
+        self.assertEqual(first_login["state"]["map"]["floor"], 0)
+        self.assertIn("新手试炼回廊", first_login["text"])
+        self.assertIn("向导长老", first_login["text"])
+
+        talk = self.post(
+            {"command": "talk 向导长老", "channel": "web"},
+            self.web_headers("web-newbie-tutorial"),
+        ).json()
+        self.assertEqual(talk["state"]["screen"], "room_dialog")
+        self.assertTrue(len(talk["state"]["options"]) >= 4)
+
+        skipped = self.post(
+            {"command": "4", "channel": "web"},
+            self.web_headers("web-newbie-tutorial"),
+        ).json()
+        self.assertIn("已跳过新手教程", skipped["text"])
+        self.assertTrue(skipped["state"]["stats"]["tutorial_done"])
+        self.assertFalse(skipped["state"]["tutorial"])
+        self.assertEqual(skipped["state"]["screen"], "menu")
+
+        town = self.post(
+            {"command": "主城", "channel": "web"},
+            self.web_headers("web-newbie-tutorial"),
+        ).json()
+        self.assertEqual(town["state"]["screen"], "town")
+        elder_town = self.post(
+            {"command": "talk 向导长老", "channel": "web"},
+            self.web_headers("web-newbie-tutorial"),
+        ).json()
+        self.assertIn("重玩新手教程", elder_town["text"])
+        replay_num = None
+        for line in elder_town["text"].splitlines():
+            if "重玩新手教程" in line and "." in line:
+                replay_num = line.split(".", 1)[0].strip()
+                break
+        self.assertIsNotNone(replay_num)
+        replayed = self.post(
+            {"command": str(replay_num), "channel": "web"},
+            self.web_headers("web-newbie-tutorial"),
+        ).json()
+        self.assertTrue(replayed["state"]["tutorial"])
+        self.assertEqual(replayed["state"]["screen"], "grid_map")
+        self.assertIn("再次踏入了新手试炼回廊", replayed["text"])
 
 if __name__ == "__main__":
     unittest.main()

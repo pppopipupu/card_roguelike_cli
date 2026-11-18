@@ -161,7 +161,11 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
             items.append({"type": "relic", "relic_id": got_relic, "taken": False})
             quest_bonus = get_locale_text("i18n_battle_core.quest_maze_fight_bonus", relic=get_relic_name(got_relic))
         previous, previous_user = swap_player(run, player)
-        reward_items = build_reward_items(self.engine.save_manager, run, player, difficulty)
+        from ..world.tutorial import build_tutorial_rewards, is_tutorial_run
+        if is_tutorial_run(run):
+            reward_items = build_tutorial_rewards()
+        else:
+            reward_items = build_reward_items(self.engine.save_manager, run, player, difficulty)
         items.extend(reward_items)
         if run.player_count() <= 1 and difficulty == "elite":
             relic_item = next((it for it in reward_items if it.get("type") == "relic"), None)
@@ -259,6 +263,13 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
             return
         difficulty = run.node_data.get("difficulty", "normal")
         stage = max((run.players[u].stage for u in run.party_order if u in run.players), default=run.player.stage)
+        from ..world.tutorial import is_tutorial_run, notify_tutorial_battle_win
+        if is_tutorial_run(run):
+            run.enemies.clear()
+            notify_tutorial_battle_win(run)
+            self.init_rewards(run, difficulty)
+            self.engine._reindex_minions(run.player)
+            return
         if run.node_data.get("is_secret_boss"):
             run.enemies.clear()
             self.engine.map_engine.enter_ancient_node(run)

@@ -29,6 +29,7 @@ TEST_ENEMY_SIZES = {
     "测试假人": "medium",
     "备用假人": "medium",
     "木桩": "medium",
+    "新手训练木偶": "medium",
 }
 
 NON_CONFIG_ENEMY_SIZES = {

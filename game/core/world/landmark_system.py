@@ -72,6 +72,10 @@ def build_landmark_options(run, uid: str) -> dict:
     chireiden_lm = build_chireiden_landmark_options(run, lm_id, coord)
     if chireiden_lm is not None:
         return chireiden_lm
+    from .tutorial import build_tutorial_landmark_data
+    tut_lm = build_tutorial_landmark_data(run, lm_id, coord)
+    if tut_lm is not None:
+        return tut_lm
     if lm_id == "observatory":
         title = get_locale_text(LANDMARK_CONFIGS["observatory"]["name_key"])
         desc = get_locale_text(LANDMARK_CONFIGS["observatory"]["desc_key"])
@@ -314,6 +318,9 @@ def execute_landmark_option(save_manager, map_engine, run, idx: int) -> str:
     if options[idx].get("bleak_landmark"):
         from .bleak_falls import execute_bleak_landmark_option
         return execute_bleak_landmark_option(save_manager, map_engine, run, options[idx])
+    if options[idx].get("tutorial_landmark"):
+        from .tutorial import execute_tutorial_landmark_option
+        return execute_tutorial_landmark_option(save_manager, map_engine, run, options[idx])
 
     if action == "yog_landmark":
         return _execute_yog_landmark(save_manager, map_engine, run, options[idx])

@@ -23,6 +23,10 @@ def finalize_defeat(
     if is_open_world_run(run) and save_manager.load_save(user_id) is None:
         merged = (res.rstrip() + "\n\n" + settle_msg).strip() if res and res.strip() else settle_msg
         return merged, True, success
+    from ..world.tutorial import is_tutorial_run
+    if is_tutorial_run(run):
+        merged = (res.rstrip() + "\n\n" + settle_msg).strip() if res and res.strip() else settle_msg
+        return merged, True, True
     if allow_coop_msg and len(run.human_uids()) > 1:
         return get_locale_text(coop_key, res=res, settle_msg=settle_msg), True, success
     return get_locale_text(solo_key, res=res, settle_msg=settle_msg), True, success
@@ -303,7 +307,7 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
             target = parts[2] if len(parts) > 2 else None
             res = router.engine.choose_option(run, idx, target)
             success = "❌" not in res
-            if run.node_data.get("yog_finished"):
+            if run.node_data.get("yog_finished") or run.node_data.get("tutorial_finished"):
                 return res, True, success
             if run.player.hp <= 0:
                 return finalize_defeat(
@@ -371,6 +375,7 @@ class EndTurnAction(ActionHandler, actions=["结束", "e"]):
             or get_locale_text("i18n_cli_core.marker_party_wiped") in res
             or router.engine.is_battle_won(run)
             or (is_open_world_run(run) and run.node_type == "grid_map")
+            or (run.node_type == "grid_map" and bool(run.floor_map and run.floor_map.floor_flags.get("tutorial_zone")))
             or router.save_manager.load_save(user_id) is None
         ):
             settled_msg = run.node_data.get(OPEN_WORLD_SETTLED_MSG_KEY)

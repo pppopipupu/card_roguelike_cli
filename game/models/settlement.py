@@ -29,6 +29,11 @@ class SettlementMixin:
     def settle_game_and_delete(self, user_id: str, run: GameRun, is_victory: bool = False, create_corpse: bool = True, force: bool = False) -> str:
         if run is None:
             return self._settle_single_game(user_id, None, is_victory, create_corpse, delete_personal=True)
+        from ..core.world.tutorial import finish_tutorial_run, is_tutorial_run, rescue_tutorial_defeat
+        if is_tutorial_run(run):
+            if not force and not is_victory:
+                return rescue_tutorial_defeat(self, run)
+            return finish_tutorial_run(self, None, user_id, skipped=not is_victory)
         other_alive = [
             uid
             for uid in run.all_human_uids()
