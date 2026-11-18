@@ -142,5 +142,15 @@ def get_enemy_template(name: str) -> EnemyTemplate:
     if name.startswith(ghost_prefix) or (ghost_suffix and name.endswith(ghost_suffix)):
         from .ghost import GhostEnemyTemplate
         return GhostEnemyTemplate(name)
+    if name in ALL_ENEMIES:
+        return ALL_ENEMIES[name]
+    if " · " in name:
+        short_tail = name.rsplit(" · ", 1)[-1].strip()
+        if short_tail in ALL_ENEMIES:
+            return ALL_ENEMIES[short_tail]
+    if " " in name:
+        no_prefix = name.split(" ", 1)[-1].strip()
+        if no_prefix in ALL_ENEMIES:
+            return ALL_ENEMIES[no_prefix]
     base_name = name.split(" ")[0] if name else ""
     return ALL_ENEMIES.get(base_name, EnemyTemplate(base_name))

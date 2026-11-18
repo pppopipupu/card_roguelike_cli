@@ -205,6 +205,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                     for k, v in (d.get("town_chest_relic_counters", {}) or {}).items()
                 } if isinstance(d.get("town_chest_relic_counters"), dict) else {},
                 pvp_enabled=bool(d.get("pvp_enabled", True)),
+                encountered_entities=[str(x) for x in (d.get("encountered_entities", []) or []) if x],
             )
         except (OSError, ValueError, KeyError, TypeError) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_stats_failed", user_id=user_id, error=exc))

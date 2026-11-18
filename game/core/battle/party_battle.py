@@ -23,6 +23,11 @@ AOE_INTENT_TYPES = {
     "mist_condense_1",
     "tail_sweep",
     "inferno_breath",
+    "drone_he3_drop",
+    "rin_corpse_ash_nova",
+    "utsuho_tokamak_flare",
+    "portal_xen_bombard",
+    "xen_houndeye_sonic",
 }
 
 

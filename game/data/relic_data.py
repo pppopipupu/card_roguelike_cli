@@ -561,5 +561,9 @@ RELIC_CONFIG = {
     }
 }
 
+from .chireiden_data import CHIREIDEN_RELIC_CONFIG
+
+RELIC_CONFIG.update(CHIREIDEN_RELIC_CONFIG)
+
 BACKPACK_RELIC_IDS = ["backpack_small", "backpack_medium", "backpack_large", "backpack_giant"]
 

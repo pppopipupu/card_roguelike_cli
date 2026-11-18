@@ -165,6 +165,10 @@ class GridMapService:
         claw_blocked = check_move_blocked_by_claw_door(fm, cur, target_coord)
         if claw_blocked:
             return claw_blocked
+        from .chireiden import check_move_blocked_by_chireiden_gate
+        chireiden_blocked = check_move_blocked_by_chireiden_gate(fm, cur, target_coord)
+        if chireiden_blocked:
+            return chireiden_blocked
         if room is None or room.room_type in ("wall", "solid_wall") or (room.room_type == "secret_boss" and not fm.secret_unlocked):
             fm.floor_flags.get("pending_obstacle", {}).pop(uid, None)
             return get_locale_text("i18n_grid_map.err_blocked_wall")
@@ -327,6 +331,18 @@ class GridMapService:
         return f"{get_locale_text('i18n_grid_map.tp_success', coord=coord)}\n\n{GameRenderer.render_game(run)}"
 
     def _enter_room(self, run, uid: str, coord: str) -> str:
+        from .rooms.forced_triggers import run_forced_triggers
+        fm = run.floor_map
+        room = fm.rooms[coord]
+        trigger_logs = run_forced_triggers(run, fm, room, "on_enter")
+        res = self._enter_room_body(run, uid, coord)
+        if not trigger_logs:
+            return res
+        self.save_manager.save_save(uid, run)
+        prefix = "\n".join(trigger_logs)
+        return f"{prefix}\n\n{res}"
+
+    def _enter_room_body(self, run, uid: str, coord: str) -> str:
         from ...renderer import GameRenderer
         from ...data.room_interact_data import ROOM_NPCS
         fm = run.floor_map
@@ -337,6 +353,10 @@ class GridMapService:
 
         ensure_room_hostile_npcs(fm, room)
         ensure_treasure_chest_prop(room)
+        if getattr(room, "npcs", None):
+            from .encounter_lore import record_encounter_for_run
+
+            record_encounter_for_run(self.save_manager, run, *room.npcs)
 
         if room.room_type in ("empty", "spawn"):
             room.cleared = True
@@ -533,6 +553,9 @@ class GridMapService:
         elif fm.floor_flags.get("bleak_falls_zone"):
             from .bleak_falls import apply_bleak_falls_encounter
             apply_bleak_falls_encounter(self.map_engine.battle_engine, run, room)
+        elif fm.floor_flags.get("chireiden_zone"):
+            from .chireiden import apply_chireiden_encounter
+            apply_chireiden_encounter(self.map_engine.battle_engine, run, room)
         self.save_manager.save_save(caller, run)
         from .rooms.interact import format_room_extras
         hazard_loss = room.shared_payload.get("hazard_loss", 0)

@@ -147,6 +147,10 @@ def finish_player_node(save_manager, map_engine, run, uid, prefix="", on_all_rea
             if pending_bleak and pending_bleak in run.floor_map.rooms:
                 from ..world.bleak_falls import on_bleak_combat_resolved
                 on_bleak_combat_resolved(run, run.floor_map.rooms[pending_bleak], save_manager=save_manager)
+            pending_chireiden = run.node_data.pop("chireiden_pending_clear", None)
+            if pending_chireiden and pending_chireiden in run.floor_map.rooms:
+                from ..world.chireiden import on_chireiden_combat_resolved
+                on_chireiden_combat_resolved(run, run.floor_map.rooms[pending_chireiden], save_manager=save_manager)
             post_notices = run.node_data.pop("post_session_notices", [])
             if post_notices:
                 joined = "\n\n".join(str(n) for n in post_notices if n)

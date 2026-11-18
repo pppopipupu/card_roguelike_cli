@@ -524,3 +524,8 @@ TRASH_TALK_DB = {
         ]
     }
 }
+
+from .chaos_trash_talk_data import CHAOS_TALKING_ENEMIES, CHAOS_TRASH_TALK_DB
+
+TALKING_ENEMIES.update(CHAOS_TALKING_ENEMIES)
+TRASH_TALK_DB.update(CHAOS_TRASH_TALK_DB)

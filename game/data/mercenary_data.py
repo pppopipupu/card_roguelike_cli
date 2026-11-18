@@ -36,7 +36,28 @@ MERCENARY_CONFIG = {
             "thought_col_do_ma_ma_daqua",
             "thought_cop_of_the_apocalypse",
         ],
-    }
+    },
+    "utsuho_reiuji": {
+        "id": "utsuho_reiuji",
+        "name": "灵乌路空",
+        "aliases": ["utsuho_reiuji", "utsuho", "灵乌路空", "阿空"],
+        "hire_cost_gp": 0,
+        "hp": 240,
+        "class_name": "D-He3 聚变演算者",
+        "default_timing": "after",
+        "starting_deck": [
+            "d_he3_fusion_ignition",
+            "d_he3_fusion_ignition",
+            "pb_bi_coolant_loop",
+            "pb_bi_coolant_loop",
+            "lunar_he3_orbital_drop",
+            "lunar_he3_orbital_drop",
+            "int19_tokamak_calculus",
+            "penning_trap_lockdown",
+            "penning_trap_lockdown",
+            "hisoutensoku_thermonuclear_cannon",
+        ],
+    },
 }
 
 HARRY_SKILL_SCENARIOS = (

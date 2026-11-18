@@ -18,4 +18,8 @@ SELF_TARGET_SPELLS = {
     "wizard_antimagic_field",
     "special_rlyeh_astrolabe",
     "fus_ro_dah",
+    "pb_bi_coolant_loop",
+    "lunar_he3_orbital_drop",
+    "int19_tokamak_calculus",
+    "penning_trap_lockdown",
 }

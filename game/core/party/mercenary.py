@@ -570,7 +570,10 @@ def handle_merc_dialog_input(run: GameRun, owner_uid: str, raw_text: str) -> str
     entry["last_msg"] = ""
     if state == "main":
         if idx == 1:
-            chats = get_locale_raw("i18n_mercenary.harry_chats", [])
+            if getattr(merc, "mercenary_id", "") == "utsuho_reiuji":
+                chats = get_locale_raw("i18n_chireiden.utsuho_ally.chat_lines", [])
+            else:
+                chats = get_locale_raw("i18n_mercenary.harry_chats", [])
             if isinstance(chats, list) and chats:
                 entry["last_msg"] = random.choice(chats)
             else:

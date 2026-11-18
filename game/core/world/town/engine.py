@@ -534,6 +534,9 @@ class TownEngine:
             node_data={"is_town_combat": True, "npc_name": npc_id}
         )
         self.engine.battle_engine.enemy_controller.roll_enemy_intent(run)
+        from ..encounter_lore import record_encounter
+
+        record_encounter(self.save_manager, user_id, enemy.name, npc_id)
         self.save_manager.save_save(user_id, run)
         
         from ....renderer import GameRenderer

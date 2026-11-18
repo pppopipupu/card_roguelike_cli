@@ -135,8 +135,8 @@ ENEMY_NORMAL_CONFIG = {
         "hp": "18 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "攻击 (造成随机伤害，基于关卡数: 3 + 关卡数//2 + 随机值)"},
-            {"id": "defend", "desc": "防御 (获得随机护盾，基于关卡数: 3 + 关卡数 + 随机值)"}
+            {"id": "gargoyle_stone_slam", "val": 7, "desc": "石拳猛砸 (造成 7 点钝击伤害，并获得 4 点护盾)"},
+            {"id": "gargoyle_fortify", "val": 9, "desc": "石像凝壁 (获得 9 点护盾与 2 层力量)"}
         ]
     },
     "堕落学徒": {
@@ -157,8 +157,8 @@ ENEMY_NORMAL_CONFIG = {
         "hp": "15 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "攻击 (造成随机伤害，基于关卡数: 3 + 关卡数//2 + 随机值)"},
-            {"id": "defend", "desc": "防御 (获得随机护盾，基于关卡数: 3 + 关卡数 + 随机值)"}
+            {"id": "beast_savage_bite", "val": 6, "desc": "野性撕咬 (造成 6 点穿刺伤害，并施加 2 层流血)"},
+            {"id": "beast_howl", "val": 6, "desc": "狂暴战吼 (获得 6 点护盾与 2 层力量)"}
         ]
     },
     "幽灵法师": {
@@ -179,8 +179,8 @@ ENEMY_NORMAL_CONFIG = {
         "hp": "10 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "攻击 (造成随机伤害，基于关卡数: 3 + 关卡数//2 + 随机值)"},
-            {"id": "defend", "desc": "防御 (获得随机护盾，基于关卡数: 3 + 关卡数 + 随机值)"}
+            {"id": "slime_frost_spit", "val": 5, "desc": "寒霜粘液 (造成 5 点寒冷伤害，并施加 1 层虚弱)"},
+            {"id": "slime_chill_shell", "val": 7, "desc": "霜冻硬化 (获得 7 点护盾与 1 层力量)"}
         ]
     },
     "骷髅弓箭手": {
@@ -190,8 +190,8 @@ ENEMY_NORMAL_CONFIG = {
         "hp": "12 (+ 2 * 关卡数)",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "attack", "desc": "攻击 (造成随机伤害，基于关卡数: 3 + 关卡数//2 + 随机值)"},
-            {"id": "defend", "desc": "防御 (获得随机护盾，基于关卡数: 3 + 关卡数 + 随机值)"}
+            {"id": "archer_bleed_arrow", "val": 6, "desc": "锯齿骨箭 (造成 6 点穿刺伤害，并施加 1 层流血)"},
+            {"id": "archer_aim_step", "val": 5, "desc": "拉弓蓄势 (获得 5 点护盾与 2 层力量)"}
         ]
     },
     "剧毒蜘蛛": {
@@ -491,7 +491,8 @@ ENEMY_NORMAL_CONFIG = {
         "hp": "10",
         "actions": "1A 0BA",
         "intents": [
-            {"id": "bone_slash", "val": 3, "desc": "骨刃挥砍 (造成 3 点挥砍伤害)"}
+            {"id": "bone_slash", "val": 3, "desc": "骨刃挥砍 (造成 3 点挥砍伤害)"},
+            {"id": "bone_shield_bash", "val": 4, "desc": "骨盾冲撞 (造成 4 点钝击伤害，并获得 4 点护盾)"}
         ]
     },
     "深潜者": {

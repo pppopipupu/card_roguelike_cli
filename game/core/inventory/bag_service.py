@@ -274,6 +274,9 @@ def use_bag_item(engine, run, query: str) -> str:
             fm.secret_clue_found = True
             if fm.ritual_coord not in fm.revealed_coords:
                 fm.revealed_coords.append(fm.ritual_coord)
+            from ..progress.achievement_service import record_run_achievement_stat
+
+            record_run_achievement_stat(getattr(engine, "save_manager", None), run, "secret_clues_found", 1)
             return get_locale_text("i18n_room_interact.bag.use_ancient_notes_clue", coord=fm.ritual_coord)
         p.gold += 15
         return get_locale_text("i18n_room_interact.bag.use_ancient_notes_gold", gold=15)
@@ -307,6 +310,16 @@ def use_bag_item(engine, run, query: str) -> str:
         items.remove(item_id)
         sp = restore_sp(p, cfg["sp_gain"])
         return get_locale_text("i18n_room_interact.bag.use_barista_seal", sp=sp)
+    from .chaos_items import try_use_chaos_item
+
+    chaos_msg = try_use_chaos_item(engine, run, item_id, cfg, add_bag_item, _reveal_special_rooms)
+    if chaos_msg is not None:
+        return chaos_msg
+    from ..world.chireiden import try_use_chireiden_item
+
+    chireiden_msg = try_use_chireiden_item(engine, run, item_id, cfg, add_bag_item, _reveal_special_rooms)
+    if chireiden_msg is not None:
+        return chireiden_msg
     return get_locale_text("i18n_room_interact.bag.use_cannot_here", name=get_item_display_name(item_id))
 
 

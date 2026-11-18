@@ -149,6 +149,21 @@ class BattleEngine(BaseBattleEngine):
 
     def _add_buff_to(self, entity, buff_id: str, buff_name: str, desc: str, count: int = 1, count2: Optional[int] = None):
         self.combat_resolver.add_buff_to(entity, buff_id, buff_name, desc, count, count2, run=self.current_run)
+        if self.current_run is not None and buff_id == "fusion_overcharge" and not getattr(entity, "is_mercenary", False):
+            uid = self.current_run.uid_for(entity)
+            if uid and (uid == getattr(self.current_run, "user_id", "") or uid in self.current_run.human_uids()):
+                total = sum(b.stacks for b in getattr(entity, "buffs", []) if b.id == "fusion_overcharge")
+                if total >= 8:
+                    from ..progress.achievement_service import AchievementService
+
+                    AchievementService(self.save_manager).record_stat(
+                        uid,
+                        "max_fusion_overcharge",
+                        total,
+                        mode="max",
+                        run=self.current_run,
+                        battle_engine=self,
+                    )
 
     def _get_free_grid(self, p: PlayerState) -> Optional[str]:
         return self.combat_resolver.get_free_grid(p)
@@ -283,6 +298,10 @@ class BattleEngine(BaseBattleEngine):
         init_draw = self.exhaustion_observer.modify_initial_draw(p, init_draw)
         self._draw_cards(p, init_draw, run, ignore_focus=True)
         run.node_data["difficulty"] = difficulty
+        if getattr(run, "enemies", None):
+            from ..world.encounter_lore import record_encounter_for_run
+
+            record_encounter_for_run(self.save_manager, run, *(e.name for e in run.enemies if getattr(e, "name", "")))
 
     def _enemy_config_stats(self, name: str):
         cfg = ENEMY_CONFIG[name]

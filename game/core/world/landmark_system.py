@@ -68,6 +68,10 @@ def build_landmark_options(run, uid: str) -> dict:
             "text": get_locale_text("i18n_grid_map.opt_leave"),
         })
         return {"title": title, "desc": desc, "landmark_id": lm_id, "coord": coord, "options": options}
+    from .chireiden import build_chireiden_landmark_options
+    chireiden_lm = build_chireiden_landmark_options(run, lm_id, coord)
+    if chireiden_lm is not None:
+        return chireiden_lm
     if lm_id == "observatory":
         title = get_locale_text(LANDMARK_CONFIGS["observatory"]["name_key"])
         desc = get_locale_text(LANDMARK_CONFIGS["observatory"]["desc_key"])
@@ -158,14 +162,16 @@ def build_downstairs_data(run, save_manager, uid) -> dict:
                 {"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")},
             ],
         }
-    nxt = fm.floor_index + 1
+    nxt = 4 if abs(float(fm.floor_index) - 3.5) < 1e-4 else int(fm.floor_index) + 1
     nxt_name = get_locale_text(FLOOR_CONFIGS.get(nxt, FLOOR_CONFIGS[4])["name_key"])
     claimed_map = fm.floor_flags.get("descent_claimed", {})
     if isinstance(claimed_map, dict) and claimed_map.get(uid):
         options = [
             {"action": "downstairs_confirm", "text": get_locale_text("i18n_grid_map.downstairs.confirm_opt")},
-            {"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")},
         ]
+        if fm.floor_index == 3:
+            options.append({"action": "enter_chireiden_3_5", "text": get_locale_text("i18n_chireiden.elevator.opt_enter_chireiden")})
+        options.append({"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")})
         return {
             "title": get_locale_text("i18n_grid_map.downstairs.title", floor=fm.floor_index),
             "desc": get_locale_text("i18n_grid_map.downstairs.desc", next_floor=nxt, nxt_name=nxt_name),
@@ -189,6 +195,8 @@ def build_downstairs_data(run, save_manager, uid) -> dict:
                     relic_name=get_relic_name(opt["relic"]),
                 ),
             })
+        if fm.floor_index == 3:
+            options.append({"action": "enter_chireiden_3_5", "text": get_locale_text("i18n_chireiden.elevator.opt_enter_chireiden")})
         options.append({"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")})
         if room is not None:
             store[uid] = options
@@ -346,6 +354,9 @@ def execute_landmark_option(save_manager, map_engine, run, idx: int) -> str:
             fm.rooms[fm.ritual_coord].explored = True
             if fm.ritual_coord not in fm.revealed_coords:
                 fm.revealed_coords.append(fm.ritual_coord)
+        from ..progress.achievement_service import record_run_achievement_stat
+
+        record_run_achievement_stat(save_manager, run, "secret_clues_found", 1)
         map_engine.complete_session(run, mark_cleared=True)
         save_manager.save_save(uid, run)
         return get_locale_text(
@@ -443,6 +454,11 @@ def execute_landmark_option(save_manager, map_engine, run, idx: int) -> str:
         save_manager.save_save(uid, run)
         return get_locale_text("i18n_grid_map.ritual_success", coord=secret_coord)
 
+    from .chireiden import execute_chireiden_landmark_option
+    chireiden_res = execute_chireiden_landmark_option(save_manager, map_engine, run, action)
+    if chireiden_res is not None:
+        return chireiden_res
+
     return get_locale_text("err_invalid_option_idx")
 
 
@@ -460,6 +476,12 @@ def execute_downstairs_option(save_manager, map_engine, run, idx: int) -> str:
         map_engine.complete_session(run, mark_cleared=False)
         save_manager.save_save(uid, run)
         return get_locale_text("i18n_grid_map.downstairs.left_msg")
+    if action == "enter_chireiden_3_5":
+        map_engine.complete_session(run, mark_cleared=False)
+        from .chireiden import enter_chireiden_elevator
+        elevator_msg = enter_chireiden_elevator(map_engine, run, uid)
+        save_manager.save_save(uid, run)
+        return elevator_msg
     reward_msg = ""
     if action == "ancient_pick":
         reward_msg = grant_ancient_blessing(run, chosen, player=run.player)

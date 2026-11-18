@@ -1,0 +1,336 @@
+{
+  "floor_3_5_name": "地灵殿核聚变控制中心",
+  "elevator": {
+    "opt_enter_chireiden": "钻入楼梯侧壁隐藏维修井道，搭乘直通地灵殿核聚变控制中心的重力电梯",
+    "entered_banner": "电梯钢缆穿过炽热地幔一路急坠，舱门滑开时扑面而来的是地热蒸汽、非想天则时代的巨型涡轮低鸣与灼目蓝色电弧。"
+  },
+  "rumors": {
+    "reimu_hint": "顺便一提，最近地灵殿底下的间歇泉震动得连神社茶碗都在跳——那只笨鸟不知从哪戴上了闪着奥术光的智力头环，整天喊着氦三和太空电梯。如果在第 3 层楼梯井看见维修电梯，最好做好苦战准备再去。",
+    "marisa_hint": "喂，听说地灵殿深处的地灵殿核聚变控制中心正打得火热，阿燐在鼓捣铅铋快堆，戴着智力头环的阿空正精算着 D-He3 聚变，底下还藏着个不断漏出 Xen 怪物的彭宁离子井！第 3 层下行口旁边就能坐电梯溜过去。",
+    "patchouli_hint": "补充观测报告：地灵殿核聚变控制中心的魔力波形已呈指数级抬升，灵乌路空的智力头环将她推至近乎完美的聚变演算精度，其背后的彭宁离子井更连通着异界 Xen 位面；请务必衡量战力后再经由第 3 层直通电梯前往。"
+  },
+  "big_rooms": {
+    "lunar_he3_elevator_hub": {
+      "name": "月都氦三物流中继大厅",
+      "desc": "自月之都太空电梯垂直延伸至此的深地货舱正悬吊着成排氦三低温储罐，自动化磁轨穿梭不停，为聚变控制中心输送高纯度聚变燃料。"
+    },
+    "pb_bi_fast_reactor_chamber": {
+      "name": "铅铋快堆实验大厅",
+      "desc": "液态铅铋金属冷却剂在透明耐压管网间缓缓奔流，炽热灰烬与怨灵火种交织其上，火焰猫燐正全神贯注地记录中子通量读数。"
+    },
+    "d_he3_tokamak_array": {
+      "name": "D-He3 托卡马克阵列大厅",
+      "desc": "借鉴非想天则核心理念建造的环形磁约束大厅，十二组超导线圈正将炽白氦三等离子体约束在零点几毫米误差之内。"
+    },
+    "penning_ion_well_sanctum": {
+      "name": "彭宁离子井秘密圣殿",
+      "desc": "地灵殿最深处的超高真空竖井四周布满高能电极环，中央悬停的超级传送门泛着幽绿弧光，持续将 Xen 异界生物投送入现世。"
+    }
+  },
+  "landmarks": {
+    "chireiden_fusion_terminal": {
+      "name": "D-He3 聚变主控终端",
+      "desc": "镌刻着繁复拓扑公式的磁控运算台，屏幕上正实时滚动月之都太空电梯的氦三配额与等离子体约束参数。",
+      "npc": "聚变主控终端",
+      "opt_draw_he3": "调用太空电梯应急配额，抽取一罐低温氦三燃料入袋，并注入 6 点护盾",
+      "opt_sync_coolant": "将铅铋冷却回路并联至己方循环，回复 24 点生命并强化一张手牌或随机卡牌",
+      "opt_overclock": "将终端演算核心切入作战频率，花费 120 金币换取 4 层聚变超载与 1 点护盾强度上限提升",
+      "opt_leave": "暂时关闭终端屏幕并离开",
+      "draw_he3_msg": "物流机械臂将密封氦三燃料罐送入滑槽，你额外获得 6 点初始防御回路校准并收下【{item}】。",
+      "sync_coolant_msg": "温润而稳定的铅铋冷却回路平复了你的损伤，恢复了 {healed} 点生命！",
+      "overclock_msg": "主控终端蓝光骤亮，你耗费 {cost} 金币完成神经同步，全身涌动着【聚变超载】的高能脉冲！",
+      "not_enough_gold": "终端收费闸口提示金币不足，至少需要 {cost} 金币。",
+      "already_used": "这台 D-He3 聚变主控终端本层额度已耗尽。"
+    },
+    "chireiden_penning_stabilizer": {
+      "name": "彭宁井谐振稳压桩",
+      "desc": "矗立在深地断层之间的高耸四极电极柱，正全力对抗后方超级传送门外溢的空间牵引力。",
+      "npc": "谐振稳压桩",
+      "opt_calibrate_well": "校准四极直流偏压场，消耗 1 点 SP 将 3 层【磁约束场】转化为永久防护印记并揭示传送门坐标",
+      "opt_purge_xen": "开启局部离子吹扫，清除所有负面状态并回复 18 点生命，同时揭示楼层所有特殊大厅",
+      "opt_resonance_shield": "拆下稳压桩边缘的微型晶振片备作临时抗震组件，获得 90 金币",
+      "opt_leave": "退离高压电极阵列",
+      "calibrate_msg": "嗡鸣声趋于平稳，你获得 3 层【磁约束场】护持，井壁雷达清楚标出了深处坐标 {coord}。",
+      "purge_msg": "高压离子流冲散了附着身上的杂波，生命恢复 {healed} 点，周围大片设施轮廓也被点亮。",
+      "resonance_msg": "你熟练卸下冗余稳压模块换作旅费，获得 {gold} 金币。",
+      "no_sp": "你的 SP 不足，无法维持四极稳压偏置操作。",
+      "already_used": "这座彭宁井谐振稳压桩已经完成本轮放电周期。"
+    }
+  },
+  "gate": {
+    "floor_intro": "你沿着非想天则风格的高压输电廊道深入第 3.5 层【地灵殿核聚变控制中心】。南区接收月之都太空电梯的氦三物资，中区是火焰猫燐看守的铅铋快堆，北段主控室的灵乌路空与深处彭宁离子井正等待真正的破局者。",
+    "utsuho_blocked": "厚重的磁约束铅铋闸门死死封锁着控制中心后半区，必须击败守门领主【灵乌路空】后才会解除气密互锁。",
+    "utsuho_defeated_unlock": "额前闪烁着金光的智力头环微微倾斜，灵乌路空喘息着拍下控制台泄压阀：果然强过头了……后段彭宁离子井的超级传送门已经失去第一重压制，气密锁已为你开启，第二阶段起我会切入备用频段亲自进来帮你封锁它！",
+    "portal_defeated_unlock": "四重彭宁约束电极同时归位，超级传送门在刺目电离蓝光中坍缩为静默一点，通往第 4 层深渊里界的下行井道 {coord} 已解除应急锁止！",
+    "utsuho_room_desc": "主控大厅悬吊着炽白日轮般的磁约束炉心，灵乌路空正戴着智力头环高速演算空间电梯氦三轨道参数，随手挥动第三足间的控制棒。",
+    "portal_room_desc": "极度幽深的彭宁离子井中央翻滚着墨绿与青白交织的裂隙漩涡，超级传送门正持续把 Xen 异界猎群推入控制中心。",
+    "elevator_down_prompt": "通往第 4 层深渊里界的深井电梯指示灯已经转绿，可以继续下降。"
+  },
+  "triggers": {
+    "reactor_steam_vent_instant": "高压铅铋旁通阀在管道深处骤然啸叫泄压！你顶住热浪承受 {dmg} 点擦伤，护盾电容却顺势蓄能 +{shield} 备战加护。",
+    "he3_orbital_capsule_instant": "月之都太空电梯投送仓滑落大厅轨面！你取出【{item}】并回收了 {gold} 金币的物流封签补贴。",
+    "penning_harmonic_alarm_instant": "彭宁离子井高频警报骤响，稳压流顺便抚平了部分疲惫：你恢复 {heal} 点生命并收集到 {gold} 金币的异界晶屑。",
+    "reactor_steam_vent": {
+      "prompt": "高压冷却主管在头顶猛然撕裂，滚烫的白雾混合着铅铋微粒朝整个舱段喷涌而来！",
+      "opt_brace": "举起护具硬抗蒸汽冲击并顺势导流散热，承受 {dmg} 点伤害，下场战斗开局获得 18 点护盾",
+      "opt_vent": "抢按壁面紧急旁通阀卸压，花费 35 金币换取安全通过且回复 12 点生命",
+      "opt_dodge": "敏捷贴着非想天则铸铁管道滚入死角，免受伤害",
+      "res_brace": "滚烫水汽炙烤着装甲却也让护盾电容蓄满电荷，你承受 {dmg} 点伤害，下场战斗开局获得 18 点护盾。",
+      "res_vent": "旁通阀吐出低沉啸声，费用自动从工程凭证扣除了 35 金币，冷却喷雾令你回复了 {healed} 点生命。",
+      "res_no_gold": "工程凭证余额不足 35 金币，旁通阀拒绝对你放行，高温蒸汽擦伤了你的肩膀（受到 {dmg} 点伤害）。",
+      "res_dodge": "你在阀体闭锁前的瞬间灵巧滑出危险区，毫发无损。"
+    },
+    "he3_orbital_capsule": {
+      "prompt": "一条挂着月之都徽记的太空电梯空投舱破顶滑落，舱壁上的低温氦三封条尚未开启。",
+      "opt_harvest": "拆解氦三胶囊取出可用燃料罐，获得【月之都氦三燃料罐】与 45 金币",
+      "opt_study": "趁着舱体余温抄录太空电梯与 D-He3 配比蓝图，获得 2 层聚变超载与 1 点临时防御基数",
+      "opt_seal": "谨慎保留封印并就近回收零散备件，回复 15 点生命",
+      "res_harvest": "冰冷微沉的罐体稳稳落入行囊，你收获了【{item}】与 45 金币。",
+      "res_study": "简洁优雅的月面物流曲线让你对能量调度豁然开朗，最大生命提升 6 点且回满相应生命。",
+      "res_seal": "清凉的白雾略微驱散了疲惫，你恢复了 {healed} 点生命。"
+    },
+    "penning_harmonic_alarm": {
+      "prompt": "井壁高频检测器同时蜂鸣，彭宁离子井的偶极磁场正将附近游荡的 Xen 微粒聚拢过来！",
+      "opt_ground": "用随身武器接地泄放高压电荷，直接跳过正面纠缠并缴获 40 金币碎晶",
+      "opt_dampen": "正面稳住阵脚迎击被磁场吸来的前锋畸变体并趁势磨砺战技",
+      "res_ground": "炫目电火花沿着地面散开，警报声迅速消散，你还捡到了 {gold} 金币。",
+      "res_dampen": "你调整呼吸迎接扑面而来的异界躁动，生命小幅回复 {healed} 点并为接下来的连战拉满戒备。"
+    }
+  },
+  "items": {
+    "he3_fuel_canister": {
+      "name": "氦三聚变燃料罐",
+      "desc": "来自月之都太空电梯的低温精炼燃料。使用后回复 28 点生命，并在当前探索中使下次战斗开局获得 2 层【聚变超载】。",
+      "used": "你旋开【氦三聚变燃料罐】的低温阀，淡金色微粒涌入体内，回复 {healed} 点生命并蓄积了下战【聚变超载】。"
+    },
+    "lbe_cooling_flask": {
+      "name": "铅铋共晶冷却剂",
+      "desc": "火焰猫燐从快堆回路抽样封装的高沸点金属液剂。使用后回复 36 点生命，同时净化流血类隐患并使最大生命提升 4 点。",
+      "used": "沉重却异常清凉的金属液膜护住周身脉络，回复 {healed} 点生命并使最大生命提升 4 点。"
+    },
+    "xen_sample_ampoule": {
+      "name": "Xen 高能晶簇样本",
+      "desc": "从彭宁离子井边缘回收的微弱共鸣矿脉。使用后回复 18 点生命，并点亮本层所有未知的特殊设施与大厅坐标。",
+      "used": "幽绿光晕在指尖一闪而逝，你恢复 {healed} 点生命，全层各处关键控制坐标也映入视野。"
+    },
+    "headband_blueprint_shard": {
+      "name": "智力头环手稿残片",
+      "desc": "灵乌路空用歪歪扭扭却异常严谨的符号写满的 D-He3 演算便签。使用后永久提升最大生命 8 点并回复 20 点生命。",
+      "used": "你把整张手稿的磁约束微积分背得滚瓜烂熟，最大生命提升 8 点，精神焕发地回复了 {healed} 点生命。"
+    },
+    "headband_of_intellect": {
+      "name": "智力头环",
+      "desc": "散发淡蓝色奥术微光的银质细环。使用后永久提升最大生命 6 点，回复 24 点生命，并在当前探索中使下次战斗开局获得 3 层聚变超载。",
+      "used": "你试着将【智力头环】戴上额前，无数精密磁流公式瞬间流过心神：最大生命提升 6 点，恢复 {healed} 点生命并为下次战斗蓄积了 3 层聚变超载。"
+    }
+  },
+  "lore": {
+    "he3_fuel_canister": "源自月之都静止轨道太空电梯终端的低温氦三储罐，在穿戴智力头环的精密物流核算下成为最稳定清洁的 D-He3 聚变燃料。",
+    "lbe_cooling_flask": "由火焰猫燐亲手从铅铋共晶快堆取样封存，沸点极高、导热极佳，既能稳住核反应堆堆芯也能舒缓深层疲惫。",
+    "xen_sample_ampoule": "从秘密彭宁离子井边缘真空壁刮下的微弱 Xen 共鸣结晶，能逆向照亮整片地下电厂的高能节点分布。",
+    "headband_blueprint_shard": "灵乌路空在智力头环加持下奋笔疾书的 D-He3 聚变截面笔记残片，密密麻麻写满了严谨的高维积分符号。",
+    "headband_of_intellect_rumor": "传闻中戴在地灵殿灵乌路空头顶的银丝奥术细环，使她突然能够操盘聚变演算与太空电梯物流。",
+    "headband_of_intellect_hint": "奇物本身遵循的秘典法则暂未明晰，唯有深入地灵殿核聚变控制中心一探究竟后方可揭示。",
+    "headband_of_intellect": "来自异界秘典的奥术头饰：穿戴期间可将穿戴者的智力稳定设定为 19；若穿戴者原本的智力已达到或高于 19，则无额外效果。阴差阳错戴在灵乌路空头上后，使原本呆萌的地狱鸦得以流畅演算 D-He3 聚变截面与月之都太空电梯物流。"
+  },
+  "props": {
+    "he3_storage_cylinder": {
+      "done": "氦三燃料储罐阀门平稳泄压，你从中取出【{item}】并收集了 {gold} 金币。"
+    },
+    "pb_bi_coolant_valve": {
+      "done": "你转动铅铋快堆调节手轮，顺畅循环的热交换回路为你回复了 {healed} 点生命。"
+    },
+    "tokamak_magnetic_coil": {
+      "done": "托卡马克备件柜弹开暗格，你获得 {gold} 金币并提升了 5 点最大生命上限。"
+    },
+    "penning_harmonic_console": {
+      "done": "彭宁井谐振台返回清晰的全层磁图扫描数据，揭露了大片区域轮廓并为你带来 {gold} 金币。"
+    }
+  },
+  "npcs": {
+    "kaenbyou_rin": {
+      "greetings": [
+        "喵哈哈！快看这套铅铋共晶冷却塔，沸点高到离谱还不带把怨灵煮熟！哦对了，灵乌路空戴上那只闪亮智力头环之后简直算魔怔了，正在前方主控室等着考验闯关者呢。",
+        "地灵殿的旧锅炉早就淘汰啦，现在阿空忙着接月之都的氦三货柜，我呢就负责盯着铅铋快堆别超临界——要不要顺便拿你的防具试试这炉液态金属的硬度？"
+      ],
+      "opt_study_lbe": "与阿燐交流铅铋快堆的热工设计，免费获取一瓶【铅铋共晶冷却剂】",
+      "opt_challenge_rin": "迎战火焰猫燐的快堆护卫演习，赢取高阶遗物与丰厚补给",
+      "opt_trade_coolant": "花 75 金币向阿燐采购一套热传导维护包，回复 30 点生命并获得 6 点最大生命",
+      "opt_leave": "向阿燐道别，继续穿过管道廊道",
+      "study_lbe_res": "阿燐咧嘴一笑甩给你一只银灰金属瓶：拿去吧，这罐【{item}】可比常规血瓶扛烫得多。",
+      "trade_coolant_res": "阿燐手脚麻利地为你调好铅铋浴护具，回复 {healed} 点生命且最大生命提升 6 点！",
+      "challenge_res": "火焰猫燐吹响尖锐口哨，铅铋反应堆外围的鬼火与怨灵车轮齐声震鸣，快堆警卫战打响！",
+      "left": "你向火焰猫燐摆手道别，继续穿过管道廊道。",
+      "no_gold": "阿燐摇摇猫尾：至少得掏出 {cost} 金币才够材料费哦。"
+    }
+  },
+  "cards": {
+    "d_he3_fusion_ignition": "D-He3聚变点火",
+    "d_he3_fusion_ignition_desc": "对单个敌人造成 {damage} 点真实聚变伤害，获得 {block} 点护盾与 2 层聚变超载；若自身已处于聚变超载状态，改为对全体敌人造成等量伤害并抽 1 张牌。",
+    "pb_bi_coolant_loop": "铅铋热工循环",
+    "pb_bi_coolant_loop_desc": "获得 {block} 点护盾与 2 层磁约束场，清除自身 1 层流血与灼烧，并回复 {heal} 点生命。",
+    "lunar_he3_orbital_drop": "月都氦三空投",
+    "lunar_he3_orbital_drop_desc": "从月之都太空电梯呼叫精确空投，对全体敌人造成 {damage} 点能量伤害，获得 1 点当前动作点 A，并抽 {draw} 张牌。",
+    "int19_tokamak_calculus": "头环托卡马克演算",
+    "int19_tokamak_calculus_desc": "奥术头环加持下的毫秒级磁流方程重构：抽 {draw} 张牌，本回合获得 1 点当前动作点 A，自身获得 {stacks} 层聚变超载并回复 6 点生命。",
+    "penning_trap_lockdown": "彭宁井四极封锁",
+    "penning_trap_lockdown_desc": "锁定目标区域的高能四极电势：对全体敌人造成 {damage} 点雷电穿透伤害，削弱全体敌人 2 层力量 2 回合，并使自身获得 {block} 点护盾与 2 层磁约束场。",
+    "hisoutensoku_thermonuclear_cannon": "非想天则热核炮",
+    "hisoutensoku_thermonuclear_cannon_desc": "引爆巨型聚变主炮：对单一目标造成 {damage} 点火焰重击，同时溅射全体敌人 {splash} 点能量伤害；自身每有 1 层聚变超载额外追加 4 点伤害。"
+  },
+  "relics": {
+    "headband_of_intellect_int19": {
+      "name": "智力头环",
+      "desc": "原本只应存在于奇幻秘典中的思维增幅头环，不知为何扣在了地狱鸦头顶。每场战斗首次出牌阶段额外多抽 1 张牌并获得 2 层聚变超载，此后每逢偶数回合抽 1 张牌并补充 1 层聚变超载。"
+    },
+    "lbe_fast_reactor_core": {
+      "name": "铅铋快堆微型堆芯",
+      "desc": "火焰猫燐精心封存的液态铅铋共晶反应堆模型。每场战斗开始获得 10 点护盾与 2 层磁约束场；每当回合结束自身仍有护盾时，回复 4 点生命。"
+    },
+    "lunar_he3_capsule": {
+      "name": "月之都氦三物流舱",
+      "desc": "连接静止轨道太空电梯末端的小型高纯燃料舱。每回合首次打出卡牌获得 2 层聚变超载，且第 1 回合与第 3 回合开始时各获得 1 点额外动作点 A。"
+    },
+    "penning_ion_stabilizer": {
+      "name": "彭宁离子井稳压器",
+      "desc": "用以锚定超高维离子陷阱的精密四极电极组。玩家最大生命提升 12 点，每次受到敌人攻击后立即反冲生成 5 点护盾，且每回合首次受伤减免 25%。"
+    }
+  },
+  "buffs": {
+    "fusion_overcharge": "聚变超载",
+    "fusion_overcharge_desc": "高能 D-He3 等离子体在体内流转。本回合打出的攻击牌与法术造成额外伤害或触发增幅效果，当前剩余 {stacks} 层。",
+    "magnetic_confinement": "磁约束场",
+    "magnetic_confinement_desc": "强直流磁场包裹全身，使受到的直接攻击伤害降低，每次承受攻击消耗 1 层并提供 4 点护盾缓冲，当前剩余 {stacks} 层。",
+    "headband_int19_aura": "头环超导算力",
+    "headband_int19_aura_desc": "智力头环将灵乌路空的计算频率推至极限。每回合自主叠加聚变超载，并精准调度月之都氦三补给与全屏脉冲火力。",
+    "lbe_thermal_inertia": "铅铋热惯性",
+    "lbe_thermal_inertia_desc": "液态铅铋金属循环形成超高热容装甲，火焰猫燐每次行动后自动凝聚护盾并周期性召唤怨灵辅助。",
+    "penning_xen_rift_p1": "彭宁裂缝·一阶谐振",
+    "penning_xen_rift_p1_desc": "第一阶段超级传送门维持稳定空间口径，持续投放 Xen 猎头蟹与猎犬眼。",
+    "penning_xen_rift_p2": "彭宁裂缝·二阶扩容",
+    "penning_xen_rift_p2_desc": "第二阶段传送门扩张电极环，周期性刷新高阶 Xen 单位并提升自身输出，灵乌路空已从侧面切入战局封锁此井。",
+    "penning_xen_rift_p3": "彭宁裂缝·三阶超临界",
+    "penning_xen_rift_p3_desc": "第三阶段高压电极进入超临界状态，开始高频调动 Xen 弗地冈与牛鱿协同冲击。",
+    "penning_xen_rift_p4": "彭宁裂缝·四阶终焉封堵",
+    "penning_xen_rift_p4_desc": "最终阶段空间畸变臻至极限，召唤包括 Xen 控制器在内的全部异界精英；无伤害反弹亦无控牌干扰，纯粹检验输出与防线续航。",
+    "xen_swarm_link": "Xen 群巢共振",
+    "xen_swarm_link_desc": "被彭宁传送门投放的 Xen 生命体共享空间脉冲，场上每存在其他 Xen 生物便获得额外斗志，并在传送门存在时持续威胁阵线。"
+  },
+  "enemies": {
+    "fusion_turbine_automaton": "非想天则涡轮机兵",
+    "he3_cargo_drone": "月都氦三物流机",
+    "lbe_slag_elemental": "铅铋液态金属怪",
+    "tokamak_arc_sentinel": "托卡马克电弧守卫",
+    "kaenbyou_rin": "火焰猫燐",
+    "utsuho_reiuji": "灵乌路空",
+    "penning_super_portal_p1": "彭宁离子井·超级传送门·初阶裂隙",
+    "penning_super_portal_p2": "彭宁离子井·超级传送门·二阶扩口",
+    "penning_super_portal_p3": "彭宁离子井·超级传送门·三阶超临界",
+    "penning_super_portal_p4": "彭宁离子井·超级传送门·四阶终焉极井",
+    "xen_headcrab": "Xen猎头蟹",
+    "xen_houndeye": "Xen猎犬眼",
+    "xen_vortigaunt": "Xen弗地冈",
+    "xen_bullsquid": "Xen牛鱿",
+    "xen_controller": "Xen控制器"
+  },
+  "actions": {
+    "turbine_steam_slam": "高压涡轮重压",
+    "turbine_shield_vent": "蒸汽泄压装甲",
+    "drone_orbital_laser": "物流轨道校正激光",
+    "drone_he3_drop": "氦三高爆罐空投",
+    "lbe_molten_splash": "沸腾铅铋泼溅",
+    "lbe_dense_wall": "液态重金属凝壁",
+    "tokamak_arc_sweep": "环形强电弧清扫",
+    "tokamak_field_lock": "磁流体脉冲增压",
+    "rin_cat_wheel_charge": "火猫怨灵战车冲锋",
+    "rin_lbe_quench_guard": "铅铋快堆淬火护膜",
+    "rin_corpse_ash_nova": "灼热地狱鬼火阵",
+    "utsuho_d_he3_ray": "D-He3 精准点火射线",
+    "utsuho_elevator_logistics": "月都太空电梯氦三补给校准",
+    "utsuho_tokamak_flare": "头环·托卡马克太阳黑子爆",
+    "utsuho_subterranean_sun": "伪狱热核终焉日轮",
+    "portal_summon_swarm": "开启彭宁传送门·投放 Xen 群落",
+    "portal_ion_beam": "四极直流离子贯穿束",
+    "portal_magnetic_pulse": "强磁约束过载震荡",
+    "portal_xen_bombard": "超级传送门·异界维度齐射",
+    "xen_headcrab_leap": "突袭扑咬",
+    "xen_headcrab_burrow": "异界甲壳蜷缩",
+    "xen_houndeye_sonic": "猎犬眼高频冲击波",
+    "xen_vortigaunt_bolt": "弗地冈青绿电浆束",
+    "xen_bullsquid_acid": "牛鱿强酸喷吐",
+    "xen_controller_psi_lance": "控制器虚空能量投矛",
+    "xen_controller_overdrive": "共鸣增幅传送门群",
+    "portal_phase_intent": "彭宁极井第 {phase} 阶段重构中（本回合免疫伤害）",
+    "portal_summon_empty": "{portal} 维持空间口径稳定，当前异界斥候已在场待命，转而聚拢 {shield} 点约束护盾。",
+    "he3_logistics_surge": "灵乌路空启动太空电梯氦三直供，自身获得 {shield} 点护盾与 {str} 点力量并进入聚变超载！",
+    "portal_field_charge": "{name} 将磁约束电极推升至下一级，获得 {shield} 点护盾并增强全场攻击力！",
+    "attack_log": "{name} 施展【{action}】，造成 {dmg} 点伤害！",
+    "aoe_log": "{name} 释放范围技【{action}】，对我方阵线造成 {dmg} 点群伤！",
+    "buff_log": "{name} 发动【{action}】，获得 {shield} 点护盾与强化状态！"
+  },
+  "card_results": {
+    "d_he3_single": "D-He3 聚变光束命中 {target}，造成 {dmg} 点火焰伤害，同时为你注入 {shield} 点护盾与 {stacks} 层聚变超载。",
+    "d_he3_aoe": "体内【聚变超载】引爆环形点火！对全体敌人造成 {dmg} 点火焰伤害，获得 {shield} 点护盾与 {stacks} 层聚变超载，并抽 {draw} 张牌！",
+    "pb_bi_loop": "铅铋热工循环全速流转，获得 {shield} 点护盾、{stacks} 层磁约束场与 {heal} 点生命回复！",
+    "lunar_drop": "月之都太空电梯空投舱轰然砸落！对敌方全体造成 {dmg} 点力场伤害，获得 {gain_a} 点行动点并抽 {draw} 张牌！",
+    "int19_calculus": "智力头环超导算力解析完毕！抽 {draw} 张牌、获得 {gain_a}A、{stacks} 层聚变超载并回复 {heal} 点生命。",
+    "penning_lockdown": "彭宁井四极电极轰鸣合拢！对全体敌人造成 {dmg} 点闪电伤害并削弱其防御节奏，自身获得 {shield} 点护盾与 {stacks} 层磁约束场！",
+    "thermonuclear_cannon": "非想天则热核主炮震撼开火！主目标 {target} 承受 {dmg} 点聚变烈焰，全场其余敌人同时遭到 {splash} 点灼热溅射！",
+    "relic_int19_battle": "智力头环嗡鸣激活：起手多抽牌并凝聚 {stacks} 层聚变超载！",
+    "relic_int19_even": "智力头环偶数回合高频演算触发：额外抽 {draw} 张牌并获得 {stacks} 层聚变超载！",
+    "relic_lbe_start": "铅铋快堆微型堆芯展开循环，获得 {shield} 点护盾与 {stacks} 层磁约束场。",
+    "relic_lbe_heal": "铅铋快堆微型堆芯趁余盾稳固修复损伤，回复 {heal} 点生命。",
+    "relic_he3_action": "月之都氦三物流舱投递应急燃料电池，本回合额外获得 {gain_a}A！",
+    "relic_he3_charge": "月之都氦三物流舱激活聚变注能，本回合首张牌赐予 {stacks} 层聚变超载！",
+    "relic_penning_start": "彭宁离子井稳压器立起四极偏压护罩，获得 {stacks} 层磁约束场。",
+    "relic_penning_guard": "彭宁离子井稳压器反冲吸收冲击，为你构筑 {shield} 点护盾！"
+  },
+  "utsuho_ally": {
+    "name": "灵乌路空",
+    "join_banner": "头顶管道突然轰然掀开，戴着智力头环的灵乌路空凌空降落至我方战列右侧：这枚头环已经算出彭宁离子井的谐振频率了，现在由我来替你们协同封锁传送门！",
+    "phase_banner": "超级传送门重构完成！进入第 {phase} 阶段【{form_name}】，最大生命暴涨至 {max_hp}，更多的 Xen 生物正从深空裂隙挤出！",
+    "portal_summon": "{portal} 扩张空间裂隙，投放出 {summon_name}！",
+    "ally_assist_attack": "灵乌路空校准 D-He3 副炮，精准协助轰击封锁阵线！",
+    "chat_lines": [
+      "头环嗡嗡作响，刚才那道 D-He3 截面公式我可是心算了九十万次哦！",
+      "彭宁离子井只有纯正高能电磁场才能封住，可别指望偷懒，Xen 怪物一拨接一拨呢。"
+    ]
+  },
+  "query": {
+    "floor_title": "🌋 隐藏楼层：{name} (ID: chireiden_fusion_center)",
+    "floor_rumor_desc": "传闻线索：自第 3 层下行楼梯井侧壁的隐藏维修电梯可直达此处。传闻地灵殿地下因灵乌路空戴上智力头环而正在兴建核聚变设施，内部全貌仍有待亲身踏足。",
+    "floor_full_desc": "第 3.5 层可选隐藏高危楼层，5×20 非想天则工业输电结构。依次串联月之都氦三物流区、铅铋快堆试验区、D-He3 托卡马克主控区与秘密彭宁离子井，分别由火焰猫燐、灵乌路空与四阶超级传送门镇守。",
+    "big_room_title": "{icon} 特殊大厅：{name} (ID: {id})",
+    "landmark_title": "🧭 控制地标：{name} (ID: {id})",
+    "prop_title": "⚙️ 设施物件：{name} (ID: {id})",
+    "env_title": "🏭 区域环境：{name} (ID: {id})",
+    "trigger_title": "⚡ 突遇事件：{name} (ID: {id})",
+    "desc_line": "说明：{desc}",
+    "rumor_enemy_title": "👾 传闻存在：{name}",
+    "utsuho_ally_title": "🤝 协同助战档案：灵乌路空 (ID: merc_utsuho)",
+    "utsuho_ally_desc": "在击败守门灵乌路空并迎战超级传送门第二阶段后，戴着智力头环的灵乌路空会从备用竖井切入己方助战槽位，携带专属 D-He3 聚变卡组并佩戴遗物【智力头环】，以 2A1BA 协同封锁传送门。",
+    "envs": {
+      "chireiden_elevator_shaft": "竖井维修电梯井道",
+      "chireiden_turbine_corridor": "非想天则涡轮输电长廊",
+      "chireiden_he3_logistics_bay": "月之都氦三物流接收站",
+      "chireiden_pb_bi_fast_reactor": "铅铋共晶快堆回路",
+      "chireiden_d_he3_tokamak_hall": "D-He3 托卡马克主控厅",
+      "chireiden_control_center": "核聚变核心控制大厅",
+      "chireiden_penning_trap": "秘密彭宁离子井"
+    },
+    "triggers": {
+      "reactor_steam_vent": {
+        "name": "铅铋快堆蒸汽泄压",
+        "desc": "高压铅铋冷却主管突发性泄压喷涌：可举盾硬抗承受少量擦伤换取开局护盾，或花费 35 金币开启紧急旁通阀并恢复生命，亦可滚入铸铁管道死角避险。"
+      },
+      "he3_orbital_capsule": {
+        "name": "月都太空电梯氦三空投舱",
+        "desc": "月之都低温氦三投送舱滑入大厅：可拆解取出燃料罐与金币，抄录物流配比蓝图永久强化，或谨慎回收零散备件回复生命。"
+      },
+      "penning_harmonic_alarm": {
+        "name": "彭宁井高频磁场警报",
+        "desc": "偶极磁场聚焦游荡 Xen 微粒触发高频警报：可接地泄放高压电荷换取 40 金币跳过缠斗，或正面迎击前锋畸变体以战养战并回复生命。"
+      }
+    }
+  }
+}

@@ -67,19 +67,30 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
         player = run.players[uid]
         stats = self.engine.save_manager.load_stats(uid)
         options = []
-        available_relics = [r for r in BOSS_MYTHIC_RELICS if r not in player.relics]
-        if available_relics:
-            options.append({"type": "relic", "id": random.choice(available_relics)})
-        class_mythic_cards = list(BOSS_MYTHIC_CARDS)
-        if getattr(stats, "yog_sothoth_kill_count", 0) > 0:
-            class_mythic_cards.append("neutral_button_magic")
-        if getattr(player, "selected_class", "法师") == "战士":
-            class_mythic_cards.append("warrior_hematopoiesis")
+        is_chireiden = bool(run.floor_map and run.floor_map.floor_flags.get("chireiden_zone"))
+        if is_chireiden:
+            from ...data.chireiden_data import CHIREIDEN_CARD_POOL, CHIREIDEN_RELIC_CONFIG
+            avail_c = [r for r in CHIREIDEN_RELIC_CONFIG if r not in player.relics]
+            if avail_c:
+                options.append({"type": "relic", "id": avail_c[0]})
+            pool = list(CHIREIDEN_CARD_POOL)
+            needed = 3 - len(options)
+            for cid in random.sample(pool, min(needed, len(pool))):
+                options.append({"type": "card", "id": cid})
         else:
-            class_mythic_cards.append("wizard_split_to_ten")
-        needed = 3 - len(options)
-        for cid in random.sample(class_mythic_cards, min(needed, len(class_mythic_cards))):
-            options.append({"type": "card", "id": cid})
+            available_relics = [r for r in BOSS_MYTHIC_RELICS if r not in player.relics]
+            if available_relics:
+                options.append({"type": "relic", "id": random.choice(available_relics)})
+            class_mythic_cards = list(BOSS_MYTHIC_CARDS)
+            if getattr(stats, "yog_sothoth_kill_count", 0) > 0:
+                class_mythic_cards.append("neutral_button_magic")
+            if getattr(player, "selected_class", "法师") == "战士":
+                class_mythic_cards.append("warrior_hematopoiesis")
+            else:
+                class_mythic_cards.append("wizard_split_to_ten")
+            needed = 3 - len(options)
+            for cid in random.sample(class_mythic_cards, min(needed, len(class_mythic_cards))):
+                options.append({"type": "card", "id": cid})
         items = [
             {
                 "type": "boss_relic" if opt["type"] == "relic" else "boss_card",
@@ -256,7 +267,9 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
         run.enemies.clear()
         ach = AchievementService(self.engine.save_manager)
         is_bleak_zone = bool(run.floor_map and run.floor_map.floor_flags.get("bleak_falls_zone"))
-        is_stage_boss = difficulty == "boss" and not is_bleak_zone
+        is_chireiden_zone = bool(run.floor_map and run.floor_map.floor_flags.get("chireiden_zone"))
+        is_optional_zone = is_bleak_zone or is_chireiden_zone
+        is_stage_boss = difficulty == "boss" and not is_optional_zone
         if is_stage_boss and stage in (MapConfig.FINAL_BOSS_STAGE, MapConfig.GATE_BOSS_STAGE):
             roll_battle_gold(difficulty)
             roll_potion(self.engine.save_manager.load_stats(run.user_id), difficulty)
@@ -308,7 +321,7 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
             for uid in run.human_uids():
                 stats = self.engine.save_manager.load_stats(uid)
                 player = run.players.get(uid)
-                if not is_bleak_zone:
+                if not is_optional_zone:
                     if player and player.max_hp <= 1:
                         ach.record_stat(uid, "one_hp_boss_kills", 1, stats=stats, save=False)
                     if stage == 12:
@@ -319,7 +332,7 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
                 record_battle_won(run, stats, True)
                 ach.reconcile(uid, stats=stats, save=False)
                 self.engine.save_manager.save_stats(uid, stats)
-            if is_bleak_zone:
+            if is_optional_zone:
                 self.init_boss_chest(run)
                 self.engine._reindex_minions(run.player)
                 return

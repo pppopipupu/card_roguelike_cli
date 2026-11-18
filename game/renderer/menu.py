@@ -78,15 +78,12 @@ def append_card_subtype(type_ch: str, cid: str, ctype: str) -> str:
 
 def get_rogue_card_library_items(user_id: str | None = None) -> list:
     from ..cards import ALL_CARDS
+    from ..core.progress.progressive_unlock import is_card_visible_in_library
     from ..models.manager import SaveManager
     boss_cfg = SaveManager().load_admin_config()
     icerainboww_enabled = boss_cfg.get("icerainboww_enabled", True)
     
-    killed_yog = False
-    if user_id:
-        stats = SaveManager().load_stats(user_id)
-        if stats and getattr(stats, "yog_sothoth_kill_count", 0) > 0:
-            killed_yog = True
+    stats = SaveManager().load_stats(user_id) if user_id else None
     neutrals = []
     blue_spells = []
     red_cards = []
@@ -104,7 +101,7 @@ def get_rogue_card_library_items(user_id: str | None = None) -> list:
     for cid, card in ALL_CARDS.items():
         if card.upgraded:
             continue
-        if cid == "neutral_button_magic" and not killed_yog:
+        if not is_card_visible_in_library(cid, stats):
             continue
         if not icerainboww_enabled and cid in ("minion_icerainboww", "minion_icerainboww+"):
             continue

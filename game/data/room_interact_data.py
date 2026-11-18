@@ -43,6 +43,21 @@ ROOM_ENVIRONMENTS = {
         "big_bazaar_hall",
         "big_observatory_hall",
         "big_treasury_hall",
+        "hakurei_torii",
+        "scarlet_library",
+        "witch_dessert",
+        "mitakihara_night",
+        "tsab_corridor",
+        "midchilda_courtyard",
+    ],
+    "chireiden": [
+        "chireiden_elevator_shaft",
+        "chireiden_turbine_corridor",
+        "chireiden_he3_logistics_bay",
+        "chireiden_pb_bi_fast_reactor",
+        "chireiden_d_he3_tokamak_hall",
+        "chireiden_control_center",
+        "chireiden_penning_trap",
     ],
 }
 
@@ -337,7 +352,7 @@ ROOM_PROPS = {
     "descent_tunnel": {
         "name_key": "i18n_room_interact.props.descent_tunnel.name",
         "desc_key": "i18n_room_interact.props.descent_tunnel.desc",
-        "aliases": ["隧道", "下降隧道", "下降通道", "tunnel", "descent"],
+        "aliases": ["隧道", "下降隧道", "下降通道", "tunnel", "descent", "电梯", "维修电梯", "重力电梯", "chireiden", "elevator"],
     },
     "temple_gate": {
         "name_key": "i18n_room_interact.props.temple_gate.name",
@@ -585,6 +600,11 @@ TRUE_SIGHT_ENEMIES = frozenset({
     "冰封少女·欧吕尔的化身",
     "星之精",
     "克苏鲁之星之眷族",
+    "灵乌路空",
+    "彭宁离子井·超级传送门·初阶裂隙",
+    "彭宁离子井·超级传送门·二阶扩口",
+    "彭宁离子井·超级传送门·三阶超临界",
+    "彭宁离子井·超级传送门·四阶终焉极井",
 })
 
 TRUE_SIGHT_NPCS = frozenset({"secret_boss_avatar"})
@@ -636,3 +656,27 @@ ROOM_POPULATE_CHANCES = {
     "props_min": 1,
     "props_max": 2,
 }
+
+from .chaos_expansion_data import (
+    CHAOS_GROUND_ITEMS,
+    CHAOS_ITEMS,
+    CHAOS_NPCS,
+    CHAOS_NPC_POOL,
+    CHAOS_PROPS,
+    CHAOS_PROP_POOL,
+)
+from .chireiden_data import (
+    CHIREIDEN_ITEMS,
+    CHIREIDEN_NPCS,
+    CHIREIDEN_PROPS,
+)
+
+ROGUE_ITEMS.update(CHAOS_ITEMS)
+ROGUE_ITEMS.update(CHIREIDEN_ITEMS)
+ROOM_GROUND_ITEM_POOL.extend(CHAOS_GROUND_ITEMS)
+ROOM_PROPS.update(CHAOS_PROPS)
+ROOM_PROPS.update(CHIREIDEN_PROPS)
+DUNGEON_PROP_POOL.extend(CHAOS_PROP_POOL)
+ROOM_NPCS.update(CHAOS_NPCS)
+ROOM_NPCS.update(CHIREIDEN_NPCS)
+DUNGEON_NPC_POOL.extend(CHAOS_NPC_POOL)

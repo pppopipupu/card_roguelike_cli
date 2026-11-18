@@ -139,6 +139,10 @@ class CafeEngine(CafeDialogMixin):
             "stage_ready": ready,
         }
         apply_and_scope(run, run.user_id)
+        if shared_cafe.get("npcs"):
+            from ..encounter_lore import record_encounter_for_run
+
+            record_encounter_for_run(self.save_manager, run, *shared_cafe["npcs"])
         if persist:
             self.save_manager.save_save(run.user_id, run)
 

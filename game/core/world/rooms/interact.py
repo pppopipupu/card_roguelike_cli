@@ -346,13 +346,25 @@ def touch_in_room(save_manager, run, query: str, map_engine=None) -> str:
     if prop_id == "treasure_chest":
         res = _open_treasure_chest(save_manager, run, room, coord, map_engine=map_engine)
         return f"{broken_msg}\n\n{res}" if broken_msg else res
+    if fm is not None and fm.floor_flags.get("chireiden_zone"):
+        from .. import chireiden as _chireiden_mod
     handler = PROP_HANDLERS.get(prop_id)
     if handler:
         msg = handler(run, room, cfg, run.player, fm, coord)
     else:
         msg = get_locale_text("i18n_room_interact.touch.already_done", name=pname)
+    from .forced_triggers import run_forced_triggers
+
+    trigger_logs = run_forced_triggers(run, fm, room, "on_interact")
+    from ....data.chireiden_data import CHIREIDEN_PROPS
+
+    if prop_id in CHIREIDEN_PROPS:
+        from ...progress.achievement_service import record_run_achievement_stat
+
+        record_run_achievement_stat(save_manager, run, "chireiden_facilities_used", 1)
     save_manager.save_save(run.user_id, run)
-    return f"{broken_msg}\n{msg}" if broken_msg else msg
+    parts = [x for x in (broken_msg, *trigger_logs, msg) if x]
+    return "\n".join(parts)
 
 
 def take_in_room(save_manager, run, query: str) -> str:
@@ -411,3 +423,6 @@ def format_room_extras(run, include_env: bool = True) -> List[str]:
         inames = [f"【{get_item_display_name(it)}】" for it in items]
         lines.append(get_locale_text("i18n_room_interact.room_ui.items_line", items="、".join(inames)))
     return lines
+
+
+from . import chaos_props

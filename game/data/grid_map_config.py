@@ -58,6 +58,20 @@ FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
         "rest_count": 1,
         "event_count": 4,
     },
+    3.5: {
+        "name_key": "i18n_grid_map.floor_3_5_name",
+        "stage_min": 31,
+        "stage_max": 32,
+        "boss_name": "彭宁离子井·超级传送门·初阶裂隙",
+        "secret_boss_name": "灵乌路空",
+        "landmarks": ["chireiden_fusion_terminal", "chireiden_penning_stabilizer"],
+        "big_rooms": [
+            "lunar_he3_elevator_hub",
+            "pb_bi_fast_reactor_chamber",
+            "d_he3_tokamak_array",
+            "penning_ion_well_sanctum",
+        ],
+    },
     4: {
         "width": 6,
         "height": 5,
@@ -264,6 +278,16 @@ LANDMARK_CONFIGS = {
         "name_key": "i18n_grid_map.room_name.barrow_exit",
         "desc_key": "i18n_bleak_falls.barrow_exit.desc",
         "npc_key": "i18n_bleak_falls.barrow_exit.desc",
+    },
+    "chireiden_fusion_terminal": {
+        "name_key": "i18n_grid_map.landmarks.chireiden_fusion_terminal.name",
+        "desc_key": "i18n_grid_map.landmarks.chireiden_fusion_terminal.desc",
+        "npc_key": "i18n_grid_map.landmarks.chireiden_fusion_terminal.npc",
+    },
+    "chireiden_penning_stabilizer": {
+        "name_key": "i18n_grid_map.landmarks.chireiden_penning_stabilizer.name",
+        "desc_key": "i18n_grid_map.landmarks.chireiden_penning_stabilizer.desc",
+        "npc_key": "i18n_grid_map.landmarks.chireiden_penning_stabilizer.npc",
     },
 }
 

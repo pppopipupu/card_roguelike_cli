@@ -142,6 +142,22 @@ class GridUseCommand(CommandHandler, names=["使用", "use"], allowed_states=["g
         yield msg
 
 
+class BattleBagUseCommand(CommandHandler, names=["use"], allowed_states=["battle"], help_key="grid_use"):
+    def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
+        from .....renderer import GameRenderer
+
+        run = router.save_manager.load_save(user_id)
+        if not run:
+            yield get_locale_text("i18n_cli_general_b.err_no_active_game")
+            return
+        query = " ".join(parts[1:]).strip() if len(parts) > 1 else ""
+        msg = use_bag_item(router.engine, run, query)
+        if run.node_type == "battle":
+            msg = router.engine.battle_engine._append_logs_to_res(run, msg)
+        router.save_manager.save_save(user_id, run)
+        yield msg + "\n" + GameRenderer.render_game(run)
+
+
 class DropItemCommand(CommandHandler, names=["丢弃物品", "扔掉", "drop_item", "di"], allowed_states=["grid_map", "explore", "cafe", "town", "outer_plane"], help_key="drop_item"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         query = " ".join(parts[1:]).strip() if len(parts) > 1 else ""

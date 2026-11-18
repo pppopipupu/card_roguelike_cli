@@ -5,7 +5,7 @@ ITEM_LORE = {
     "rusty_pickaxe": {
         "intro_key": "i18n_item_lore.items.rusty_pickaxe.intro",
         "secret": {
-            "reveal": "killed_yog",
+            "reveal": "boss_yog_sothoth",
             "hint_key": "i18n_item_lore.items.rusty_pickaxe.hint",
             "reveal_key": "i18n_item_lore.items.rusty_pickaxe.secret",
         },
@@ -13,7 +13,7 @@ ITEM_LORE = {
     "glowing_runestone": {
         "intro_key": "i18n_item_lore.items.glowing_runestone.intro",
         "secret": {
-            "reveal": "killed_yog",
+            "reveal": "boss_yog_sothoth",
             "hint_key": "i18n_item_lore.items.glowing_runestone.hint",
             "reveal_key": "i18n_item_lore.items.glowing_runestone.secret",
         },
@@ -24,7 +24,7 @@ ITEM_LORE = {
     "ancient_notes": {
         "intro_key": "i18n_item_lore.items.ancient_notes.intro",
         "secret": {
-            "reveal": "secret_clue_found",
+            "reveal": "abyss_secret_clue",
             "hint_key": "i18n_item_lore.items.ancient_notes.hint",
             "reveal_key": "i18n_item_lore.items.ancient_notes.secret",
         },
@@ -38,7 +38,7 @@ ITEM_LORE = {
     "smuggler_token": {
         "intro_key": "i18n_item_lore.items.smuggler_token.intro",
         "secret": {
-            "reveal": "killed_yog",
+            "reveal": "boss_yog_sothoth",
             "hint_key": "i18n_item_lore.items.smuggler_token.hint",
             "reveal_key": "i18n_item_lore.items.smuggler_token.secret",
         },
@@ -46,14 +46,14 @@ ITEM_LORE = {
     "merchant_ledger": {
         "intro_key": "i18n_item_lore.items.merchant_ledger.intro",
         "secret": {
-            "reveal": "killed_yog",
+            "reveal": "boss_yog_sothoth",
             "hint_key": "i18n_item_lore.items.merchant_ledger.hint",
             "reveal_key": "i18n_item_lore.items.merchant_ledger.secret",
         },
     },
     "barista_seal": {
         "intro_key": "i18n_item_lore.items.barista_seal.intro",
-        "hidden": "killed_yog",
+        "hidden": "boss_yog_sothoth",
     },
     "qgp_bomb": {
         "intro_key": "i18n_bleak_falls.lore.qgp_bomb_lore",
@@ -74,3 +74,7 @@ ITEM_LORE = {
         "intro_key": "i18n_bleak_falls.lore.survey_chart_lore",
     },
 }
+
+from .chireiden_data import CHIREIDEN_LORE
+
+ITEM_LORE.update(CHIREIDEN_LORE)

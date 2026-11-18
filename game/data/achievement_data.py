@@ -184,6 +184,60 @@ ACHIEVEMENTS_CONFIG = {
         "desc": "以献祭或亵渎祭坛的方式完成【尤格索托斯死了吗？】。",
         "gp_reward": 2500,
     },
+    "abyss_secret_clue": {
+        "name": "秘境窥探者",
+        "rarity": "rare",
+        "desc": "在地牢探索中成功发掘通往隐秘裂缝首领的密道线索。",
+        "gp_reward": 450,
+    },
+    "chireiden_rumor_seeker": {
+        "name": "地底传闻拾遗者",
+        "rarity": "epic",
+        "desc": "从幻想乡异变来客口中打听到【地灵殿核聚变控制中心】与【智力头环】的传闻线索。",
+        "gp_reward": 400,
+    },
+    "chireiden_elevator_descent": {
+        "name": "非想天则维修电梯",
+        "rarity": "epic",
+        "desc": "从第 3 层下行楼梯乘直通维修电梯，首次深入第 3.5 层隐藏区域【地灵殿核聚变控制中心】。",
+        "gp_reward": 800,
+    },
+    "chireiden_facility_surveyor": {
+        "name": "控制中心设施测绘员",
+        "rarity": "epic",
+        "desc": "亲自深入第 3.5 层核聚变控制中心并操作过其内部特种设施或控制地标。",
+        "gp_reward": 1000,
+    },
+    "chireiden_lbe_quench": {
+        "name": "铅铋共晶安全员",
+        "rarity": "epic",
+        "desc": "在【铅铋快堆实验大厅】击败精英守卫【火焰猫燐】。",
+        "gp_reward": 1500,
+    },
+    "chireiden_utsuho_headband": {
+        "name": "智慧的核聚变之巅",
+        "rarity": "epic",
+        "desc": "在主控大厅击败戴着【智力头环】的守门领主【灵乌路空】，解除通往彭宁离子井的气密锁。",
+        "gp_reward": 2000,
+    },
+    "chireiden_utsuho_ally": {
+        "name": "地狱鸦协战阵线",
+        "rarity": "epic",
+        "desc": "在超级传送门二阶段扩口时迎来灵乌路空切入己方助战槽共同迎敌。",
+        "gp_reward": 1800,
+    },
+    "chireiden_penning_sealer": {
+        "name": "异界共振终焉封堵",
+        "rarity": "legendary",
+        "desc": "在灵乌路空协同助战下打穿四阶段【彭宁离子井·超级传送门】，彻底封堵 Xen 异界军团。",
+        "gp_reward": 3200,
+    },
+    "chireiden_overcharge_master": {
+        "name": "D-He3 聚变临界面",
+        "rarity": "legendary",
+        "desc": "在单场战斗中将己方【聚变超载】层数叠加至至少 8 层。",
+        "gp_reward": 2200,
+    },
 }
 
 ACHIEVEMENT_ORDER = list(ACHIEVEMENTS_CONFIG.keys())

@@ -1,10 +1,13 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Optional
 
 from ...data.item_lore_data import ITEM_LORE
 from ...data.locale_data import get_locale_text
+from ..progress.progressive_unlock import LORE_ITEM_ACHIEVEMENT_RULES, is_lore_rule_unlocked
 from .bag_service import get_item_display_name, get_item_weight, is_item_carryover, resolve_item_query
+
+REVEAL_RULES = LORE_ITEM_ACHIEVEMENT_RULES
 
 
 class LoreVersion(Enum):
@@ -31,53 +34,21 @@ class LoreView:
     detail: str
 
 
-REVEAL_RULES: Dict[str, Callable[[LoreContext], bool]] = {}
-
-
-def register_reveal(name: str):
-    def decorator(fn):
-        REVEAL_RULES[name] = fn
-        return fn
-    return decorator
-
-
-@register_reveal("always")
-def _reveal_always(ctx: LoreContext) -> bool:
-    return True
-
-
-@register_reveal("killed_yog")
-def _reveal_killed_yog(ctx: LoreContext) -> bool:
-    return bool(ctx.stats and getattr(ctx.stats, "yog_sothoth_kill_count", 0) > 0)
-
-
-@register_reveal("secret_clue_found")
-def _reveal_secret_clue(ctx: LoreContext) -> bool:
-    run = ctx.run
-    fm = getattr(run, "floor_map", None) if run is not None else None
-    return bool(fm and getattr(fm, "secret_clue_found", False))
-
-
-def _is_revealed(rule_name: str, ctx: LoreContext) -> bool:
-    rule = REVEAL_RULES.get(rule_name)
-    return bool(rule and rule(ctx))
-
-
 class ItemLoreStateMachine:
     def __init__(self, stats=None, run=None):
         self.stats = stats
         self.run = run
 
-    def _initial(self, cfg, ctx):
+    def _initial(self, cfg, ctx: LoreContext):
         hidden = cfg.get("hidden")
-        if hidden and not _is_revealed(hidden, ctx):
+        if hidden and not is_lore_rule_unlocked(hidden, ctx.stats):
             return LoreVersion.HIDDEN
         if not cfg.get("secret"):
             return LoreVersion.FULL
         return LoreVersion.PARTIAL
 
-    def _advance(self, state, cfg, ctx):
-        if state is LoreVersion.PARTIAL and _is_revealed(cfg["secret"]["reveal"], ctx):
+    def _advance(self, state, cfg, ctx: LoreContext):
+        if state is LoreVersion.PARTIAL and is_lore_rule_unlocked(cfg["secret"]["reveal"], ctx.stats):
             return LoreVersion.FULL
         return state
 
@@ -86,13 +57,24 @@ class ItemLoreStateMachine:
         if not cfg:
             return None
         ctx = LoreContext(self.stats, self.run, item_id)
+        require_seen = cfg.get("require_seen")
+        if require_seen and not is_lore_rule_unlocked(require_seen, ctx.stats):
+            return None
         state = self._advance(self._initial(cfg, ctx), cfg, ctx)
         carry_key = "i18n_room_interact.bag.carry_yes" if is_item_carryover(item_id) else "i18n_room_interact.bag.carry_no"
         name = get_item_display_name(item_id)
         weight = get_item_weight(item_id)
         carry_tag = get_locale_text(carry_key)
         if state is LoreVersion.HIDDEN:
-            return LoreView(item_id=item_id, name=name, weight=weight, carry_tag=carry_tag, version=state, intro="", detail=get_locale_text("i18n_item_lore.hidden_placeholder"))
+            return LoreView(
+                item_id=item_id,
+                name=name,
+                weight=weight,
+                carry_tag=carry_tag,
+                version=state,
+                intro="",
+                detail=get_locale_text("i18n_item_lore.hidden_placeholder"),
+            )
         intro = get_locale_text(cfg["intro_key"])
         secret = cfg.get("secret")
         if not secret:

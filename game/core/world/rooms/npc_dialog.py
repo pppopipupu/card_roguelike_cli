@@ -47,6 +47,12 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
             return ghost_msg
         return None
     broken_msg = break_map_invisibility(run, reason="interact")
+    from ..encounter_lore import record_encounter_for_run
+
+    record_encounter_for_run(save_manager, run, nid)
+    from .forced_triggers import run_forced_triggers
+
+    trigger_logs = run_forced_triggers(run, fm, room, "on_interact")
     if nid in ("farengar_court_mage", "arvel_trapped", "map_surveyor", "brazier_keeper"):
         from ..bleak_falls import build_bleak_npc_dialog
         bleak_dlg = build_bleak_npc_dialog(save_manager, run, room, nid)
@@ -60,7 +66,23 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
             )
             save_manager.save_save(run.user_id, run)
             rendered = render_room_dialog(run)
-            return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
+            prefix = "\n".join(x for x in (broken_msg, *trigger_logs) if x)
+            return f"{prefix}\n\n{rendered}" if prefix else rendered
+    if nid == "kaenbyou_rin":
+        from ..chireiden import build_rin_npc_dialog
+        rin_dlg = build_rin_npc_dialog(save_manager, run, room, nid)
+        if rin_dlg is not None:
+            SessionContextScoper.create_session(
+                run,
+                coord,
+                "room_dialog",
+                [run.user_id],
+                node_data={"npc_id": nid, "dialog_state": "start", "coord": coord, "chireiden_dialog": rin_dlg},
+            )
+            save_manager.save_save(run.user_id, run)
+            rendered = render_room_dialog(run)
+            prefix = "\n".join(x for x in (broken_msg, *trigger_logs) if x)
+            return f"{prefix}\n\n{rendered}" if prefix else rendered
     SessionContextScoper.create_session(
         run,
         coord,
@@ -68,16 +90,26 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
         [run.user_id],
         node_data={"npc_id": nid, "dialog_state": "start", "coord": coord},
     )
+    rendered = render_room_dialog(run, save_manager=save_manager)
     save_manager.save_save(run.user_id, run)
-    rendered = render_room_dialog(run)
-    return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
+    prefix = "\n".join(x for x in (broken_msg, *trigger_logs) if x)
+    return f"{prefix}\n\n{rendered}" if prefix else rendered
 
 
-def _room_dialog_content(run) -> Tuple[str, str, List[str]]:
+def _room_dialog_content(run, save_manager=None) -> Tuple[str, str, List[str]]:
     bleak_dlg = run.node_data.get("bleak_dialog")
     if isinstance(bleak_dlg, dict):
         opts = [o.get("text", "") for o in (bleak_dlg.get("options") or [])]
         return bleak_dlg.get("name", ""), bleak_dlg.get("greeting", ""), opts
+    chireiden_dlg = run.node_data.get("chireiden_dialog")
+    if isinstance(chireiden_dlg, dict):
+        opts = [o.get("text", "") for o in (chireiden_dlg.get("options") or [])]
+        return chireiden_dlg.get("name", ""), chireiden_dlg.get("greeting", ""), opts
+    from .chaos_npcs import EXISTING_NPC_GREETING_KEYS, get_chaos_dialog_content, pick_greeting_for
+
+    chaos_content = get_chaos_dialog_content(run, save_manager=save_manager)
+    if chaos_content is not None:
+        return chaos_content
     nid = run.node_data.get("npc_id", "")
     dstate = run.node_data.get("dialog_state", "start")
     cfg = ROOM_NPCS.get(nid, {})
@@ -89,7 +121,7 @@ def _room_dialog_content(run) -> Tuple[str, str, List[str]]:
                 get_locale_text("i18n_room_interact.dialog.smith_lore_opt2"),
                 get_locale_text("i18n_room_interact.dialog.smith_lore_opt3"),
             ]
-        return name, get_locale_text("i18n_room_interact.dialog.smith_start_text"), [
+        return name, pick_greeting_for(run, EXISTING_NPC_GREETING_KEYS["wandering_smith"], "i18n_room_interact.dialog.smith_start_text"), [
             get_locale_text("i18n_room_interact.dialog.smith_start_opt1", cost=cfg["forge_cost"]),
             get_locale_text("i18n_room_interact.dialog.smith_start_opt2", cost=cfg["gem_cost"]),
             get_locale_text("i18n_room_interact.dialog.smith_start_opt3"),
@@ -102,27 +134,27 @@ def _room_dialog_content(run) -> Tuple[str, str, List[str]]:
                 get_locale_text("i18n_room_interact.dialog.broker_trade_opt2"),
                 get_locale_text("i18n_room_interact.dialog.broker_trade_opt3"),
             ]
-        return name, get_locale_text("i18n_room_interact.dialog.broker_start_text"), [
+        return name, pick_greeting_for(run, EXISTING_NPC_GREETING_KEYS["smuggler_broker"], "i18n_room_interact.dialog.broker_start_text"), [
             get_locale_text("i18n_room_interact.dialog.broker_start_opt1", cost=cfg["gamble_cost"]),
             get_locale_text("i18n_room_interact.dialog.broker_start_opt2", cost=cfg["intel_cost"]),
             get_locale_text("i18n_room_interact.dialog.broker_start_opt3"),
             get_locale_text("i18n_room_interact.dialog.broker_start_opt4"),
         ]
     if nid == "lost_scholar":
-        return name, get_locale_text("i18n_room_interact.dialog.scholar_start_text"), [
+        return name, pick_greeting_for(run, EXISTING_NPC_GREETING_KEYS["lost_scholar"], "i18n_room_interact.dialog.scholar_start_text"), [
             get_locale_text("i18n_room_interact.dialog.scholar_start_opt1", hp=cfg["study_hp_cost"]),
             get_locale_text("i18n_room_interact.dialog.scholar_start_opt2"),
             get_locale_text("i18n_room_interact.dialog.scholar_start_opt3"),
             get_locale_text("i18n_room_interact.dialog.scholar_start_opt4"),
         ]
     if nid == "wounded_scout":
-        return name, get_locale_text("i18n_room_interact.dialog.scout_start_text"), [
+        return name, pick_greeting_for(run, EXISTING_NPC_GREETING_KEYS["wounded_scout"], "i18n_room_interact.dialog.scout_start_text"), [
             get_locale_text("i18n_room_interact.dialog.scout_start_opt1"),
             get_locale_text("i18n_room_interact.dialog.scout_start_opt2"),
             get_locale_text("i18n_room_interact.dialog.scout_start_opt3"),
             get_locale_text("i18n_room_interact.dialog.scout_start_opt4"),
         ]
-    return name, get_locale_text("i18n_room_interact.dialog.keeper_start_text"), [
+    return name, pick_greeting_for(run, EXISTING_NPC_GREETING_KEYS["shrine_keeper"], "i18n_room_interact.dialog.keeper_start_text"), [
         get_locale_text("i18n_room_interact.dialog.keeper_start_opt1", hp=cfg.get("ritual_hp_cost", 6)),
         get_locale_text("i18n_room_interact.dialog.keeper_start_opt2"),
         get_locale_text("i18n_room_interact.dialog.keeper_start_opt3"),
@@ -130,8 +162,8 @@ def _room_dialog_content(run) -> Tuple[str, str, List[str]]:
     ]
 
 
-def render_room_dialog(run) -> str:
-    name, text, opts = _room_dialog_content(run)
+def render_room_dialog(run, save_manager=None) -> str:
+    name, text, opts = _room_dialog_content(run, save_manager=save_manager)
     lines = [
         get_locale_text("i18n_grid_map.separator"),
         get_locale_text("i18n_room_interact.dialog.title", name=name),
@@ -175,6 +207,23 @@ def handle_room_dialog_choice(map_engine, run, idx: int) -> str:
         from ..bleak_falls import handle_bleak_npc_choice
         chosen_opt = (bleak_dlg.get("options") or [])[idx - 1]
         return handle_bleak_npc_choice(map_engine, run, bleak_dlg, chosen_opt)
+    chireiden_dlg = run.node_data.get("chireiden_dialog")
+    if isinstance(chireiden_dlg, dict):
+        from ..chireiden import handle_rin_npc_choice
+        chosen_opt = (chireiden_dlg.get("options") or [])[idx - 1]
+        return handle_rin_npc_choice(map_engine, run, chireiden_dlg, chosen_opt)
+    from .chaos_npcs import handle_chaos_dialog_choice
+
+    chaos_res = handle_chaos_dialog_choice(
+        map_engine,
+        run,
+        idx,
+        close_room_dialog,
+        start_npc_combat,
+        _reveal_any_special,
+    )
+    if chaos_res is not None:
+        return chaos_res
     if nid == "wandering_smith":
         if dstate == "lore":
             if idx == 1:
@@ -292,6 +341,9 @@ def handle_room_dialog_choice(map_engine, run, idx: int) -> str:
                 fm.secret_clue_found = True
                 if fm.ritual_coord not in fm.revealed_coords:
                     fm.revealed_coords.append(fm.ritual_coord)
+                from ...progress.achievement_service import record_run_achievement_stat
+
+                record_run_achievement_stat(map_engine.save_manager, run, "secret_clues_found", 1)
                 map_engine.save_manager.save_save(run.user_id, run)
                 return get_locale_text("i18n_room_interact.dialog.scholar_lore_clue", coord=fm.ritual_coord)
             return get_locale_text("i18n_room_interact.dialog.scholar_lore_none")

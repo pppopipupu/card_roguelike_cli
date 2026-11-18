@@ -147,6 +147,42 @@ def _check_temple_awakening(stats) -> bool:
     return stats.town_flags.get(YOG_QUEST_FLAG) == "completed"
 
 
+def _check_abyss_secret_clue(stats) -> bool:
+    return _stat_int(stats, "secret_clues_found") >= 1
+
+
+def _check_chireiden_rumor_seeker(stats) -> bool:
+    return _stat_int(stats, "chireiden_rumors_heard") >= 1
+
+
+def _check_chireiden_elevator_descent(stats) -> bool:
+    return _stat_int(stats, "chireiden_visits") >= 1
+
+
+def _check_chireiden_facility_surveyor(stats) -> bool:
+    return _stat_int(stats, "chireiden_facilities_used") >= 1
+
+
+def _check_chireiden_lbe_quench(stats) -> bool:
+    return _stat_int(stats, "chireiden_rin_kills") >= 1
+
+
+def _check_chireiden_utsuho_headband(stats) -> bool:
+    return _stat_int(stats, "chireiden_utsuho_kills") >= 1
+
+
+def _check_chireiden_utsuho_ally(stats) -> bool:
+    return _stat_int(stats, "chireiden_utsuho_allies") >= 1
+
+
+def _check_chireiden_penning_sealer(stats) -> bool:
+    return _stat_int(stats, "chireiden_portal_kills") >= 1
+
+
+def _check_chireiden_overcharge_master(stats) -> bool:
+    return _stat_int(stats, "max_fusion_overcharge") >= 8
+
+
 ACHIEVEMENT_EVALUATORS = {
     "first_step": _check_first_step,
     "battle_rookie": _check_battle_rookie,
@@ -176,6 +212,15 @@ ACHIEVEMENT_EVALUATORS = {
     "shou_hui_karma": _check_shou_hui_karma,
     "fusion_overclock": _check_fusion_overclock,
     "temple_awakening": _check_temple_awakening,
+    "abyss_secret_clue": _check_abyss_secret_clue,
+    "chireiden_rumor_seeker": _check_chireiden_rumor_seeker,
+    "chireiden_elevator_descent": _check_chireiden_elevator_descent,
+    "chireiden_facility_surveyor": _check_chireiden_facility_surveyor,
+    "chireiden_lbe_quench": _check_chireiden_lbe_quench,
+    "chireiden_utsuho_headband": _check_chireiden_utsuho_headband,
+    "chireiden_utsuho_ally": _check_chireiden_utsuho_ally,
+    "chireiden_penning_sealer": _check_chireiden_penning_sealer,
+    "chireiden_overcharge_master": _check_chireiden_overcharge_master,
 }
 
 
@@ -398,3 +443,22 @@ class AchievementService:
                         )
                     )
         return title, items
+
+
+def record_run_achievement_stat(
+    save_manager,
+    run,
+    key: str,
+    value: int = 1,
+    mode: str = "add",
+    battle_engine=None,
+) -> None:
+    if save_manager is None or run is None:
+        return
+    ach = AchievementService(save_manager)
+    uids = list(run.human_uids()) if hasattr(run, "human_uids") else []
+    if not uids and getattr(run, "user_id", ""):
+        uids = [run.user_id]
+    for uid in uids:
+        if uid:
+            ach.record_stat(uid, key, value, mode=mode, run=run, battle_engine=battle_engine)

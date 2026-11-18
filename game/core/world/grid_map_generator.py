@@ -156,7 +156,7 @@ def _plan_big_rooms(
     if target_cnt <= 0:
         return []
 
-    tpl_ids = list(BIG_ROOM_TEMPLATES.keys())
+    tpl_ids = [k for k, v in BIG_ROOM_TEMPLATES.items() if not v.get("chireiden_only")]
     rng.shuffle(tpl_ids)
     reserved = {spawn_xy, boss_xy}
     placed_cells: set[tuple[int, int]] = set()
@@ -165,7 +165,7 @@ def _plan_big_rooms(
     occupied = {coord_to_xy(c) for c in passable_coords}
     for idx in range(target_cnt):
         if not tpl_ids:
-            tpl_ids = list(BIG_ROOM_TEMPLATES.keys())
+            tpl_ids = [k for k, v in BIG_ROOM_TEMPLATES.items() if not v.get("chireiden_only")]
             rng.shuffle(tpl_ids)
         tpl_id = tpl_ids.pop(0)
         tpl = BIG_ROOM_TEMPLATES[tpl_id]
@@ -383,6 +383,9 @@ def generate_floor_map(run, floor_index: int, save_manager=None) -> FloorMapStat
         rng = random.Random(f"br:{floor_index}:{'|'.join(g for g, _, _ in big_room_plans)}:{len(rooms)}")
         for group_id, tpl_id, cell_coords in big_room_plans:
             create_big_room_instance(fm, group_id, tpl_id, cell_coords, rng=rng)
+    from .rooms.forced_triggers import seed_floor_forced_triggers
+
+    seed_floor_forced_triggers(fm, floor_index)
     return fm
 
 

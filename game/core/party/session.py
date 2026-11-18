@@ -128,6 +128,7 @@ class SessionContextScoper:
             return
         pending_floor1_boss = None
         pending_bleak_clear = None
+        pending_chireiden_clear = None
         session = fm.active_sessions.pop(sid, None)
         if session is not None:
             for uid in list(session.participants):
@@ -139,13 +140,20 @@ class SessionContextScoper:
                     fm.floor_flags.get("bleak_falls_zone")
                     or run.node_data.get("bleak_falls_combat_tag")
                 )
+                was_chireiden_combat = bool(
+                    fm.floor_flags.get("chireiden_zone")
+                    and (
+                        room.shared_payload.get("chireiden_combat_tag")
+                        or room.room_type in ("battle", "elite", "high_danger", "boss")
+                    )
+                )
                 if room.room_type == "boss":
                     from ..world.rooms.big_room import mark_effective_npc_defeated
                     hostile_id = str((session.node_data or {}).get("hostile_npc_id") or "") or "floor_boss"
                     mark_effective_npc_defeated(fm, room, hostile_id)
                     if hostile_id in room.npcs:
                         room.npcs.remove(hostile_id)
-                    if fm.floor_flags.get("yog_quest") or fm.floor_flags.get("bleak_falls_zone"):
+                    if fm.floor_flags.get("yog_quest") or fm.floor_flags.get("bleak_falls_zone") or fm.floor_flags.get("chireiden_zone"):
                         room.cleared = True
                         room.explored = True
                     else:
@@ -159,6 +167,8 @@ class SessionContextScoper:
                             pending_floor1_boss = room.coord
                     if was_bleak_combat:
                         pending_bleak_clear = room.coord
+                    if was_chireiden_combat:
+                        pending_chireiden_clear = room.coord
                 elif room.room_type == "secret_boss":
                     from ..world.rooms.big_room import mark_effective_npc_defeated
                     hostile_id = str((session.node_data or {}).get("hostile_npc_id") or "") or "secret_boss_avatar"
@@ -189,9 +199,14 @@ class SessionContextScoper:
                         sync_big_room_clear_state(fm, room)
                     if was_bleak_combat:
                         pending_bleak_clear = room.coord
+                    if was_chireiden_combat:
+                        pending_chireiden_clear = room.coord
         combat_tag = run.node_data.get("bleak_falls_combat_tag", "")
         full = SessionContextScoper.ensure_full_party_order(run)
         run.party_order = list(full)
+        if "merc_utsuho" in run.players or "merc_utsuho" in run.party_order:
+            from ..world.chireiden import cleanup_utsuho_ally
+            cleanup_utsuho_ally(run)
         run.node_type = "grid_map"
         run.enemies = []
         run.node_data = {}
@@ -201,3 +216,5 @@ class SessionContextScoper:
             run.node_data["bleak_falls_pending_clear"] = pending_bleak_clear
             if combat_tag:
                 run.node_data["bleak_falls_combat_tag"] = combat_tag
+        if pending_chireiden_clear:
+            run.node_data["chireiden_pending_clear"] = pending_chireiden_clear

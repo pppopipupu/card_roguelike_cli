@@ -141,7 +141,7 @@ def ensure_floor1_solid_wall_candidate(fm, stats: Optional[UserStats]) -> None:
 
 
 def populate_floor_quests(run: GameRun, fm, stats: Optional[UserStats]) -> None:
-    if fm is None or fm.floor_flags.get("yog_quest") or fm.floor_flags.get("bleak_falls_zone"):
+    if fm is None or fm.floor_flags.get("yog_quest") or fm.floor_flags.get("bleak_falls_zone") or fm.floor_flags.get("chireiden_zone"):
         return
     if fm.floor_index == 1:
         ensure_floor1_solid_wall_candidate(fm, stats)

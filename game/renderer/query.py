@@ -14,7 +14,17 @@ from ..data.size_data import (
     resolve_minion_size,
 )
 from .menu import get_card_cost_str, append_card_subtype
+from ..core.progress.progressive_unlock import is_card_detail_revealed
 from ..data.locale_data import get_locale_text
+from .chireiden_query import (
+    append_chireiden_world_queries,
+    append_utsuho_ally_lore_if_unlocked,
+    get_chireiden_enemy_access,
+    is_chireiden_enemy,
+    should_skip_buff_query,
+    should_skip_card_query,
+    should_skip_relic_query,
+)
 
 def render_query_info(query_str: str, user_id: str | None = None, run=None) -> str:
     from ..models.manager import SaveManager
@@ -22,7 +32,6 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
     icerainboww_enabled = boss_cfg.get("icerainboww_enabled", True)
     
     stats = SaveManager().load_stats(user_id) if user_id else None
-    killed_yog = bool(stats and getattr(stats, "yog_sothoth_kill_count", 0) > 0)
     
     query_str_lower = query_str.strip().lower()
     if not query_str_lower:
@@ -95,6 +104,8 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
         found = True
         lines.append(get_locale_text("renderer_menu.buffs_all_title"))
         for bid, cfg in BUFF_CONFIG.items():
+            if should_skip_buff_query(bid, stats):
+                continue
             bname = cfg.get("name", bid)
             desc = cfg.get("desc", "")
             lines.append(get_locale_text("renderer_menu.buff_all_line", name=bname, desc=desc))
@@ -143,6 +154,8 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
                 lines.append("")
 
     for rid, cfg in RELIC_CONFIG.items():
+        if should_skip_relic_query(rid, stats):
+            continue
         if tier_filter and cfg.get("rarity", "common").lower() != tier_filter:
             continue
         match_keyword = (not q_search) or (q_search == rid.lower()) or (q_search in cfg.get("name", "").lower())
@@ -159,7 +172,7 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
             lines.append("")
             
     for bid, cfg in BUFF_CONFIG.items():
-        if tier_filter:
+        if tier_filter or should_skip_buff_query(bid, stats):
             continue
         if q_search == bid.lower() or q_search in cfg.get("name", "").lower():
             found = True
@@ -236,6 +249,8 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
             lines.append("")
             
     for cid, cfg in CARD_CONFIG.items():
+        if should_skip_card_query(cid, stats):
+            continue
         if not icerainboww_enabled and (cid == "minion_icerainboww" or cid == "minion_icerainboww+" or "icerainboww" in cid.lower() or "icerainboww" in cfg.get("name", "").lower()):
             continue
         if tier_filter and cfg.get("rarity", "common").lower() != tier_filter:
@@ -259,7 +274,7 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
             card_obj = ALL_CARDS.get(cid)
             cost_str = get_card_cost_str(card_obj) if card_obj else get_locale_text("renderer_menu.free_cost")
             desc = cfg.get("desc", "")
-            if cid == "neutral_button_magic" and not killed_yog:
+            if not is_card_detail_revealed(cid, stats):
                 desc = get_locale_text("renderer_menu.card_hidden_desc")
             lines.append(get_locale_text("renderer_menu.card_title", name=cname, id=cid, type_ch=ctype_ch, rarity=rname_rarity))
             lines.append(get_locale_text("renderer_menu.cost_line", cost=cost_str))
@@ -272,7 +287,7 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
                 if up_card:
                     up_cost_str = get_card_cost_str(up_card)
                     up_desc = up_card.desc
-                    if cid == "neutral_button_magic" and not killed_yog:
+                    if not is_card_detail_revealed(cid, stats):
                         up_desc = get_locale_text("renderer_menu.card_hidden_desc")
                     lines.append(get_locale_text("renderer_menu.card_upgrade_title", name=up_card.name, id=cid, type_ch=ctype_ch, rarity=rname_rarity))
                     lines.append(get_locale_text("renderer_menu.upgrade_cost_line", cost=up_cost_str))
@@ -296,19 +311,59 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
             lines.append(get_locale_text("renderer_menu.effect_line", desc=desc))
             lines.append("")
 
+    from ..core.world.encounter_lore import resolve_entity_intro
+    from ..data.room_interact_data import ROOM_NPCS
+    from ..data.unregistered_enemies_data import CAFE_KEY_TO_ENTITY
+
+    enemy_to_room_npc: dict[str, tuple[str, dict]] = {}
+    for _nid, _rcfg in ROOM_NPCS.items():
+        _ek = _rcfg.get("enemy_name_key")
+        _en = get_locale_text(_ek) if _ek else ""
+        if _en:
+            enemy_to_room_npc[_en] = (_nid, _rcfg)
+    entity_to_cafe_key = {v: k for k, v in CAFE_KEY_TO_ENTITY.items()}
+
     for eid, cfg in ENEMY_CONFIG.items():
         if tier_filter:
             continue
         if not icerainboww_enabled and (eid == "Icerainboww" or "icerainboww" in eid.lower() or "icerainboww" in cfg.get("name", "").lower()):
             continue
         is_meta_hidden = eid in ("【终焉】虚空之门·尤格-索托斯", "【时空主宰】亚弗戈蒙")
+        rn_entry = enemy_to_room_npc.get(eid)
+        cafe_alias = entity_to_cafe_key.get(eid, "")
+        extra_match = False
+        extra_cands: list[str] = []
+        if rn_entry:
+            _rnid, _rcfg = rn_entry
+            _rname = get_locale_text(_rcfg["name_key"]) if _rcfg.get("name_key") else _rnid
+            extra_cands.extend([_rnid, _rname])
+            if not is_meta_hidden and (
+                q_search == _rnid.lower()
+                or q_search in _rname.lower()
+                or any(q_search == str(a).lower() or q_search in str(a).lower() for a in _rcfg.get("aliases", ()))
+            ):
+                extra_match = True
+        if cafe_alias:
+            extra_cands.append(cafe_alias)
+            if not is_meta_hidden and (q_search == cafe_alias.lower() or q_search in cafe_alias.lower()):
+                extra_match = True
         if is_meta_hidden:
             match_keyword = (q_search == eid.lower()) or (q_search == cfg.get("name", "").lower())
         else:
-            match_keyword = (q_search == eid.lower()) or (q_search in cfg.get("name", "").lower())
+            match_keyword = (q_search == eid.lower()) or (q_search in cfg.get("name", "").lower()) or extra_match
         if match_keyword:
-            found = True
             ename = cfg.get("name", eid)
+            if is_chireiden_enemy(eid):
+                access = get_chireiden_enemy_access(eid, ename, stats)
+                if access == "hidden":
+                    continue
+                if access == "rumor":
+                    found = True
+                    lines.append(get_locale_text("i18n_chireiden.query.rumor_enemy_title", name=ename))
+                    lines.append(get_locale_text("i18n_entity_lore.intro_line", intro=get_locale_text("i18n_entity_lore.unknown_intro")))
+                    lines.append("")
+                    continue
+            found = True
             etype = cfg.get("type", "normal")
             type_map = {
                 "normal": get_locale_text("renderer_menu.enemy_type_normal"),
@@ -325,6 +380,12 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
                 get_locale_text(
                     "i18n_size.enemy_size_line",
                     size=get_size_label(resolve_enemy_size(eid, cfg.get("size"))),
+                )
+            )
+            lines.append(
+                get_locale_text(
+                    "i18n_entity_lore.intro_line",
+                    intro=resolve_entity_intro(eid, ename, stats=stats, run=run, extra_candidates=tuple(extra_cands)),
                 )
             )
             passive = cfg.get("passive")
@@ -354,6 +415,7 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
                 s_hp = summon_hound.get("hp", 0)
                 s_desc = summon_hound.get("intent_desc", "")
                 lines.append(get_locale_text("renderer_menu.enemy_summon_line", name=s_name, hp=s_hp, desc=s_desc))
+            append_utsuho_ally_lore_if_unlocked(lines, eid, stats)
             lines.append("")
 
     for eid, size_key in NON_CONFIG_ENEMY_SIZES.items():
@@ -364,6 +426,7 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
             etype_ch = get_locale_text("renderer_menu.enemy_type_normal")
             lines.append(get_locale_text("renderer_menu.enemy_title", name=eid, id=eid, type_ch=etype_ch))
             lines.append(get_locale_text("i18n_size.enemy_size_line", size=get_size_label(size_key)))
+            lines.append(get_locale_text("i18n_entity_lore.intro_line", intro=resolve_entity_intro(eid, eid, stats=stats, run=run)))
             lines.append("")
 
     from .town import _load_zh_cn
@@ -405,6 +468,8 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
     if item_block:
         found = True
         lines.append(item_block)
+    if not tier_filter and append_chireiden_world_queries(lines, q_search, stats):
+        found = True
     if not found:
         lines.append(get_locale_text("renderer_menu.query_not_found"))
         lines.append("")

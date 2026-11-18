@@ -5,6 +5,9 @@ BIG_ROOM_SHAPES: dict[str, list[tuple[int, int]]] = {
     "rect_1x2": [(0, 0), (1, 0)],
     "rect_2x1": [(0, 0), (0, 1)],
     "rect_2x2": [(0, 0), (1, 0), (0, 1), (1, 1)],
+    "rect_2x3": [(0, 0), (1, 0), (0, 1), (1, 1), (0, 2), (1, 2)],
+    "rect_3x2": [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)],
+    "rect_1x3": [(0, 0), (1, 0), (2, 0)],
     "l_4_tr": [(0, 0), (1, 0), (0, 1), (0, 2)],
     "l_4_tl": [(0, 0), (1, 0), (1, 1), (1, 2)],
     "l_4_br": [(0, 0), (0, 1), (0, 2), (1, 2)],
@@ -170,3 +173,9 @@ BIG_ROOM_TEMPLATES: dict[str, dict] = {
         "prop_chance_per_cell": 0.55,
     },
 }
+
+from .chaos_expansion_data import CHAOS_BIG_ROOM_TEMPLATES
+from .chireiden_data import CHIREIDEN_BIG_ROOM_TEMPLATES
+
+BIG_ROOM_TEMPLATES.update(CHAOS_BIG_ROOM_TEMPLATES)
+BIG_ROOM_TEMPLATES.update(CHIREIDEN_BIG_ROOM_TEMPLATES)
