@@ -4,7 +4,6 @@ from ....data.locale_data import get_locale_text
 from ....data.potion_data import roll_potion
 from ....data.room_interact_data import CAFE_GUEST_COMBAT_STATS, ROOM_NPCS
 from ...inventory.bag_service import add_bag_item, get_item_display_name
-from ...cli.base.pinyin_match import find_entry_by_query
 from ...inventory.card_distribution import CardDistributor
 from ...inventory.deck_service import DeckService
 from ...party.coordinator import apply_and_scope
@@ -457,6 +456,7 @@ def start_npc_combat(map_engine, run, npc_id: str, npc_source: str = "grid", gue
 
 
 def attack_in_room(map_engine, run, query: str) -> str:
+    from ...cli.base.pinyin_match import find_entry_by_query
     q = (query or "").strip()
     room, coord = get_current_room(run)
     if run.node_type == "grid_map" and is_open_world_run(run):

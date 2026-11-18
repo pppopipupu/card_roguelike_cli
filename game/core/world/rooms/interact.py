@@ -4,7 +4,6 @@ from ....data.locale_data import get_locale_text
 from ....data.potion_data import get_potion_name, roll_potion
 from ....data.room_interact_data import ROOM_NPCS, ROOM_PROPS
 from ...inventory.bag_service import add_bag_item, get_item_display_name, resolve_item_query
-from ...cli.base.pinyin_match import find_entry_by_query
 from ..persistent_buffs import break_map_invisibility
 from ..sp_system import reduce_exhaustion, restore_sp
 from .big_room import (
@@ -85,6 +84,7 @@ def resolve_npc_in_room(room, query: str, fm=None, include_hostile: bool = True)
             if alias.lower() == ql:
                 return nid
             entries.append((nid, alias))
+    from ...cli.base.pinyin_match import find_entry_by_query
     return find_entry_by_query(entries, q)
 
 
@@ -112,6 +112,7 @@ def resolve_prop_in_room(room, query: str, fm=None) -> Optional[str]:
             if alias.lower() == ql:
                 return pid
             entries.append((pid, alias))
+    from ...cli.base.pinyin_match import find_entry_by_query
     return find_entry_by_query(entries, q)
 
 
