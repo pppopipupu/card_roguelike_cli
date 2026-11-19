@@ -43,6 +43,7 @@
   "item_relic_pool": " [{idx}] 🎒 遗物【{name}】 - {desc}",
   "item_relic_pool_owned": " [{idx}] 🎒 遗物【{name}】 - {desc}(已拥有)",
   "item_relic_claimed": " [{idx}] 🎒 遗物【{name}】（已被 {player} 取走）",
+  "item_relic_claimed_self": " [{idx}] 🎒 遗物【{name}】（已选，再次选择可取消）",
   "reward_quest_card": " [{idx}] {prefix}🃏 任务卡牌【{name}】",
   "reward_potion": " [{idx}] {prefix}🧪 {name} (药水) - {desc}",
   "corpse_unknown_name": "玩家",

@@ -144,6 +144,9 @@ def ensure_utsuho_ally_joined(run, engine, logs: Optional[List[str]] = None) -> 
             if sess is not None and isinstance(getattr(sess, "participants", None), list):
                 if merc_uid not in sess.participants:
                     sess.participants.append(merc_uid)
+                roster = getattr(sess, "roster", None)
+                if isinstance(roster, list) and merc_uid not in roster:
+                    roster.append(merc_uid)
 
     turn_ready = run.node_data.setdefault("turn_ready", {})
     if isinstance(turn_ready, dict):

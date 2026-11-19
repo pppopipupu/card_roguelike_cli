@@ -485,6 +485,8 @@ class GridMapService:
                 sess = fm.active_sessions[existing_sid]
                 if uid not in sess.participants:
                     sess.participants.append(uid)
+                    if uid not in sess.roster:
+                        sess.roster.append(uid)
                     views = sess.node_data.setdefault("player_views", {})
                     shared_cafe = sess.node_data.get("coop_cafe", {})
                     views[uid] = {
@@ -611,6 +613,8 @@ class GridMapService:
             for member in new_members:
                 if member not in sess.participants:
                     sess.participants.append(member)
+                if member not in sess.roster:
+                    sess.roster.append(member)
                 fm.player_coords[member] = coord
                 player = run.players.get(member)
                 if player is not None:

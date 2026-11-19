@@ -300,6 +300,18 @@ class TestRogueCoop(unittest.TestCase):
         owner = load_run(self.plugin, uids[0])
         self.assertEqual(owner.node_data["coop_relic_pool"][0]["claimed_by"], uids[0])
 
+        unclaimed = self.run_cmd("c 1", uids[0])
+        self.assertIn("取消了对遗物", unclaimed)
+        owner = load_run(self.plugin, uids[0])
+        self.assertEqual(owner.node_data["coop_relic_pool"][0]["claimed_by"], "")
+        self.assertNotIn(relic_a, owner.players[uids[0]].relics)
+
+        reclaimed = self.run_cmd("c 1", uids[0])
+        self.assertIn(get_relic_name(relic_a), reclaimed)
+        owner = load_run(self.plugin, uids[0])
+        self.assertEqual(owner.node_data["coop_relic_pool"][0]["claimed_by"], uids[0])
+        self.assertIn(relic_a, owner.players[uids[0]].relics)
+
         blocked = self.run_cmd("c 2", uids[0])
         self.assertIn("最多只能选择 1 件遗物", blocked)
 
@@ -731,9 +743,10 @@ class TestRogueCoop(unittest.TestCase):
 
         self.run_cmd("c 1", uids[0])
         owner = load_run(self.plugin, uids[0])
-        self.assertEqual(owner.node_type, "rest")
-        self.assertTrue(owner.node_data.get("coop_done"))
+        self.assertEqual(owner.node_type, "grid_map")
         self.assertEqual(len(owner.player.deck), before + 1)
+        teammate = load_run(self.plugin, uids[1])
+        self.assertEqual(teammate.node_type, "rest")
 
     def test_coop_gem_flow_preserves_teammate_view(self):
         uids = ["gem_a", "gem_b"]
@@ -825,7 +838,9 @@ class TestRogueCoop(unittest.TestCase):
         self.assertEqual(reward.players[uids[0]].stage, stage)
 
         waiting = self.run_cmd("c 取消", uids[0])
-        self.assertIn("等待队友", waiting)
+        self.assertIn("回到迷宫", waiting)
+        leader = load_run(self.plugin, uids[0])
+        self.assertEqual(leader.node_type, "grid_map")
         mid = load_run(self.plugin, uids[1])
         self.assertEqual(mid.node_type, "reward")
         self.assertTrue(mid.node_data.get("stage_ready", {}).get(uids[0]))
@@ -834,7 +849,7 @@ class TestRogueCoop(unittest.TestCase):
         self.assertEqual(mid.players[uids[1]].stage, stage)
 
         completed = self.run_cmd("c 取消", uids[1])
-        self.assertIn("继续前进", completed)
+        self.assertIn("回到迷宫", completed)
         for uid in uids:
             advanced = load_run(self.plugin, uid)
             self.assertEqual(advanced.node_type, "grid_map")
@@ -858,6 +873,9 @@ class TestRogueCoop(unittest.TestCase):
 
         waiting = self.run_cmd("c 4", uids[0])
         self.assertIn("救治", waiting)
+        self.assertIn("回到迷宫", waiting)
+        leader = load_run(self.plugin, uids[0])
+        self.assertEqual(leader.node_type, "grid_map")
         mid = load_run(self.plugin, uids[1])
         self.assertEqual(mid.node_type, "rest")
         self.assertTrue(mid.node_data.get("stage_ready", {}).get(uids[0]))
@@ -865,7 +883,7 @@ class TestRogueCoop(unittest.TestCase):
         self.assertEqual(mid.players[uids[0]].stage, stage)
 
         completed = self.run_cmd("c 4", uids[1])
-        self.assertIn("继续前进", completed)
+        self.assertIn("回到迷宫", completed)
         for uid in uids:
             advanced = load_run(self.plugin, uid)
             self.assertEqual(advanced.node_type, "grid_map")
@@ -920,7 +938,9 @@ class TestRogueCoop(unittest.TestCase):
         self.assertFalse(any(gem_id in card.gems for card in teammate.player.deck))
 
         waiting = self.run_cmd("c 取消", uids[0])
-        self.assertIn("等待队友", waiting)
+        self.assertIn("回到迷宫", waiting)
+        leader = load_run(self.plugin, uids[0])
+        self.assertEqual(leader.node_type, "grid_map")
         mid = load_run(self.plugin, uids[1])
         self.assertEqual(mid.node_type, "treasure")
         self.assertEqual(mid.players[uids[0]].stage, stage)
@@ -941,7 +961,7 @@ class TestRogueCoop(unittest.TestCase):
         self.assertTrue(any(gem_id in card.gems for card in leader.player.deck))
 
         completed = self.run_cmd("c 取消", uids[1])
-        self.assertIn("继续前进", completed)
+        self.assertIn("回到迷宫", completed)
         for uid in uids:
             advanced = load_run(self.plugin, uid)
             self.assertEqual(advanced.node_type, "grid_map")

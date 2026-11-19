@@ -199,7 +199,9 @@ def render_reward(run: GameRun) -> str:
     for idx, entry in enumerate(pool, 1):
         rid = entry.get("relic_id")
         claimed_by = entry.get("claimed_by")
-        if claimed_by:
+        if claimed_by == run.user_id:
+            lines.append(get_locale_text("renderer_explore.item_relic_claimed_self", idx=idx, name=get_relic_name(rid)))
+        elif claimed_by:
             claimant = run.players.get(claimed_by)
             player_name = claimant.name if claimant else claimed_by
             lines.append(get_locale_text("renderer_explore.item_relic_claimed", idx=idx, name=get_relic_name(rid), player=player_name))
@@ -287,7 +289,9 @@ def render_treasure(run: GameRun) -> str:
         for idx, entry in enumerate(pool, 1):
             rid = entry.get("relic_id")
             claimed_by = entry.get("claimed_by")
-            if claimed_by:
+            if claimed_by == run.user_id:
+                lines.append(get_locale_text("renderer_explore.item_relic_claimed_self", idx=idx, name=get_relic_name(rid)))
+            elif claimed_by:
                 claimant = run.players.get(claimed_by)
                 player_name = claimant.name if claimant else claimed_by
                 lines.append(get_locale_text("renderer_explore.item_relic_claimed", idx=idx, name=get_relic_name(rid), player=player_name))

@@ -618,6 +618,7 @@ class EncounterSession:
     coord: str
     node_type: str
     participants: List[str] = field(default_factory=list)
+    roster: List[str] = field(default_factory=list)
     enemies: List[EnemyState] = field(default_factory=list)
     node_data: Dict = field(default_factory=dict)
     status: str = "active"

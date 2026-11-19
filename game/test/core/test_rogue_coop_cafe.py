@@ -155,7 +155,7 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         self.run_cmd("离开", uids[0])
         self.run_cmd("离开", uids[1])
         completed = self.run_cmd("离开", uids[2])
-        self.assertIn("继续前进", completed)
+        self.assertIn("回到迷宫", completed)
         for uid in uids:
             after = load_run(self.plugin, uid)
             self.assertEqual(after.node_type, "grid_map")
@@ -359,7 +359,7 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         self.assertEqual(after_amf.enemies[0].buffs, [])
 
 
-    def test_coop_cafe_and_ancient_wait_for_all_players(self):
+    def test_coop_cafe_and_ancient_release_players_immediately(self):
         uids = ["cafe_wait_leader", "cafe_wait_member"]
         run = self._start_coop_direct(uids)
         from game.core.world.cafe.engine import CafeEngine
@@ -374,15 +374,17 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         self.assertEqual(set(views), set(uids))
         self.assertTrue(views[uids[0]]["data"]["cafe_data"])
 
-        waiting = self.run_cmd("离开", uids[0])
-        self.assertIn("等待队友", waiting)
+        left = self.run_cmd("离开", uids[0])
+        self.assertIn("回到迷宫", left)
+        leader = load_run(self.plugin, uids[0])
+        self.assertEqual(leader.node_type, "grid_map")
         member = load_run(self.plugin, uids[1])
         self.assertEqual(member.node_type, "cafe")
         self.assertTrue(member.node_data.get("cafe_data"))
         self.assertFalse(member.node_data.get("coop_done"))
 
         completed = self.run_cmd("离开", uids[1])
-        self.assertIn("继续前进", completed)
+        self.assertIn("回到迷宫", completed)
         for uid in uids:
             grid = load_run(self.plugin, uid)
             self.assertEqual(grid.node_type, "grid_map")
@@ -391,13 +393,15 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         self.plugin.engine.map_engine.enter_ancient_node(run)
         self.plugin.save_manager.save_save(uids[0], run)
 
-        waiting = self.run_cmd("c 1", uids[0])
-        self.assertIn("等待队友", waiting)
+        left = self.run_cmd("c 1", uids[0])
+        self.assertIn("回到迷宫", left)
+        leader = load_run(self.plugin, uids[0])
+        self.assertEqual(leader.node_type, "grid_map")
         member = load_run(self.plugin, uids[1])
         self.assertEqual(member.node_type, "ancient")
 
         completed = self.run_cmd("c 1", uids[1])
-        self.assertIn("继续前进", completed)
+        self.assertIn("回到迷宫", completed)
         for uid in uids:
             advanced = load_run(self.plugin, uid)
             self.assertEqual(advanced.node_type, "grid_map")

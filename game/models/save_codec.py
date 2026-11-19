@@ -271,6 +271,7 @@ class SaveCodecMixin:
                 coord=sdata.get("coord", ""),
                 node_type=sdata.get("node_type", "battle"),
                 participants=list(sdata.get("participants") or []),
+                roster=list(sdata.get("roster") or sdata.get("participants") or []),
                 enemies=self._parse_enemy_list(sdata.get("enemies") or []),
                 node_data=dict(sdata.get("node_data") or {}),
                 status=sdata.get("status", "active"),

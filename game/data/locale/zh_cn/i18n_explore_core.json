@@ -58,6 +58,7 @@
   "list_delimiter": "、",
   "waiting_none": "无",
   "team_all_ready": "{prefix}\n✅ 全队（{player_names}）均已完成，队伍继续前进。{extra}",
+  "node_done_free_roam": "✅ 你已完成本节点，回到迷宫自由行动。",
   "team_waiting": "{prefix}\n⏳ 你已完成本节点行动，正在等待队友：{waiting}。",
   "vote_summary_entry": "{name}→{index}",
   "event_team_vote_recorded": "🗳️ 你的选择已记录（{summary}）。等待全队投票：{waiting}。",

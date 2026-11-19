@@ -193,37 +193,51 @@ class MapEngine:
         run.enemies.clear()
         run.node_data = {}
 
+    def _settle_player_node(self, run: GameRun, uid: str, was_start_ancient: bool, mark_cleared: bool) -> str:
+        player = run.players.get(uid)
+        if player is None:
+            return ""
+        notice = ""
+        if player.downed or player.hp <= 0:
+            player.downed = False
+            player.hp = 1
+            player.shield = 0
+            notice = get_locale_text("i18n_explore_core.revive_log", player_name=player.name)
+        player.shield = 0
+        player.minions.clear()
+        player.amulets.clear()
+        player.abilities.clear()
+        player.actions = 1
+        player.bonus_actions = 1
+        if was_start_ancient and player.stage < 2:
+            player.stage = 2
+        if not was_start_ancient and mark_cleared:
+            if not getattr(player, "is_mercenary", False) and hasattr(self.save_manager, "record_stage_passed"):
+                self.save_manager.record_stage_passed(uid)
+            if "espresso_relic" in player.relics:
+                player.relics.remove("espresso_relic")
+            if "lucky_coin" in player.relics:
+                player.gold += MAP_LUCKY_COIN_GOLD
+            if "tax_contract" in player.relics:
+                player.gold = max(0, player.gold - MAP_TAX_CONTRACT_GOLD)
+        return notice
+
     def complete_session(self, run: GameRun, mark_cleared: bool = True):
-        from ..battle.party_battle import revive_downed_players
         from ..party.coordinator import attach_notices, collect_notices
         caller = run.user_id
         carried = collect_notices(run)
-        revived = revive_downed_players(run)
-        for uid, text in revived.items():
-            carried.setdefault(uid, []).append(text)
         was_start_ancient = (run.node_type == "start_ancient")
-        for uid in run.party_order:
-            player = run.players.get(uid)
-            if player is None:
-                continue
-            player.shield = 0
-            player.minions.clear()
-            player.amulets.clear()
-            player.abilities.clear()
-            player.actions = 1
-            player.bonus_actions = 1
-            if was_start_ancient and player.stage < 2:
-                player.stage = 2
-            if not was_start_ancient and mark_cleared:
-                if not getattr(player, "is_mercenary", False) and hasattr(self.save_manager, "record_stage_passed"):
-                    self.save_manager.record_stage_passed(uid)
-                if "espresso_relic" in player.relics:
-                    player.relics.remove("espresso_relic")
-                if "lucky_coin" in player.relics:
-                    player.gold += MAP_LUCKY_COIN_GOLD
-                if "tax_contract" in player.relics:
-                    player.gold = max(0, player.gold - MAP_TAX_CONTRACT_GOLD)
         fm = getattr(run, "floor_map", None)
+        sid = fm.player_session_map.get(caller, "") if fm is not None else ""
+        active = None
+        if fm is not None and sid:
+            active = {uid for uid, mapped in fm.player_session_map.items() if mapped == sid}
+        for uid in run.party_order:
+            if active is not None and uid not in active:
+                continue
+            notice = self._settle_player_node(run, uid, was_start_ancient, mark_cleared)
+            if notice:
+                carried.setdefault(uid, []).append(notice)
         if fm is not None:
             sid = fm.player_session_map.get(caller, "")
             if sid:
@@ -237,6 +251,50 @@ class MapEngine:
             run.enemies.clear()
             run.node_data = {}
         attach_notices(run, carried, caller)
+
+    def leave_node_for_free_roam(self, run: GameRun, uid: str) -> dict[str, str]:
+        from ..party.session import SessionContextScoper
+        fm = getattr(run, "floor_map", None)
+        was_start_ancient = run.node_type == "start_ancient"
+        sid = fm.player_session_map.get(uid, "") if fm is not None else ""
+        session = None
+        if fm is not None and sid:
+            session = fm.active_sessions.get(sid)
+        leaves = [uid]
+        for member_uid, member in run.players.items():
+            if member_uid != uid and getattr(member, "mercenary_owner", "") == uid:
+                leaves.append(member_uid)
+        if session is not None:
+            for member_uid in list(session.participants):
+                member = run.players.get(member_uid)
+                if member is None or member_uid in leaves:
+                    continue
+                if getattr(member, "is_mercenary", False):
+                    continue
+                if member.downed or member.hp <= 0:
+                    leaves.append(member_uid)
+        revived = {}
+        for member_uid in leaves:
+            notice = self._settle_player_node(run, member_uid, was_start_ancient, True)
+            if notice:
+                revived[member_uid] = notice
+        node_data = run.node_data if isinstance(run.node_data, dict) else {}
+        ready = node_data.get("stage_ready")
+        views = node_data.get("player_views")
+        for member_uid in leaves:
+            if isinstance(ready, dict):
+                ready[member_uid] = True
+            view = views.get(member_uid) if isinstance(views, dict) else None
+            if isinstance(view, dict):
+                view.setdefault("data", {})["coop_done"] = True
+        if fm is not None and session is not None:
+            SessionContextScoper.leave_session(run, leaves, mark_cleared=True)
+        else:
+            run.party_order = list(SessionContextScoper.ensure_full_party_order(run))
+            run.node_type = "grid_map"
+            run.enemies = []
+            run.node_data = {}
+        return revived
 
     def enter_next_stage(self, run: GameRun):
         if run.floor_map is not None:

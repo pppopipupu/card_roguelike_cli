@@ -372,7 +372,18 @@ def _claim_coop_relic(engine, run, pool_idx):
         return get_locale_text("i18n_coop_explore.err_invalid_reward_idx")
     entry = pool[pool_idx]
     rid = entry.get("relic_id")
+    uid = run.user_id
     if entry.get("claimed_by"):
+        if entry["claimed_by"] == uid:
+            from ..inventory.relic_service import revoke_relic
+            player = run.players.get(uid) or run.player
+            removed = revoke_relic(player, rid)
+            if removed and rid == "red_bottle":
+                player.max_hp = max(5, player.max_hp - 5)
+                player.hp = min(player.hp, player.max_hp)
+            entry["claimed_by"] = ""
+            engine.save_manager.save_save(uid, run)
+            return get_locale_text("i18n_coop_explore.relic_unclaimed", relic_name=get_relic_name(rid))
         claimant = run.players.get(entry["claimed_by"])
         player_name = claimant.name if claimant else entry["claimed_by"]
         return get_locale_text(
@@ -380,7 +391,6 @@ def _claim_coop_relic(engine, run, pool_idx):
             relic_name=get_relic_name(rid),
             player_name=player_name,
         )
-    uid = run.user_id
     limit = _coop_relic_limit(run, pool)
     if sum(1 for item in pool if item.get("claimed_by") == uid) >= limit:
         return get_locale_text("i18n_coop_explore.relic_limit_reached", limit=limit)
