@@ -161,6 +161,8 @@
   - `team start`：队长开启联机牌局，要求至少 2 人且全员准备。
   - `team status`：查看队伍成员、职业与准备状态。
   - `team coordinate`（`coord`、`xyz`、`pos`、`坐标`、`位置`）：查看全队实时楼层、坐标、房间名称与当前状态。
+  - `team view`（`查看`）：等同于 `team coordinate`。
+  - `team tp <队友名>`（`传送`）：消耗 1 SP 传送到指定队友所在坐标；队友正在事件或交互中时不可传送，队友正在普通或团队战斗中时会加入战斗，强制单人战斗不可加入。
   - `team invites`：查看收到的组队邀请。
   - `team kick <成员>`：队长移出队员或待接受邀请。
   - `team leave` / `team disband`：离开队伍或由队长解散队伍。

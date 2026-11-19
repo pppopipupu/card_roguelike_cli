@@ -413,21 +413,23 @@ class SocialTeamMixin:
             room_name = get_locale_text(f"i18n_grid_map.room_name.{room.room_type}") if room is not None else "?"
             sid = fm.player_session_map.get(pid)
             sess = fm.active_sessions.get(sid) if sid else None
-            sess_type = sess.get("node_type") if isinstance(sess, dict) else ""
-            is_waiting_descend = bool(
-                ready_map.get(pid)
-                or (
-                    isinstance(sess, dict)
-                    and sess_type == "downstairs"
-                    and ((sess.get("node_data_by_uid") or {}).get(pid) or {}).get("coop_done")
-                )
-            )
+            if isinstance(sess, dict):
+                sess_type = str(sess.get("node_type") or "")
+            elif sess is not None:
+                sess_type = str(getattr(sess, "node_type", "") or "")
+            else:
+                sess_type = ""
+            is_waiting_descend = bool(ready_map.get(pid))
             if pl.downed or pl.hp <= 0:
                 state = get_locale_text("i18n_social.team_coordinate.state_downed")
             elif is_waiting_descend:
                 state = get_locale_text("i18n_social.team_coordinate.state_waiting_descend")
             elif sess_type == "battle":
                 state = get_locale_text("i18n_social.team_coordinate.state_battle")
+            elif sess_type == "event":
+                state = get_locale_text("i18n_social.team_coordinate.state_event")
+            elif sess_type:
+                state = get_locale_text("i18n_social.team_coordinate.state_interact")
             else:
                 state = get_locale_text("i18n_social.team_coordinate.state_ready")
             marker = get_locale_text("i18n_social.team_coordinate.you_marker") if pid == uid else ""
@@ -442,3 +444,13 @@ class SocialTeamMixin:
                 )
             )
         return "\n".join(lines)
+
+    def team_teleport(self, uid, query):
+        run = self.save_manager.load_save(uid)
+        if run is None or not getattr(run, "coop_id", ""):
+            if self._lobby_of(uid) is not None:
+                return get_locale_text("i18n_social.team_teleport.not_started")
+            return get_locale_text("i18n_social.team_teleport.not_in_coop")
+        if not self.engine:
+            return get_locale_text("i18n_social.team_teleport.no_engine")
+        return self.engine.map_engine.grid_map_service.team_teleport_player(run, query)

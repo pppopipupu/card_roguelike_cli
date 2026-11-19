@@ -71,6 +71,20 @@ class WorldMultiplayerTest(unittest.TestCase):
                 return dcmd
         return ""
 
+    def _first_empty_direction(self, uid: str) -> str:
+        run = load_run(self.plugin, uid)
+        fm = floor_of(run)
+        cur = fm.player_coords.get(uid, "")
+        cx, cy = coord_to_xy(cur)
+        for dcmd, dx, dy in (("d", 1, 0), ("s", 0, 1), ("w", 0, -1), ("a", -1, 0)):
+            nx, ny = cx + dx, cy + dy
+            if not (0 <= nx < fm.width and 0 <= ny < fm.height):
+                continue
+            room = fm.rooms.get(xy_to_coord(nx, ny))
+            if room is not None and room.room_type == "empty":
+                return dcmd
+        return ""
+
     def _clear_battle_if_needed(self, uids: list[str]):
         clear_battle_if_needed(self.plugin, uids)
 
@@ -273,9 +287,15 @@ class WorldMultiplayerTest(unittest.TestCase):
         self.assertTrue(battle_coord)
         self.assertEqual(run_b_battle.node_type, "battle")
         self.assertEqual(run_b_battle.node_data.get("battle_mode"), "solo")
+        battle_view = self.cmd("team view", self.a)
+        self.assertIn("Bob", battle_view)
+        self.assertIn("战斗中", battle_view)
 
-        self.cmd(f"tp {battle_coord}", self.a)
+        sp_before = load_run(self.plugin, self.a).player.sp
+        joined = self.cmd("team tp Bob", self.a)
+        self.assertIn("消耗 1 点 SP", joined)
         run_a_now = load_run(self.plugin, self.a)
+        self.assertEqual(run_a_now.player.sp, sp_before - 1)
         self.assertEqual(run_a_now.node_type, "battle")
         a_coord_now = floor_of(load_run(self.plugin, self.a)).player_coords.get(self.a)
         if a_coord_now == battle_coord:
@@ -284,6 +304,59 @@ class WorldMultiplayerTest(unittest.TestCase):
             self.assertIn("你对【Bob】说：战斗必胜", self.cmd("talk Bob 战斗必胜", self.a))
             turn_res = self.cmd("e", self.b)
             self.assertIn("💬 【Alice】对你说：战斗必胜", turn_res)
+
+    def test_team_view_alias_and_team_tp_consumes_sp(self):
+        for uid in (self.a, self.b):
+            stats = self.plugin.save_manager.load_stats(uid)
+            stats.town_health_bonus = 800
+            stats.purchased_pool = ["ironclad_rampart", "abyss_collapse", "jack_brew"]
+            stats.locked_cards = ["ironclad_rampart", "abyss_collapse", "jack_brew"]
+            self.plugin.save_manager.save_stats(uid, stats)
+
+        self._start_coop_run()
+        self.cmd("c 1", self.a)
+        self.cmd("c 1", self.b)
+        bob_coord = floor_of(load_run(self.plugin, self.b)).player_coords.get(self.b)
+
+        for _ in range(4):
+            dcmd = self._first_empty_direction(self.a)
+            if dcmd:
+                self.cmd(dcmd, self.a)
+            else:
+                move_to_room(self.plugin, self.a, ("empty",))
+            run_a = load_run(self.plugin, self.a)
+            if run_a.node_type == "grid_map" and floor_of(run_a).player_coords.get(self.a) != bob_coord:
+                break
+            if run_a.node_type != "grid_map":
+                self._clear_battle_if_needed([self.a])
+                self.cmd("map", self.a)
+
+        run_a = load_run(self.plugin, self.a)
+        self.assertEqual(run_a.node_type, "grid_map")
+        alice_coord = floor_of(run_a).player_coords.get(self.a)
+        self.assertTrue(alice_coord)
+        self.assertNotEqual(alice_coord, bob_coord)
+
+        view = self.cmd("team view", self.b)
+        self.assertIn("团队实时位置", view)
+        self.assertIn("Alice", view)
+        self.assertIn(alice_coord, view)
+        self.assertEqual(view, self.cmd("team coord", self.b))
+
+        sp_before = load_run(self.plugin, self.b).player.sp
+        tp_res = self.cmd("team tp Alice", self.b)
+        self.assertIn("消耗 1 点 SP", tp_res)
+        self.assertIn(alice_coord, tp_res)
+        run_b = load_run(self.plugin, self.b)
+        self.assertEqual(run_b.player.sp, sp_before - 1)
+        self.assertEqual(floor_of(run_b).player_coords.get(self.b), alice_coord)
+        self.assertEqual(run_b.node_type, "grid_map")
+
+        sp_after = run_b.player.sp
+        self.assertIn("没有找到", self.cmd("team tp Nobody", self.b))
+        self.assertIn("不能传送到自己", self.cmd("team tp Bob", self.b))
+        self.assertIn("请提供要传送到的队友名字", self.cmd("team tp", self.b))
+        self.assertEqual(load_run(self.plugin, self.b).player.sp, sp_after)
 
     def test_coop_downstairs_barrier_waits_for_all_alive_members(self):
         for uid in (self.a, self.b):

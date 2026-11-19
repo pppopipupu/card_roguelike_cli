@@ -359,7 +359,7 @@
       "name": "队伍",
       "usage": "team <子命令> [参数]",
       "brief": "创建或加入队伍并开启联机牌局",
-      "desc": "子命令：create 创建、invite 邀请、join 凭队伍码加入、ready 准备、start 开局、coordinate/coord/xyz 查看全队实时位置、leave 离开、kick 踢出、disband 解散、status 状态、invites 邀请列表。",
+      "desc": "子命令：create 创建、invite 邀请、join 凭队伍码加入、ready 准备、start 开局、coordinate/coord/xyz/view 查看全队实时位置、tp 传送到队友位置（消耗 1 SP）、leave 离开、kick 踢出、disband 解散、status 状态、invites 邀请列表。",
       "example": "team coord"
     },
     "logs": {

@@ -1,0 +1,1 @@
+TEAM_TP_SP_COST = 1

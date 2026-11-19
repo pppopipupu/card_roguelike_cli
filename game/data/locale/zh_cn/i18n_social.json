@@ -191,10 +191,30 @@
     "state_downed": "已倒地",
     "state_waiting_descend": "等待下楼",
     "state_battle": "战斗中",
+    "state_event": "事件中",
+    "state_interact": "交互中",
     "state_ready": "探索中",
     "not_in_coop": "❌ 当前未处于联机冒险队伍中。",
     "not_started": "❌ 队伍尚未进入地牢，请先由队长执行 team start。",
     "no_floor_map": "🪜 当前位于开局先古神殿，尚未进入地牢楼层。"
+  },
+  "team_teleport": {
+    "not_in_coop": "❌ 当前未处于联机冒险队伍中。",
+    "not_started": "❌ 队伍尚未进入地牢，请先由队长执行 team start。",
+    "no_floor_map": "🪜 当前位于开局先古神殿，尚未进入地牢楼层。",
+    "no_engine": "❌ 联机引擎未初始化。",
+    "in_session": "❌ 你正在战斗或事件中，无法使用 team tp。",
+    "self_downed": "❌ 你已倒地，无法使用 team tp。",
+    "need_target": "❌ 请提供要传送到的队友名字，例如 team tp Alice。",
+    "not_found": "❌ 队伍中没有找到队友【{query}】。",
+    "self": "❌ 不能传送到自己所在的位置。",
+    "target_downed": "❌ 队友【{name}】已倒地，无法传送到其位置。",
+    "target_no_position": "❌ 队友【{name}】当前没有可用的地图坐标。",
+    "target_blocked": "❌ 队友【{name}】所在的 {coord} 无法直接传送。",
+    "target_unexplored": "❌ 队友【{name}】所在的 {coord} 尚未探明，无法直接传送。",
+    "target_in_session": "❌ 队友【{name}】正在进行事件或交互，无法传送到其位置。",
+    "no_sp": "❌ 体力不足，team tp 需要 {cost} 点 SP。当前 SP：{sp}。",
+    "success": "🌀 你消耗 {cost} 点 SP，传送到队友【{name}】所在的 {coord}。"
   },
   "daily_blessing": {
     "first_exhaust_log": "🌙 [每日祝福·消耗领域] 本场战斗首次消耗触发，抽 {draw_count} 张牌并获得 {action_count}A。"

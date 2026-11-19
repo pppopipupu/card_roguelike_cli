@@ -46,7 +46,9 @@ class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobb
             yield service.team_status(user_id)
         elif sub in ("invites", "invitations", "邀请列表"):
             yield service.team_invites(user_id)
-        elif sub in ("coordinate", "coord", "xyz", "pos", "坐标", "位置"):
+        elif sub in ("coordinate", "coord", "xyz", "pos", "view", "坐标", "位置", "查看"):
             yield service.team_coordinate(user_id)
+        elif sub in ("tp", "teleport", "传送"):
+            yield service.team_teleport(user_id, arg)
         else:
             yield get_locale_text("i18n_cli_general_a.team.unknown_sub")

@@ -7,6 +7,7 @@ from ...data.battle_mode_config import (
 )
 from ...data.corpse_config import CorpseConfig
 from ...data.event_data import TEAM_EVENT_IDS
+from ...data.team_config import TEAM_TP_SP_COST
 from ...data.grid_map_config import (
     FLOOR_CONFIGS,
     HIGH_DANGER_CONFIG,
@@ -320,6 +321,75 @@ class GridMapService:
             return self._enter_room(run, uid, coord)
         self.save_manager.save_save(uid, run)
         return f"{get_locale_text('i18n_grid_map.tp_success', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+
+    def team_teleport_player(self, run, query: str) -> str:
+        from ..cli.base.pinyin_match import find_entry_by_query
+        fm = getattr(run, "floor_map", None)
+        if fm is None:
+            return get_locale_text("i18n_social.team_teleport.no_floor_map")
+        uid = run.user_id
+        if uid in fm.player_session_map:
+            return get_locale_text("i18n_social.team_teleport.in_session")
+        p = run.player
+        if p is None or getattr(p, "downed", False) or int(getattr(p, "hp", 0) or 0) <= 0:
+            return get_locale_text("i18n_social.team_teleport.self_downed")
+        raw = str(query or "").strip()
+        if not raw:
+            return get_locale_text("i18n_social.team_teleport.need_target")
+        entries = []
+        for pid in run.all_human_uids():
+            pl = run.players.get(pid)
+            if pl is None:
+                continue
+            entries.append((pid, pl.name))
+            entries.append((pid, pid))
+        target_uid = find_entry_by_query(entries, raw)
+        if not target_uid:
+            return get_locale_text("i18n_social.team_teleport.not_found", query=raw)
+        if target_uid == uid:
+            return get_locale_text("i18n_social.team_teleport.self")
+        target = run.players.get(target_uid)
+        if target is None:
+            return get_locale_text("i18n_social.team_teleport.not_found", query=raw)
+        if getattr(target, "downed", False) or int(getattr(target, "hp", 0) or 0) <= 0:
+            return get_locale_text("i18n_social.team_teleport.target_downed", name=target.name)
+        coord = fm.player_coords.get(target_uid, "")
+        room = fm.rooms.get(coord) if coord else None
+        if not coord or room is None:
+            return get_locale_text("i18n_social.team_teleport.target_no_position", name=target.name)
+        if room.room_type in ("wall", "solid_wall", "obstacle") or (room.room_type == "secret_boss" and not fm.secret_unlocked):
+            return get_locale_text("i18n_social.team_teleport.target_blocked", name=target.name, coord=coord)
+        if not (room.explored or coord in fm.revealed_coords):
+            return get_locale_text("i18n_social.team_teleport.target_unexplored", name=target.name, coord=coord)
+        target_sid = fm.player_session_map.get(target_uid)
+        if target_sid and target_sid in fm.active_sessions:
+            sess = fm.active_sessions[target_sid]
+            sess_type = str(sess.get("node_type") or "") if isinstance(sess, dict) else str(getattr(sess, "node_type", "") or "")
+            sess_data = (sess.get("node_data") or {}) if isinstance(sess, dict) else (getattr(sess, "node_data", {}) or {})
+            if sess_type != "battle":
+                return get_locale_text("i18n_social.team_teleport.target_in_session", name=target.name)
+            if session_battle_mode(sess_data) == BATTLE_MODE_FORCED_SOLO:
+                participants = list(sess.get("participants") or []) if isinstance(sess, dict) else list(getattr(sess, "participants", []) or [])
+                owner = next(
+                    (u for u in participants if not getattr(run.players.get(u), "is_mercenary", False)),
+                    "",
+                )
+                owner_name = run.players[owner].name if owner in run.players else owner
+                return get_locale_text("i18n_grid_map.battle_forced_solo_notice", name=owner_name, coord=coord)
+        cost = int(TEAM_TP_SP_COST)
+        current_sp = int(getattr(p, "sp", 0) or 0)
+        if current_sp < cost:
+            return get_locale_text("i18n_social.team_teleport.no_sp", cost=cost, sp=current_sp)
+        consume_sp(p, cost, allow_overdraft=False)
+        result = self.teleport_player(run, coord)
+        self.save_manager.save_save(uid, run)
+        prefix = get_locale_text(
+            "i18n_social.team_teleport.success",
+            name=target.name,
+            coord=coord,
+            cost=cost,
+        )
+        return f"{prefix}\n{result}"
 
     def _enter_room(self, run, uid: str, coord: str) -> str:
         from .rooms.forced_triggers import run_forced_triggers

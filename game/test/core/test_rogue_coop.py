@@ -544,6 +544,7 @@ class TestRogueCoop(unittest.TestCase):
         names = {uid: load_run(self.plugin, uid).player.name for uid in uids}
         run = self._force_event(uids, "void_contract")
         idx = self._event_option_index(run, "absorb_void")
+        result = ""
         for uid in uids:
             result = self.run_cmd(f"c {idx}", uid)
         self.assertIn("全队投票完成", result)
