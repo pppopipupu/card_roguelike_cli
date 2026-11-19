@@ -9,6 +9,7 @@ from ...data.world_social_config import (
     WORLD_PLAYER_DIALOG_EXIT_WORDS,
     WORLD_PLAYER_DIALOG_KEY,
 )
+from ..text.pipeline import render_text_node
 from .presence import WorldPresenceService
 
 
@@ -105,6 +106,7 @@ class WorldSocialService:
             f"  [1] {get_locale_text('i18n_world_social.dialog.opt_greet')}",
             f"  [2] {friend_opt}",
             f"  [3] {get_locale_text('i18n_world_social.dialog.opt_inspect')}",
+            f"  [4] {get_locale_text('i18n_world_social.dialog.opt_trade')}",
             f"  [0] {get_locale_text('i18n_world_social.dialog.opt_leave')}",
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
             get_locale_text("i18n_world_social.dialog.help", name=target_name),
@@ -178,6 +180,10 @@ class WorldSocialService:
                 coord=coord or "-",
             )
             return info + "\n\n" + self.render_dialog(uid, stats=stats)
+        if token in ("4", "交易", "赠送", "trade", "gift"):
+            from ..social.trade import TradeService
+            assets = TradeService(self.save_manager, self).render_assets(uid, target_uid)
+            return render_text_node(assets) + "\n\n" + self.render_dialog(uid, stats=stats)
         return get_locale_text("global.invalid_option") + "\n\n" + self.render_dialog(uid, stats=stats)
 
     def close(self, uid: str, stats=None) -> str:

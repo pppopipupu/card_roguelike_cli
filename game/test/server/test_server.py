@@ -143,6 +143,17 @@ class ServerTests(unittest.TestCase):
         ).json()
         self.assertEqual(empty["projections"], [])
         stats = self.app.state.service.save_manager.load_stats(uuid)
+        stats.pending_logs = ["💬 【队友】对你说：晚上好"]
+        self.app.state.service.save_manager.save_stats(uuid, stats)
+        pushed = self.post(
+            {"command": "", "channel": "web", "projection_poll": True},
+            self.web_headers("web-projection"),
+        ).json()
+        self.assertEqual(len(pushed["projections"]), 1)
+        self.assertEqual(pushed["projections"][0]["kind"], "push")
+        self.assertIn("晚上好", pushed["projections"][0]["text"])
+        stats = self.app.state.service.save_manager.load_stats(uuid)
+        self.assertEqual(stats.pending_logs, [])
         stats.projection_feed = [
             {"player": "队友", "command": "结束", "result": "回合结束。", "text": "📡 队友投影"}
         ]
@@ -154,6 +165,25 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(len(action["projections"]), 1)
         stats = self.app.state.service.save_manager.load_stats(uuid)
         self.assertEqual(stats.projection_feed, [])
+
+    def test_im_projection_poll_pushes_pending_logs(self):
+        self.post(
+            {"command": "start confirm", "channel": "im", "force": True},
+            self.im_headers("im-push"),
+        )
+        uuid = self.internal_uuid(im="im-push")
+        stats = self.app.state.service.save_manager.load_stats(uuid)
+        stats.pending_logs = ["💬 【队友】对你说：组队出发"]
+        self.app.state.service.save_manager.save_stats(uuid, stats)
+        polled = self.post(
+            {"command": "", "channel": "im", "projection_poll": True},
+            self.im_headers("im-push"),
+        ).json()
+        self.assertEqual(len(polled["projections"]), 1)
+        self.assertEqual(polled["projections"][0]["kind"], "push")
+        self.assertIn("组队出发", polled["projections"][0]["text"])
+        stats = self.app.state.service.save_manager.load_stats(uuid)
+        self.assertEqual(stats.pending_logs, [])
 
     def test_im_group_rejects_projection_command(self):
         body_unreg = self.post(

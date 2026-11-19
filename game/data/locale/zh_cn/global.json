@@ -169,7 +169,7 @@
     "help_take": "💡 拿取 (TAKE)：拿取/捡起/take/pick <物品>",
     "help_use": "💡 使用 (USE)：使用/use <物品>",
     "help_talk": "💡 对话 (TALK)：对话/talk/interact/talk_to <名字>",
-    "help_touch": "💡 触摸 (TOUCH)：触摸/touch/调查/inspect <目标>",
+    "help_touch": "💡 TOUCH：touch/tch <目标|玩家名>（触摸/调查；对玩家可查看状态）",
     "help_attack": "💡 攻击 (ATTACK)：攻击/attack/atk <目标>",
     "help_system": "💡 系统 (SYSTEM)：退出/exit/quit | 回城/home | 传送/tp <地点>",
     "combat_quit": "💀 你已退出了切磋，回到了靶场房间。",

@@ -164,7 +164,7 @@ Content-Type: application/json
 
 `state` 只对网页通道返回。`handled=false` 表示即时通讯消息不是游戏指令,前端不应回复。`shell` 是终端提示符状态,`clear=true` 表示前端应清空屏幕。
 
-联机牌局中 `projections` 按队友的每次操作返回一条投影，包含指令与结果；队伍中默认开启，可用 `projection 开启|关闭|状态` 切换。即时通讯群聊(`group`、`is_group`、`group_id` 或群聊 `message_type`)禁用该命令且不返回投影。网页空闲时使用同一接口发送 `projection_poll=true` 拉取新投影，拉取后队列清空。`account.id` 与 `account.handle` 是可读玩家 ID，用于好友、组队与展示；`account.uuid` 是当前账号的鉴权文件，只返回给账号本人，请勿公开。
+联机牌局中 `projections` 按队友的每次操作返回一条投影，包含指令与结果；队伍中默认开启，可用 `projection 开启|关闭|状态` 切换。即时通讯群聊(`group`、`is_group`、`group_id` 或群聊 `message_type`)禁用该命令且不返回投影。网页与即时通讯私聊空闲时使用同一接口发送 `projection_poll=true` 拉取新投影与未读社交推送（例如队友 `talk`、`say` 对你说的话），拉取后队列清空。`account.id` 与 `account.handle` 是可读玩家 ID，用于好友、组队与展示；`account.uuid` 是当前账号的鉴权文件，只返回给账号本人，请勿公开。
 
 ### 终端命令
 
@@ -196,6 +196,8 @@ Content-Type: application/json
 | `签到` / `checkin` | 每日 UTC+0 签到，领取下一局祝福并给集换卡盖章 |
 | `friend` / `好友` | 好友列表、搜索、申请、接受、删除与组队邀请 |
 | `team` / `队伍` | 创建 2~4 人队伍、邀请、准备并开启联机合作牌局 |
+| `trade` / `交易` | 查看同位置玩家的卡组、背包与遗物，赠送或交换卡牌/遗物/物品，双方同意后生效 |
+| `touch` / `触摸` | 调查房间物件，或查看同位置玩家的生命、SP、持久状态与资产概况 |
 
 即时通讯端新用户必须发送 `start` 以游客身份开始，或发送 `start <网页绑定码>` 关联已有网页账号；其他指令在未建号前只返回帮助与绑定提示。
 

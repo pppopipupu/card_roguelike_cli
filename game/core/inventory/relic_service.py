@@ -37,6 +37,23 @@ def grant_relic(player, relic_id: str) -> bool:
     return False
 
 
+def revoke_relic(player, relic_id: str) -> bool:
+    if player is None or not relic_id:
+        return False
+    relics = getattr(player, "relics", None)
+    if not isinstance(relics, list) or relic_id not in relics:
+        return False
+    relics.remove(relic_id)
+    counters = getattr(player, "relic_counters", None)
+    if isinstance(counters, dict):
+        counters.pop(relic_id, None)
+    weight_bonus = int(RELIC_CONFIG.get(relic_id, {}).get("bag_weight_bonus", 0) or 0)
+    if weight_bonus > 0:
+        current_max = int(getattr(player, "bag_max_weight", BAG_DEFAULT_MAX_WEIGHT) or BAG_DEFAULT_MAX_WEIGHT)
+        player.bag_max_weight = max(BAG_DEFAULT_MAX_WEIGHT, current_max - weight_bonus)
+    return True
+
+
 def get_relic_counter(player, relic_id: str) -> int:
     cfg = RELIC_CONFIG.get(relic_id, {})
     default_val = int(cfg.get("counter_init", 0))

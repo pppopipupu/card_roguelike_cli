@@ -9,6 +9,7 @@ from .records import Lobby, PlayerProfile
 from .corpse_registry import CorpseRegistry
 from .open_world_ghost_registry import OpenWorldGhostRegistry
 from .pvp_registry import PvpRegistry
+from .trade_registry import TradeRegistry
 from .save_codec import SaveCodecMixin
 from .settlement import SettlementMixin
 from ..json_codec import dumps, load
@@ -70,6 +71,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         self.corpses = CorpseRegistry(self.data_dir)
         self.open_world_ghosts = OpenWorldGhostRegistry(self.data_dir)
         self.pvp = PvpRegistry(self.data_dir)
+        self.trades = TradeRegistry(self.data_dir)
 
     def get_save_path(self, user_id: str) -> str:
         safe_id = "".join([c for c in user_id if c.isalnum() or c in ("-", "_")])

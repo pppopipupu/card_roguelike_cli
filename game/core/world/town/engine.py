@@ -296,6 +296,10 @@ class TownEngine:
 
     def touch_target(self, user_id: str, target_name: str) -> str:
         stats = self.save_manager.load_stats(user_id)
+        from ...social.player_inspect import touch_player_status
+        player_status = touch_player_status(self.save_manager, user_id, target_name)
+        if player_status is not None:
+            return player_status
         room_data = self._load_room_data(stats.town_pos)
         target_id = self._resolve_visible_entity(stats, room_data, target_name)
         if target_id:

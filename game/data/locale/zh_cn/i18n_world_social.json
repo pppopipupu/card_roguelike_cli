@@ -8,6 +8,7 @@
     "opt_add_friend": "申请加为好友",
     "opt_friend_done": "已是好友",
     "opt_inspect": "查看名片",
+    "opt_trade": "trade · 交易与赠送",
     "opt_leave": "离开",
     "help": "💡 输入数字选择；面对面发言请用 talk {name} <内容>，或输入其他游戏指令自动关闭此交互界面。",
     "open": "🧑 你走近了玩家【{name}】（职业：{class_text}）。请通过数字选择操作，或用 talk {name} <内容> 直接发言。",

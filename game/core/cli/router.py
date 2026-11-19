@@ -11,6 +11,7 @@ from ..world.town.engine import TownEngine
 from ..progress.checkin_service import CheckinService
 from ..battle.engine import BattleEngine
 from ..social.service import SocialService
+from ..social.trade import TradeService
 from ..world.world_social import WorldSocialService
 from ..world.presence import set_active_service
 from ..telemetry.projection_service import ProjectionService
@@ -46,6 +47,7 @@ class CLIRouter:
         self.engine.map_engine.town_engine = self.town_engine
         self.checkin_service = CheckinService(save_manager)
         self.social_service = SocialService(save_manager, engine)
+        self.trade_service = TradeService(save_manager, self.world_social)
         self.projection_service = ProjectionService(save_manager)
         self.log_service = LogService(save_manager)
 
@@ -186,6 +188,13 @@ class CLIRouter:
             lines.extend(extra_pending)
         return lines
 
+    def drain_push_messages(self, user_id: str) -> list[str]:
+        return [
+            format_output_numbers(line)
+            for line in self._drain_unread_logs(user_id)
+            if line is not None and str(line).strip() != ""
+        ]
+
     def handle_command(self, user_id: str, parts: list[str], project: bool = True) -> Generator[str, None, None]:
         command = " ".join(str(part) for part in parts).strip()
         set_active_service(self.world_social.presence)
@@ -239,6 +248,13 @@ class CLIRouter:
             if pvp_popup:
                 results.append(pvp_popup)
                 yield pvp_popup
+            command_head = str(parts[0]).strip().lower() if parts else ""
+            if command_head not in ("trade", "tr", "交易"):
+                trade_popup = self.trade_service.render_pending_popup(user_id)
+                if trade_popup is not None:
+                    trade_text = render_text_node(trade_popup)
+                    results.append(trade_text)
+                    yield trade_text
         self.world_social.refresh(user_id)
         if command:
             from ..progress.achievement_service import AchievementService
@@ -300,6 +316,12 @@ class CLIRouter:
         )
         return msg
 
+    def _try_trade_input(self, user_id: str, parts: list[str], curr_state: str = "") -> str | None:
+        node = self.trade_service.respond_popup_input(user_id, parts, curr_state)
+        if node is None:
+            return None
+        return render_text_node(node)
+
     def _try_player_dialog_input(self, user_id: str, parts: list[str], stats=None) -> str | None:
         if not parts:
             return None
@@ -348,6 +370,10 @@ class CLIRouter:
                 if pvp_res is not None:
                     yield pvp_res
                     return
+                trade_res = self._try_trade_input(user_id, parts, curr_state)
+                if trade_res is not None:
+                    yield trade_res
+                    return
                 player_dialog_res = self._try_player_dialog_input(user_id, parts, stats=stats)
                 if player_dialog_res is not None:
                     yield player_dialog_res
@@ -378,6 +404,10 @@ class CLIRouter:
         pvp_res = self._try_pvp_invite_input(user_id, parts, curr_state=curr_state)
         if pvp_res is not None:
             yield pvp_res
+            return
+        trade_res = self._try_trade_input(user_id, parts, curr_state)
+        if trade_res is not None:
+            yield trade_res
             return
         player_dialog_res = self._try_player_dialog_input(user_id, parts)
         if player_dialog_res is not None:

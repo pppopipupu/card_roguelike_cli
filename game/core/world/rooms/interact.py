@@ -297,6 +297,10 @@ def touch_in_room(save_manager, run, query: str, map_engine=None) -> str:
     q = (query or "").strip()
     if not q:
         return get_locale_text("i18n_room_interact.touch.need_arg")
+    from ...social.player_inspect import touch_player_status
+    player_status = touch_player_status(save_manager, run.user_id, q, run=run)
+    if player_status is not None:
+        return player_status
     room, coord = get_current_room(run)
     if room is None:
         return get_locale_text("i18n_grid_map.err_no_floor_map")

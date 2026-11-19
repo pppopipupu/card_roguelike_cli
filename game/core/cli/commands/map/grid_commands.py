@@ -110,13 +110,24 @@ class GridAttackCommand(CommandHandler, names=["攻击", "attack", "atk", "打"]
         yield attack_in_room(router.engine.map_engine, run, query)
 
 
-class GridTouchCommand(CommandHandler, names=["触摸", "touch", "tch", "摸", "调查", "inspect", "打开", "open"], allowed_states=["grid_map", "explore", "cafe"], help_key="grid_touch"):
+class GridTouchCommand(CommandHandler, names=["touch", "tch", "摸", "触摸", "调查", "inspect", "打开", "open"], allowed_states=["grid_map", "explore", "cafe", "battle"], help_key="grid_touch"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:
             yield get_locale_text("i18n_cli_general_b.err_no_active_game")
             return
         query = " ".join(parts[1:]).strip() if len(parts) > 1 else ""
+        if run.node_type == "battle":
+            if not query:
+                yield get_locale_text("i18n_trade.status_need_target")
+                return
+            from ....social.player_inspect import touch_player_status
+            status = touch_player_status(router.save_manager, user_id, query, run=run)
+            if status is not None:
+                yield status
+                return
+            yield get_locale_text("i18n_trade.err_target_not_here", query=query)
+            return
         yield touch_in_room(router.save_manager, run, query, map_engine=router.engine.map_engine)
 
 

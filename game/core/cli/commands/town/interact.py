@@ -24,7 +24,7 @@ class TownTalkCommand(CommandHandler, names=["对话", "交互", "talk", "intera
         query = " ".join(parts[1:]).strip()
         yield router.town_engine.talk_npc(user_id, query)
 
-class TownTouchCommand(CommandHandler, names=["触摸", "touch", "tch", "摸", "调查", "inspect"], allowed_states=["town", "dialog"], help_key="town_touch"):
+class TownTouchCommand(CommandHandler, names=["touch", "tch", "摸", "触摸", "调查", "inspect"], allowed_states=["town", "dialog"], help_key="town_touch"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         if len(parts) < 2:
             yield get_locale_text("i18n_cli_commands.town_touch_missing_arg")
