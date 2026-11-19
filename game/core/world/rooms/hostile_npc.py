@@ -157,7 +157,7 @@ def trigger_hostile_npc_battle(
             sync_big_room_clear_state(fm, room)
             grid_map_service.save_manager.save_save(uid, run)
             return f"{get_locale_text('i18n_grid_map.corpse_gone', coord=coord)}\n\n{GameRenderer.render_game(run)}"
-        return grid_map_service._start_or_prompt_battle(
+        return grid_map_service._start_battle(
             run, uid, coord, room, "ghost", corpse=corpse, hostile_npc_id=npc_id
         )
 
@@ -171,6 +171,6 @@ def trigger_hostile_npc_battle(
     if diff == "high_danger":
         diff = "elite"
 
-    return grid_map_service._start_or_prompt_battle(
+    return grid_map_service._start_battle(
         run, uid, coord, room, diff, hostile_npc_id=npc_id
     )

@@ -2,6 +2,7 @@ import random
 
 from ...entities import ALL_CARDS, get_relic_name
 from ...entities.events import get_option_by_action
+from ...data.battle_mode_config import BATTLE_MODE_TEAM
 from ...data.balance_config import (
     COOP_AUTO_TARGET_CANDIDATE_COUNT,
     COOP_BUFF_STACKS_MIN,
@@ -18,7 +19,7 @@ from ...data.balance_config import (
 from ...data.reward_config import TREASURE_RELIC_POOL
 from ...data.locale_data import get_locale_text
 from ..inventory.card_distribution import CardDistributor
-from ..party.coordinator import add_notice, finish_player_node, restore_player, swap_player, vote_option
+from ..party.coordinator import add_notice, alive_uids, finish_player_node, restore_player, swap_player
 
 class _TeamEventSaveManager:
     def __init__(self, real):
@@ -589,16 +590,56 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
     return get_locale_text("err_invalid_option_idx")
 
 
+def _team_vote_summary(run, votes):
+    delimiter = get_locale_text("i18n_explore_core.list_delimiter")
+    return delimiter.join(
+        get_locale_text("i18n_explore_core.vote_summary_entry", name=run.players[member].name, index=index)
+        for member, index in votes.items()
+        if member in run.players
+    )
+
+
+def _handle_team_event(engine, run, option_idx):
+    alive = alive_uids(run)
+    votes = run.node_data.setdefault("votes", {})
+    votes[run.user_id] = option_idx
+    waiting = [uid for uid in alive if uid not in votes]
+    if waiting:
+        engine.save_manager.save_save(run.user_id, run)
+        waiting_names = get_locale_text("i18n_explore_core.list_delimiter").join(
+            run.players[uid].name for uid in waiting if uid in run.players
+        )
+        return get_locale_text(
+            "i18n_explore_core.event_team_vote_recorded",
+            summary=_team_vote_summary(run, votes),
+            waiting=waiting_names,
+        )
+    counts = {}
+    for uid in alive:
+        index = votes.get(uid)
+        if index is None:
+            continue
+        counts[index] = counts.get(index, 0) + 1
+    top = max(counts.values()) if counts else option_idx
+    tied = [index for index, count in counts.items() if count == top]
+    winner = random.choice(tied) if len(tied) > 1 else (tied[0] if tied else option_idx)
+    options = run.node_data.get("options", [])
+    winner_text = options[winner - 1].get("text", "") if 0 < winner <= len(options) else ""
+    prefix = get_locale_text(
+        "i18n_explore_core.event_team_tie_roll" if len(tied) > 1 else "i18n_explore_core.event_team_vote_result",
+        winner=winner_text,
+    )
+    run.node_data["votes"] = {}
+    result = _resolve_coop_event(engine, run, winner)
+    return f"{prefix}\n{result}"
+
+
 def handle_event(engine, run, option_idx, target=None) -> str | None:
     options = run.node_data.get("options", [])
     if option_idx < 1 or option_idx > len(options):
         return get_locale_text("err_invalid_option_idx")
-    vote_result = vote_option(run, run.user_id, option_idx, "i18n_explore_core.event_vote_recorded")
-    if vote_result is not None:
-        engine.save_manager.save_save(run.user_id, run)
-        return vote_result
-    if run.player_count() > 1:
-        return _resolve_coop_event(engine, run, option_idx)
+    if run.node_data.get("event_mode") == BATTLE_MODE_TEAM:
+        return _handle_team_event(engine, run, option_idx)
     opt = options[option_idx - 1]
     act = opt.get("action")
     option_executor = get_option_by_action(act)

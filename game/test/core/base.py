@@ -192,21 +192,122 @@ async def async_move_to_room(plugin, uid: str, target_types, rally: bool = False
             run = load_run(plugin, uid)
         is_last = idx == len(path) - 1
         if is_last:
-            if run.node_type == "battle_prompt":
-                opt_cmd = "2" if rally else "1"
-                last_res = await run_command(plugin, opt_cmd, uid)
-                run = load_run(plugin, uid)
             break
-        if run.node_type == "battle_prompt":
-            await run_command(plugin, "3", uid)
-        elif run.node_type in ("shop", "rest", "cafe", "landmark", "life_merchant", "treasure"):
+        if run.node_type in ("shop", "rest", "cafe", "landmark", "life_merchant", "treasure"):
             await run_command(plugin, "离开", uid)
         elif run.node_type == "event":
             opts = run.node_data.get("options", [])
             if opts:
                 await run_command(plugin, str(len(opts)), uid)
-    return last_res, load_run(plugin, uid)
+    final_run = load_run(plugin, uid)
+    if rally and final_run is not None and final_run.node_type == "battle":
+        await _rally_teammates(plugin, uid, final_run)
+        final_run = load_run(plugin, uid)
+    return last_res, final_run
+
+
+async def _rally_teammates(plugin, uid: str, run) -> None:
+    fm = getattr(run, "floor_map", None)
+    if fm is None:
+        return
+    coord = fm.player_coords.get(uid, "")
+    if not coord:
+        return
+    for member in run.all_human_uids():
+        if member == uid:
+            continue
+        member_run = load_run(plugin, member)
+        if member_run is None or member_run.node_type != "grid_map":
+            continue
+        member_fm = getattr(member_run, "floor_map", None)
+        if member_fm is None or member in member_fm.player_session_map:
+            continue
+        await run_command(plugin, f"tp {coord}", member)
 
 
 def move_to_room(plugin, uid: str, target_types, rally: bool = False) -> tuple[str, GameRun]:
     return asyncio.run(async_move_to_room(plugin, uid, target_types, rally=rally))
+
+
+def clear_battle_if_needed(plugin, uids: list[str], max_loops: int = 40) -> None:
+    async def _drive():
+        for _ in range(max_loops):
+            progressed = False
+            for uid in uids:
+                run = plugin.save_manager.load_save(uid)
+                if not run:
+                    continue
+                if run.node_type == "battle" and not run.node_data.get("coop_done"):
+                    for _ in range(8):
+                        r_now = plugin.save_manager.load_save(uid)
+                        if not r_now or r_now.node_type != "battle" or r_now.node_data.get("coop_done"):
+                            break
+                        played = False
+                        for idx, cs in enumerate(list(r_now.player.hand), 1):
+                            card = ALL_CARDS.get(cs.id)
+                            if card is None:
+                                continue
+                            cost_a = getattr(card, "cost_a", 0)
+                            cost_ba = getattr(card, "cost_ba", 0)
+                            if cost_a <= r_now.player.actions and cost_ba <= r_now.player.bonus_actions:
+                                res = await run_command(plugin, f"p {idx} 1", uid)
+                                if "❌" not in res:
+                                    played = True
+                                    progressed = True
+                                    break
+                        if not played:
+                            break
+                    r_end = plugin.save_manager.load_save(uid)
+                    if r_end and r_end.node_type == "battle" and not r_end.node_data.get("coop_done"):
+                        await run_command(plugin, "e", uid)
+                        progressed = True
+                elif run.node_type == "reward" and not run.node_data.get("coop_done"):
+                    res = await run_command(plugin, "离开", uid)
+                    if "必须先领取" in res or "❌" in res:
+                        await run_command(plugin, "c 1", uid)
+                    progressed = True
+                elif run.node_type in ("card_select", "gem_insert") and not run.node_data.get("coop_done"):
+                    await run_command(plugin, "c 1", uid)
+                    progressed = True
+                elif run.node_type == "event" and not run.node_data.get("coop_done"):
+                    opts = run.node_data.get("options", [])
+                    if opts:
+                        await run_command(plugin, str(len(opts)), uid)
+                        progressed = True
+                elif run.node_type in ("shop", "rest", "treasure", "life_merchant", "landmark", "downstairs") and not run.node_data.get("coop_done"):
+                    await run_command(plugin, "离开", uid)
+                    progressed = True
+            all_grid = True
+            for uid in uids:
+                r = plugin.save_manager.load_save(uid)
+                if not r or r.node_type != "grid_map":
+                    all_grid = False
+                    break
+            if all_grid:
+                return
+            if not progressed:
+                return
+
+    asyncio.run(_drive())
+
+
+def walk_to_boss_battle(plugin, leader: str, max_steps: int = 15):
+    for _ in range(max_steps):
+        run = plugin.save_manager.load_save(leader)
+        if run is None:
+            return None
+        if run.node_type != "grid_map":
+            fm = getattr(run, "floor_map", None)
+            coord = fm.player_coords.get(leader, "") if fm is not None else ""
+            room = fm.rooms.get(coord) if fm is not None else None
+            if run.node_type == "battle" and room is not None and room.room_type == "boss":
+                return run
+            clear_battle_if_needed(plugin, [leader])
+            continue
+        fm = getattr(run, "floor_map", None)
+        if fm is None:
+            return None
+        if fm.player_coords.get(leader) == fm.boss_coord:
+            return run
+        move_to_room(plugin, leader, ("boss",))
+    return plugin.save_manager.load_save(leader)

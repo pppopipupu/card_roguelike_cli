@@ -90,10 +90,6 @@ class TestBleakFallsAndSize(unittest.TestCase):
             if run.node_type == "battle":
                 last = self._finish_current_battle(uid)
                 run = load_run(self.plugin, uid)
-            if run.node_type == "battle_prompt":
-                self.run_cmd("1", uid)
-                last = self._finish_current_battle(uid)
-                run = load_run(self.plugin, uid)
             if run.node_type != "grid_map":
                 self.run_cmd("离开", uid)
                 run = load_run(self.plugin, uid)
@@ -147,9 +143,6 @@ class TestBleakFallsAndSize(unittest.TestCase):
                     run = load_run(self.plugin, uid)
                     if run.node_type != "grid_map" or floor_of(run).player_coords.get(uid) == step_coord:
                         break
-                if run.node_type == "battle_prompt":
-                    self.run_cmd("1", uid)
-                    run = load_run(self.plugin, uid)
                 if run.node_type == "battle":
                     last = self._finish_current_battle(uid)
                 elif run.node_type in ("shop", "rest", "cafe", "landmark", "life_merchant", "treasure") and idx < len(path) - 1:

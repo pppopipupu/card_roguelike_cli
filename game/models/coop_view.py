@@ -37,6 +37,7 @@ SHARED_PERSIST_KEYS = {
     "stage_ready",
     "turn_ready",
     "votes",
+    "event_mode",
     "coop_relic_pool",
     "coop_cafe",
     "coop_notices",

@@ -1,5 +1,6 @@
 import random
 from typing import List, Optional, Tuple
+from ....data.battle_mode_config import BATTLE_MODE_FORCED_SOLO
 from ....data.locale_data import get_locale_text
 from ....data.potion_data import roll_potion
 from ....data.room_interact_data import CAFE_GUEST_COMBAT_STATS, ROOM_NPCS
@@ -467,11 +468,11 @@ def start_npc_combat(map_engine, run, npc_id: str, npc_source: str = "grid", gue
             coord,
             "battle",
             [run.user_id],
-            node_data={"difficulty": "npc_combat", "npc_combat": npc_combat},
+            node_data={"difficulty": "npc_combat", "npc_combat": npc_combat, "battle_mode": BATTLE_MODE_FORCED_SOLO},
         )
     else:
         run.node_type = "battle"
-        run.node_data = {"difficulty": "npc_combat", "npc_combat": npc_combat}
+        run.node_data = {"difficulty": "npc_combat", "npc_combat": npc_combat, "battle_mode": BATTLE_MODE_FORCED_SOLO}
     map_engine.battle_engine._init_battle_node(run, difficulty="npc_combat")
     map_engine.save_manager.save_save(run.user_id, run)
     prefix = get_locale_text("i18n_room_interact.combat.attack_start", name=enemy_name)

@@ -2,6 +2,8 @@ import random
 from typing import Optional, List, Dict
 from ...models.state import GameRun, PlayerState
 from ...models.coop_view import strip_shared
+from ...data.battle_mode_config import BATTLE_MODE_FORCED_SOLO, BATTLE_MODE_SOLO, BATTLE_MODE_TEAM
+from ...data.event_data import TEAM_EVENT_IDS
 from ...data.map_config import MapConfig
 from ...entities import ALL_CARDS, get_relic_name
 from ...entities.events import ALL_EVENTS
@@ -151,26 +153,43 @@ class ExploreEngine:
                     
         return res
 
-    def _init_event_node(self, run: GameRun, event_id: str = ""):
+    def resolve_event(self, run: GameRun, event_id: str = ""):
         stage = max((p.stage for p in run.players.values()), default=run.player.stage)
-        event = None
         if event_id:
             event = next((e for e in ALL_EVENTS if e.id == event_id), None)
+            if event is not None:
+                return event
+        valid_events = [e for e in ALL_EVENTS if getattr(e, "min_stage", 2) <= stage <= getattr(e, "max_stage", MapConfig.COMMON_EVENT_MAX_STAGE)]
+        if not valid_events:
+            valid_events = ALL_EVENTS
+        return random.choice(valid_events)
+
+    def _init_event_node(self, run: GameRun, event_id: str = "", event=None):
         if event is None:
-            valid_events = [e for e in ALL_EVENTS if getattr(e, "min_stage", 2) <= stage <= getattr(e, "max_stage", MapConfig.COMMON_EVENT_MAX_STAGE)]
-            if not valid_events:
-                valid_events = ALL_EVENTS
-            event = random.choice(valid_events)
-        run.node_type = "event"
-        run.node_data = {
+            event = self.resolve_event(run, event_id)
+        mode = BATTLE_MODE_TEAM if event.id in TEAM_EVENT_IDS else BATTLE_MODE_SOLO
+        order = list(run.party_order) or list(run.players.keys())
+        humans = [uid for uid in order if uid in run.players and not getattr(run.players[uid], "is_mercenary", False)]
+        if mode == BATTLE_MODE_TEAM and len(humans) <= 1:
+            mode = BATTLE_MODE_SOLO
+        battle_mode = BATTLE_MODE_TEAM if mode == BATTLE_MODE_TEAM else BATTLE_MODE_FORCED_SOLO
+        data = {
             "coop_node_type": "event",
+            "battle_mode": battle_mode,
+            "event_mode": mode,
             "player_views": {},
-            "stage_ready": {uid: (player.downed or getattr(player, "is_mercenary", False)) for uid, player in run.players.items()},
+            "stage_ready": {uid: (run.players[uid].downed or getattr(run.players[uid], "is_mercenary", False)) for uid in order if uid in run.players},
             "votes": {},
             "event_id": event.id,
             "description": event.description,
             "options": [{"text": opt.text, "action": opt.action} for opt in event.options],
         }
+        run.node_type = "event"
+        if run.node_data is None:
+            run.node_data = data
+        else:
+            run.node_data.clear()
+            run.node_data.update(data)
 
     def _init_shop_node(self, run: GameRun, enter_lobby: bool = False):
         from .rooms.shop_dialog import init_shop_view_flags

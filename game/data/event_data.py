@@ -4,6 +4,15 @@ EVENT_MIN_GOLD = 0
 EVENT_MIN_PRICE = 0
 EVENT_TIME_SAND_MIN_MAX_HP = 2
 
+TEAM_EVENT_IDS = frozenset({
+    "void_contract",
+    "portal_chamber",
+    "void_library",
+    "time_fountain_trial",
+    "astral_caravan_disaster",
+    "nameless_tombstone",
+})
+
 EVENT_CONFIG = {
     "fountain": {
         "hp_gain": 10,

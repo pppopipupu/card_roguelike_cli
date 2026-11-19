@@ -7,7 +7,7 @@ from game.models.state import CardState
 from game.data.balance_config import COOP_MAX_PLAYERS
 from game.data.cafe_data import CAFE_GUESTS, CAFE_NORMALS, CAFE_NPCS_PER_EXTRA_PLAYER, CAFE_TOTAL_NPCS, NPC_SHOW_NAMES
 from game.data.map_config import MapConfig
-from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command
+from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command, walk_to_boss_battle
 
 
 class TestRogueCoopCafeAndCapacity(unittest.TestCase):
@@ -51,6 +51,12 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
     def test_coop_max_16_players_and_difficulty_capped_at_4(self):
         random.seed(1)
         uids = [f"cap_{i}" for i in range(COOP_MAX_PLAYERS)]
+        for uid in uids:
+            stats = self.plugin.save_manager.load_stats(uid)
+            stats.town_health_bonus = 800
+            stats.purchased_pool = ["glacier_fortress", "abyss_collapse", "frost_nova", "jack_brew", "meteor_swarm"]
+            stats.locked_cards = ["glacier_fortress", "abyss_collapse", "jack_brew"]
+            self.plugin.save_manager.save_stats(uid, stats)
         run = self._start_coop_direct(uids)
         self.assertEqual(len(run.players), 16)
         self.assertEqual(len(run.party_order), 16)
@@ -58,10 +64,19 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.plugin.engine.start_party_game(uids + ["cap_overflow"], uids[0], shared_save=True)
 
-        _, battle_run = move_to_room(self.plugin, uids[0], ("battle", "elite"), rally=True)
+        battle_run = walk_to_boss_battle(self.plugin, uids[0])
+        self.assertIsNotNone(battle_run)
+        assert battle_run is not None
         self.assertEqual(battle_run.node_type, "battle")
+        self.assertEqual(battle_run.node_data.get("battle_mode"), "team")
         self.assertEqual(battle_run.node_data.get("coop_hp_mult"), 2.0)
-        self.assertEqual(len(battle_run.enemies) % 2, 0)
+        self.assertTrue(battle_run.enemies)
+        self.assertEqual(len(battle_run.party_order), COOP_MAX_PLAYERS)
+        boss_coord = floor_of(battle_run).player_coords.get(uids[0])
+        for uid in uids:
+            member_run = load_run(self.plugin, uid)
+            self.assertEqual(member_run.node_type, "battle")
+            self.assertEqual(floor_of(member_run).player_coords.get(uid), boss_coord)
 
         before_actions = battle_run.players[uids[15]].actions
         battle_run.players[uids[0]].hand = [CardState(id="coop_tactical_command")]

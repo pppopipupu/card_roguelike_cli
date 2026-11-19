@@ -52,7 +52,7 @@ class TestChireidenFusionCenter(unittest.TestCase):
         for _ in range(10):
             run = load_run(self.plugin, uid)
             nt = run.node_type
-            if nt in ("grid_map", "battle", "battle_prompt"):
+            if nt in ("grid_map", "battle"):
                 return
             if nt in ("card_select", "upgrade_select", "remove_select"):
                 self._cmd("0", uid)
@@ -204,10 +204,6 @@ class TestChireidenFusionCenter(unittest.TestCase):
             if run.node_type == "battle":
                 self._finish_current_battle(uid)
                 run = load_run(self.plugin, uid)
-            if run.node_type == "battle_prompt":
-                self._cmd("1", uid)
-                self._finish_current_battle(uid)
-                run = load_run(self.plugin, uid)
             if run.node_type != "grid_map":
                 self._clear_reward_or_menu(uid)
                 run = load_run(self.plugin, uid)
@@ -269,9 +265,6 @@ class TestChireidenFusionCenter(unittest.TestCase):
                     run = load_run(self.plugin, uid)
                     if run.node_type != "grid_map" or floor_of(run).player_coords.get(uid) == step_coord:
                         break
-                if run.node_type == "battle_prompt":
-                    self._cmd("1", uid)
-                    run = load_run(self.plugin, uid)
                 if run.node_type == "battle":
                     if idx == len(path) - 1 and stop_on_target_battle:
                         return

@@ -195,26 +195,6 @@ def render_grid_map(run: GameRun) -> str:
     return "\n".join(lines)
 
 
-def render_battle_prompt(run: GameRun) -> str:
-    from ..core.world.rooms.interact import format_room_extras
-    p = run.player
-    options = run.node_data.get("options", [])
-    coord = run.node_data.get("coord", "")
-    lines = [
-        get_locale_text("i18n_grid_map.separator"),
-        get_locale_text("i18n_grid_map.battle_prompt.title", coord=coord),
-        get_locale_text("i18n_grid_map.battle_prompt.desc"),
-        *format_room_extras(run, include_env=True),
-        "",
-    ]
-    for idx, opt in enumerate(options, 1):
-        lines.append(f"  [{idx}] {opt.get('text', '')}")
-    lines.append("")
-    lines.append(get_locale_text("i18n_grid_map.guide_folded") if p.fold_guide else get_locale_text("i18n_grid_map.choose_hint"))
-    lines.append(get_locale_text("i18n_grid_map.separator"))
-    return "\n".join(lines)
-
-
 def render_landmark(run: GameRun) -> str:
     title = run.node_data.get("title", "")
     desc = run.node_data.get("desc", "")

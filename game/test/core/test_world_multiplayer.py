@@ -5,13 +5,12 @@ import time
 import unittest
 from unittest.mock import patch
 
-from game.cards import ALL_CARDS
 from game.core.world.grid_map_generator import coord_to_xy, xy_to_coord
 from game.core.world.presence import WorldPresenceService
 from game.data.outer_plane_config import NECRONOMICON_ITEM
 from game.data.world_social_config import WORLD_PRESENCE_TIMEOUT_SECONDS, WORLD_TOWN
 from game.data.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
-from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command
+from game.test.core.base import CorePlugin, clear_battle_if_needed, floor_of, load_run, move_to_room, run_command
 
 
 class WorldMultiplayerTest(unittest.TestCase):
@@ -68,65 +67,12 @@ class WorldMultiplayerTest(unittest.TestCase):
             if not (0 <= nx < fm.width and 0 <= ny < fm.height):
                 continue
             room = fm.rooms.get(xy_to_coord(nx, ny))
-            if room is not None and room.room_type not in ("wall", "obstacle", "secret_boss"):
+            if room is not None and room.room_type not in ("wall", "solid_wall", "obstacle", "secret_boss"):
                 return dcmd
-        return "d"
+        return ""
 
     def _clear_battle_if_needed(self, uids: list[str]):
-        for _ in range(40):
-            progressed = False
-            for uid in uids:
-                run = self.plugin.save_manager.load_save(uid)
-                if not run:
-                    continue
-                if run.node_type == "battle_prompt":
-                    self.cmd("1", uid)
-                    progressed = True
-                elif run.node_type == "battle" and not run.node_data.get("coop_done"):
-                    for _ in range(8):
-                        r_now = self.plugin.save_manager.load_save(uid)
-                        if not r_now or r_now.node_type != "battle" or r_now.node_data.get("coop_done"):
-                            break
-                        played = False
-                        for idx, cs in enumerate(list(r_now.player.hand), 1):
-                            card = ALL_CARDS.get(cs.id)
-                            if card is None:
-                                continue
-                            cost_a = getattr(card, "cost_a", 0)
-                            cost_ba = getattr(card, "cost_ba", 0)
-                            if cost_a <= r_now.player.actions and cost_ba <= r_now.player.bonus_actions:
-                                res = self.cmd(f"p {idx} 1", uid)
-                                if "❌" not in res:
-                                    played = True
-                                    progressed = True
-                                    break
-                        if not played:
-                            break
-                    r_end = self.plugin.save_manager.load_save(uid)
-                    if r_end and r_end.node_type == "battle" and not r_end.node_data.get("coop_done"):
-                        self.cmd("e", uid)
-                        progressed = True
-                elif run.node_type == "reward" and not run.node_data.get("coop_done"):
-                    res = self.cmd("离开", uid)
-                    if "必须先领取" in res or "❌" in res:
-                        self.cmd("c 1", uid)
-                    progressed = True
-                elif run.node_type in ("card_select", "gem_insert") and not run.node_data.get("coop_done"):
-                    self.cmd("c 1", uid)
-                    progressed = True
-                elif run.node_type in ("event", "shop", "rest", "treasure", "life_merchant") and not run.node_data.get("coop_done"):
-                    self.cmd("离开", uid)
-                    progressed = True
-            all_grid = True
-            for uid in uids:
-                r = self.plugin.save_manager.load_save(uid)
-                if not r or r.node_type != "grid_map":
-                    all_grid = False
-                    break
-            if all_grid:
-                return
-            if not progressed:
-                break
+        clear_battle_if_needed(self.plugin, uids)
 
     def test_town_players_dialog_logs_and_remote_friend_message(self):
         self.enter_town()
@@ -282,6 +228,7 @@ class WorldMultiplayerTest(unittest.TestCase):
 
         for uid in (self.a, self.b):
             stats = self.plugin.save_manager.load_stats(uid)
+            stats.town_health_bonus = 800
             stats.purchased_pool = ["ironclad_rampart", "abyss_collapse", "jack_brew"]
             stats.locked_cards = ["ironclad_rampart", "abyss_collapse", "jack_brew"]
             self.plugin.save_manager.save_stats(uid, stats)
@@ -298,10 +245,10 @@ class WorldMultiplayerTest(unittest.TestCase):
         self.assertNotIn("与玩家交谈", b_grid)
 
         dcmd = self._first_walkable_direction(self.a)
-        moved_a = self.cmd(dcmd, self.a)
-        run_after_move = load_run(self.plugin, self.a)
-        if run_after_move.node_type == "battle_prompt":
-            self.cmd("3", self.a)
+        moved_a = self.cmd(dcmd, self.a) if dcmd else self.cmd("map", self.a)
+        if load_run(self.plugin, self.a).node_type != "grid_map":
+            self._clear_battle_if_needed([self.a])
+            moved_a = self.cmd("map", self.a)
         self.assertNotIn("🧑Bob", moved_a)
         self.assertIn("没有找到", self.cmd("talk Bob 在吗", self.a))
         coord_view = self.cmd("team xyz", self.b)
@@ -309,25 +256,27 @@ class WorldMultiplayerTest(unittest.TestCase):
         self.assertIn("Alice", coord_view)
         self.assertIn("Bob", coord_view)
 
-        _, run_b_battle = move_to_room(self.plugin, self.b, ("battle", "elite", "boss"))
-        self.assertIsNotNone(run_b_battle)
-        if run_b_battle.node_type == "grid_map":
-            move_to_room(self.plugin, self.b, ("battle", "elite", "boss"))
+        run_b_battle = None
+        battle_coord = ""
+        for _ in range(6):
+            _, run_b_battle = move_to_room(self.plugin, self.b, ("battle", "elite"))
+            if run_b_battle and run_b_battle.node_type == "battle" and run_b_battle.node_data.get("battle_mode") == "solo":
+                coord = floor_of(run_b_battle).player_coords.get(self.b, "")
+                room = floor_of(run_b_battle).rooms.get(coord)
+                if room is not None and room.room_type in ("battle", "elite", "big_room"):
+                    battle_coord = coord
+                    break
+            self._clear_battle_if_needed([self.b])
             run_b_battle = load_run(self.plugin, self.b)
-        battle_coord = floor_of(run_b_battle).player_coords.get(self.b)
-        self.cmd("1", self.b)
-        run_b_battle = load_run(self.plugin, self.b)
+        self.assertIsNotNone(run_b_battle)
+        assert run_b_battle is not None
+        self.assertTrue(battle_coord)
         self.assertEqual(run_b_battle.node_type, "battle")
+        self.assertEqual(run_b_battle.node_data.get("battle_mode"), "solo")
 
-        move_res, run_a_moved = move_to_room(self.plugin, self.a, ("battle", "elite", "boss"))
-        if run_a_moved and run_a_moved.node_type == "battle_prompt":
-            self.cmd("3", self.a)
+        self.cmd(f"tp {battle_coord}", self.a)
         run_a_now = load_run(self.plugin, self.a)
-        if run_a_now and floor_of(run_a_now).player_coords.get(self.a) != battle_coord:
-            self.cmd(f"tp {battle_coord}", self.a)
-            run_a_now = load_run(self.plugin, self.a)
-            if run_a_now and run_a_now.node_type == "battle_prompt":
-                self.cmd("3", self.a)
+        self.assertEqual(run_a_now.node_type, "battle")
         a_coord_now = floor_of(load_run(self.plugin, self.a)).player_coords.get(self.a)
         if a_coord_now == battle_coord:
             b_battle_render = self.cmd("r", self.b)

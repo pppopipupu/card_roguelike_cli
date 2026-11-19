@@ -1,6 +1,7 @@
 import random
 from typing import Optional
 
+from ...data.battle_mode_config import BATTLE_MODE_FORCED_SOLO
 from ...data.buff_data import BUFF_CONFIG
 from ...data.chireiden_data import (
     CHIREIDEN_BIG_ROOM_PLANS,
@@ -423,7 +424,9 @@ def start_rin_elite_battle(map_engine, run: GameRun, room: RoomState) -> str:
     room.shared_payload["encounter"] = list(CHIREIDEN_ELITE_ENCOUNTER)
     room.shared_payload["elite_name"] = CHIREIDEN_ELITE_ENCOUNTER[0]
     room.shared_payload["reward_relic"] = "lbe_fast_reactor_core"
-    return map_engine.grid_map_service._launch_battle_session(run, run.user_id, coord, room, "elite")
+    return map_engine.grid_map_service._launch_battle_session(
+        run, run.user_id, coord, room, "elite", battle_mode=BATTLE_MODE_FORCED_SOLO
+    )
 
 
 def handle_rin_npc_choice(map_engine, run: GameRun, dlg: dict, chosen_opt: dict) -> str:

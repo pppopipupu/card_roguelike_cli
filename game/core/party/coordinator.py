@@ -1,6 +1,3 @@
-from math import ceil
-
-from ...data.balance_config import COOP_VOTE_RATIO
 from ...data.locale_data import get_locale_text
 from ...models.coop_view import SHARED_PERSIST_KEYS, apply_view, scope_view
 
@@ -70,31 +67,6 @@ def attach_notices(run, notices_by_uid, uid):
 def apply_and_scope(run, uid):
     apply_view(run, uid)
     return scope_view(run, uid)
-
-
-def vote_threshold(run):
-    alive = alive_uids(run)
-    return max(1, ceil(len(alive) * COOP_VOTE_RATIO))
-
-
-def vote_option(run, uid, option_idx, recorded_key):
-    alive = alive_uids(run)
-    if len(alive) <= 1 or uid == run.leader_id:
-        run.node_data["votes"] = {}
-        return None
-    votes = run.node_data.setdefault("votes", {})
-    votes[uid] = option_idx
-    same = sum(1 for member in alive if votes.get(member) == option_idx)
-    if alive and same >= vote_threshold(run):
-        run.node_data["votes"] = {}
-        return None
-    delimiter = get_locale_text("i18n_explore_core.list_delimiter")
-    summary = delimiter.join(
-        get_locale_text("i18n_explore_core.vote_summary_entry", name=run.players[member].name, index=index)
-        for member, index in votes.items()
-        if member in run.players
-    )
-    return get_locale_text(recorded_key, summary=summary)
 
 
 def finish_player_node(save_manager, map_engine, run, uid, prefix="", on_all_ready=None):

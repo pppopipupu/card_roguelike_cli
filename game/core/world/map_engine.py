@@ -404,8 +404,6 @@ class MapEngine:
     def choose_option(self, run: GameRun, option_idx: int, target: Optional[str] = None) -> str | None:
         if run.node_type == "battle":
             return get_locale_text("i18n_map_cafe.err_cannot_choose_in_battle")
-        if run.node_type == "battle_prompt":
-            return self.grid_map_service.handle_battle_prompt(run, option_idx)
         if run.node_type == "landmark":
             return execute_landmark_option(self.save_manager, self, run, option_idx - 1)
         if run.node_type == "downstairs":

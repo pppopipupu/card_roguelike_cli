@@ -240,6 +240,27 @@ class BattleEngine(BaseBattleEngine):
 
     init_battle = _init_battle_node
 
+    def join_battle(self, run: GameRun, uid: str):
+        player = run.players.get(uid)
+        if player is None or player.downed or player.hp <= 0:
+            return
+        caller = run.user_id
+        viewer = run.player
+        difficulty = str(run.node_data.get("difficulty") or "normal")
+        is_mercenary = bool(getattr(player, "is_mercenary", False))
+        run.player = player
+        run.user_id = uid
+        self._init_player_battle(run, player, difficulty)
+        run.node_data.setdefault("turn_ready", {})[uid] = is_mercenary
+        if not is_mercenary:
+            from ...models.events import BattleStartEvent, TurnStartEvent
+            self.event_bus.dispatch(BattleStartEvent(run))
+            self.event_bus.dispatch(TurnStartEvent(run, is_player=True))
+        run.player = viewer
+        run.user_id = caller
+        from .party_battle import assign_enemy_targets
+        assign_enemy_targets(run)
+
     def _init_player_battle(self, run: GameRun, p, difficulty: str):
         player_uid = run.uid_for(p)
         if player_uid and not getattr(p, "is_mercenary", False) and hasattr(self.save_manager, "load_stats"):
@@ -278,7 +299,6 @@ class BattleEngine(BaseBattleEngine):
         p.bonus_actions = 1
         p.shield = 0
         run.node_data[run.turn_key("cards_played_this_turn", p)] = 0
-        run.node_data["turn_count"] = 1
         selected_class = getattr(p, "selected_class", "法师")
         if selected_class == "战士":
             run.node_data[run.turn_key("action_surge_uses", p)] = 2

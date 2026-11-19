@@ -118,14 +118,8 @@
     "barrow_exit": "荒爆圣所密道出口",
     "big_room": "大型厅室"
   },
-  "battle_prompt": {
-    "title": "⚔️ 遭遇敌群（{coord}）",
-    "desc": "检测到同行队友当前处于空闲状态，请选择迎战方式：",
-    "opt_solo": "独自迎战（仅自己进入战斗）",
-    "opt_rally": "集结全员（召集 {count} 名空闲队友：{teammates} 共同迎战）",
-    "opt_retreat": "暂缓退回（离开战斗触发）",
-    "retreated": "🚶 已暂缓迎战。"
-  },
+  "battle_joined": "⚔️ 你已抵达 {coord} 并加入队友的战斗。",
+  "battle_forced_solo_notice": "⚔️ 队友【{name}】正在 {coord} 独自战斗，你无法介入。",
   "quest_relic": {
     "broken_rift_compass": {
       "name": "裂隙残盘",

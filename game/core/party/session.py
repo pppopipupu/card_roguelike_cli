@@ -13,7 +13,7 @@ class SessionContextScoper:
         return full
 
     @staticmethod
-    def _expand_with_mercenaries(run, human_participants: list[str]) -> list[str]:
+    def expand_with_mercenaries(run, human_participants: list[str]) -> list[str]:
         full = SessionContextScoper.ensure_full_party_order(run)
         result = []
         human_set = set(human_participants)
@@ -104,7 +104,7 @@ class SessionContextScoper:
     @staticmethod
     def create_session(run, coord: str, node_type: str, participants: list[str], node_data: dict | None = None, enemies: list | None = None) -> EncounterSession:
         fm = run.floor_map
-        expanded = SessionContextScoper._expand_with_mercenaries(run, participants)
+        expanded = SessionContextScoper.expand_with_mercenaries(run, participants)
         sid = f"sess_{uuid.uuid4().hex[:8]}"
         session = EncounterSession(
             session_id=sid,

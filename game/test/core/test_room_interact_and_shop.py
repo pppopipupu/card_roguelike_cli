@@ -433,9 +433,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
                         self._finish_battle_in_test(uid)
                         interrupted = True
                         break
-                    if cur_run.node_type == "battle_prompt":
-                        self.run_cmd("c 3", uid)
-                    elif cur_run.node_type in ("shop", "rest", "cafe", "landmark", "life_merchant", "treasure"):
+                    if cur_run.node_type in ("shop", "rest", "cafe", "landmark", "life_merchant", "treasure"):
                         self.run_cmd("leave", uid)
                     elif cur_run.node_type == "event":
                         opts = cur_run.node_data.get("options", [])
@@ -482,6 +480,9 @@ class TestRoomInteractAndShop(unittest.TestCase):
         for u in (uid1, uid2):
             st = self.plugin.save_manager.load_stats(u)
             st.gp = max(st.gp, RENAME_COST_GP)
+            st.town_health_bonus = 800
+            st.purchased_pool = ["glacier_fortress", "abyss_collapse", "frost_nova", "jack_brew", "meteor_swarm"]
+            st.locked_cards = ["glacier_fortress", "abyss_collapse", "jack_brew"]
             self.plugin.save_manager.save_stats(u, st)
         self.run_cmd("friend name 队长pb", uid1)
         self.run_cmd("friend name 队员pb", uid2)
@@ -507,11 +508,13 @@ class TestRoomInteractAndShop(unittest.TestCase):
         fm = floor_of(run_coop)
         hd_targets = {c for c, r in fm.rooms.items() if r.room_type == "high_danger"}
         self._walk_to_targets(uid1, hd_targets)
-        self.assertEqual(load_run(self.plugin, uid1).node_type, "battle_prompt")
-        self.run_cmd("c 3", uid1)
+        run_hd_coop = load_run(self.plugin, uid1)
+        self.assertEqual(run_hd_coop.node_type, "battle")
+        self.assertTrue(any(b.id == "weak" for b in run_hd_coop.player.buffs))
+        self.assertFalse(any(b.id == "abyss_chill" for b in run_hd_coop.player.persistent_buffs))
+        self._finish_battle_in_test(uid1)
         map_after_hd = self.run_cmd("map", uid1)
-        self.assertIn("深渊寒蚀", map_after_hd)
-        self.assertIn("状态:", map_after_hd)
+        self.assertIn("队长pb", map_after_hd)
         move_to_room(self.plugin, uid1, ("cafe",))
         gram_res = self.run_cmd("touch 留声机", uid1)
         self.assertIn("黑胶留声机", gram_res)

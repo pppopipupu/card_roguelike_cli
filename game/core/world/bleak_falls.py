@@ -1,6 +1,7 @@
 import random
 from typing import Any, Optional
 
+from ...data.battle_mode_config import BATTLE_MODE_FORCED_SOLO
 from ...data.grid_map_config import FLOOR_CONFIGS, PASSABLE_ROOM_TYPES, ROOM_ICONS
 from ...data.locale_data import get_locale_text
 from ...data.map_quest_config import (
@@ -585,6 +586,7 @@ def _start_arvel_combat(map_engine, run: GameRun, room: RoomState) -> str:
         [run.user_id],
         node_data={
             "difficulty": "normal",
+            "battle_mode": BATTLE_MODE_FORCED_SOLO,
             "bleak_falls_combat_tag": "arvel",
             "bleak_falls_room_coord": room.coord,
         },

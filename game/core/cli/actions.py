@@ -267,7 +267,7 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                 if run.node_type == "room_dialog":
                     from ..world.rooms.npc_dialog import close_room_dialog
                     return close_room_dialog(router.save_manager, run), False, True
-                if run.node_type in ("landmark", "downstairs", "battle_prompt"):
+                if run.node_type in ("landmark", "downstairs"):
                     fm = getattr(run, "floor_map", None)
                     if fm is not None:
                         if run.node_type == "downstairs" and isinstance(fm.floor_flags.get("downstairs_ready"), dict):

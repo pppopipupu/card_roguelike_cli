@@ -1,5 +1,12 @@
-import random
+from ...data.battle_mode_config import (
+    BATTLE_MODE_FORCED_SOLO,
+    BATTLE_MODE_SOLO,
+    BATTLE_MODE_TEAM,
+    resolve_battle_mode,
+    session_battle_mode,
+)
 from ...data.corpse_config import CorpseConfig
+from ...data.event_data import TEAM_EVENT_IDS
 from ...data.grid_map_config import (
     FLOOR_CONFIGS,
     HIGH_DANGER_CONFIG,
@@ -77,22 +84,6 @@ class GridMapService:
     def __init__(self, save_manager, map_engine):
         self.save_manager = save_manager
         self.map_engine = map_engine
-
-    def idle_teammates(self, run, exclude_uid: str) -> list[str]:
-        fm = getattr(run, "floor_map", None)
-        if fm is None:
-            return []
-        res = []
-        for uid in run.all_human_uids():
-            if uid == exclude_uid:
-                continue
-            p = run.players.get(uid)
-            if p is None or getattr(p, "downed", False) or p.hp <= 0:
-                continue
-            if uid in fm.player_session_map:
-                continue
-            res.append(uid)
-        return res
 
     def _reveal_coord(self, fm, coord: str):
         reveal_big_room_if_needed(fm, coord)
@@ -348,6 +339,10 @@ class GridMapService:
         fm = run.floor_map
         room = fm.rooms[coord]
         p = run.player
+        forced_solo_block = self._forced_solo_battle_block(run, uid, coord)
+        if forced_solo_block:
+            self.save_manager.save_save(uid, run)
+            return forced_solo_block
         if fm.floor_flags.get("yog_quest"):
             self._update_quest_zone(run, room)
 
@@ -442,23 +437,30 @@ class GridMapService:
             return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
 
         broken_msg = break_map_invisibility(run, reason="interact", player=p)
-        SessionContextScoper.create_session(run, coord, room.room_type, [uid])
         if room.room_type == "event":
-            self.map_engine.explore_engine._init_event_node(run, event_id=room.shared_payload.get("event_id", ""))
-        elif room.room_type == "shop":
-            self.map_engine.explore_engine._init_shop_node(run, enter_lobby=True)
-        elif room.room_type == "rest":
-            self.map_engine.explore_engine._init_rest_node(run)
-        elif room.room_type == "treasure":
-            bonus_item = room.shared_payload.pop("bonus_item", "")
-            if bonus_item:
-                from ..inventory.bag_service import add_bag_item
-                ok, _ = add_bag_item(run.player, bonus_item)
-                if not ok and bonus_item not in room.items:
-                    room.items.append(bonus_item)
-            self.map_engine.explore_engine._init_treasure_node(run)
-        elif room.room_type == "life_merchant":
-            self.map_engine.explore_engine._init_life_merchant_node(run)
+            event = self.map_engine.explore_engine.resolve_event(run, str(room.shared_payload.get("event_id", "")))
+            participants = [uid]
+            if event.id in TEAM_EVENT_IDS:
+                participants = self._team_participants(run, uid)
+                self._move_participants_to(run, coord, participants)
+            SessionContextScoper.create_session(run, coord, room.room_type, participants)
+            self.map_engine.explore_engine._init_event_node(run, event=event)
+        else:
+            SessionContextScoper.create_session(run, coord, room.room_type, [uid])
+            if room.room_type == "shop":
+                self.map_engine.explore_engine._init_shop_node(run, enter_lobby=True)
+            elif room.room_type == "rest":
+                self.map_engine.explore_engine._init_rest_node(run)
+            elif room.room_type == "treasure":
+                bonus_item = room.shared_payload.pop("bonus_item", "")
+                if bonus_item:
+                    from ..inventory.bag_service import add_bag_item
+                    ok, _ = add_bag_item(run.player, bonus_item)
+                    if not ok and bonus_item not in room.items:
+                        room.items.append(bonus_item)
+                self.map_engine.explore_engine._init_treasure_node(run)
+            elif room.room_type == "life_merchant":
+                self.map_engine.explore_engine._init_life_merchant_node(run)
         self.save_manager.save_save(uid, run)
         rendered = GameRenderer.render_game(run)
         return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
@@ -474,52 +476,107 @@ class GridMapService:
                 return sid
         return ""
 
-    def _start_or_prompt_battle(self, run, uid: str, coord: str, room, difficulty: str, corpse: dict | None = None, hostile_npc_id: str = "") -> str:
-        from ...renderer import GameRenderer
+    def _forced_solo_battle_block(self, run, uid: str, coord: str) -> str:
         fm = run.floor_map
+        if fm is None:
+            return ""
+        existing_sid = self._find_session_at(fm, coord, "battle")
+        if not existing_sid:
+            return ""
+        sess = fm.active_sessions[existing_sid]
+        if session_battle_mode(sess.node_data) != BATTLE_MODE_FORCED_SOLO:
+            return ""
+        if uid in sess.participants:
+            return ""
+        owner = next(
+            (u for u in sess.participants if not getattr(run.players.get(u), "is_mercenary", False)),
+            "",
+        )
+        owner_name = run.players[owner].name if owner in run.players else owner
+        from ...renderer import GameRenderer
+        notice = get_locale_text("i18n_grid_map.battle_forced_solo_notice", name=owner_name, coord=coord)
+        return f"{notice}\n\n{GameRenderer.render_game(run)}"
+
+    def _team_participants(self, run, coordinator_uid: str) -> list[str]:
+        fm = run.floor_map
+        participants = []
+        for uid in run.all_human_uids():
+            player = run.players.get(uid)
+            if player is None:
+                continue
+            if uid != coordinator_uid:
+                if player.downed or player.hp <= 0:
+                    continue
+                if uid in fm.player_session_map:
+                    continue
+            participants.append(uid)
+        if coordinator_uid in run.players and coordinator_uid not in participants:
+            participants.append(coordinator_uid)
+        return participants
+
+    def _move_participants_to(self, run, coord: str, participants: list[str]):
+        from .presence import sync_active
+        fm = run.floor_map
+        for uid in participants:
+            fm.player_coords[uid] = coord
+            player = run.players.get(uid)
+            if player is None:
+                continue
+            self._sync_stage_for_coord(run, player, coord)
+            if not getattr(player, "is_mercenary", False):
+                sync_active(uid, run=run)
+
+    def _start_battle(self, run, uid: str, coord: str, room, difficulty: str, corpse: dict | None = None, hostile_npc_id: str = "", battle_mode: str = "") -> str:
+        from ...renderer import GameRenderer
+        from .presence import sync_active
+        fm = run.floor_map
+        mode = battle_mode or resolve_battle_mode(getattr(room, "room_type", ""), difficulty)
         existing_sid = self._find_session_at(fm, coord, "battle")
         if existing_sid:
             sess = fm.active_sessions[existing_sid]
-            if uid not in sess.participants:
-                sess.participants.append(uid)
+            if session_battle_mode(sess.node_data) == BATTLE_MODE_FORCED_SOLO and uid not in sess.participants:
+                return self._forced_solo_battle_block(run, uid, coord)
+            joined = uid not in sess.participants
+            new_members = SessionContextScoper.expand_with_mercenaries(run, [uid]) if joined else []
+            for member in new_members:
+                if member not in sess.participants:
+                    sess.participants.append(member)
+                fm.player_coords[member] = coord
+                player = run.players.get(member)
+                if player is not None:
+                    self._sync_stage_for_coord(run, player, coord)
+                    sync_active(member, run=run)
+                fm.player_session_map[member] = existing_sid
             fm.player_session_map[uid] = existing_sid
             SessionContextScoper.bind_to_run(run, uid)
+            for member in new_members:
+                self.map_engine.battle_engine.join_battle(run, member)
             self.save_manager.save_save(uid, run)
-            return GameRenderer.render_game(run)
+            rendered = GameRenderer.render_game(run)
+            if not joined:
+                return rendered
+            return f"{get_locale_text('i18n_grid_map.battle_joined', coord=coord)}\n\n{rendered}"
 
-        idle = self.idle_teammates(run, exclude_uid=uid)
-        if idle:
-            teammate_names = "、".join(run.players[u].name for u in idle if u in run.players)
-            node_data = {
-                "coord": coord,
-                "difficulty": difficulty,
-                "room_type": room.room_type,
-                "is_high_danger": room.is_high_danger,
-                "hazard_loss": room.shared_payload.get("hazard_loss", 0),
-                "corpse_id": room.shared_payload.get("corpse_id", ""),
-                "hostile_npc_id": hostile_npc_id,
-                "idle_uids": idle,
-                "options": [
-                    {"action": "solo", "text": get_locale_text("i18n_grid_map.battle_prompt.opt_solo")},
-                    {"action": "rally", "text": get_locale_text("i18n_grid_map.battle_prompt.opt_rally", count=len(idle), teammates=teammate_names)},
-                    {"action": "retreat", "text": get_locale_text("i18n_grid_map.battle_prompt.opt_retreat")},
-                ],
-            }
-            SessionContextScoper.create_session(run, coord, "battle_prompt", [uid], node_data=node_data)
-            self.save_manager.save_save(uid, run)
-            return GameRenderer.render_game(run)
+        participants = [uid]
+        if mode == BATTLE_MODE_TEAM:
+            participants = self._team_participants(run, uid)
+        return self._launch_battle_session(
+            run,
+            coord,
+            participants,
+            room,
+            difficulty,
+            corpse=corpse,
+            hostile_npc_id=hostile_npc_id,
+            battle_mode=mode,
+        )
 
-        return self._launch_battle_session(run, coord, [uid], room, difficulty, corpse=corpse, hostile_npc_id=hostile_npc_id)
-
-    def _launch_battle_session(self, run, coord: str, participants: list[str], room, difficulty: str, corpse: dict | None = None, include_render: bool = True, hostile_npc_id: str = "") -> str:
+    def _launch_battle_session(self, run, coord: str, participants: list[str], room, difficulty: str, corpse: dict | None = None, include_render: bool = True, hostile_npc_id: str = "", battle_mode: str = BATTLE_MODE_SOLO) -> str:
         from ...renderer import GameRenderer
         fm = run.floor_map
         caller = run.user_id
-        for u in participants:
-            fm.player_coords[u] = coord
-            if u in run.players:
-                self._sync_stage_for_coord(run, run.players[u], coord)
-        node_data = {}
+        self._move_participants_to(run, coord, participants)
+        node_data: dict = {"battle_mode": battle_mode}
         if hostile_npc_id:
             node_data["hostile_npc_id"] = hostile_npc_id
         preset_boss = str(room.shared_payload.get("preset_boss_name") or "")
@@ -572,30 +629,3 @@ class GridMapService:
         prefix = ("\n".join(intro_lines) + "\n") if intro_lines else ""
         base_text = prefix + (GameRenderer.render_game(run) if include_render else "")
         return self.map_engine.battle_engine._append_logs_to_res(run, base_text.strip())
-
-    def handle_battle_prompt(self, run, option_idx: int) -> str:
-        from ...renderer import GameRenderer
-        fm = run.floor_map
-        uid = run.user_id
-        sid = fm.player_session_map.get(uid, "")
-        options = run.node_data.get("options", [])
-        if option_idx < 1 or option_idx > len(options):
-            return get_locale_text("err_invalid_option_idx")
-        action = options[option_idx - 1].get("action", "")
-        coord = run.node_data.get("coord", "")
-        difficulty = run.node_data.get("difficulty", "normal")
-        corpse_id = run.node_data.get("corpse_id", "")
-        hostile_npc_id = run.node_data.get("hostile_npc_id", "")
-        room = fm.rooms.get(coord)
-        if action == "retreat" or room is None:
-            SessionContextScoper.close_session(run, sid, mark_cleared=False)
-            self.save_manager.save_save(uid, run)
-            return get_locale_text("i18n_grid_map.battle_prompt.retreated")
-        if action == "rally":
-            idle = self.idle_teammates(run, exclude_uid=uid)
-            participants = [uid] + idle
-        else:
-            participants = [uid]
-        SessionContextScoper.close_session(run, sid, mark_cleared=False)
-        corpse = self.save_manager.corpses.get(corpse_id) if corpse_id else None
-        return self._launch_battle_session(run, coord, participants, room, difficulty, corpse=corpse, include_render=False, hostile_npc_id=hostile_npc_id)

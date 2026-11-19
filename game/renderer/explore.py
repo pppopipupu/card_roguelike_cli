@@ -1,4 +1,5 @@
 from ..models.state import GameRun
+from ..data.battle_mode_config import BATTLE_MODE_TEAM
 from ..data.locale_data import get_locale_text
 from ..entities import get_relic_name, get_relic_desc
 from ..entities.cards.base import get_card_color_icon
@@ -35,6 +36,7 @@ def render_event(run: GameRun) -> str:
     if run.player_count() > 1:
         from .party import render_party_status
         lines.append(render_party_status(run))
+    if data.get("event_mode") == BATTLE_MODE_TEAM:
         votes = data.get("votes", {})
         if votes:
             vote_names = []
@@ -42,7 +44,10 @@ def render_event(run: GameRun) -> str:
                 member = run.players.get(uid)
                 vote_names.append(f"{member.name if member else uid}→{vote}")
             lines.append(get_locale_text("i18n_renderer_extra.event.votes_line", votes=get_locale_text("i18n_renderer_extra.event.vote_separator").join(vote_names)))
-        lines.append(get_locale_text("i18n_renderer_extra.event.coop_hint"))
+        lines.append(get_locale_text("i18n_renderer_extra.event.team_hint"))
+        lines.append("")
+    elif run.player_count() > 1:
+        lines.append(get_locale_text("i18n_renderer_extra.event.solo_hint"))
         lines.append("")
     lines.append(get_locale_text("renderer_explore.separator"))
     if p.fold_guide:

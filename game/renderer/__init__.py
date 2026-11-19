@@ -8,7 +8,7 @@ from .potion import render_potion_list
 from .battle import render_battle, render_detailed_battle, render_draw_pile, render_discard_pile, render_exhaust_pile, render_minion_graveyard, render_enemy_graveyard
 
 from .map import render_start_ancient, render_ancient
-from .grid_map import render_grid_map, render_battle_prompt, render_landmark, render_downstairs
+from .grid_map import render_grid_map, render_landmark, render_downstairs
 from .explore import render_event, render_shop, render_rest, render_reward, render_treasure, render_card_select, render_boss_chest, render_corpse_reward, render_life_merchant
 from .query import render_query_info
 
@@ -84,8 +84,6 @@ class GameRenderer:
             return render_reward(run)
         elif nt in ("grid_map", "map_select"):
             return render_grid_map(run)
-        elif nt == "battle_prompt":
-            return render_battle_prompt(run)
         elif nt == "landmark":
             return render_landmark(run)
         elif nt == "downstairs":
