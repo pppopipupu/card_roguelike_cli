@@ -124,14 +124,15 @@ def handle_toilet_water_on_draw(engine, run, p, drawn_state) -> bool:
         drawn_state.battle_cost_delta_a = int(getattr(drawn_state, "battle_cost_delta_a", 0) or 0) + 1
     if "toilet_water" not in (getattr(p, "relics", []) or []):
         return False
-    key = run.turn_key("toilet_water_used", p)
-    if run.node_data.get(key):
+    key = run.turn_key("toilet_water_count", p)
+    remaining = int(run.node_data.get(key, 0) or 0)
+    if remaining <= 0:
         return False
     from ...entities.cards.base import ALL_CARDS
     card = ALL_CARDS.get(drawn_state)
     if card is None or getattr(card, "color", "") != "curse":
         return False
-    run.node_data[key] = True
+    run.node_data[key] = remaining - 1
     if drawn_state in p.hand:
         p.hand.remove(drawn_state)
     p.exhaust_pile.append(drawn_state)

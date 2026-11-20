@@ -120,9 +120,10 @@ def consume_ninjutsu_lex(engine, run: GameRun, player, cost, source_card_id: str
     return True, need
 
 
-def add_random_food_to_hand(engine, run: GameRun, player, upgraded: bool = False) -> str:
-    fid = random.choice(NINJA_FOOD_TOKEN_IDS)
+def add_random_food_to_hand(engine, run: GameRun, player, upgraded: bool = False, exclude: tuple[str, ...] = ()) -> str:
     from ..cards.base import ALL_CARDS
+    pool = [fid for fid in NINJA_FOOD_TOKEN_IDS if ALL_CARDS[fid].name not in exclude]
+    fid = random.choice(pool or list(NINJA_FOOD_TOKEN_IDS))
     max_hand = 9 if "mask_of_void" in player.relics else 12
     st = CardState(id=fid, upgraded=upgraded)
     if len(player.hand) < max_hand:

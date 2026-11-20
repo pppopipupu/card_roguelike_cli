@@ -154,11 +154,11 @@ NINJA_BUFF_CONFIG: dict[str, dict] = {'sand_wall': {'name': '沙壁', 'desc': '�
 
 NINJA_RELIC_CONFIG: dict[str, dict] = {'lotus_box': {'name': '藕盒', 'desc': '蕾忍初始遗物：进入战斗时获得 2 点蕾克拉。', 'rarity': 'starter', 'price': 150},
  'xiang_piao_piao': {'name': '香飘飘热饮', 'desc': '每回合开始时获得 2 点蕾克拉。', 'rarity': 'epic', 'price': 320},
- 'kfc': {'name': '肯德基', 'desc': '每第 3 回合开始时将 1 张随机忍者食物加入手牌。', 'rarity': 'common', 'price': 150},
+ 'kfc': {'name': '肯德基', 'desc': '每第 3 回合开始时将 1 张未获得过的随机忍者食物加入手牌。', 'rarity': 'common', 'price': 150},
  'dim_dead_tree': {'name': '暗寒死树', 'desc': '每回合开始时，获得 1 层免费忍术（下一次忍术不消耗蕾克拉）。', 'rarity': 'rare', 'price': 220},
  'reaper_hand': {'name': '死神的手', 'desc': '每当你打出【手系忍术】时，若有空随从格则召唤 1 名忍者分身（6HP / 4ATK）。', 'rarity': 'rare', 'price': 240},
  'machine_ninja': {'name': '忍机兵·烧油Machine', 'desc': '每回合开始时，下一张【科学忍具】额外触发一次效果。', 'rarity': 'rare', 'price': 240},
  'sarira': {'name': '舍利子', 'desc': '战斗中生命归零时回复 100% 生命并尝试扣除 22000000 金币（每局触发一次）。', 'rarity': 'event', 'price': 300},
  'three_duuz': {'name': '3D幽幽子', 'desc': '每回合首次打出【忍术】牌时，额外抽 2 张牌。', 'rarity': 'shop', 'price': 200},
- 'toilet_water': {'name': '花露水', 'desc': '每场战斗首次抽到诅咒牌时,自动消耗该诅咒并抽 1 张牌。', 'rarity': 'event', 'price': 180},
+ 'toilet_water': {'name': '花露水', 'desc': '每场战斗中,抽到前 2 张诅咒牌时,将其消耗并抽 1 张牌。', 'rarity': 'event', 'price': 180},
 }

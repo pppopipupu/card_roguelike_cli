@@ -22,12 +22,19 @@ class XiangPiaoPiaoRelic(RelicImpl):
 
 @register_relic("kfc")
 class KfcRelic(RelicImpl):
+    def on_battle_start(self, run, engine):
+        run.node_data[run.turn_key("kfc_foods", run.player)] = []
+
     def on_turn_start(self, event, run, engine):
         if not event.is_player:
             return
         turn_count = int(run.node_data.get("turn_count", 1) or 1)
         if turn_count % 3 == 0:
-            name = add_random_food_to_hand(engine, run, run.player)
+            key = run.turn_key("kfc_foods", run.player)
+            eaten = list(run.node_data.get(key, []) or [])
+            name = add_random_food_to_hand(engine, run, run.player, exclude=tuple(eaten))
+            eaten.append(name)
+            run.node_data[key] = eaten
             engine._log_event(run, get_locale_text("i18n_cards_ninja.kfc_trigger", name=name))
 
 
@@ -62,7 +69,11 @@ class MachineNinjaRelic(RelicImpl):
     def on_turn_start(self, event, run, engine):
         if not event.is_player:
             return
-        add_ninja_buff(engine, run.player, "science_double", 1)
+        existing = next((b for b in run.player.buffs if getattr(b, "id", "") == "science_double"), None)
+        if existing is not None:
+            existing.stacks = 1
+        else:
+            add_ninja_buff(engine, run.player, "science_double", 1)
         engine._log_event(run, get_locale_text("i18n_cards_ninja.machine_ninja_trigger"))
 
 
@@ -91,4 +102,4 @@ class ThreeDuuzRelic(RelicImpl):
 @register_relic("toilet_water")
 class ToiletWaterRelic(RelicImpl):
     def on_battle_start(self, run, engine):
-        run.node_data[run.turn_key("toilet_water_used", run.player)] = False
+        run.node_data[run.turn_key("toilet_water_count", run.player)] = 2
