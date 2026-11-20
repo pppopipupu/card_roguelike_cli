@@ -9,6 +9,7 @@
 - 第一开发语言为中文；中文文案必须语法纯正，禁止中英混杂介词。
 - 临时分析脚本只能放在 `scratch/`（已被 gitignore，不提交）或会话脑区，禁止留在 `game/`、`server/` 等工作区目录。
 - 除用户明确要求，禁止执行任何 git 命令。
+- 除用户明确要求外，禁止修改 README.md。
 - Windows 下统一使用 `py` 启动脚本，禁止使用 `python`；测试前设置 `PYTHONPATH="."` 与 `PYTHONIOENCODING="utf-8"`。
 
 ## 2. 架构与扩展
