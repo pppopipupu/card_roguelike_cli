@@ -45,9 +45,9 @@ RELIC_CONFIG = {
     "mark_of_fury": {
         "name": "狂暴之印",
         "rarity": "epic",
-        "desc": "玩家打出的法术牌造成的伤害增加 2 点,但玩家的最大生命值上限永久减少 5 点。",
-        "spell_bonus": 2,
-        "max_hp_cost": 5,
+        "desc": "玩家打出的所有卡牌造成的伤害增加 3 点，但最大生命值上限永久减少 4 点。",
+        "spell_bonus": 3,
+        "max_hp_cost": 4,
         "price": 100
     },
     "greedy_contract": {
@@ -69,8 +69,8 @@ RELIC_CONFIG = {
     "rust_shackle": {
         "name": "铁锈之锁",
         "rarity": "curse",
-        "desc": "每场战斗开始时扣除玩家 4 点生命值。",
-        "hp_loss": 4,
+        "desc": "每场战斗开始时扣除玩家 3 点生命值。",
+        "hp_loss": 3,
         "price": 80
     },
     "fool_oath": {
@@ -83,7 +83,7 @@ RELIC_CONFIG = {
     "wither_seed": {
         "name": "枯萎之种",
         "rarity": "curse",
-        "desc": "在战斗中玩家无法受到任何治疗效果。",
+        "desc": "在战斗中玩家受到的治疗效果减半（向上取整，最低 1 点）。",
         "price": 80
     },
     "lucky_coin": {
@@ -160,8 +160,8 @@ RELIC_CONFIG = {
     "blind_spot": {
         "name": "盲目之障",
         "rarity": "curse",
-        "desc": "每场战斗第一回合开始时，玩家少抽 2 张牌。",
-        "draw_penalty": 2,
+        "desc": "每场战斗第一回合开始时，玩家少抽 1 张牌。",
+        "draw_penalty": 1,
         "price": 80
     },
     "tax_contract": {
@@ -235,9 +235,10 @@ RELIC_CONFIG = {
     "glacier_armor": {
         "name": "冰川装甲",
         "rarity": "epic",
-        "desc": "每场战斗开始时自动获得 12 点护盾，但玩家的最大生命上限永久减少 6 点。",
-        "shield_gain": 12,
-        "max_hp_cost": 6,
+        "desc": "每场战斗开始时获得 16 点护盾，且每回合开始额外获得 4 点护盾；但最大生命上限永久减少 5 点。",
+        "shield_gain": 16,
+        "turn_shield_gain": 4,
+        "max_hp_cost": 5,
         "price": 100
     },
     "abyss_whisper": {
@@ -250,8 +251,9 @@ RELIC_CONFIG = {
     "frost_blade": {
         "name": "凝霜之刃",
         "rarity": "epic",
-        "desc": "每当玩家对敌人造成冰霜伤害时，伤害值增加 4 点。",
-        "cold_damage_bonus": 4,
+        "desc": "玩家造成的冰霜伤害增加 5 点；且每回合你打出的第一张牌会额外对随机敌人造成 4 点冰霜伤害。",
+        "cold_damage_bonus": 5,
+        "first_card_cold_dmg": 4,
         "price": 120
     },
     "shadow_curse": {
@@ -264,8 +266,9 @@ RELIC_CONFIG = {
     "glacier_chill": {
         "name": "严寒侵袭",
         "rarity": "curse",
-        "desc": "玩家每回合开始时，动作点 A 减少 1。",
+        "desc": "每场战斗第一回合开始时，动作点 A 减少 1（仅首回合生效），但获得 8 点护盾。",
         "action_penalty": 1,
+        "shield_gain": 8,
         "price": 80
     },
     "abyss_contract": {
@@ -278,8 +281,8 @@ RELIC_CONFIG = {
     "glacier_core": {
         "name": "极寒之核",
         "rarity": "epic",
-        "desc": "每当玩家的护盾在回合开始自动流失时，对所有敌人造成等同于流失量 50% 的冰霜伤害。",
-        "damage_ratio": 0.5,
+        "desc": "每当玩家的护盾在回合开始自动流失时，对所有敌人造成等同于流失量 100% 的冰霜伤害。",
+        "damage_ratio": 1.0,
         "price": 120
     },
     "centurion_mail": {
@@ -564,6 +567,8 @@ RELIC_CONFIG = {
 from .chireiden_data import CHIREIDEN_RELIC_CONFIG
 
 RELIC_CONFIG.update(CHIREIDEN_RELIC_CONFIG)
+from .ninja_card_data import NINJA_RELIC_CONFIG
+RELIC_CONFIG.update(NINJA_RELIC_CONFIG)
 
 BACKPACK_RELIC_IDS = ["backpack_small", "backpack_medium", "backpack_large", "backpack_giant"]
 

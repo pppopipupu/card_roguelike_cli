@@ -445,6 +445,12 @@ class GridMapService:
                 return f"{notice}\n\n{GameRenderer.render_game(run)}"
             return trigger_hostile_npc_battle(self, run, uid, coord, room, alive_hostiles[0])
 
+        existing_battle_sid = self._find_session_at(fm, coord, "battle")
+        if existing_battle_sid and not has_stealth_buff(p):
+            sess = fm.active_sessions[existing_battle_sid]
+            if session_battle_mode(sess.node_data) != BATTLE_MODE_FORCED_SOLO and uid not in sess.participants:
+                return self._join_battle_session(run, uid, coord, existing_battle_sid)
+
         if room.room_type == "big_room":
             if "treasure_chest" not in room.props or "treasure_chest" in room.interacted_props:
                 room.cleared = True
@@ -598,38 +604,42 @@ class GridMapService:
             if not getattr(player, "is_mercenary", False):
                 sync_active(uid, run=run)
 
-    def _start_battle(self, run, uid: str, coord: str, room, difficulty: str, corpse: dict | None = None, hostile_npc_id: str = "", battle_mode: str = "") -> str:
+    def _join_battle_session(self, run, uid: str, coord: str, existing_sid: str) -> str:
         from ...renderer import GameRenderer
         from .presence import sync_active
+        fm = run.floor_map
+        sess = fm.active_sessions[existing_sid]
+        if session_battle_mode(sess.node_data) == BATTLE_MODE_FORCED_SOLO and uid not in sess.participants:
+            return self._forced_solo_battle_block(run, uid, coord)
+        joined = uid not in sess.participants
+        new_members = SessionContextScoper.expand_with_mercenaries(run, [uid]) if joined else []
+        for member in new_members:
+            if member not in sess.participants:
+                sess.participants.append(member)
+            if member not in sess.roster:
+                sess.roster.append(member)
+            fm.player_coords[member] = coord
+            player = run.players.get(member)
+            if player is not None:
+                self._sync_stage_for_coord(run, player, coord)
+                sync_active(member, run=run)
+            fm.player_session_map[member] = existing_sid
+        fm.player_session_map[uid] = existing_sid
+        SessionContextScoper.bind_to_run(run, uid)
+        for member in new_members:
+            self.map_engine.battle_engine.join_battle(run, member)
+        self.save_manager.save_save(uid, run)
+        rendered = GameRenderer.render_game(run)
+        if not joined:
+            return rendered
+        return f"{get_locale_text('i18n_grid_map.battle_joined', coord=coord)}\n\n{rendered}"
+
+    def _start_battle(self, run, uid: str, coord: str, room, difficulty: str, corpse: dict | None = None, hostile_npc_id: str = "", battle_mode: str = "") -> str:
         fm = run.floor_map
         mode = battle_mode or resolve_battle_mode(getattr(room, "room_type", ""), difficulty)
         existing_sid = self._find_session_at(fm, coord, "battle")
         if existing_sid:
-            sess = fm.active_sessions[existing_sid]
-            if session_battle_mode(sess.node_data) == BATTLE_MODE_FORCED_SOLO and uid not in sess.participants:
-                return self._forced_solo_battle_block(run, uid, coord)
-            joined = uid not in sess.participants
-            new_members = SessionContextScoper.expand_with_mercenaries(run, [uid]) if joined else []
-            for member in new_members:
-                if member not in sess.participants:
-                    sess.participants.append(member)
-                if member not in sess.roster:
-                    sess.roster.append(member)
-                fm.player_coords[member] = coord
-                player = run.players.get(member)
-                if player is not None:
-                    self._sync_stage_for_coord(run, player, coord)
-                    sync_active(member, run=run)
-                fm.player_session_map[member] = existing_sid
-            fm.player_session_map[uid] = existing_sid
-            SessionContextScoper.bind_to_run(run, uid)
-            for member in new_members:
-                self.map_engine.battle_engine.join_battle(run, member)
-            self.save_manager.save_save(uid, run)
-            rendered = GameRenderer.render_game(run)
-            if not joined:
-                return rendered
-            return f"{get_locale_text('i18n_grid_map.battle_joined', coord=coord)}\n\n{rendered}"
+            return self._join_battle_session(run, uid, coord, existing_sid)
 
         participants = [uid]
         if mode == BATTLE_MODE_TEAM:

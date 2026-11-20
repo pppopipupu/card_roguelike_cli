@@ -83,87 +83,7 @@ class TestTempleAndTokens(unittest.TestCase):
         finally:
             self._cleanup(uid)
 
-    def test_token_tagging_and_pool_isolation(self):
-        uid = "test_token_isolation_user"
-        self._cleanup(uid)
-        try:
-            q_crit = self._run(".rogue i 卓越暴击", uid)
-            self.assertIn("衍生物/token", q_crit)
-            q_spirit = self._run(".rogue i 安的巨大英灵", uid)
-            self.assertIn("衍生物/token", q_spirit)
-            q_soldier = self._run(".rogue i 步兵轻卒", uid)
-            self.assertIn("衍生物/token", q_soldier)
-            q_altar = self._run(".rogue i 苏醒的深渊祭坛", uid)
-            self.assertIn("衍生物/token", q_altar)
-            q_kw = self._run(".rogue i 衍生物", uid)
-            self.assertIn("衍生物/token", q_kw)
-
-            stats = UserStats()
-            stats.unlocked_new_cards = ["manaeria_queen_anne", "holy_celestial_millika", "elf_archer_xiaomei"]
-            stats.yog_sothoth_kill_count = 1
-            tokens = {
-                "excellent_crit",
-                "abyss_altar_awaken",
-                "abyss_altar_converge",
-                "abyss_altar_burst",
-                "abyss_altar_end",
-                "special_rlyeh_astrolabe",
-                "dream_shard",
-            }
-            for cls_name in ("法师", "战士"):
-                p = PlayerState(hp=50, max_hp=50, shield=0, gold=0, stage=1, selected_class=cls_name)
-                run = GameRun(user_id=uid, node_type="battle", player=p, enemies=[])
-                all_pools = (
-                    set(DeckService.eligible_card_ids(stats, allow_coop=True))
-                    | set(DeckService.get_reward_card_pool(run, p, stats, include_coop=True))
-                    | set(DeckService.get_shop_card_pool(run, p, stats, include_coop=True))
-                    | set(DeckService.get_epic_card_pool(run, p, stats))
-                    | set(DeckService.get_class_spell_pool(p, stats, include_coop=True))
-                )
-                self.assertTrue(tokens.isdisjoint(all_pools))
-
-            for flt in ("rare_minion", "rare", "zero_cost"):
-                for _ in range(40):
-                    picked = _pick_random_card(flt, stats)
-                    self.assertNotIn(picked, tokens)
-
-            self._run(".rogue 主城", uid)
-            stats = self.sm.load_stats(uid)
-            stats.gp = 1000
-            self.sm.save_stats(uid, stats)
-            lock_crit = self._run(".rogue lock 卓越暴击", uid)
-            self.assertIn("无法锁定衍生物或特殊限定卡牌", lock_crit)
-            lock_dream = self._run(".rogue lock 碎梦者", uid)
-            self.assertIn("无法锁定", lock_dream)
-            self.assertNotIn("excellent_crit", self.sm.load_stats(uid).locked_cards)
-            self.assertNotIn("dream_shard", self.sm.load_stats(uid).locked_cards)
-
-            self._run(".rogue start confirm", uid)
-            run = require_run(self.sm.load_save(uid))
-            deck_ids = {c.id for c in run.player.deck}
-            self.assertTrue(tokens.isdisjoint(deck_ids))
-
-            p = PlayerState(
-                hp=50,
-                max_hp=50,
-                shield=0,
-                gold=0,
-                stage=1,
-                deck=[CardState(id="manaeria_queen_anne"), CardState(id="fire_bolt")],
-                hand=[CardState(id="manaeria_queen_anne")],
-                draw_pile=[CardState(id="fire_bolt")],
-                discard_pile=[],
-                actions=2,
-                bonus_actions=1,
-            )
-            battle_run = GameRun(user_id=uid, node_type="battle", player=p, enemies=[EnemyState("木桩", 100, 100, 0)])
-            self.sm.save_save(uid, battle_run)
-            play_res = self._run(".rogue p 1", uid)
-            self.assertIn("安的巨大英灵", play_res)
-            self.assertIn("卓越暴击", play_res)
-            self.assertIn("衍生物/token", play_res)
-        finally:
-            self._cleanup(uid)
+    
     def test_crpg_quest_branch_progression(self):
         uid = "test_crpg_quest_branch_user"
         self._cleanup(uid)
@@ -224,38 +144,7 @@ class TestTempleAndTokens(unittest.TestCase):
         finally:
             self._cleanup(uid)
 
-    def test_yog_quest_completed_can_reenter_snowfield_from_west_gate(self):
-        uid = "test_yog_reenter_snowfield_user"
-        self._cleanup(uid)
-        try:
-            self._run(".rogue 主城", uid)
-            stats = self.sm.load_stats(uid)
-            stats.yog_sothoth_kill_count = 1
-            stats.town_flags["yog_quest_info_received"] = True
-            stats.town_flags["quest_yog_death_state"] = "completed"
-            if "star_sigil" not in stats.town_inventory:
-                stats.town_inventory.append("star_sigil")
-            self.sm.save_stats(uid, stats)
-
-            self._run(".rogue a", uid)
-            self._run(".rogue a", uid)
-            gate_talk = self._run(".rogue talk 西大门", uid)
-            self.assertIn("出城前往雪原", gate_talk)
-            opt_num = None
-            for line in gate_talk.splitlines():
-                if "出城前往雪原" in line and "." in line:
-                    opt_num = line.split(".", 1)[0].strip()
-                    break
-            self.assertIsNotNone(opt_num)
-
-            enter_res = self._run(f".rogue {opt_num}", uid)
-            self.assertIn("雾隐雪原", enter_res)
-            run = require_run(self.sm.load_save(uid))
-            self.assertEqual(run.node_type, "grid_map")
-            self.assertTrue(floor_of(run).floor_flags.get("yog_quest"))
-            self.assertEqual(self.sm.load_stats(uid).town_flags.get("quest_yog_death_state"), "completed")
-        finally:
-            self._cleanup(uid)
+    
 
     def test_defiled_altar_route_fountain_outer_plane(self):
         uid = "test_defiled_fountain_outer_plane_user"

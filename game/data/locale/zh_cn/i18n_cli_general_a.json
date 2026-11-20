@@ -21,7 +21,7 @@
     "current": "🧙 当前主职业：{class_name}  🔮 当前子职业：{subclass}",
     "main_title": "【可用的主职业】",
     "main_wizard": "1. 法师 (wizard)",
-    "main_wizard_desc": "   └─ 使用蓝色法术牌和护符。可以使用子职业。初始生命 45。",
+    "main_wizard_desc": "   └─ 使用蓝色法术牌和护符。可以使用子职业。初始生命 50。",
     "main_warrior": "2. 战士 (warrior)",
     "main_warrior_desc": "   └─ 使用红色物理牌。无子职业。拥有被动“动作如潮”（/rogue sk 获得 2A，或者 /rogue k 直接触发，一场战斗限两次，初始生命 80）。",
     "sub_title": "【可用的子职业（仅法师可用）】",
@@ -45,11 +45,16 @@
     "switched_warrior": "🔴 主职业已切换为【战士】。将在新的一局游戏中生效！",
     "switched_wizard": "🧙 主职业已切换为【法师】。将在新的一局游戏中生效！",
     "warrior_no_sub": "❌ 战士职业没有子职业，无法装备子职业。如需装备子职业，请先切换到法师职业。",
-    "invalid_sub": "❌ 无效的子职业。可选：1 (时序法师)、2 (塑能法师)、3 (秘钥学者)、0 (无)，或输入 法师/战士 切换主职业。",
+    "invalid_sub": "❌ 无效的子职业。可选：1 (时序法师)、2 (塑能法师)、3 (秘钥学者)、0 (无)，或输入 wizard/warrior/ninja 切换主职业。",
     "sub_cancelled": "🔮 已取消子职业选择。当前以基础法师开始游戏。",
     "sub_locked": "❌ 你尚未解锁【{subclass_name}】。需要消耗 {price} GP，请前往主城商店与神秘店主对话购买。",
     "sub_selected": "🔮 已选择子职业为【{subclass_name}】。将在新的一局游戏中生效！",
-    "invalid_format": "❌ 格式错误。请使用 /rogue 职业 (/rogue class) 或 /rogue 职业 选择/c (/rogue class select) <职业名|子职业序号>。"
+    "invalid_format": "❌ 格式错误。请使用 /rogue 职业 (/rogue class) 或 /rogue 职业 选择/c (/rogue class select) <职业名|子职业序号>。",
+    "main_ninja": "3. 蕾忍 (ninja)",
+    "main_ninja_desc": "   └─ 使用 🥷 忍术、科学忍具、食物与沙壁体系。无子职业。初始遗物【藕盒】（开战获得 2 点蕾克拉），初始生命 40。",
+    "cmd_ninja": "👉 /rogue class ninja -- 切换到蕾忍职业",
+    "switched_ninja": "🥷 主职业已切换为【蕾忍】。将在新的一局游戏中生效！",
+    "ninja_no_sub": "❌ 蕾忍职业没有子职业，无法装备子职业。如需装备子职业，请先切换到法师职业。"
   },
   "lock": {
     "rarity_common": "普通",

@@ -6,7 +6,7 @@ from .entities.cards.market import is_card_available, is_coop_only
 from .models.manager import SaveManager
 from .core.battle.engine import BattleEngine
 from .core.world.map_engine import MapEngine
-from .data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
+from .data.starting_deck_config import CLASS_BASE_HP, CLASS_STARTING_CARDS, DEFAULT_BASE_HP, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
 
 class GameEngine:
     def __init__(self, save_manager: SaveManager):
@@ -24,15 +24,11 @@ class GameEngine:
         stats.town_flags.pop("market_shelf", None)
         selected_class = getattr(stats, "selected_class", "法师")
         selected_subclass = getattr(stats, "selected_subclass", "")
-        if selected_class == "战士":
+        if selected_class in ("战士", "蕾忍"):
             selected_subclass = ""
-            allowed_colors = ("warrior", "neutral")
-            hp = 80
-            max_hp = 80
-        else:
-            allowed_colors = ("wizard", "neutral")
-            hp = 45
-            max_hp = 45
+        base_hp = CLASS_BASE_HP.get(selected_class, DEFAULT_BASE_HP)
+        hp = base_hp
+        max_hp = base_hp
         hp_bonus = getattr(stats, "town_health_bonus", 0)
         hp += hp_bonus
         max_hp += hp_bonus
@@ -61,6 +57,9 @@ class GameEngine:
             subclass=selected_subclass,
             selected_class=selected_class
         )
+        if selected_class == "蕾忍" and "lotus_box" not in player.relics:
+            from .core.inventory.relic_service import grant_relic
+            grant_relic(player, "lotus_box")
         from .core.inventory.bag_service import carryin_from_stats
         carryin_from_stats(player, stats)
         self.save_manager.save_stats(user_id, stats)
@@ -184,6 +183,12 @@ class GameEngine:
 
     def gem_insert_cancel(self, run: GameRun) -> str:
         return self.map_engine.gem_insert_cancel(run)
+
+    def enchant_choose(self, run: GameRun, option_idx: int) -> str:
+        return self.map_engine.enchant_choose(run, option_idx)
+
+    def enchant_cancel(self, run: GameRun) -> str:
+        return self.map_engine.enchant_cancel(run)
 
     def jump_to_stage(self, run: GameRun, target_stage: int) -> str:
         from .core.world.grid_map_generator import generate_floor_map

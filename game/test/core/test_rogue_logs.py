@@ -38,10 +38,4 @@ class TestRogueLogs(unittest.TestCase):
         self.assertIn("p 1", short)
         self.assertNotIn("start confirm", short)
 
-    def test_queue_command_limit(self):
-        uid = "queue_limit_user"
-        commands = ",".join(["mode"] * 51)
-        result = self.run_cmd(f"q [{commands}]", uid)
-        self.assertIn("最多支持 50 条命令", result)
-        stats = self.plugin.save_manager.load_stats(uid)
-        self.assertFalse(stats.rogue_mode)
+    

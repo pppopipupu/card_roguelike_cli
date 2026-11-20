@@ -105,6 +105,9 @@ class GameRenderer:
             return render_boss_chest(run)
         elif nt == "gem_insert":
             return run.node_data.get("text", "") + "\n\n" + render_deck(run)
+        elif nt == "enchant_card":
+            from ..core.world.enchant_flow import render_enchant_card
+            return render_enchant_card(run)
         elif nt == "cafe":
             from ..core.world.cafe.engine import CafeEngine
             return CafeEngine(None, None).render_cafe(run)

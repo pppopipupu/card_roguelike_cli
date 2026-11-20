@@ -46,6 +46,9 @@ class BattleEngine(BaseBattleEngine):
         self.exhaustion_observer = ExhaustionObserver(self.event_bus, self)
         self.anna_handler = AnnaCardHandler(self.event_bus, self)
         self.millika_handler = MillikaCardHandler(self.event_bus, self)
+        from ...models.events import LexKelaChangedEvent
+        from .ninja_runtime import handle_lex_kela_changed
+        self.event_bus.subscribe(LexKelaChangedEvent, lambda evt: handle_lex_kela_changed(self, evt))
 
     def _effective_log_uid(self, run: GameRun) -> str:
         effective_uid = run.user_id
@@ -268,7 +271,7 @@ class BattleEngine(BaseBattleEngine):
             stats_class = getattr(stats, "selected_class", "")
             if stats_class:
                 p.selected_class = stats_class
-                if stats_class == "战士":
+                if stats_class in ("战士", "蕾忍"):
                     p.subclass = ""
                 else:
                     p.subclass = getattr(stats, "selected_subclass", "") or p.subclass
@@ -284,6 +287,8 @@ class BattleEngine(BaseBattleEngine):
         import random
         random.shuffle(p.draw_pile)
         p.discard_pile.clear()
+        from .enchantment_runtime import apply_grave_enchantments_at_battle_start
+        apply_grave_enchantments_at_battle_start(self, run, p)
         p.exhaust_pile.clear()
         p.minion_graveyard.clear()
         p.enemy_graveyard.clear()
@@ -298,6 +303,8 @@ class BattleEngine(BaseBattleEngine):
         p.actions = 2
         p.bonus_actions = 1
         p.shield = 0
+        p.lex_kela = 0
+        run.node_data[run.turn_key("lex_kela_spent_this_turn", p)] = False
         run.node_data[run.turn_key("cards_played_this_turn", p)] = 0
         selected_class = getattr(p, "selected_class", "法师")
         if selected_class == "战士":

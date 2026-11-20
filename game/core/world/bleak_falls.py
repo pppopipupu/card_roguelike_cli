@@ -1,7 +1,7 @@
 import random
 from typing import Any, Optional
 
-from ...data.battle_mode_config import BATTLE_MODE_FORCED_SOLO
+from ...data.battle_mode_config import BATTLE_MODE_SOLO
 from ...data.grid_map_config import FLOOR_CONFIGS, PASSABLE_ROOM_TYPES, ROOM_ICONS
 from ...data.locale_data import get_locale_text
 from ...data.map_quest_config import (
@@ -256,6 +256,7 @@ def enter_bleak_floor(save_manager, map_engine, run: GameRun, target_floor: floa
         if pl is not None and pl.stage < stage_min:
             pl.stage = stage_min
     update_bleak_falls_stage(run, stats, stage_key)
+    map_engine.open_floor_arrival_ancient(run)
     if save_manager is not None:
         if stats is not None:
             save_manager.save_stats(run.user_id, stats)
@@ -555,7 +556,9 @@ def apply_bleak_falls_encounter(battle_engine, run: GameRun, room: RoomState) ->
         built.append(battle_engine._build_enemy_state(ename, hp_val, act_a, act_ba))
     if not built:
         return False
+    from ..battle.party_battle import assign_enemy_targets, scale_party_enemies
     run.enemies = built
+    scale_party_enemies(run)
     room.shared_payload["bleak_falls_combat_tag"] = room.room_type
     run.node_data["bleak_falls_combat_tag"] = room.room_type
     run.node_data["bleak_falls_room_coord"] = room.coord
@@ -564,20 +567,31 @@ def apply_bleak_falls_encounter(battle_engine, run: GameRun, room: RoomState) ->
     if room.shared_payload.get("elite_name"):
         run.node_data["elite_name"] = room.shared_payload["elite_name"]
     battle_engine.enemy_controller.roll_enemy_intent(run)
+    assign_enemy_targets(run)
     return True
 
 
 def _start_arvel_combat(map_engine, run: GameRun, room: RoomState) -> str:
-    battle_engine = map_engine.battle_engine
-    arvel_name = get_locale_text("i18n_room_interact.npcs.arvel_trapped.enemy_name")
-    from ...data.enemy_data import ENEMY_CONFIG
-    cfg = ENEMY_CONFIG.get(arvel_name, {})
-    hp_val = int(str(cfg.get("hp", "30")).split()[0])
-    enemy = battle_engine._build_enemy_state(arvel_name, hp_val, 1, 1)
+    from ...renderer import GameRenderer
     fm = run.floor_map
     old_sid = fm.player_session_map.get(run.user_id, "") if fm is not None else ""
     if old_sid and fm is not None and old_sid in fm.active_sessions:
         SessionContextScoper.close_session(run, old_sid, mark_cleared=False)
+    if room.shared_payload.get("arvel_done") or NPC_ARVEL_TRAPPED not in room.npcs:
+        if map_engine.save_manager is not None:
+            map_engine.save_manager.save_save(run.user_id, run)
+        return GameRenderer.render_game(run)
+    if fm is not None:
+        existing_sid = map_engine.grid_map_service._find_session_at(fm, room.coord, "battle")
+        if existing_sid:
+            return map_engine.grid_map_service._join_battle_session(run, run.user_id, room.coord, existing_sid)
+    battle_engine = map_engine.battle_engine
+    arvel_name = get_locale_text("i18n_room_interact.npcs.arvel_trapped.enemy_name")
+    from ...data.enemy_data import ENEMY_CONFIG
+    from ..battle.party_battle import assign_enemy_targets
+    cfg = ENEMY_CONFIG.get(arvel_name, {})
+    hp_val = int(str(cfg.get("hp", "30")).split()[0])
+    enemy = battle_engine._build_enemy_state(arvel_name, hp_val, 1, 1)
     room.shared_payload["bleak_falls_combat_tag"] = "arvel"
     SessionContextScoper.create_session(
         run,
@@ -586,7 +600,7 @@ def _start_arvel_combat(map_engine, run: GameRun, room: RoomState) -> str:
         [run.user_id],
         node_data={
             "difficulty": "normal",
-            "battle_mode": BATTLE_MODE_FORCED_SOLO,
+            "battle_mode": BATTLE_MODE_SOLO,
             "bleak_falls_combat_tag": "arvel",
             "bleak_falls_room_coord": room.coord,
         },
@@ -594,9 +608,9 @@ def _start_arvel_combat(map_engine, run: GameRun, room: RoomState) -> str:
     battle_engine._init_battle_node(run, "normal")
     run.enemies = [enemy]
     battle_engine.enemy_controller.roll_enemy_intent(run)
+    assign_enemy_targets(run)
     if map_engine.save_manager is not None:
         map_engine.save_manager.save_save(run.user_id, run)
-    from ...renderer import GameRenderer
     return f"{_t('arvel.fight_start')}\n\n{GameRenderer.render_game(run)}"
 
 

@@ -205,15 +205,8 @@ def handle_start_ancient(engine, run, option_idx, target=None) -> str | None:
     rid = chosen["relic"]
     from ..inventory.relic_service import grant_relic
     grant_relic(p, rid)
-    if rid == "mark_of_fury":
-        p.max_hp = max(5, p.max_hp - 3)
-        p.hp = min(p.hp, p.max_hp)
-    elif rid == "vampiric_touch":
-        p.max_hp = max(5, p.max_hp - 4)
-        p.hp = min(p.hp, p.max_hp)
-    elif rid == "glacier_armor":
-        p.max_hp = max(5, p.max_hp - 6)
-        p.hp = min(p.hp, p.max_hp)
+    from .ancient_reward import apply_ancient_relic_side_effects
+    apply_ancient_relic_side_effects(p, rid)
     bonus_str = get_locale_text("i18n_explore_core.ancient_relic_bonus", relic_name=get_relic_name(rid))
     if chosen["type"] == "contract":
         cid = chosen["card"]
@@ -592,11 +585,8 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
                 break
         msg = get_locale_text("i18n_coop_explore.mend_success", ally_name=ally.name, heal=heal, removed=removed)
         return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
-    if option_idx == 4:
-        run.node_data["upgrade_source"] = "rest"
-        run.node_data["pending_upgrade"] = True
-        engine.save_manager.save_save(run.user_id, run)
-        return "UPGRADE_FLOW"
+    if (option_idx == 4 and not multi) or (option_idx == 5 and multi):
+        return engine.start_enchant_flow(run, "rest", "rest", dict(run.node_data))
     return get_locale_text("err_invalid_option_idx")
 
 
@@ -721,6 +711,16 @@ def handle_shop(engine, run, option_idx, target=None) -> str | None:
         run.node_data["upgrade_price"] = price
         run.node_data["upgrade_source"] = "shop"
         return "UPGRADE_FLOW"
+    elif itype == "enchant":
+        shop_node_data = {
+            "items": items,
+            "shop_mode": "wares",
+            "entered_via_lobby": run.node_data.get("entered_via_lobby", False),
+            "merchant_defeated": run.node_data.get("merchant_defeated", False),
+            "haggled": run.node_data.get("haggled", False),
+            "discount_mult": run.node_data.get("discount_mult", 1.0),
+        }
+        return engine.start_enchant_flow(run, "shop", "shop", shop_node_data, price=price)
     elif itype == "leave":
         if run.node_data.get("entered_via_lobby"):
             from .rooms.shop_dialog import render_shop_view

@@ -33,6 +33,7 @@ CARD_FULL_FIELDS = (
     "id",
     "upgraded",
     "gems",
+    "enchantments",
     "return_left",
     "replay",
     "fragile",
@@ -41,7 +42,7 @@ CARD_FULL_FIELDS = (
     "exhaust_used",
     "fleeting_used",
 )
-CARD_BASE_FIELDS = ("id", "upgraded", "gems")
+CARD_BASE_FIELDS = ("id", "upgraded", "gems", "enchantments")
 
 
 class Spot:

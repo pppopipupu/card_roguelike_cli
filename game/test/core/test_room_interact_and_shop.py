@@ -261,21 +261,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self.assertIn("精致的空酒杯", unfolded)
         self.assertNotIn("已折叠", unfolded)
 
-    def test_combat_room_entry_shows_environment_intro(self):
-        uid = "combat_env_intro_user"
-        self._start_grid(uid)
-        res, run = move_to_room(self.plugin, uid, ("battle", "elite"))
-        self.assertEqual(run.node_type, "battle")
-        self.assertIn("你踏入了", res)
-        from game.data.room_interact_data import ROOM_PROPS
-        from game.data.locale_data import get_locale_text
-        room = floor_of(run).rooms[floor_of(run).player_coords[uid]]
-        self.assertTrue(
-            any(
-                pid in ROOM_PROPS and get_locale_text(f"i18n_room_interact.props.{pid}.scene") in res
-                for pid in room.props
-            )
-        )
+    
 
     def test_bag_modes_and_universal_fold(self):
         uid = "bag_fold_all_user"

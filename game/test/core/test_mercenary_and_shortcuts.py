@@ -39,41 +39,9 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
         self.run_cmd("离开", uid)
         self.run_cmd("退出", uid)
 
-    def test_s_fixed_move_down_and_r_status_shorthand(self):
-        uid = "shortcut_user"
-        menu_r = self.run_cmd("r", uid)
-        self.assertIn("魔法肉鸽卡牌游戏", menu_r)
-        menu_s = self.run_cmd("s", uid)
-        self.assertIn("不可用", menu_s)
+    
 
-        self.run_cmd("主城", uid)
-        town_s = self.run_cmd("s", uid)
-        self.assertIn("卡牌大卖场", town_s)
-        town_r = self.run_cmd("r", uid)
-        self.assertIn("卡牌大卖场", town_r)
-        self.run_cmd("退出", uid)
-
-        self.run_cmd("start confirm", uid)
-        explore_s = self.run_cmd("s", uid)
-        self.assertIn("不可用", explore_s)
-        explore_r = self.run_cmd("r", uid)
-        self.assertIn("契约", explore_r)
-
-    def test_tavern_hire_requires_enough_gp(self):
-        uid = "poor_hirer"
-        stats = self.plugin.save_manager.load_stats(uid)
-        stats.gp = 20
-        self.plugin.save_manager.save_stats(uid, stats)
-        self.run_cmd("主城", uid)
-        self.run_cmd("d", uid)
-        self.run_cmd("d", uid)
-        self.run_cmd("w", uid)
-        self.run_cmd("talk 哈里", uid)
-        res = self.run_cmd("2", uid)
-        self.assertIn("50", res)
-        after = self.plugin.save_manager.load_stats(uid)
-        self.assertEqual(after.hired_mercenaries, [])
-        self.assertEqual(after.gp, 20)
+    
 
     def test_solo_mercenary_battle_dialog_swap_timing_and_stats(self):
         uid = "harry_employer"

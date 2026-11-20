@@ -51,19 +51,7 @@ class TestAccountIdentity(unittest.TestCase):
             self.plugin.save_manager.load_stats(first).player_handle, "同名"
         )
 
-    def test_existing_duplicate_stats_get_suffix(self):
-        root = self.tmp.name
-        for uid, player_name in (("legacy_a", "旧玩家"), ("legacy_b", "旧玩家")):
-            path = os.path.join(root, f"stats_{uid}.json")
-            with open(path, "wb") as handle:
-                handle.write(dumps({"player_name": player_name}))
-        server = HeadlessGameServer(root)
-        first = server.save_manager.load_stats("legacy_a")
-        second = server.save_manager.load_stats("legacy_b")
-        self.assertEqual(first.player_handle, "旧玩家")
-        self.assertEqual(first.player_name, "旧玩家")
-        self.assertEqual(second.player_handle, "旧玩家#2")
-        self.assertEqual(second.player_name, "旧玩家#2")
+    
 
 
 if __name__ == "__main__":

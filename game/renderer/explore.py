@@ -109,6 +109,8 @@ def render_shop_wares(run: GameRun) -> str:
             lines.append(get_locale_text("renderer_explore.shop_remove", idx=idx, price=price))
         elif itype == "upgrade":
             lines.append(get_locale_text("renderer_explore.shop_upgrade", idx=idx, price=price))
+        elif itype == "enchant":
+            lines.append(get_locale_text("i18n_enchantment.ui.shop_option", idx=idx, price=price))
         elif itype == "leave":
             lines.append(get_locale_text("renderer_explore.shop_leave", idx=idx))
     lines.append(get_locale_text("renderer_explore.separator"))
@@ -150,6 +152,8 @@ def render_rest(run: GameRun) -> str:
             lines.append(f" [{idx}] {get_locale_text('render_rest_upgrade')}")
         elif itype == "rest_mend":
             lines.append(get_locale_text("renderer_explore.rest_mend", idx=idx))
+        elif itype == "rest_enchant":
+            lines.append(f" [{idx}] {get_locale_text('i18n_enchantment.ui.rest_option')}")
     lines.append(get_locale_text("renderer_explore.separator"))
     if p.fold_guide:
         lines.append(get_locale_text("renderer_explore.guide_folded"))

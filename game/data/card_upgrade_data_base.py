@@ -383,10 +383,11 @@ CARD_UPGRADE_CONFIG_BASE = {
         "desc": "对目标敌人造成 15 点黯蚀伤害，并施加 5 层虚空弱化。消耗。"
     },
     "glacier_tempest": {
-        "cost_a": 2,
-        "cost_ba": 1,
-        "base_dmg": 18,
-        "desc": "对所有敌人造成 18 点冰霜伤害。若场上存在任何我方随从，则获得等同于本次造成总伤害值 50% 的护盾。消耗。"
+        "cost_a": 1,
+        "cost_ba": 0,
+        "base_dmg": 24,
+        "buff_stacks": 3,
+        "desc": "对所有敌人造成 24 点冰霜伤害并施加 3 层轻度寒冷易伤，随后获得等同于本次造成总伤害值 50% 的护盾。消耗。"
     },
     "neutral_banish_slash": {
         "base_dmg": 22,

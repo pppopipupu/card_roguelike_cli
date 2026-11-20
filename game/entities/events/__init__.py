@@ -15,6 +15,8 @@ from .goblin_gamble import *
 from .fairy_tea import *
 from .void_contract import *
 from .forge_furnace import *
+from .enchant_altar import *
+from .ninja_events import *
 from .leave import *
 from .portal_chamber import *
 from .chaos_events import *
@@ -121,9 +123,64 @@ ALL_EVENTS = [
             OverloadForgeOption(get_locale_text("i18n_events_c.opt_forge_overload"), "overload_forge"),
             ForgeBackfireOption(get_locale_text("i18n_events_c.opt_forge_backfire"), "forge_backfire"),
             ShatterForgeOption(get_locale_text("i18n_events_c.opt_forge_shatter"), "shatter_forge"),
+            ForgeEnchantOption(get_locale_text("i18n_enchantment.events.forge_enchant_text"), "forge_enchant"),
             LeaveEventOption(get_locale_text("i18n_events_c.opt_forge_leave"), "leave_event", "forge_furnace")
         ],
         min_stage=2,
+        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+    ),
+    EventTemplate(
+        "enchant_altar",
+        get_locale_text("i18n_enchantment.events.enchant_altar_desc"),
+        [
+            EnchantAltarEchoOption(get_locale_text("i18n_enchantment.events.enchant_altar_opt_echo"), "enchant_altar_echo"),
+            EnchantAltarChaosOption(get_locale_text("i18n_enchantment.events.enchant_altar_opt_chaos"), "enchant_altar_chaos"),
+            EnchantAltarEscapeOption(get_locale_text("i18n_enchantment.events.enchant_altar_opt_escape"), "enchant_altar_escape"),
+        ],
+        min_stage=1,
+        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+    ),
+    EventTemplate(
+        "ninja_the_spectre",
+        get_locale_text("i18n_ninja_events.spectre_desc"),
+        [
+            NinjaSpectreAcceptOption(get_locale_text("i18n_ninja_events.spectre_opt_accept"), "ninja_spectre_accept"),
+            NinjaSpectreAlanOption(get_locale_text("i18n_ninja_events.spectre_opt_alan"), "ninja_spectre_alan"),
+            LeaveEventOption(get_locale_text("i18n_ninja_events.spectre_opt_leave"), "leave_event", "ninja_the_spectre"),
+        ],
+        min_stage=1,
+        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+    ),
+    EventTemplate(
+        "ninja_the_great_seal",
+        get_locale_text("i18n_ninja_events.seal_desc"),
+        [
+            NinjaSealRelicsOption(get_locale_text("i18n_ninja_events.seal_opt_relics"), "ninja_seal_relics"),
+            NinjaSealRemoveOption(get_locale_text("i18n_ninja_events.seal_opt_remove"), "ninja_seal_remove"),
+            NinjaSealHamoodOption(get_locale_text("i18n_ninja_events.seal_opt_hamood"), "ninja_seal_hamood"),
+        ],
+        min_stage=1,
+        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+    ),
+    EventTemplate(
+        "ninja_drink",
+        get_locale_text("i18n_ninja_events.drink_desc"),
+        [
+            NinjaDrinkSipOption(get_locale_text("i18n_ninja_events.drink_opt_sip"), "ninja_drink_sip"),
+            LeaveEventOption(get_locale_text("i18n_ninja_events.drink_opt_leave"), "leave_event", "ninja_drink"),
+        ],
+        min_stage=1,
+        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+    ),
+    EventTemplate(
+        "ninja_man_yu_dian",
+        get_locale_text("i18n_ninja_events.eel_desc"),
+        [
+            NinjaEelBuyOption(get_locale_text("i18n_ninja_events.eel_opt_buy"), "ninja_eel_buy"),
+            NinjaEelFightOption(get_locale_text("i18n_ninja_events.eel_opt_fight"), "ninja_eel_fight"),
+            NinjaEelLeaveOption(get_locale_text("i18n_ninja_events.eel_opt_leave"), "ninja_eel_leave"),
+        ],
+        min_stage=1,
         max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
     ),
     EventTemplate(

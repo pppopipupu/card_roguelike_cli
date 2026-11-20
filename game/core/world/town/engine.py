@@ -6,7 +6,7 @@ from ....json_codec import load
 from ....entities import ALL_CARDS
 from ....entities.cards.market import MARKET_SHELF_CARDS, is_card_available
 from ....data.locale_data import get_locale_text
-from ....data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
+from ....data.starting_deck_config import CLASS_BASE_HP, CLASS_STARTING_CARDS, DEFAULT_BASE_HP, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
 from ...inventory.bag_service import get_item_display_name
 
 from ....data.yog_quest_config import YOG_SIGIL_ITEM
@@ -465,13 +465,10 @@ class TownEngine:
     def build_combat_player(self, user_id: str, stats: UserStats, hp: int | None = None, max_hp: int | None = None) -> PlayerState:
         selected_class = getattr(stats, "selected_class", "法师")
         selected_subclass = getattr(stats, "selected_subclass", "")
-        if selected_class == "战士":
+        if selected_class in ("战士", "蕾忍"):
             selected_subclass = ""
-            allowed_colors = ("warrior", "neutral")
-        else:
-            allowed_colors = ("wizard", "neutral")
         if hp is None:
-            resolved_hp = 80 if selected_class == "战士" else 45
+            resolved_hp = CLASS_BASE_HP.get(selected_class, DEFAULT_BASE_HP)
             resolved_hp += getattr(stats, "town_health_bonus", 0)
         else:
             resolved_hp = hp

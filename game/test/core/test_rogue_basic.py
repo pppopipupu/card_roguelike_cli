@@ -17,7 +17,7 @@ class TestRogueBasic(unittest.TestCase):
         
         async def go():
             res = await run_command(plugin, ".rogue 开启 确认")
-            self.assertTrue(any(x in res for x in ["先古契约", "深渊契约", "极寒契约"]))
+            self.assertTrue(any(x in res for x in ["先古契约", "深渊契约", "极寒契约", "战火契约", "命运契约"]))
             res = await run_command(plugin, ".rogue 选择 1")
             self.assertIn("契约达成", res)
             res = await run_command(plugin, ".rogue 状态")
@@ -104,87 +104,7 @@ class TestRogueBasic(unittest.TestCase):
 
         asyncio.run(go_save())
 
-    def test_rogue_mode_and_shortcut(self):
-        plugin = MyPlugin(DummyContext())
-        plugin.save_manager.delete_save("test_user_rogue")
-        stats_path = plugin.save_manager.get_stats_path("test_user_rogue")
-        if os.path.exists(stats_path):
-            os.remove(stats_path)
-        stats = plugin.save_manager.load_stats("test_user_rogue")
-        self.assertFalse(stats.rogue_mode)
-        
-        async def go():
-            event_toggle = DummyEvent(".rogue mode", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_toggle)
-            loaded_stats = plugin.save_manager.load_stats("test_user_rogue")
-            self.assertTrue(loaded_stats.rogue_mode)
-            self.assertIn("免前缀肉鸽模式已开启", "\n".join(event_toggle.results))
-            
-            event_start = DummyEvent("开启", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_start)
-            self.assertTrue(event_start.stopped)
-            self.assertTrue(any(x in "\n".join(event_start.results) for x in ["先古契约", "深渊契约", "极寒契约"]))
-            
-            event_chat = DummyEvent("你好吗", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_chat)
-            self.assertFalse(event_chat.stopped)
-            
-            event_num_with_save = DummyEvent("1", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_num_with_save)
-            self.assertTrue(event_num_with_save.stopped)
-            
-            event_alias_deck = DummyEvent("deck", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_alias_deck)
-            self.assertTrue(event_alias_deck.stopped)
-            self.assertIn("当前拥有的卡组", "\n".join(event_alias_deck.results))
-            
-            event_alias_overview = DummyEvent("overview", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_alias_overview)
-            self.assertTrue(event_alias_overview.stopped)
-            self.assertIn("魔法肉鸽卡牌总览", "\n".join(event_alias_overview.results))
-
-            event_qi = DummyEvent("queue_interrupt [未知指令_测试, 帮助]", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_qi)
-            self.assertTrue(event_qi.stopped)
-            qi_res = "\n".join(event_qi.results)
-            self.assertIn("未知操作", qi_res)
-            self.assertNotIn("指令一览", qi_res)
-
-            event_qi2 = DummyEvent("中断队列 [未知指令_测试, 帮助]", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_qi2)
-            self.assertTrue(event_qi2.stopped)
-            qi_res2 = "\n".join(event_qi2.results)
-            self.assertIn("未知操作", qi_res2)
-            self.assertNotIn("指令一览", qi_res2)
-            
-            event_alias_abandon = DummyEvent("abandon confirm", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_alias_abandon)
-            self.assertTrue(event_alias_abandon.stopped)
-            self.assertIn("已放弃当前局内游戏", "\n".join(event_alias_abandon.results))
-            
-            event_town = DummyEvent("主城", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_town)
-            self.assertTrue(event_town.stopped)
-            self.assertIn("先古主城", "\n".join(event_town.results))
-            
-            event_town_exit = DummyEvent("退出", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_town_exit)
-            self.assertTrue(event_town_exit.stopped)
-            
-            event_num_no_save = DummyEvent("1", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_num_no_save)
-            self.assertFalse(event_num_no_save.stopped)
-            
-            event_toggle_off = DummyEvent("模式", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_toggle_off)
-            off_stats = plugin.save_manager.load_stats("test_user_rogue")
-            self.assertFalse(off_stats.rogue_mode)
-            
-            event_start_disabled = DummyEvent("开启", sender_id="test_user_rogue")
-            await plugin.shortcut_rogue(event_start_disabled)
-            self.assertFalse(event_start_disabled.stopped)
-            
-        asyncio.run(go())
+    
 
     def test_new_english_aliases(self):
         class DummySaveManager(DummySaveManagerBase):

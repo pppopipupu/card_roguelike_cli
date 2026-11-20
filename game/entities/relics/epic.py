@@ -115,10 +115,10 @@ class MarkOfFuryRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
         cfg = RELIC_CONFIG.get(relic_id, {})
-        self.spell_bonus = cfg.get("spell_bonus", 2)
+        self.spell_bonus = cfg.get("spell_bonus", 3)
 
     def on_damage_calculate(self, event, run, engine):
-        if is_spell_card_damage(event) and event.source == "p0":
+        if event.source == "p0" and getattr(event, "card", None) is not None:
             event.modified_damage += self.spell_bonus
 
 class EnergyCoreRelic(RelicImpl):
@@ -172,11 +172,20 @@ class GlacierArmorRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
         cfg = RELIC_CONFIG.get(relic_id, {})
-        self.shield_gain = cfg.get("shield_gain", 12)
+        self.shield_gain = cfg.get("shield_gain", 16)
+        self.turn_shield_gain = cfg.get("turn_shield_gain", 4)
 
     def on_battle_start(self, run, engine):
         engine._gain_shield(run, "p0", self.shield_gain)
         engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.glacier_armor.trigger"))
+
+    def on_turn_start(self, event, run, engine):
+        if event.is_player:
+            key = run.turn_key("glacier_armor_t1_done", run.player)
+            if not run.node_data.get(key):
+                run.node_data[key] = True
+            else:
+                engine._gain_shield(run, "p0", self.turn_shield_gain)
 
 class AbyssWhisperRelic(RelicImpl):
     def __init__(self, relic_id: str):
@@ -195,12 +204,24 @@ class FrostBladeRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
         cfg = RELIC_CONFIG.get(relic_id, {})
-        self.cold_damage_bonus = cfg.get("cold_damage_bonus", 4)
+        self.cold_damage_bonus = cfg.get("cold_damage_bonus", 5)
+        self.first_card_cold_dmg = cfg.get("first_card_cold_dmg", 4)
 
     def on_damage_calculate(self, event, run, engine):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
         if dtype_str == "cold" and event.source == "p0":
             event.modified_damage += self.cold_damage_bonus
+
+    def on_card_played(self, event, run, engine):
+        if getattr(event, "is_extra", False):
+            return
+        key = run.turn_key("cards_played_this_turn", run.player)
+        if int(run.node_data.get(key, 0) or 0) == 0:
+            alive = [(i + 1, e) for i, e in enumerate(run.enemies) if e.hp > 0]
+            if alive:
+                import random
+                idx, enemy = random.choice(alive)
+                engine._damage_target(run, f"e{idx}", self.first_card_cold_dmg, damage_type="cold", source="frost_blade")
 
 class AbyssContractRelic(RelicImpl):
     def __init__(self, relic_id: str):
@@ -218,7 +239,7 @@ class GlacierCoreRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
         cfg = RELIC_CONFIG.get(relic_id, {})
-        self.damage_ratio = cfg.get("damage_ratio", 0.5)
+        self.damage_ratio = cfg.get("damage_ratio", 1.0)
 
     def on_shield_decay(self, event, run, engine):
         if event.target == "p0" and event.amount > 0:

@@ -22,6 +22,8 @@ def _clone_card_state(state):
     clone = copy.copy(state)
     if getattr(clone, "gems", None) is not None:
         clone.gems = list(clone.gems)
+    if getattr(clone, "enchantments", None) is not None:
+        clone.enchantments = list(clone.enchantments)
     if getattr(clone, "tags", None) is not None:
         clone.tags = [copy.copy(tag) for tag in clone.tags]
     return clone
@@ -189,6 +191,16 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
             if added > 0:
                 res += get_locale_text("i18n_battle_core.card_copy_log", name=card.name, count=added)
 
+        from .enchantment_runtime import apply_enchantment_post_play
+        prev_alive = int(run.node_data.get("pre_play_alive_enemies", sum(1 for e in run.enemies if e.hp > 0)))
+        apply_enchantment_post_play(self.engine, run, p, card, c_state, target or "", prev_alive)
+        from .ninja_runtime import handle_ninja_post_play
+        handle_ninja_post_play(self.engine, run, p, card, target)
+        from ..audio import get_audio_pipeline
+        actor_uid = run.uid_for(p) or run.user_id
+        if actor_uid:
+            get_audio_pipeline().emit_card_play(actor_uid, card.id)
+
         res = self._collapse_extra_play_msgs(run, res)
 
         played_evt = CardPlayedEvent(run, card, target, res)
@@ -287,6 +299,9 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
                 if len(p.hand) < max_hand:
                     p.hand.append(cid)
                     drawn_cards.append(cid)
+                    if run is not None:
+                        from .ninja_runtime import handle_toilet_water_on_draw
+                        handle_toilet_water_on_draw(self.engine, run, p, cid)
                 else:
                     p.discard_pile.append(cid)
                     if run is not None:
@@ -372,6 +387,8 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
 
         req_a = card.cost_a
         req_ba = card.cost_ba
+        if getattr(card, "science", False) and req_a > 0:
+            req_a = max(0, req_a - int(getattr(p, "lex_kela", 0) or 0))
         real_x_a = 0
         real_x_ba = 0
         if req_a == -1:
@@ -446,6 +463,10 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
             else:
                 return get_locale_text("i18n_battle_core.invalid_target")
 
+        from .enchantment_runtime import check_enchantment_playable
+        ench_err = check_enchantment_playable(run, card)
+        if ench_err:
+            return ench_err
         play_err = card.can_play_error(run, target, self.engine)
         if play_err:
             return play_err
@@ -487,6 +508,7 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         run.node_data["card_played_triggered_heal"] = False
         run.node_data["current_playing_card_id"] = card.id
         run.node_data["extra_play_msgs"] = []
+        run.node_data["pre_play_alive_enemies"] = sum(1 for e in run.enemies if e.hp > 0)
         try:
             res = self.engine._execute_card_effect(run, card, target)
 

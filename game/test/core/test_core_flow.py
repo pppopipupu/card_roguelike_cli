@@ -46,7 +46,9 @@ class TestCoreFlow(unittest.TestCase):
         self.assertTrue(all(enemy.hp > 0 for enemy in run.enemies))
         actions_before = run.player.actions
 
-        self.run_cmd("p 1", uid)
+        from game.entities import ALL_CARDS
+        play_idx = next((i for i, st in enumerate(run.player.hand, 1) if ALL_CARDS[st].type == "spell" and ALL_CARDS[st].cost_a > 0 and not getattr(ALL_CARDS[st], "exhaust", False)), 1)
+        self.run_cmd(f"p {play_idx}", uid)
         run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "battle")
         self.assertGreater(len(run.player.discard_pile), 0)
@@ -58,7 +60,9 @@ class TestCoreFlow(unittest.TestCase):
         hp_before = run.player.hp
         self.assertGreater(run.player.actions, 0)
 
-        self.run_cmd("p 1", uid)
+        from game.entities import ALL_CARDS
+        play_idx = next((i for i, st in enumerate(run.player.hand, 1) if ALL_CARDS[st].type == "spell" and ALL_CARDS[st].cost_a > 0 and not getattr(ALL_CARDS[st], "exhaust", False)), 1)
+        self.run_cmd(f"p {play_idx}", uid)
         run = load_run(self.plugin, uid)
         actions_after_card = run.player.actions
 

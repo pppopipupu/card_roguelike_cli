@@ -66,6 +66,7 @@ VIEW_NODES = {
     "treasure",
     "boss_chest",
     "gem_insert",
+    "enchant_card",
     "cafe",
 }
 

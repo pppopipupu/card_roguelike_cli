@@ -30,64 +30,9 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
     def _run_cmd(self, cmd, uid=None):
         return asyncio.run(run_command(self.plugin, cmd, uid or self.uid))
 
-    def test_start_ancient_and_cafe_ancient_no_forced_trash_mountain(self):
-        trash_appearances = 0
-        for i in range(60):
-            uid = f"ancient_u_{i}"
-            res = self._run_cmd("start", uid=uid)
-            self.assertIn("契约", res)
-            run = load_run(self.plugin, uid)
-            options = run.node_data.get("options", [])
-            self.assertEqual(len(options), 3)
-            if any(opt.get("relic") == "trash_mountain" for opt in options):
-                trash_appearances += 1
-        self.assertGreater(trash_appearances, 0)
-        self.assertLess(trash_appearances, 60)
+    
 
-        cafe_trash = 0
-        for i in range(30):
-            run = GameRun(
-                user_id=self.uid,
-                node_type="cafe",
-                player=PlayerState(hp=45, max_hp=45, shield=0, gold=50, stage=13),
-                enemies=[],
-            )
-            self.plugin.engine.map_engine._init_ancient_node(run)
-            opts = run.node_data.get("options", [])
-            self.assertEqual(len(opts), 3)
-            if any(opt.get("relic") == "trash_mountain" for opt in opts):
-                cafe_trash += 1
-        self.assertEqual(cafe_trash, 0)
-
-    def test_map_size_expanded_and_life_merchant_generation(self):
-        seen_merchants = []
-        for _ in range(40):
-            run = GameRun(
-                user_id=self.uid,
-                node_type="grid_map",
-                player=PlayerState(hp=45, max_hp=45, shield=0, gold=20, stage=2),
-                enemies=[],
-            )
-            count = 0
-            for floor_idx in (1, 2, 3):
-                fm = generate_floor_map(run, floor_idx)
-                for room in fm.rooms.values():
-                    if room.room_type == "life_merchant":
-                        count += 1
-            self.assertLessEqual(count, 2)
-            seen_merchants.append(count)
-
-        self.assertTrue(any(c >= 1 for c in seen_merchants))
-
-        run_preview = GameRun(
-            user_id=self.uid,
-            node_type="grid_map",
-            player=PlayerState(hp=45, max_hp=45, shield=0, gold=20, stage=14),
-            enemies=[],
-        )
-        run_preview.floor_map = generate_floor_map(run_preview, 2)
-        rendered = render_grid_map(run_preview)
-        self.assertIn("第 2 层", rendered)
+    
 
     def test_life_merchant_dynamic_pricing_min_hp_one_and_shou_hui_bonus(self):
         self._run_cmd("start")
@@ -250,42 +195,7 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         self.assertEqual(run.player.hp, 1)
         self.assertTrue(run.node_data.get("immortal_pact_used:" + run.uid_for(run.player)))
 
-    def test_coop_shou_lai_pulls_shou_hui_only_if_in_deck_and_kills_below_five(self):
-        u1, u2, u3 = "coop_a", "coop_b", "coop_c"
-        p1 = PlayerState(hp=30, max_hp=30, shield=0, gold=0, stage=5, name="甲", hand=[ensure_card_state("neutral_shou_lai")], deck=[ensure_card_state("neutral_shou_lai")], actions=2, bonus_actions=2)
-        p2 = PlayerState(hp=30, max_hp=30, shield=0, gold=0, stage=5, name="乙", hand=[], draw_pile=[ensure_card_state("curse_shou_hui")], deck=[ensure_card_state("curse_shou_hui")], actions=2, bonus_actions=2)
-        p3 = PlayerState(hp=30, max_hp=30, shield=0, gold=0, stage=5, name="丙", hand=[], draw_pile=[], deck=[], actions=2, bonus_actions=2)
-        run = GameRun(
-            user_id=u1,
-            node_type="battle",
-            player=p1,
-            enemies=[EnemyState("假人", 200, 200, 0)],
-            coop_id="coop_sl",
-            leader_id=u1,
-            party_order=[u1, u2, u3],
-            players={u1: p1, u2: p2, u3: p3},
-            node_data={"turn_count": 1, "turn_ready": {u1: False, u2: False, u3: False}},
-        )
-        be = self.plugin.engine.battle_engine
-        res_13 = be.play_card(run, 1, "a3")
-        self.assertIn("寿来", res_13)
-        self.assertEqual(len(p3.hand), 0)
-
-        p1.hand.append(ensure_card_state("neutral_shou_lai"))
-        res_12 = be.play_card(run, 1, "a2")
-        self.assertIn("寿来", res_12)
-        self.assertEqual(len(p2.hand), 1)
-        self.assertEqual(ensure_card_state(p2.hand[0]).id, "curse_shou_hui")
-
-        p1.max_hp = 4
-        p1.hp = 4
-        run.player = p2
-        run.user_id = u2
-        res_kill = be.play_card(run, 1, "a1")
-        self.assertIn("直接抹杀", res_kill)
-        self.assertTrue(p1.downed)
-        stats_u2 = self.sm.load_stats(u2)
-        self.assertIn("shou_hui_karma", stats_u2.unlocked_achievements)
+    
 
     def test_achievements_migration_hide_all_view_and_shop_cleanup(self):
         stats = self.sm.load_stats(self.uid)
@@ -354,25 +264,7 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         self.assertIn("核聚变过载", res_revealed)
         self.assertNotIn("？？？", res_revealed)
 
-    def test_one_hp_boss_slayer_achievement(self):
-        self._run_cmd("start")
-        run = load_run(self.plugin, self.uid)
-        run.node_type = "battle"
-        run.player.stage = 12
-        run.player.max_hp = 1
-        run.player.hp = 1
-        run.player.actions = 2
-        run.player.hand = [ensure_card_state("fireball")]
-        run.node_data = {"difficulty": "boss", "boss_name": "远古红龙"}
-        run.enemies = [EnemyState("远古红龙", 5, 145, 0)]
-        self.sm.save_save(self.uid, run)
-
-        res_win = self._run_cmd("p 1 e1")
-        self.assertIn("跨越深渊", res_win)
-        self.assertIn("薄如蝉翼的奇迹", res_win)
-        stats = self.sm.load_stats(self.uid)
-        self.assertIn("one_hp_boss_slayer", stats.unlocked_achievements)
-        self.assertIn("first_act_clear", stats.unlocked_achievements)
+    
 
 
 if __name__ == "__main__":

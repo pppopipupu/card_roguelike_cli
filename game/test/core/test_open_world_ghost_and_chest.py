@@ -357,7 +357,7 @@ class TestOpenWorldGhostAndChest(unittest.TestCase):
         self._prepare_open_world_player(self.bob, "Bob")
 
         town_status = self.cmd("r", self.alice)
-        self.assertIn("❤️ HP 45/45", town_status)
+        self.assertIn("❤️ HP 50/50", town_status)
         self.assertIn("行囊负重：", town_status)
         self.assertIn("/100 KG", town_status)
 
@@ -390,7 +390,7 @@ class TestOpenWorldGhostAndChest(unittest.TestCase):
         self._win_active_battle(self.alice)
         damaged_hp = self.plugin.save_manager.load_stats(self.alice).open_world_hp
         town_damaged = self.cmd("r", self.alice)
-        self.assertIn(f"❤️ HP {damaged_hp}/45", town_damaged)
+        self.assertIn(f"❤️ HP {damaged_hp}/50", town_damaged)
         heal_res = self.cmd("use 战地绷带", self.alice)
         self.assertIn("战地绷带", heal_res)
         self.cmd("home", self.alice)
@@ -399,7 +399,7 @@ class TestOpenWorldGhostAndChest(unittest.TestCase):
         snow_after_heal = self.cmd("use 星辉符印", self.alice)
         healed_hp = self.plugin.save_manager.load_stats(self.alice).open_world_hp
         self.assertGreater(healed_hp, damaged_hp)
-        self.assertIn(f"❤️ HP {healed_hp}/45", snow_after_heal)
+        self.assertIn(f"❤️ HP {healed_hp}/50", snow_after_heal)
         self.cmd("abandon confirm", self.alice)
 
         self.cmd("talk Alice 统一上层对话", self.bob)

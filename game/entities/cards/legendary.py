@@ -260,22 +260,21 @@ class AbyssErosionCard(Card):
 @register_card("glacier_tempest")
 class GlacierTempestCard(Card):
     def execute(self, run, target, engine) -> str:
-        base_dmg = getattr(self, "base_dmg", 18 if self.upgraded else 12)
+        base_dmg = getattr(self, "base_dmg", 24 if self.upgraded else 18)
+        vuln_stacks = getattr(self, "buff_stacks", 3 if self.upgraded else 2)
         shield_ratio = getattr(self, "shield_ratio", 0.5)
-        if "frost_blade" in run.player.relics:
-            base_dmg += 4
         total_dmg = 0
         feedback_parts = []
         dmg = engine.get_modified_spell_damage(run, self, base_dmg)
         for idx in range(len(run.enemies) - 1, -1, -1):
             enemy = run.enemies[idx]
             engine._damage_target(run, f"e{idx+1}", dmg, damage_type="cold", card=self, damage_ready=True)
+            if enemy.hp > 0 and vuln_stacks > 0:
+                engine._add_buff_to(enemy, "minor_vulnerable_cold", get_locale_text("i18n_cards_neutral.neutral.buffs.cold_vulnerable.name"), get_locale_text("i18n_cards_neutral.neutral.buffs.cold_vulnerable.desc"), vuln_stacks)
             total_dmg += dmg
             feedback_parts.append(get_locale_text("i18n_cards_neutral.legendary.glacier_tempest.part", enemy_name=enemy.name, dmg=dmg))
         shield_msg = ""
-        from ...core.battle.party_battle import party_slots
-        has_ally_minion = any(player.minions for _, _, player in party_slots(run, alive_only=True))
-        if has_ally_minion and total_dmg > 0:
+        if total_dmg > 0:
             shield_gain = int(total_dmg * shield_ratio)
             engine._gain_shield(run, "p0", shield_gain)
             shield_msg = get_locale_text("i18n_cards_neutral.legendary.glacier_tempest.shield_suffix", shield_gain=shield_gain)

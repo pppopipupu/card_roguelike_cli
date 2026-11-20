@@ -255,7 +255,7 @@ class ServerTests(unittest.TestCase):
         self.assertTrue(start["ok"])
         self.assertIsNotNone(start["state"])
         self.assertEqual(start["state"]["screen"], "start_ancient")
-        self.assertEqual(start["state"]["player"]["hp"], 45)
+        self.assertEqual(start["state"]["player"]["hp"], 50)
         self.assertTrue(start["state"]["options"])
 
         uuid_body = self.post(

@@ -6,7 +6,7 @@ from .registry import register_relic
 class RustShackleRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.hp_loss = 4
+        self.hp_loss = 3
 
     def on_battle_start(self, run, engine):
         p = run.player
@@ -18,7 +18,7 @@ class RustShackleRelic(RelicImpl):
 class BlindSpotRelic(RelicImpl):
     def __init__(self, relic_id: str):
         super().__init__(relic_id)
-        self.draw_penalty = 2
+        self.draw_penalty = 1
 
     def on_battle_start(self, run, engine):
         engine._log_event(run, get_locale_text("i18n_relics_amulets.curse.blind_spot.trigger", draw_penalty=self.draw_penalty))
@@ -41,8 +41,8 @@ class WitherSeedRelic(RelicImpl):
         super().__init__(relic_id)
 
     def on_heal(self, event, run, engine):
-        if event.target == "p0":
-            event.cancel()
+        if event.target == "p0" and getattr(event, "amount", 0) > 0:
+            event.amount = max(1, (int(event.amount) + 1) // 2)
 
 class ShadowCurseRelic(RelicImpl):
     def on_card_played(self, event, run, engine):
@@ -53,8 +53,12 @@ class ShadowCurseRelic(RelicImpl):
 class GlacierChillRelic(RelicImpl):
     def on_turn_start(self, event, run, engine):
         if event.is_player:
-            run.player.actions = max(0, run.player.actions - 1)
-            engine._log_event(run, get_locale_text("i18n_relics_amulets.curse.glacier_chill.trigger"))
+            key = run.turn_key("glacier_chill_triggered", run.player)
+            if not run.node_data.get(key):
+                run.node_data[key] = True
+                run.player.actions = max(0, run.player.actions - 1)
+                engine._gain_shield(run, "p0", 8)
+                engine._log_event(run, get_locale_text("i18n_relics_amulets.curse.glacier_chill.trigger"))
 
 
 for name, obj in list(globals().items()):

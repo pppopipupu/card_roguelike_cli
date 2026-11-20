@@ -9,6 +9,7 @@ UPGRADE_SUFFIX = "+"
 CLASS_TO_CARD_COLOR: dict[str, str] = {
     "战士": "warrior",
     "法师": "wizard",
+    "蕾忍": "ninja",
     "雇佣兵": "mercenary",
 }
 DEFAULT_CARD_COLOR = "wizard"

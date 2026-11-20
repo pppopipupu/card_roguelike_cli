@@ -20,6 +20,7 @@ from ..data.grid_map_config import (
     get_display_floor,
 )
 from ..data.locale_data import get_locale_text
+from ..core.world.bleak_falls import BLEAK_LANDMARK_TYPES
 from ..data.map_quest_config import ROOM_BLEAK_ENTRANCE
 from ..models.state import GameRun
 from .formatters import format_npcs_and_players_line, format_persistent_buff_bar, format_relic_bar
@@ -186,6 +187,8 @@ def render_grid_map(run: GameRun) -> str:
             lines.append(get_locale_text("i18n_grid_map.treasure_hint"))
         elif cur_room.room_type == ROOM_BLEAK_ENTRANCE:
             lines.append(get_locale_text("i18n_bleak_falls.entrance.talk_hint"))
+        elif cur_room.room_type in BLEAK_LANDMARK_TYPES or cur_room.landmark_id in BLEAK_LANDMARK_TYPES:
+            lines.append(get_locale_text("i18n_bleak_falls.landmark_talk_hint"))
         elif cur_room.room_type == "landmark" or (viewer_coord == fm.ritual_coord and not fm.secret_unlocked):
             lines.append(get_locale_text("i18n_grid_map.talk_hint"))
 

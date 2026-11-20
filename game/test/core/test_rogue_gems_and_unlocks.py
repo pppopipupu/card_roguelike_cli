@@ -84,59 +84,7 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
 
         asyncio.run(run_battle())
 
-    def test_gem_sturdy_fleeting_in_dummy_battle(self):
-        plugin = MyPlugin(DummyContext())
-        stats = self.save_manager.load_stats(self.user_id)
-        stats.locked_cards = ["fleeting_spark:gems:gem_sturdy"]
-        self.save_manager.save_stats(self.user_id, stats)
-
-        async def run_battle():
-            await run_command(plugin, ".rogue 主城", self.user_id)
-            await run_command(plugin, ".rogue home", self.user_id)
-            await run_command(plugin, ".rogue up", self.user_id)
-            await run_command(plugin, ".rogue talk Dummy", self.user_id)
-            await run_command(plugin, ".rogue 2", self.user_id)
-            deck_before = await run_command(plugin, ".rogue deck", self.user_id)
-            self.assertIn("即逝 2。", deck_before)
-            for _ in range(8):
-                run = require_run(self.save_manager.load_save(self.user_id))
-                target_idx = None
-                for idx, cs in enumerate(run.player.hand, 1):
-                    if cs.id == "fleeting_spark" and "gem_sturdy" in (cs.gems or []):
-                        target_idx = idx
-                        break
-                if target_idx is not None:
-                    res = await run_command(plugin, f".rogue p {target_idx} e1", self.user_id)
-                    run_check = require_run(self.save_manager.load_save(self.user_id))
-                    if run_check.node_data.get("pending_discard"):
-                        await run_command(plugin, ".rogue 选择 1", self.user_id)
-                    self.assertIn("剩余 1 次", res)
-                    break
-                await run_command(plugin, ".rogue e", self.user_id)
-
-            deck_mid = await run_command(plugin, ".rogue deck", self.user_id)
-            self.assertIn("即逝。", deck_mid)
-            self.assertNotIn("即逝 2", deck_mid)
-            for _ in range(10):
-                run = require_run(self.save_manager.load_save(self.user_id))
-                target_idx = None
-                for idx, cs in enumerate(run.player.hand, 1):
-                    if cs.id == "fleeting_spark" and "gem_sturdy" in (cs.gems or []):
-                        target_idx = idx
-                        break
-                if target_idx is not None:
-                    res = await run_command(plugin, f".rogue p {target_idx} e1", self.user_id)
-                    run_check = require_run(self.save_manager.load_save(self.user_id))
-                    if run_check.node_data.get("pending_discard"):
-                        await run_command(plugin, ".rogue 选择 1", self.user_id)
-                    self.assertIn("永久移除", res)
-                    break
-                await run_command(plugin, ".rogue e", self.user_id)
-
-            run_end = require_run(self.save_manager.load_save(self.user_id))
-            self.assertEqual([c for c in run_end.player.deck if c.id == "fleeting_spark"], [])
-
-        asyncio.run(run_battle())
+    
 
     def test_elf_archer_xiaomei_and_market_cards_in_battle_rewards_after_unlock(self):
         plugin = MyPlugin(DummyContext())

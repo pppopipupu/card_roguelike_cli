@@ -1,6 +1,7 @@
 import asyncio
 import heapq
 import random
+import re
 import tempfile
 import unittest
 
@@ -195,6 +196,8 @@ class TestBleakFallsAndSize(unittest.TestCase):
         self.assertIn("荒爆古坟", enter_1_5)
         run = load_run(self.plugin, uid)
         self.assertEqual(floor_of(run).floor_index, 1.5)
+        if run.node_type == "ancient":
+            self.run_cmd("c 1", uid)
 
         self._walk_to_coord(uid, "B3")
         self._walk_to_coord(uid, "B2")
@@ -233,6 +236,8 @@ class TestBleakFallsAndSize(unittest.TestCase):
         self.assertIn("荒爆圣所", enter_sanctuary)
         run = load_run(self.plugin, uid)
         self.assertEqual(floor_of(run).floor_index, 1.67777)
+        if run.node_type == "ancient":
+            self.run_cmd("c 1", uid)
 
         self._walk_to_coord(uid, "B2")
         self._walk_to_coord(uid, "C2")
@@ -437,6 +442,223 @@ class TestBleakFallsAndSize(unittest.TestCase):
         self.assertIn("古代制图师的残卷", q_next)
         self.assertIn("跨局", q_next)
 
+
+    def _finish_coop_battle(self, uids: list[str], *, max_turns: int = 80) -> str:
+        last_out = ""
+        for _ in range(max_turns):
+            if all(load_run(self.plugin, u).node_type == "grid_map" for u in uids):
+                return last_out
+            for u in uids:
+                run = load_run(self.plugin, u)
+                if run.node_type == "battle":
+                    for _ in range(8):
+                        run = load_run(self.plugin, u)
+                        if run.node_type != "battle":
+                            break
+                        pl = run.player
+                        pick = None
+                        for prio in (("sunburst",), ("fire_bolt", "magic_missile", "fus_ro_dah"), ("shield", "first_aid")):
+                            for idx, c in enumerate(pl.hand, 1):
+                                if c.id in prio and pl.actions >= 1:
+                                    pick = idx
+                                    break
+                            if pick is not None:
+                                break
+                        if pick is not None:
+                            last_out = self.run_cmd(f"p {pick}", u)
+                            continue
+                        break
+                    if load_run(self.plugin, u).node_type == "battle":
+                        last_out = self.run_cmd("e", u)
+                elif run.node_type == "boss_chest":
+                    last_out = self.run_cmd("1", u)
+                    if load_run(self.plugin, u).node_type != "grid_map":
+                        last_out = self.run_cmd("离开", u)
+                elif run.node_type == "reward":
+                    last_out = self.run_cmd("离开", u)
+                elif run.node_type == "event":
+                    last_out = self.run_cmd("1", u)
+                    if load_run(self.plugin, u).node_type == "event":
+                        last_out = self.run_cmd("离开", u)
+                elif run.node_type != "grid_map":
+                    last_out = self.run_cmd("离开", u)
+                    if load_run(self.plugin, u).node_type != "grid_map":
+                        last_out = self.run_cmd("exit", u)
+        return last_out
+
+    def _walk_coop_to_coord(self, actor: str, uids: list[str], target_coord: str, *, stop_on_battle: bool = False) -> str:
+        last = ""
+        for _ in range(16):
+            run = load_run(self.plugin, actor)
+            if run.node_type == "battle":
+                if stop_on_battle:
+                    return last
+                last = self._finish_coop_battle(uids)
+                run = load_run(self.plugin, actor)
+            if run.node_type != "grid_map":
+                last = self._finish_coop_battle(uids)
+                run = load_run(self.plugin, actor)
+            if run.node_type != "grid_map":
+                break
+            fm = floor_of(run)
+            start = fm.player_coords.get(actor, "")
+            if start == target_coord:
+                break
+            dist = {start: 0}
+            prev = {}
+            pq = [(0, start)]
+            while pq:
+                d, cur = heapq.heappop(pq)
+                if d > dist.get(cur, 10**9):
+                    continue
+                if cur == target_coord:
+                    break
+                cx, cy = coord_to_xy(cur)
+                for dx, dy in ((0, -1), (0, 1), (-1, 0), (1, 0)):
+                    nx, ny = cx + dx, cy + dy
+                    if not (0 <= nx < fm.width and 0 <= ny < fm.height):
+                        continue
+                    nc = xy_to_coord(nx, ny)
+                    rm = fm.rooms[nc]
+                    if rm.room_type in ("wall", "solid_wall", "obstacle"):
+                        continue
+                    cost = 1 if (nc == target_coord or rm.cleared or rm.room_type in ("empty", "spawn")) else 6
+                    nd = d + cost
+                    if nd < dist.get(nc, 10**9):
+                        dist[nc] = nd
+                        prev[nc] = cur
+                        heapq.heappush(pq, (nd, nc))
+            if target_coord not in prev:
+                break
+            step = target_coord
+            while prev[step] != start:
+                step = prev[step]
+            sx, sy = coord_to_xy(start)
+            tx, ty = coord_to_xy(step)
+            cmd = {(0, -1): "w", (0, 1): "s", (-1, 0): "a", (1, 0): "d"}[(tx - sx, ty - sy)]
+            last = self.run_cmd(cmd, actor)
+            if load_run(self.plugin, actor).node_type == "battle":
+                if stop_on_battle and floor_of(load_run(self.plugin, actor)).player_coords.get(actor) == target_coord:
+                    return last
+                last = self._finish_coop_battle(uids)
+        return last
+
+    def test_bleak_falls_coop_arvel_solo_no_duplicate_and_boss_team(self):
+        uid_a = "bf_coop_a"
+        uid_b = "bf_coop_b"
+        uids = [uid_a, uid_b]
+        for u in uids:
+            self._prepare_seasoned_stats(u, gp=5000)
+        self.run_cmd("friend name 古坟队长", uid_a)
+        self.run_cmd("friend name 古坟队员", uid_b)
+        stats_a = self.sm.load_stats(uid_a)
+        stats_b = self.sm.load_stats(uid_b)
+        handle_a = stats_a.player_handle or stats_a.player_name
+        handle_b = stats_b.player_handle or stats_b.player_name
+        self.run_cmd(f"friend add {handle_b}", uid_a)
+        self.run_cmd(f"friend accept {handle_a}", uid_b)
+        created = self.run_cmd("team create", uid_a)
+        match = re.search(r"队伍 ([A-Z0-9]{6})", created)
+        assert match is not None
+        room_code = match.group(1)
+        self.run_cmd(f"friend invite {handle_b}", uid_a)
+        self.run_cmd(f"team join {room_code}", uid_b)
+        self.run_cmd("team ready", uid_b)
+        self.run_cmd("team start", uid_a)
+        for u in uids:
+            self.run_cmd("c 1", u)
+
+        boss_coord = next(c for c, r in floor_of(load_run(self.plugin, uid_a)).rooms.items() if r.room_type == "boss")
+        self._walk_coop_to_coord(uid_a, uids, boss_coord)
+        run_a = load_run(self.plugin, uid_a)
+        self.assertEqual(run_a.node_type, "grid_map")
+        wall_coord = next(c for c, r in floor_of(run_a).rooms.items() if r.room_type == "solid_wall")
+        bomb_holder = uid_a if "qgp_bomb" in run_a.players[uid_a].bag_items else uid_b
+        self.run_cmd("use QGP炸弹", bomb_holder)
+        ent_map = self._walk_coop_to_coord(bomb_holder, uids, wall_coord)
+        self.assertIn("talk .", ent_map)
+        self.run_cmd("talk .", bomb_holder)
+        self.run_cmd("1", bomb_holder)
+        self.assertEqual(floor_of(load_run(self.plugin, uid_a)).floor_index, 1.5)
+        for u in uids:
+            if load_run(self.plugin, u).node_type == "ancient":
+                self.run_cmd("c 1", u)
+
+        self._walk_coop_to_coord(uid_a, uids, "B3", stop_on_battle=True)
+        run_b3 = load_run(self.plugin, uid_a)
+        self.assertEqual(run_b3.node_type, "battle")
+        self.assertEqual(run_b3.node_data.get("battle_mode"), "solo")
+        self.assertEqual(load_run(self.plugin, uid_b).node_type, "grid_map")
+        self._finish_coop_battle(uids)
+
+        self._walk_coop_to_coord(uid_a, uids, "C3", stop_on_battle=True)
+        run_c3 = load_run(self.plugin, uid_a)
+        self.assertEqual(run_c3.node_type, "battle")
+        self.assertEqual(run_c3.node_data.get("battle_mode"), "solo")
+        self._finish_coop_battle(uids)
+
+        self.run_cmd("tp C3", uid_b)
+        self.run_cmd("talk .", uid_a)
+        self.run_cmd("talk .", uid_b)
+        self.run_cmd("1", uid_a)
+        arvel_a = load_run(self.plugin, uid_a)
+        self.assertEqual(arvel_a.node_type, "battle")
+        self.assertEqual(arvel_a.node_data.get("battle_mode"), "solo")
+        sid_a = floor_of(arvel_a).player_session_map.get(uid_a, "")
+        self.assertTrue(sid_a)
+
+        join_out = self.run_cmd("1", uid_b)
+        self.assertIn("加入", join_out)
+        arvel_b = load_run(self.plugin, uid_b)
+        self.assertEqual(arvel_b.node_type, "battle")
+        fm_arvel = floor_of(arvel_b)
+        battle_sessions = [s for s in fm_arvel.active_sessions.values() if s.node_type == "battle"]
+        self.assertEqual(len(battle_sessions), 1)
+        self.assertEqual(fm_arvel.player_session_map.get(uid_b), sid_a)
+        self.assertIn(uid_a, battle_sessions[0].participants)
+        self.assertIn(uid_b, battle_sessions[0].participants)
+        self.assertEqual(len(arvel_b.enemies), 1)
+
+        self._finish_coop_battle(uids)
+        post_arvel = load_run(self.plugin, uid_a)
+        self.assertIn("golden_claw", post_arvel.players[uid_a].bag_items + post_arvel.players[uid_b].bag_items)
+        self.assertNotIn("arvel_trapped", floor_of(post_arvel).rooms["C3"].npcs)
+
+        gate_map = self._walk_coop_to_coord(uid_a, uids, "E3")
+        self.assertIn("talk .", gate_map)
+        self.run_cmd("talk .", uid_a)
+        self.run_cmd("1", uid_a)
+        self.assertEqual(floor_of(load_run(self.plugin, uid_a)).floor_index, 1.67777)
+        for u in uids:
+            if load_run(self.plugin, u).node_type == "ancient":
+                self.run_cmd("c 1", u)
+
+        self._walk_coop_to_coord(uid_a, uids, "B2", stop_on_battle=True)
+        run_s_b2 = load_run(self.plugin, uid_a)
+        self.assertEqual(run_s_b2.node_type, "battle")
+        self.assertEqual(run_s_b2.node_data.get("battle_mode"), "solo")
+        self._finish_coop_battle(uids)
+
+        claw_holder = uid_a if "golden_claw" in load_run(self.plugin, uid_a).player.bag_items else uid_b
+        door_map = self._walk_coop_to_coord(claw_holder, uids, "C2")
+        self.assertIn("talk .", door_map)
+        self.run_cmd("talk .", claw_holder)
+        self.run_cmd("1", claw_holder)
+
+        self._walk_coop_to_coord(uid_a, uids, "E2", stop_on_battle=True)
+        boss_a = load_run(self.plugin, uid_a)
+        boss_b = load_run(self.plugin, uid_b)
+        self.assertEqual(boss_a.node_type, "battle")
+        self.assertEqual(boss_b.node_type, "battle")
+        self.assertEqual(boss_a.node_data.get("battle_mode"), "team")
+        fm_boss = floor_of(boss_a)
+        self.assertEqual(fm_boss.player_session_map.get(uid_a), fm_boss.player_session_map.get(uid_b))
+        self.assertIn(uid_a, boss_a.party_order)
+        self.assertIn(uid_b, boss_a.party_order)
+        milo = next((e for e in boss_a.enemies if "米洛克" in e.name), None)
+        self.assertIsNotNone(milo)
+        self.assertEqual(len(boss_a.enemies), 3)
+        self.assertEqual(len(boss_a.node_data.get("enemy_targets", {})), 3)
 
 if __name__ == "__main__":
     unittest.main()

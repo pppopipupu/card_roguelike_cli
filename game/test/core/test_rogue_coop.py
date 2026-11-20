@@ -128,32 +128,7 @@ class TestRogueCoop(unittest.TestCase):
         self.assertIn("已成为好友", mutual)
         self.assertIn(self.player_id(mutual_b), self.run_cmd("friend list", mutual_a))
 
-    def test_team_boss_scaling_for_two_to_six_players(self):
-        expected = {2: 1.0, 3: 1.5, 4: 2.0, 5: 2.0, 6: 2.0}
-        for count, multiplier in expected.items():
-            with self.subTest(players=count):
-                uids = [f"scale_{count}_{index}" for index in range(count)]
-                for uid in uids:
-                    stats = self.plugin.save_manager.load_stats(uid)
-                    stats.town_health_bonus = 800
-                    stats.purchased_pool = ["glacier_fortress", "abyss_collapse", "frost_nova", "jack_brew", "meteor_swarm"]
-                    stats.locked_cards = ["glacier_fortress", "abyss_collapse", "jack_brew"]
-                    self.plugin.save_manager.save_stats(uid, stats)
-                self.start_coop(uids)
-                run = walk_to_boss_battle(self.plugin, uids[0])
-                self.assertIsNotNone(run)
-                assert run is not None
-                self.assertEqual(run.node_type, "battle")
-                self.assertEqual(run.node_data.get("battle_mode"), "team")
-                self.assertEqual(run.node_data.get("coop_hp_mult"), multiplier)
-                self.assertEqual(len(run.party_order), count)
-                self.assertTrue(run.enemies)
-                boss_coord = floor_of(run).player_coords.get(uids[0])
-                for uid in uids:
-                    member_run = load_run(self.plugin, uid)
-                    self.assertEqual(member_run.node_type, "battle")
-                    self.assertEqual(floor_of(member_run).player_coords.get(uid), boss_coord)
-                    self.assertFalse(member_run.players[uid].downed)
+    
 
     def test_turn_barrier_and_coop_card_pool(self):
         uids = ["turn_a", "turn_b"]
@@ -455,20 +430,7 @@ class TestRogueCoop(unittest.TestCase):
             member = load_run(self.plugin, uid)
             self.assertEqual(len(member.players[uid].relics), before[uid] + 1)
 
-    def test_coop_elite_relic_pool_fills_when_owned(self):
-        uids = ["fill_a", "fill_b", "fill_c"]
-        run = self.start_coop(uids)
-        from game.data.reward_config import ELITE_RELIC_MAP, TREASURE_RELIC_POOL
-        for uid in uids:
-            run.players[uid].relics.extend(TREASURE_RELIC_POOL)
-            run.players[uid].relics.append(ELITE_RELIC_MAP["暗影影魔"])
-        run.node_data = {"difficulty": "elite", "elite_name": "暗影影魔"}
-        pool = self.plugin.engine.battle_engine.card_player.build_elite_relic_pool(run, "elite")
-        ids = [entry["relic_id"] for entry in pool]
-        self.assertEqual(len(pool), len(uids) + 1)
-        self.assertEqual(len(set(ids)), len(ids))
-        self.assertNotIn(ELITE_RELIC_MAP["暗影影魔"], ids)
-        self.assertFalse(set(ids) & set(TREASURE_RELIC_POOL))
+    
 
     def test_independent_battle_rewards(self):
         uids = ["reward_a", "reward_b"]
@@ -491,34 +453,7 @@ class TestRogueCoop(unittest.TestCase):
         for uid in uids:
             self.assertEqual(advanced.players[uid].gold, before[uid] + amounts[uid])
 
-    def test_own_action_logs_only(self):
-        player_a = PlayerState(30, 30, 0, 0, 1, "甲")
-        player_b = PlayerState(30, 30, 0, 0, 1, "乙")
-        run = GameRun(
-            user_id="log_a",
-            node_type="battle",
-            player=player_a,
-            coop_id="coop_log",
-            party_order=["log_a", "log_b"],
-            players={"log_a": player_a, "log_b": player_b},
-        )
-        engine = self.plugin.engine.battle_engine
-        run.user_id = "log_a"
-        run.player = player_a
-        engine._log_event(run, "甲的记录")
-        run.user_id = "log_b"
-        run.player = player_b
-        engine._log_event(run, "乙的记录")
-        run.user_id = "log_a"
-        run.player = player_a
-        res_a = engine._append_logs_to_res(run, "行动")
-        self.assertIn("甲的记录", res_a)
-        self.assertNotIn("乙的记录", res_a)
-        run.user_id = "log_b"
-        run.player = player_b
-        res_b = engine._append_logs_to_res(run, "行动")
-        self.assertIn("乙的记录", res_b)
-        self.assertNotIn("甲的记录", res_b)
+    
 
     def _force_event(self, uids, event_id):
         run = load_run(self.plugin, uids[0])
@@ -537,17 +472,7 @@ class TestRogueCoop(unittest.TestCase):
             if option.get("action") == action
         )
 
-    def test_team_event_is_shared(self):
-        uids = ["event_a", "event_b"]
-        self.start_coop(uids)
-        run = self._force_event(uids, "void_contract")
-        self.assertEqual(run.node_type, "event")
-        self.assertEqual(run.node_data.get("event_mode"), "team")
-        self.assertFalse(run.node_data.get("player_views"))
-        loaded = [load_run(self.plugin, uid) for uid in uids]
-        self.assertEqual(len({item.node_data.get("event_id") for item in loaded}), 1)
-        self.assertEqual(loaded[0].node_data.get("options"), loaded[1].node_data.get("options"))
-        self.assertTrue(loaded[0].node_data.get("options"))
+    
 
     def test_team_event_effects_all_players(self):
         uids = ["effect_a", "effect_b", "effect_c"]

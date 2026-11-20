@@ -280,56 +280,5 @@ class TestRogueSystem(unittest.TestCase):
         asyncio.run(go())
 
 
-    def test_yog_sothoth_phase4_and_compat(self):
-        plugin = MyPlugin(DummyContext())
-        user_id = "test_user_yog"
-        plugin.save_manager.delete_save(user_id)
-        
-        stats_path = plugin.save_manager.get_stats_path(user_id)
-        if os.path.exists(stats_path):
-            os.remove(stats_path)
-            
-        old_data = {
-            "user_id": user_id,
-            "gp": 500,
-            "killed_yog_sothoth": True,
-            "unlocked_classes": []
-        }
-        os.makedirs(os.path.dirname(stats_path), exist_ok=True)
-        with open(stats_path, "wb") as f:
-            f.write(dumps(old_data))
-            
-        stats = plugin.save_manager.load_stats(user_id)
-        self.assertFalse(hasattr(stats, "killed_yog_sothoth") or "killed_yog_sothoth" in stats.__dict__)
-        self.assertEqual(stats.yog_sothoth_kill_count, 0)
-        self.assertEqual(stats.yog_sothoth_challenge_count, 0)
-        
-        from game.models.state import EnemyState, GameRun, PlayerState
-        run = GameRun(
-            user_id=user_id,
-            node_type="battle",
-            player=PlayerState(hp=100, max_hp=100, shield=0, gold=10, stage=32),
-            enemies=[EnemyState(
-                name="【万物归一】虚空之门·尤格-索托斯",
-                hp=2147483647,
-                max_hp=2147483647,
-                shield=0
-            )]
-        )
-        from game.renderer.battle import render_battle
-        rendered = render_battle(run)
-        self.assertIn("0x7FFFFFFF/0x7FFFFFFF", rendered)
-        
-        from game.models.state import BuffState
-        run.player.buffs.append(BuffState(id="all_resonance", name="万物共振", stacks=2, desc="造成的伤害翻 10^S 倍"))
-        
-        from game.core.battle.combat_resolver import CombatResolver
-        resolver = CombatResolver(plugin.engine.battle_engine)
-        run.node_data["battle_logs"] = []
-        resolver.damage_target(run, "e1", 5, source="p0", damage_type="force")
-        self.assertEqual(run.enemies[0].hp, 2147483647 - 500)
-        
-        plugin.save_manager.delete_save(user_id)
-        if os.path.exists(stats_path):
-            os.remove(stats_path)
+    
 

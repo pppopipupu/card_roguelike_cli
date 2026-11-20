@@ -10,11 +10,11 @@ UPGRADE_SUFFIX = "+"
 
 class DeckService:
     @staticmethod
-    def new_state(card_id, upgraded=False, gems=None, **flags):
+    def new_state(card_id, upgraded=False, gems=None, enchantments=None, **flags):
         base_id = card_id.id if isinstance(card_id, CardState) else card_id
-        state = CardState(id=base_id, upgraded=upgraded, gems=list(gems or []))
+        state = CardState(id=base_id, upgraded=upgraded, gems=list(gems or []), enchantments=list(enchantments or []))
         for name in CardState.__dataclass_fields__:
-            if name in ("id", "upgraded", "gems"):
+            if name in ("id", "upgraded", "gems", "enchantments"):
                 continue
             if name in flags:
                 setattr(state, name, flags[name])
@@ -23,7 +23,7 @@ class DeckService:
     @staticmethod
     def clone_state(state):
         source = ensure_card_state(state)
-        return replace(source, gems=list(source.gems or []))
+        return replace(source, gems=list(source.gems or []), enchantments=list(source.enchantments or []))
 
     @staticmethod
     def upgrade_state(state):
@@ -192,4 +192,8 @@ class DeckService:
                         deck.append(random.choice(pool))
         if selected_class == "法师" and selected_subclass == "时序法师":
             deck.append("time_stop")
-        return [ensure_card_state(c) for c in deck]
+        states = [ensure_card_state(c) for c in deck]
+        if include_random_rolls:
+            from .enchantment_service import apply_starting_enchantments
+            apply_starting_enchantments(states)
+        return states

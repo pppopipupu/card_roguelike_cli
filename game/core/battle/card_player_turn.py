@@ -34,6 +34,10 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         return self._render_events(self._end_player_phase_events(run, p))
 
     def _end_player_phase_events(self, run: GameRun, p) -> TextDocument:
+        from .enchantment_runtime import apply_enchantment_turn_end
+        apply_enchantment_turn_end(run, p)
+        from .ninja_runtime import handle_ninja_turn_end
+        handle_ninja_turn_end(self.engine, run, p)
         evt_end = TurnEndEvent(run, is_player=True)
         self.engine.event_bus.dispatch(evt_end)
         retain_key = run.turn_key("temp_retain_cards", p)
@@ -116,6 +120,10 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
             p.shield = 0
         p.actions = 2
         p.bonus_actions = 1
+        from .enchantment_runtime import apply_enchantment_turn_start
+        apply_enchantment_turn_start(self.engine, run, p)
+        from .ninja_runtime import handle_ninja_turn_start
+        handle_ninja_turn_start(run, p)
         evt_start = TurnStartEvent(run, is_player=True)
         self.engine.event_bus.dispatch(evt_start)
         if getattr(p, "subclass", "") == "时序法师":

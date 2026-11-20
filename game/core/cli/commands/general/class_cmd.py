@@ -26,6 +26,8 @@ class ClassCommand(CommandHandler, names=["职业", "class"], allowed_states=["m
                 get_locale_text("i18n_cli_general_a.class.main_wizard_desc"),
                 get_locale_text("i18n_cli_general_a.class.main_warrior"),
                 get_locale_text("i18n_cli_general_a.class.main_warrior_desc"),
+                get_locale_text("i18n_cli_general_a.class.main_ninja"),
+                get_locale_text("i18n_cli_general_a.class.main_ninja_desc"),
                 "",
                 get_locale_text("i18n_cli_general_a.class.sub_title"),
                 get_locale_text("i18n_cli_general_a.class.sub_time", status=status_time),
@@ -38,6 +40,7 @@ class ClassCommand(CommandHandler, names=["职业", "class"], allowed_states=["m
                 get_locale_text("i18n_cli_general_a.class.commands_title"),
                 get_locale_text("i18n_cli_general_a.class.cmd_wizard"),
                 get_locale_text("i18n_cli_general_a.class.cmd_warrior"),
+                get_locale_text("i18n_cli_general_a.class.cmd_ninja"),
                 get_locale_text("i18n_cli_general_a.class.cmd_sub_time"),
                 get_locale_text("i18n_cli_general_a.class.cmd_sub_element"),
                 get_locale_text("i18n_cli_general_a.class.cmd_sub_key"),
@@ -69,8 +72,17 @@ class ClassCommand(CommandHandler, names=["职业", "class"], allowed_states=["m
                     router.save_manager.save_stats(user_id, stats)
                     yield get_locale_text("i18n_cli_general_a.class.switched_wizard")
                     return
+                elif subclass_arg in ("蕾忍", "ninja", "lex", "忍者"):
+                    stats.selected_class = "蕾忍"
+                    stats.selected_subclass = ""
+                    router.save_manager.save_stats(user_id, stats)
+                    yield get_locale_text("i18n_cli_general_a.class.switched_ninja")
+                    return
                 if selected_class == "战士":
                     yield get_locale_text("i18n_cli_general_a.class.warrior_no_sub")
+                    return
+                if selected_class == "蕾忍":
+                    yield get_locale_text("i18n_cli_general_a.class.ninja_no_sub")
                     return
                 if subclass_arg in ("1", "时序法师", "chronomancer", "time"):
                     subclass_name = "时序法师"

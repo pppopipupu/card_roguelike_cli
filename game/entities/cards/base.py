@@ -251,6 +251,7 @@ def _get_card_config():
     from ...data.mercenary_card_data import MERCENARY_CARD_CONFIG
     from ...data.map_card_data import MAP_CARD_CONFIG
     from ...data.chireiden_data import CHIREIDEN_CARD_CONFIG
+    from ...data.ninja_card_data import NINJA_CARD_CONFIG
     cfg = {}
     cfg.update(NEUTRAL_CARD_CONFIG)
     cfg.update(WIZARD_CARD_CONFIG)
@@ -259,6 +260,7 @@ def _get_card_config():
     cfg.update(MERCENARY_CARD_CONFIG)
     cfg.update(MAP_CARD_CONFIG)
     cfg.update(CHIREIDEN_CARD_CONFIG)
+    cfg.update(NINJA_CARD_CONFIG)
     return cfg
 
 class CardRegistryDict(dict):
@@ -330,6 +332,9 @@ class CardRegistryDict(dict):
             inst.life_merchant_only = cfg.get("life_merchant_only", False)
             inst.event_only = cfg.get("event_only", False)
             inst.token = cfg.get("token", False)
+            inst.ninjutsu_cost = cfg.get("ninjutsu_cost", None)
+            inst.science = bool(cfg.get("science", False))
+            inst.ninja_tags = tuple(cfg.get("ninja_tags", ()))
             fragile_val = cfg.get("fragile", 0)
             if fragile_val > 0:
                 from ...entities.tags import FragileTag
@@ -426,6 +431,8 @@ class CardRegistryDict(dict):
                 card.exhaust = up_cfg["exhaust"]
             if "ethereal" in up_cfg:
                 card.ethereal = up_cfg["ethereal"]
+            if "ninjutsu_cost" in up_cfg:
+                card.ninjutsu_cost = up_cfg["ninjutsu_cost"]
             for prop in (*NUMERIC_CARD_FIELDS, "amulet_desc"):
                 if prop in up_cfg:
                     setattr(card, prop, up_cfg[prop])
@@ -523,10 +530,13 @@ class CardRegistryDict(dict):
             if gem_descs:
                 gem_inlay_separator = get_locale_text("i18n_card_runtime.cards.gem_inlay_separator")
                 card.desc = card.desc + get_locale_text("i18n_card_runtime.cards.gem_inlay", gems=gem_inlay_separator.join(gem_descs))
-        if card_state.replay > 0:
+        from ...core.inventory.enchantment_service import apply_enchantments_to_card
+        enchant_replay = apply_enchantments_to_card(card, card_state)
+        total_replay = int(card_state.replay or 0) + enchant_replay
+        if total_replay > 0:
             from ...entities.tags import ReplayTag
-            card.add_tag(ReplayTag("replay", card_state.replay))
-            card.desc = add_replay_marker(card.desc, card_state.replay)
+            card.add_tag(ReplayTag("replay", total_replay))
+            card.desc = add_replay_marker(card.desc, total_replay)
 
         if card_state.fragile > 0:
             from ...entities.tags import FragileTag
@@ -637,6 +647,9 @@ for cid, cfg in _get_card_config().items():
     inst.life_merchant_only = cfg.get("life_merchant_only", False)
     inst.event_only = cfg.get("event_only", False)
     inst.token = cfg.get("token", False)
+    inst.ninjutsu_cost = cfg.get("ninjutsu_cost", None)
+    inst.science = bool(cfg.get("science", False))
+    inst.ninja_tags = tuple(cfg.get("ninja_tags", ()))
     fragile_val = cfg.get("fragile", 0)
     if fragile_val > 0:
         from ...entities.tags import FragileTag
@@ -664,6 +677,8 @@ def get_card_color_icon(card_or_color) -> str:
         return "🔴"
     if color == "curse":
         return "⚫"
+    if color == "ninja":
+        return "🥷"
     if color == "mercenary":
         return "🟣"
     return "⚪"

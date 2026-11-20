@@ -110,6 +110,7 @@ class CardState:
     id: str
     upgraded: bool = False
     gems: List[str] = field(default_factory=list)
+    enchantments: List[str] = field(default_factory=list)
     return_left: int = 0
     replay: int = 0
     fragile: int = 0
@@ -119,7 +120,7 @@ class CardState:
     fleeting_used: int = 0
 
     def __hash__(self):
-        return hash((self.id, self.upgraded, tuple(self.gems), self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used))
+        return hash((self.id, self.upgraded, tuple(self.gems), tuple(self.enchantments), self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used))
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -128,6 +129,7 @@ class CardState:
                 return (self.id == temp_state.id and 
                         self.upgraded == temp_state.upgraded and 
                         self.gems == temp_state.gems and 
+                        self.enchantments == temp_state.enchantments and
                         self.return_left == temp_state.return_left and 
                         self.replay == temp_state.replay and 
                         self.fragile == temp_state.fragile and 
@@ -142,6 +144,7 @@ class CardState:
         return (self.id == other.id and 
                 self.upgraded == other.upgraded and 
                 self.gems == other.gems and 
+                self.enchantments == other.enchantments and
                 self.return_left == other.return_left and 
                 self.replay == other.replay and 
                 self.fragile == other.fragile and 
@@ -165,6 +168,8 @@ class CardState:
             return self.upgraded < other.upgraded
         if self.gems != other.gems:
             return tuple(self.gems) < tuple(other.gems)
+        if self.enchantments != other.enchantments:
+            return tuple(self.enchantments) < tuple(other.enchantments)
         return (self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used) < (other.return_left, other.replay, other.fragile, other.no_copy, other.power_penalty, other.exhaust_used, other.fleeting_used)
 
 def ensure_card_state(c) -> CardState:
@@ -176,7 +181,8 @@ def ensure_card_state(c) -> CardState:
         return CardState(
             id=resolve_card_id(c.get("id", "")),
             upgraded=c.get("upgraded", False),
-            gems=c.get("gems", []),
+            gems=list(c.get("gems", []) or []),
+            enchantments=list(c.get("enchantments", []) or []),
             return_left=c.get("return_left", 0),
             replay=c.get("replay", 0),
             fragile=c.get("fragile", 0),
@@ -280,6 +286,11 @@ class Card:
     upgraded: bool = False
     tags: List[CardTag] = field(default_factory=list)
     gems: List[str] = field(default_factory=list)
+    enchantments: List[str] = field(default_factory=list)
+    cant_upgrade: bool = False
+    ninjutsu_cost: Optional[int | str] = None
+    science: bool = False
+    ninja_tags: tuple = ()
     instant_summon: bool = False
     instant_summon_thresholds: tuple = ()
     instant_summon_piles: tuple = ()
@@ -436,6 +447,7 @@ class PlayerState:
     hand: List[CardState] = field(default_factory=list)
     actions: int = 1
     bonus_actions: int = 1
+    lex_kela: int = 0
     minions: Dict[str, MinionState] = field(default_factory=dict)
     amulets: Dict[str, AmuletState] = field(default_factory=dict)
     abilities: List[str] = field(default_factory=list)

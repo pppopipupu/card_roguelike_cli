@@ -2,6 +2,7 @@ import asyncio
 import random
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from game.core.world.grid_map_generator import generate_floor_map, xy_to_coord
 from game.core.world.rooms.big_room import create_big_room_instance
@@ -67,7 +68,8 @@ class TestChaosExpansionAndTriggers(unittest.TestCase):
         self.assertNotIn("博丽赛钱结界", enter_second_cell)
         self.assertEqual(load_run(self.plugin, uid).player.gold, 115)
 
-        touch_res = self.run_cmd("touch 赛钱箱", uid)
+        with patch("game.core.world.rooms.chaos_props.random.random", return_value=0.0):
+            touch_res = self.run_cmd("touch 赛钱箱", uid)
         self.assertIn("强制插曲", touch_res)
         self.assertIn("博丽赛钱箱", touch_res)
 

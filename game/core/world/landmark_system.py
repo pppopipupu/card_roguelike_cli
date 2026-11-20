@@ -168,42 +168,12 @@ def build_downstairs_data(run, save_manager, uid) -> dict:
         }
     nxt = 4 if abs(float(fm.floor_index) - 3.5) < 1e-4 else int(fm.floor_index) + 1
     nxt_name = get_locale_text(FLOOR_CONFIGS.get(nxt, FLOOR_CONFIGS[4])["name_key"])
-    claimed_map = fm.floor_flags.get("descent_claimed", {})
-    if isinstance(claimed_map, dict) and claimed_map.get(uid):
-        options = [
-            {"action": "downstairs_confirm", "text": get_locale_text("i18n_grid_map.downstairs.confirm_opt")},
-        ]
-        if fm.floor_index == 3:
-            options.append({"action": "enter_chireiden_3_5", "text": get_locale_text("i18n_chireiden.elevator.opt_enter_chireiden")})
-        options.append({"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")})
-        return {
-            "title": get_locale_text("i18n_grid_map.downstairs.title", floor=fm.floor_index),
-            "desc": get_locale_text("i18n_grid_map.downstairs.desc", next_floor=nxt, nxt_name=nxt_name),
-            "options": options,
-        }
-    coord = fm.player_coords.get(uid, "")
-    room = fm.rooms.get(coord)
-    store = room.shared_payload.setdefault("descent_options_by_uid", {}) if room is not None else {}
-    options = store.get(uid)
-    if not options:
-        options = []
-        for opt in build_ancient_options(run, save_manager)["options"]:
-            options.append({
-                "action": "ancient_pick",
-                "type": opt["type"],
-                "card": opt["card"],
-                "relic": opt["relic"],
-                "text": get_locale_text(
-                    "i18n_explore_core.ancient_blessing_card_relic",
-                    card_name=ALL_CARDS[opt["card"]].name,
-                    relic_name=get_relic_name(opt["relic"]),
-                ),
-            })
-        if fm.floor_index == 3:
-            options.append({"action": "enter_chireiden_3_5", "text": get_locale_text("i18n_chireiden.elevator.opt_enter_chireiden")})
-        options.append({"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")})
-        if room is not None:
-            store[uid] = options
+    options = [
+        {"action": "downstairs_confirm", "text": get_locale_text("i18n_grid_map.downstairs.confirm_opt")},
+    ]
+    if fm.floor_index == 3:
+        options.append({"action": "enter_chireiden_3_5", "text": get_locale_text("i18n_chireiden.elevator.opt_enter_chireiden")})
+    options.append({"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")})
     return {
         "title": get_locale_text("i18n_grid_map.downstairs.title", floor=fm.floor_index),
         "desc": get_locale_text("i18n_grid_map.downstairs.desc", next_floor=nxt, nxt_name=nxt_name),
@@ -490,13 +460,7 @@ def execute_downstairs_option(save_manager, map_engine, run, idx: int) -> str:
         save_manager.save_save(uid, run)
         return elevator_msg
     reward_msg = ""
-    if action == "ancient_pick":
-        reward_msg = grant_ancient_blessing(run, chosen, player=run.player)
-        if fm is not None:
-            claimed = fm.floor_flags.setdefault("descent_claimed", {})
-            if isinstance(claimed, dict):
-                claimed[uid] = True
-    elif action not in ("yog_descend", "downstairs_confirm"):
+    if action not in ("yog_descend", "downstairs_confirm"):
         return get_locale_text("err_invalid_option_idx")
     alive_humans = [
         pid

@@ -135,6 +135,10 @@ def check_battle_outcome(router, user_id, run, res, success):
             return merged, True, success
         return res, False, success
     if run.player.hp <= 0:
+        from ..battle.ninja_runtime import try_sarira_revive
+        if try_sarira_revive(router.engine.battle_engine, run, run.player):
+            router.save_manager.save_save(user_id, run)
+            return router.engine.battle_engine._append_logs_to_res(run, res), False, success
         return finalize_defeat(router.save_manager, user_id, run, res, success)
     if router.engine.is_battle_won(run):
         return finalize_victory(router.save_manager, router.engine, user_id, run, res, success)
@@ -232,6 +236,9 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                 if run.node_type == "gem_insert":
                     res = router.engine.gem_insert_cancel(run)
                     return res, False, "❌" not in res
+                if run.node_type == "enchant_card":
+                    res = router.engine.enchant_cancel(run)
+                    return res, False, "❌" not in res
                 if run.node_type == "shop" and (
                     run.node_data.get("shop_mode") == "dialog"
                     or (run.node_data.get("shop_mode") == "wares" and run.node_data.get("entered_via_lobby"))
@@ -284,6 +291,9 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
             return get_locale_text("i18n_cli_core.err_index_numeric"), False, False
         if run.node_type == "gem_insert":
             res = router.engine.gem_insert_choose(run, idx)
+            return res, False, "❌" not in res
+        if run.node_type == "enchant_card":
+            res = router.engine.enchant_choose(run, idx)
             return res, False, "❌" not in res
         if run.node_data.get("pending_upgrade"):
             res = router.engine.upgrade_card_in_deck(run, idx)

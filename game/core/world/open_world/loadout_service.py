@@ -5,6 +5,7 @@ from ....data.grid_map_config import SP_CONFIG
 from ....data.open_world_config import (
     OPEN_WORLD_COMBAT_FLAG,
     OPEN_WORLD_DEFAULT_BASE_HP,
+    OPEN_WORLD_NINJA_BASE_HP,
     OPEN_WORLD_STARTING_GOLD,
     OPEN_WORLD_WARRIOR_BASE_HP,
 )
@@ -44,7 +45,12 @@ class OpenWorldLoadoutService:
     @staticmethod
     def base_max_hp(stats: UserStats) -> int:
         selected_class = getattr(stats, "selected_class", "法师")
-        base = OPEN_WORLD_WARRIOR_BASE_HP if selected_class == "战士" else OPEN_WORLD_DEFAULT_BASE_HP
+        if selected_class == "战士":
+            base = OPEN_WORLD_WARRIOR_BASE_HP
+        elif selected_class == "蕾忍":
+            base = OPEN_WORLD_NINJA_BASE_HP
+        else:
+            base = OPEN_WORLD_DEFAULT_BASE_HP
         return base + int(getattr(stats, "town_health_bonus", 0) or 0)
 
     @staticmethod

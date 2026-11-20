@@ -41,6 +41,7 @@ class ExploreEngine:
         ]
         if multi:
             base_items.append({"type": "rest_mend", "taken": False})
+        base_items.append({"type": "rest_enchant", "taken": False})
         views = {}
         ready = {}
         for uid in run.party_order:
@@ -305,6 +306,12 @@ class ExploreEngine:
             "price": int(SHOP_UPGRADE_PRICE * discount),
             "sold": False
         })
+        from ...data.enchantment_data import SHOP_ENCHANT_PRICE
+        items.append({
+            "type": "enchant",
+            "price": int(SHOP_ENCHANT_PRICE * discount),
+            "sold": False
+        })
         items.append({
             "type": "leave",
             "price": 0,
@@ -440,6 +447,9 @@ class ExploreEngine:
         if c_state.upgraded:
             return get_locale_text("err_card_already_upgraded")
             
+        from ..inventory.enchantment_service import has_cant_upgrade_enchantment
+        if has_cant_upgrade_enchantment(c_state):
+            return get_locale_text("i18n_enchantment.ui.cant_upgrade_err", name=ALL_CARDS[c_state].name)
         from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
         if c_state.id not in CARD_UPGRADE_CONFIG:
             return get_locale_text("err_card_cannot_upgrade")
@@ -499,6 +509,18 @@ class ExploreEngine:
         begin_party_gem(run, previous)
         self.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_explore_core.gem_gained", gem_name=gem_name)
+
+    def start_enchant_flow(self, run: GameRun, source: str, next_node_type: str, next_node_data: dict, price: int = 0, offers: list[str] | None = None) -> str:
+        from .enchant_flow import start_enchant_flow
+        return start_enchant_flow(self, run, source, next_node_type, next_node_data, price=price, offers=offers)
+
+    def enchant_choose(self, run: GameRun, option_idx: int) -> str:
+        from .enchant_flow import enchant_choose
+        return enchant_choose(self, run, option_idx)
+
+    def enchant_cancel(self, run: GameRun) -> str:
+        from .enchant_flow import enchant_cancel
+        return enchant_cancel(self, run)
 
     def gem_insert_cancel(self, run: GameRun) -> str:
         gem_data = run.node_data

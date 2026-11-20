@@ -53,13 +53,15 @@ class GridMapViewCommand(CommandHandler, names=["地图", "map", "m", "look", "l
         yield GameRenderer.render_game(run)
 
 
-class GridTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_to", "interact", "inter"], allowed_states=["grid_map"], help_key="grid_talk"):
+class GridTalkCommand(CommandHandler, names=["talk", "talk_to", "interact", "inter", "对话", "交谈"], allowed_states=["grid_map"], help_key="grid_talk"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if not run:
             yield get_locale_text("i18n_cli_general_b.err_no_active_game")
             return
         query = " ".join(parts[1:]).strip() if len(parts) > 1 else ""
+        if query == ".":
+            query = ""
         if query:
             player_res = router.world_social.try_talk(user_id, query, run=run)
             if player_res is not None:

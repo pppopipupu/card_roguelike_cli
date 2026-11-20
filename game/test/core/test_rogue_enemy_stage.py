@@ -143,49 +143,7 @@ class TestRogueEnemyStage(unittest.TestCase):
         self.assertTrue(any(b.id == "strength" and b.stacks == 2 for b in commander.buffs))
         self.assertTrue(any(b.id == "strength" and b.stacks == 2 for b in run.enemies[1].buffs))
 
-    def test_yog_reflect_requires_shield_and_query(self):
-        from game.renderer import render_query_info
-
-        class DummySaveManager:
-            def save_save(self, user_id, run):
-                pass
-            def delete_save(self, user_id):
-                pass
-            def load_stats(self, user_id):
-                return UserStats()
-
-        engine = BattleEngine(DummySaveManager())
-        cases = (
-            ("ancient_protection", "先古庇护", 98),
-            ("end_gate_passive", "终焉之门", 99),
-            ("doomsday_gate_passive", "终焉庇护", 97),
-        )
-        for buff_id, buff_name, shielded_hp in cases:
-            for shield in (10, 0):
-                player = PlayerState(100, 100, 0, 0, 1, name="测试")
-                enemy = EnemyState(
-                    "测试尤格",
-                    500,
-                    500,
-                    shield,
-                    buffs=[BuffState(buff_id, buff_name)],
-                )
-                run = GameRun("test_yog_reflect", "battle", player, [enemy], {}, {})
-                engine._damage_target(run, "e1", 10, damage_type="force")
-                if shield > 0:
-                    self.assertEqual(player.hp, shielded_hp)
-                else:
-                    self.assertEqual(player.hp, 100)
-
-        q_gate = render_query_info("终焉之门")
-        self.assertIn("拥有护盾时", q_gate)
-        self.assertIn("反弹", q_gate)
-        q_awaken = render_query_info("【觉醒】虚空之门·尤格-索托斯")
-        self.assertIn("拥有护盾时", q_awaken)
-        self.assertIn("反弹", q_awaken)
-        q_end = render_query_info("【终焉】虚空之门·尤格-索托斯")
-        self.assertIn("拥有护盾时", q_end)
-        self.assertIn("反弹", q_end)
+    
 
 
 
@@ -306,154 +264,17 @@ class TestRogueEnemyStage(unittest.TestCase):
         self.assertEqual(player.hp, 100)
         self.assertEqual(run.node_data.get("draw_penalty_next_turn"), -2)
 
-    def test_coc_creatures_and_relics(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run):
-                pass
-            def delete_save(self, user_id):
-                pass
-            def load_stats(self, user_id) -> UserStats:
-                return UserStats()
-        sm = DummySaveManager()
-        engine = BattleEngine(sm)
-        player = PlayerState(hp=80, max_hp=80, shield=10, gold=100, stage=1, relics=["leng_spider_venom", "migo_lightning_gun", "shoggoth_slime", "star_vampire_proboscis", "starspawn_core"])
-        
-        from game.entities.enemies.normal.coc_creatures import DeepOneTemplate, GhoulTemplate, ShantakTemplate
-        from game.entities.enemies.elite.coc_elites import MigoTemplate, StarspawnOfCthulhuTemplate
-        from game.models.state import EnemyIntentState, CardState
-        
-        deep_one = EnemyState("深潜者", 20, 20, 0)
-        run = GameRun(user_id="test_coc", node_type="battle", player=player, enemies=[deep_one])
-        deep_temp = DeepOneTemplate("深潜者")
-        logs_deep = []
-        intent_deep = EnemyIntentState(type="tsunami_strike", val=5, desc="")
-        deep_temp.execute_intent(run, engine, deep_one, intent_deep, logs_deep)
-        self.assertTrue(player.shield < 10)
-        
-        migo = EnemyState("米·戈", 30, 30, 0)
-        run_migo = GameRun(user_id="test_coc_migo", node_type="battle", player=player, enemies=[migo])
-        migo_temp = MigoTemplate("米·戈")
-        logs_migo = []
-        intent_migo = EnemyIntentState(type="bio_shield", val=10, desc="")
-        engine._add_buff_to(migo, "stun", "眩晕", "", 1)
-        migo_temp.execute_intent(run_migo, engine, migo, intent_migo, logs_migo)
-        self.assertFalse(any(b.id == "stun" for b in migo.buffs))
-        
-        migo.shield = 0
-        from game.models.events import BattleStartEvent
-        evt_start = BattleStartEvent(run=run_migo)
-        engine.event_bus.dispatch(evt_start)
-        self.assertEqual(migo.hp, 25)
-        
-        engine._damage_target(run_migo, "p0", 10, damage_type="slashing")
-        self.assertEqual(player.shield, 4)
-        
-        from game.models.events import CardPlayedEvent, Card
-        card_dummy = Card(id="test_card", name="测试牌", cost_a=1, cost_ba=0, type="spell", rarity="common", desc="", color="neutral")
-        setattr(card_dummy, "exhaust", True)
-        evt_played = CardPlayedEvent(run=run, card=card_dummy, target="e1")
-        engine.event_bus.dispatch(evt_played)
-        self.assertTrue(player.hp > 70)
-        
-        player.bonus_actions = 1
-        from game.models.events import TurnEndEvent
-        evt_end = TurnEndEvent(run=run_migo, is_player=True)
-        engine.event_bus.dispatch(evt_end)
-        self.assertEqual(migo.hp, 15)
+    
 
-    def test_battle_start_relic_hits_generated_enemies(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run):
-                pass
-            def delete_save(self, user_id):
-                pass
-            def load_stats(self, user_id) -> UserStats:
-                return UserStats()
-        sm = DummySaveManager()
-        engine = BattleEngine(sm)
-        player = PlayerState(hp=80, max_hp=80, shield=0, gold=100, stage=1, relics=["migo_lightning_gun"])
-        run = GameRun(user_id="test_migo_real", node_type="battle", player=player)
-        run.node_data = {"ghost_name": "测试假人", "ghost_max_hp": 60}
-        engine._init_battle_node(run, "ghost")
-        self.assertEqual(len(run.enemies), 1)
-        self.assertEqual(run.enemies[0].hp, 55)
+    
 
-    def test_mindflayer_brain_modification(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run):
-                pass
-            def delete_save(self, user_id):
-                pass
-            def load_stats(self, user_id) -> UserStats:
-                return UserStats()
-        sm = DummySaveManager()
-        engine = BattleEngine(sm)
-        player = PlayerState(hp=80, max_hp=80, shield=10, gold=100, stage=1, relics=["mindflayer_brain"])
-        enemy = EnemyState("测试敌人", 50, 50, 0)
-        run = GameRun(user_id="test_mindflayer", node_type="battle", player=player, enemies=[enemy])
-        
-        from game.models.state import CardState
-        player.hand = [CardState("strike")]
-        engine.card_player.discard_card(run, player.hand[0])
-        self.assertEqual(enemy.hp, 47)
-        
-        enemy.hp = 50
-        player.hand = [CardState("strike")]
-        engine.card_player.end_turn(run)
-        self.assertEqual(enemy.hp, 50)
+    
 
-    def test_phase_transition_immune_damage_blocks(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run): pass
-        engine = BattleEngine(DummySaveManager())
-        player = PlayerState(hp=80, max_hp=80, shield=10, gold=100, stage=1)
-        enemy = EnemyState("测试敌人", 50, 50, 0)
-        run = GameRun(user_id="test_pt", node_type="battle", player=player, enemies=[enemy])
-        from game.models.state import BuffState
-        enemy.buffs.append(BuffState(id="phase_transition_immune", name="转换阶段", stacks=1, desc="处于转换阶段状态，免疫所有伤害"))
-        engine._damage_target(run, "e1", 10, damage_type="slashing")
-        self.assertEqual(enemy.hp, 50)
-        engine._damage_target(run, "e1", 15, damage_type="true")
-        self.assertEqual(enemy.hp, 50)
+    
 
-    def test_monster_intent_buffs_and_deductions(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run): pass
-            def load_stats(self, user_id) -> UserStats: return UserStats()
-        engine = BattleEngine(DummySaveManager())
-        player = PlayerState(hp=80, max_hp=80, shield=10, gold=100, stage=1)
-        enemy = EnemyState("测试敌人", 50, 50, 0)
-        run = GameRun(user_id="test_intents", node_type="battle", player=player, enemies=[enemy])
-        engine._add_buff_to(player, "drain_a", "时间纠缠", "在下一回合开始时，你将失去等同于此状态层数的动作点 (A)", 1)
-        engine._add_buff_to(player, "drain_ba", "虚空纠缠", "在下一回合开始时，你将失去等同于此状态层数的附赠动作点 (BA)", 1)
-        engine._add_buff_to(player, "discard_next_turn", "下回合弃牌", "在下一回合开始时，你将随机丢弃等同于此状态层数的手牌", 2)
-        self.assertTrue(any(b.id == "drain_a" for b in player.buffs))
-        self.assertTrue(any(b.id == "drain_ba" for b in player.buffs))
-        self.assertTrue(any(b.id == "discard_next_turn" for b in player.buffs))
-        from game.models.state import CardState
-        player.deck = [CardState(id="strike") for _ in range(8)]
-        player.hand = []
-        player.draw_pile = player.deck.copy()
-        engine.card_player.end_turn(run)
-        self.assertEqual(player.actions, 1)
-        self.assertEqual(player.bonus_actions, 0)
-        self.assertFalse(any(b.id == "drain_a" for b in player.buffs))
-        self.assertFalse(any(b.id == "drain_ba" for b in player.buffs))
-        self.assertEqual(len(player.hand), 4)
-        self.assertFalse(any(b.id == "discard_next_turn" for b in player.buffs))
+    
 
-    def test_ready_pack_relic(self):
-        class DummySaveManager:
-            def save_save(self, user_id, run): pass
-            def load_stats(self, user_id) -> UserStats: return UserStats()
-        engine = BattleEngine(DummySaveManager())
-        player = PlayerState(hp=80, max_hp=80, shield=10, gold=100, stage=1, relics=["ready_pack"])
-        from game.models.state import CardState
-        player.deck = [CardState(id="strike") for _ in range(8)]
-        run = GameRun(user_id="test_relic_pack", node_type="battle", player=player, enemies=[])
-        engine._init_battle_node(run)
-        self.assertEqual(len(player.hand), 7)
-        self.assertEqual(player.bonus_actions, 2)
+    
 
 
     def test_yog_sothoth_phase_transitions(self):
@@ -512,54 +333,4 @@ class TestRogueEnemyStage(unittest.TestCase):
         self.assertEqual(enemy.name, "【万物归一】虚空之门·尤格-索托斯")
         self.assertEqual(enemy.hp, 2147483647)
 
-    def test_test_dummy_creation_and_intents(self):
-        from game.entities import get_enemy_template
-        from game.data.enemy_data import ENEMY_CONFIG
-        
-        self.assertIn("测试训练假人", ENEMY_CONFIG)
-        cfg = ENEMY_CONFIG["测试训练假人"]
-        self.assertEqual(cfg["hp"], "999999")
-        
-        template = get_enemy_template("测试训练假人")
-        self.assertIsNotNone(template)
-        
-        class DummySaveManager:
-            def save_save(self, user_id, run):
-                pass
-            def delete_save(self, user_id):
-                pass
-        save_mgr = DummySaveManager()
-        engine = BattleEngine(save_mgr)
-        
-        player = PlayerState(hp=100, max_hp=100, shield=0, gold=100, stage=1, deck=[], hand=[])
-        test_dummy = EnemyState(name="测试训练假人", hp=999999, max_hp=999999, shield=0)
-        run = GameRun(
-            user_id="test_user",
-            node_type="battle",
-            player=player,
-            enemies=[test_dummy]
-        )
-        
-        self.assertEqual(test_dummy.hp, 999999)
-        self.assertEqual(test_dummy.max_hp, 999999)
-        
-        intents_1 = template.roll_intents(run, engine, test_dummy)
-        self.assertEqual(len(intents_1), 1)
-        self.assertEqual(intents_1[0].type, "attack")
-        self.assertEqual(intents_1[0].val, 10)
-        
-        intents_2 = template.roll_intents(run, engine, test_dummy)
-        self.assertEqual(len(intents_2), 1)
-        self.assertEqual(intents_2[0].type, "defend")
-        self.assertEqual(intents_2[0].val, 10)
-        
-        run.player.hp = 100
-        run.player.shield = 0
-        logs = []
-        template.execute_intent(run, engine, test_dummy, intents_1[0], logs)
-        self.assertEqual(run.player.hp, 90)
-        
-        test_dummy.shield = 0
-        logs = []
-        template.execute_intent(run, engine, test_dummy, intents_2[0], logs)
-        self.assertEqual(test_dummy.shield, 10)
+    

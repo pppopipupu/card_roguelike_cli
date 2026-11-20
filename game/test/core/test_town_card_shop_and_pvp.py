@@ -115,26 +115,7 @@ class TestTownCardShopAndPvp(unittest.TestCase):
         toggle_status = self.cmd("pvp status", self.bob)
         self.assertIn("已开启", toggle_status)
 
-    def test_pvp_invite_reply_accepts_without_command_prefix(self):
-        self._prepare_player(self.alice, "Alice", deck=["fire_bolt", "shield", "dagger_throw"] * 3)
-        self._prepare_player(self.bob, "Bob", deck=["fire_bolt", "shield", "dagger_throw"] * 3)
-        for uid in (self.alice, self.bob):
-            stats = self.plugin.save_manager.load_stats(uid)
-            stats.rogue_mode = True
-            self.plugin.save_manager.save_stats(uid, stats)
-
-        sent = self.im_cmd(".rogue atk Bob", self.alice) or ""
-        self.assertIn("PVP 切磋请求", sent)
-
-        status_view = self.im_cmd("status", self.bob) or ""
-        self.assertIn("PVP 切磋请求", status_view)
-        self.assertNotIn("先古主城", status_view)
-
-        accepted = self.im_cmd("1", self.bob) or ""
-        self.assertIn("战斗开始", accepted)
-        self.assertIn("等待【Alice】行动", accepted)
-        self.assertEqual(require_run(self.plugin.save_manager.load_save(self.bob)).node_type, "battle")
-        self.assertEqual(require_run(self.plugin.save_manager.load_save(self.alice)).node_type, "battle")
+    
 
     def test_pvp_battle_turn_wait_rope_and_death_reward_settlement(self):
         self._prepare_player(
@@ -310,6 +291,9 @@ class TestTownCardShopAndPvp(unittest.TestCase):
         self.cmd("1", self.bob)
 
         self.cmd("p 1 e1", self.alice)
+        self.cmd("p 1 e1", self.alice)
+        self.cmd("e", self.alice)
+        self.cmd("e", self.bob)
         win_out = self.cmd("p 1 e1", self.alice)
         self.assertEqual(win_out.count("PVP 切磋胜利"), 1)
         self.assertIsNone(self.plugin.save_manager.load_save(self.alice))

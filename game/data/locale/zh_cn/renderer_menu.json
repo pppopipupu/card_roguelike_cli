@@ -192,5 +192,8 @@
   "npc_title": "👤 居民：{name} ({id})",
   "npc_intro_line": "介绍：{desc}",
   "npc_talk_title": "闲聊语录：",
-  "query_not_found": "❌ 未找到与该名称或 ID 匹配的随从、遗物、Buff、卡牌、怪物、主城居民或物品信息。"
+  "query_not_found": "❌ 未找到与该名称或 ID 匹配的随从、遗物、Buff、卡牌、怪物、主城居民或物品信息。",
+  "class_ninja": "🥷 当前职业：蕾忍",
+  "title_suffix_ninja": " 蕾忍篇",
+  "prefix_ninja": "[蕾忍] {info}"
 }

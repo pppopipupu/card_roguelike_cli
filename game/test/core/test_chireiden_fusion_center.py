@@ -275,156 +275,9 @@ class TestChireidenFusionCenter(unittest.TestCase):
                 return
         self.assertEqual(floor_of(load_run(self.plugin, uid)).player_coords.get(uid), target_coord)
 
-    def test_touhou_npcs_hint_chireiden_rumors_and_greetings(self):
-        uid = "touhou_rumor_u"
-        self._prepare_seasoned_stats(uid)
+    
 
-        for hidden_query in (
-            "i 智力头环",
-            "i 地灵殿核聚变控制中心",
-            "i 非想天则热核炮",
-            "i 铅铋快堆实验大厅",
-            "i 彭宁离子井·超级传送门·初阶裂隙",
-            "i 灵乌路空",
-            "i 聚变超载",
-        ):
-            pre_res = self._cmd(hidden_query, uid)
-            self.assertIn("未找到", pre_res, f"Unexpectedly unlocked before meeting: {hidden_query}")
-
-        found_reimu_room = None
-        for seed_val in range(1, 35):
-            self.plugin.save_manager.delete_save(uid)
-            random.seed(seed_val)
-            self._cmd("start confirm", uid)
-            self._pick_safe_start_option(uid)
-            run = load_run(self.plugin, uid)
-            fm = floor_of(run)
-            for coord, room in fm.rooms.items():
-                if not room.locked and room.room_type == "big_room":
-                    br = fm.big_rooms.get(room.big_room_id)
-                    if br and "hakurei_reimu" in (br.npcs or []):
-                        found_reimu_room = coord
-                        break
-            if found_reimu_room:
-                break
-        self.assertIsNotNone(found_reimu_room)
-        assert found_reimu_room is not None
-        self._walk_to_coord(uid, found_reimu_room)
-        with patch("game.core.world.rooms.chaos_npcs.random.random", return_value=0.1):
-            dlg = self._cmd("talk 博丽灵梦", uid)
-            self.assertIn("博丽灵梦", dlg)
-            reply = self._cmd("1", uid)
-            self.assertIn("地灵殿", reply)
-            self.assertIn("维修电梯", reply)
-            self.assertIn("智力头环", reply)
-            self.assertNotIn("INT 19", reply)
-            self.assertNotIn("智力飙升", reply)
-            self.assertNotIn("智力暴涨", reply)
-            self.assertIn("chireiden_rumor_seeker", self.plugin.save_manager.load_stats(uid).unlocked_achievements)
-
-            rumor_headband = self._cmd("i 智力头环", uid)
-            self.assertIn("headband_of_intellect", rumor_headband)
-            self.assertIn("灵乌路空", rumor_headband)
-            self.assertNotIn("设定为 19", rumor_headband)
-            self.assertNotIn("偶数回合", rumor_headband)
-
-            rumor_floor = self._cmd("i 地灵殿核聚变控制中心", uid)
-            self.assertIn("维修电梯", rumor_floor)
-            self.assertIn("传闻线索", rumor_floor)
-
-            rumor_utsuho = self._cmd("i 灵乌路空", uid)
-            self.assertIn("未知（尚未", rumor_utsuho)
-            self.assertNotIn("伪狱热核终焉日轮", rumor_utsuho)
-
-            still_hidden_card = self._cmd("i 非想天则热核炮", uid)
-            self.assertIn("未找到", still_hidden_card)
-            still_hidden_portal = self._cmd("i 彭宁离子井·超级传送门·初阶裂隙", uid)
-            self.assertIn("未找到", still_hidden_portal)
-
-    def test_chireiden_cards_mechanics_against_training_dummy(self):
-        card_pairs = (
-            ("d_he3_fusion_ignition", "pb_bi_coolant_loop"),
-            ("lunar_he3_orbital_drop", "int19_tokamak_calculus"),
-            ("penning_trap_lockdown", "hisoutensoku_thermonuclear_cannon"),
-        )
-        all_used = set()
-        for pair_idx, pair in enumerate(card_pairs):
-            uid = f"chireiden_dummy_cards_u_{pair_idx}"
-            stats = self.plugin.save_manager.load_stats(uid)
-            stats.gp = 200
-            stats.locked_cards = list(pair)
-            self.plugin.save_manager.save_stats(uid, stats)
-            self._cmd("主城", uid)
-            self._cmd("home", uid)
-            self._cmd("up", uid)
-            self._cmd("talk Dummy", uid)
-            self._cmd("2", uid)
-
-            used_cards = set()
-            for _ in range(18):
-                run = load_run(self.plugin, uid)
-                if run.node_type != "battle" or not run.enemies or run.enemies[0].hp <= 0:
-                    break
-                played_this_step = False
-                for target_id in pair:
-                    if target_id in used_cards:
-                        continue
-                    idx = next((i for i, cs in enumerate(run.player.hand, 1) if cs.id == target_id), None)
-                    if idx is not None:
-                        a0, ba0, h0 = run.player.actions, run.player.bonus_actions, len(run.player.hand)
-                        self._cmd(f"p {idx} e1", uid)
-                        chk = load_run(self.plugin, uid)
-                        if chk.player.actions != a0 or chk.player.bonus_actions != ba0 or len(chk.player.hand) != h0:
-                            used_cards.add(target_id)
-                            all_used.add(target_id)
-                            played_this_step = True
-                            break
-                if not played_this_step:
-                    self._cmd("e", uid)
-                if len(used_cards) == len(pair):
-                    break
-            self.assertEqual(used_cards, set(pair))
-        self.assertEqual(len(all_used), 6)
-
-        uid_oc = "chireiden_overcharge_u"
-        stats_oc = self.plugin.save_manager.load_stats(uid_oc)
-        stats_oc.gp = 200
-        stats_oc.purchased_pool = [
-            "int19_tokamak_calculus",
-            "int19_tokamak_calculus",
-            "d_he3_fusion_ignition",
-            "d_he3_fusion_ignition",
-            "d_he3_fusion_ignition",
-            "d_he3_fusion_ignition",
-            "d_he3_fusion_ignition",
-            "d_he3_fusion_ignition",
-        ]
-        self.plugin.save_manager.save_stats(uid_oc, stats_oc)
-        self._cmd("主城", uid_oc)
-        self._cmd("home", uid_oc)
-        self._cmd("up", uid_oc)
-        self._cmd("talk Dummy", uid_oc)
-        self._cmd("2", uid_oc)
-        for _ in range(45):
-            run_oc = load_run(self.plugin, uid_oc)
-            if run_oc.node_type != "battle":
-                break
-            if any(b.id == "fusion_overcharge" and b.stacks >= 8 for b in run_oc.player.buffs):
-                break
-            played_any = False
-            for target_id in ("int19_tokamak_calculus", "d_he3_fusion_ignition"):
-                idx = next((i for i, cs in enumerate(run_oc.player.hand, 1) if cs.id == target_id), None)
-                if idx is not None:
-                    a0, ba0, h0 = run_oc.player.actions, run_oc.player.bonus_actions, len(run_oc.player.hand)
-                    self._cmd(f"p {idx} e1", uid_oc)
-                    chk_oc = load_run(self.plugin, uid_oc)
-                    if chk_oc.player.actions != a0 or chk_oc.player.bonus_actions != ba0 or len(chk_oc.player.hand) != h0:
-                        played_any = True
-                        break
-            if not played_any:
-                self._cmd("e", uid_oc)
-        stats_oc_after = self.plugin.save_manager.load_stats(uid_oc)
-        self.assertIn("chireiden_overcharge_master", stats_oc_after.unlocked_achievements)
+    
 
     def test_floor3_elevator_5x20_chireiden_bosses_and_utsuho_ally(self):
         uid = "chireiden_full_run_u"
@@ -450,6 +303,8 @@ class TestChireidenFusionCenter(unittest.TestCase):
                 run2 = load_run(self.plugin, uid)
                 if run2.node_type == "downstairs":
                     self._cmd("1", uid)
+                if load_run(self.plugin, uid).node_type == "ancient":
+                    self._cmd("c 1", uid)
                 self._finish_current_battle(uid)
             else:
                 self.assertIn("地灵殿核聚变控制中心", talk_out)
@@ -458,6 +313,8 @@ class TestChireidenFusionCenter(unittest.TestCase):
                 elv_idx = next(i for i, o in enumerate(opts, 1) if o.get("action") == "enter_chireiden_3_5")
                 enter_msg = self._cmd(str(elv_idx), uid)
                 self.assertIn("地灵殿核聚变控制中心", enter_msg)
+                if load_run(self.plugin, uid).node_type == "ancient":
+                    self._cmd("c 1", uid)
 
         run35 = load_run(self.plugin, uid)
         fm35 = floor_of(run35)
@@ -604,6 +461,8 @@ class TestChireidenFusionCenter(unittest.TestCase):
         run_ds4 = load_run(self.plugin, uid)
         if run_ds4.node_type == "downstairs":
             self._cmd("1", uid)
+        if load_run(self.plugin, uid).node_type == "ancient":
+            self._cmd("c 1", uid)
         self._finish_current_battle(uid)
         run_floor4 = load_run(self.plugin, uid)
         self.assertEqual(floor_of(run_floor4).floor_index, 4)

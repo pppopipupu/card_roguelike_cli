@@ -29,118 +29,8 @@ class MapEngine:
         self.grid_map_service = GridMapService(save_manager, self)
 
     def _build_start_ancient_data(self, run: GameRun, icerainboww_enabled: bool) -> dict:
-        stats = self.save_manager.load_stats(run.user_id) if hasattr(self.save_manager, "load_stats") else None
-        p_class = getattr(stats, "selected_class", "法师")
-        if p_class == "战士":
-            style = random.choice(["default", "abyss"])
-        else:
-            style = random.choice(["default", "abyss", "glacier"])
-        if p_class == "战士":
-            if style == "default":
-                relics_pool = [
-                    {"type": "double", "relic": "mark_of_fury"},
-                    {"type": "double", "relic": "greedy_contract"},
-                    {"type": "double", "relic": "mask_of_void"},
-                    {"type": "double", "relic": "unstable_crystal"},
-                    {"type": "double", "relic": "vampiric_touch"},
-                    {"type": "double", "relic": "ancient_page"},
-                ]
-                cards_pool = [
-                    {"type": "contract", "relic": "rust_shackle", "card": "demon_form"},
-                    {"type": "contract", "relic": "fool_oath", "card": "impervious"},
-                    {"type": "contract", "relic": "blind_spot", "card": "demon_form"},
-                    {"type": "contract", "relic": "tax_contract", "card": "impervious"},
-                    {"type": "contract", "relic": "blind_spot", "card": "break_limits"},
-                    {"type": "contract", "relic": "blind_spot", "card": "unmined_gem"},
-                ]
-                if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
-                    cards_pool.append({"type": "contract", "relic": "wither_seed", "card": "minion_icerainboww"})
-            else:
-                relics_pool = [
-                    {"type": "double", "relic": "abyss_gaze"},
-                    {"type": "double", "relic": "mark_of_fury"},
-                    {"type": "double", "relic": "greedy_contract"},
-                    {"type": "double", "relic": "abyss_contract"},
-                ]
-                cards_pool = [
-                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_collapse"},
-                    {"type": "contract", "relic": "shadow_curse", "card": "demon_contract"},
-                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_erosion"},
-                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_altar"},
-                    {"type": "contract", "relic": "shadow_curse", "card": "break_limits"},
-                    {"type": "contract", "relic": "shadow_curse", "card": "unmined_gem"},
-                ]
-                if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
-                    cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "minion_icerainboww"})
-        else:
-            if style == "default":
-                relics_pool = [
-                    {"type": "double", "relic": "mark_of_fury"},
-                    {"type": "double", "relic": "greedy_contract"},
-                    {"type": "double", "relic": "mask_of_void"},
-                    {"type": "double", "relic": "unstable_crystal"},
-                    {"type": "double", "relic": "vampiric_touch"},
-                    {"type": "double", "relic": "ancient_page"},
-                ]
-                cards_pool = [
-                    {"type": "contract", "relic": "rust_shackle", "card": "doomsday_judgment"},
-                    {"type": "contract", "relic": "fool_oath", "card": "time_warp"},
-                    {"type": "contract", "relic": "wither_seed", "card": "magic_network"},
-                    {"type": "contract", "relic": "blind_spot", "card": "meteor_swarm"},
-                    {"type": "contract", "relic": "tax_contract", "card": "archmage_wish"},
-                    {"type": "contract", "relic": "blind_spot", "card": "break_limits"},
-                    {"type": "contract", "relic": "blind_spot", "card": "unmined_gem"},
-                ]
-                if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
-                    cards_pool.append({"type": "contract", "relic": "wither_seed", "card": "minion_icerainboww"})
-            elif style == "abyss":
-                relics_pool = [
-                    {"type": "double", "relic": "abyss_gaze"},
-                    {"type": "double", "relic": "mark_of_fury"},
-                    {"type": "double", "relic": "greedy_contract"},
-                    {"type": "double", "relic": "abyss_contract"},
-                ]
-                cards_pool = [
-                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_collapse"},
-                    {"type": "contract", "relic": "shadow_curse", "card": "demon_contract"},
-                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_erosion"},
-                    {"type": "contract", "relic": "shadow_curse", "card": "abyss_altar"},
-                    {"type": "contract", "relic": "shadow_curse", "card": "break_limits"},
-                    {"type": "contract", "relic": "shadow_curse", "card": "unmined_gem"},
-                ]
-                if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
-                    cards_pool.append({"type": "contract", "relic": "shadow_curse", "card": "minion_icerainboww"})
-            else:
-                relics_pool = [
-                    {"type": "double", "relic": "glacier_armor"},
-                    {"type": "double", "relic": "frost_blade"},
-                    {"type": "double", "relic": "glacier_core"},
-                    {"type": "double", "relic": "mark_of_fury"},
-                ]
-                cards_pool = [
-                    {"type": "contract", "relic": "glacier_chill", "card": "frost_nova"},
-                    {"type": "contract", "relic": "glacier_chill", "card": "glacier_fortress"},
-                    {"type": "contract", "relic": "glacier_chill", "card": "glacier_tempest"},
-                    {"type": "contract", "relic": "glacier_chill", "card": "break_limits"},
-                    {"type": "contract", "relic": "glacier_chill", "card": "unmined_gem"},
-                ]
-                if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
-                    cards_pool.append({"type": "contract", "relic": "glacier_chill", "card": "minion_icerainboww"})
-        from ...entities.cards.market import is_card_available
-        from ...data.map_quest_config import CARD_FUS_RO_DAH
-        if is_card_available(CARD_FUS_RO_DAH, stats):
-            cards_pool.append({"type": "contract", "relic": "blind_spot", "card": CARD_FUS_RO_DAH})
-        relics_pool.append({"type": "double", "relic": "trash_mountain"})
-        num_relics = random.choice(MAP_ANCIENT_RELIC_CHOICES)
-        selected_relics = random.sample(relics_pool, min(len(relics_pool), num_relics))
-        selected_cards = random.sample(cards_pool, min(len(cards_pool), MAP_ANCIENT_OPTION_SLOTS - len(selected_relics)))
-        from ...models.state import check_and_replace_fireball
-        for item in selected_cards:
-            if "card" in item:
-                item["card"] = check_and_replace_fireball(run, item["card"])
-        options = selected_relics + selected_cards
-        random.shuffle(options)
-        return {"options": options, "style": style}
+        from .ancient_reward import build_start_ancient_options
+        return build_start_ancient_options(run, self.save_manager, icerainboww_enabled)
 
     def init_new_run_map(self, run: GameRun):
         run.floor_map = generate_floor_map(run, 1, save_manager=self.save_manager)
@@ -382,8 +272,17 @@ class MapEngine:
                     player_name=actor_name,
                     coop_id=str(getattr(run, "coop_id", "") or ""),
                 )
+        self.open_floor_arrival_ancient(run)
         msg_key = "i18n_yog_quest.gate.arrived" if yog_quest else "i18n_grid_map.downstairs.arrived_floor"
         return get_locale_text(msg_key, floor=display_floor, name=floor_name)
+
+    def open_floor_arrival_ancient(self, run: GameRun) -> None:
+        fm = getattr(run, "floor_map", None)
+        humans = list(run.all_human_uids())
+        if fm is not None and humans:
+            spawn_coord = fm.player_coords.get(run.user_id) or next(iter(fm.player_coords.values()), "A1")
+            SessionContextScoper.create_session(run, spawn_coord, "ancient", humans)
+        self.enter_ancient_node(run)
 
     def advance_to_next_floor(self, run: GameRun) -> str:
         actor_uid = run.user_id
@@ -424,7 +323,7 @@ class MapEngine:
             self._init_ancient_node(run)
             data = {
                 key: run.node_data[key]
-                for key in ("options", "style")
+                for key in ("options", "style", "deity")
                 if key in run.node_data
             }
             data["coop_done"] = player.downed
@@ -479,6 +378,12 @@ class MapEngine:
 
     def gem_insert_cancel(self, run: GameRun) -> str:
         return self.explore_engine.gem_insert_cancel(run)
+
+    def enchant_choose(self, run: GameRun, option_idx: int) -> str:
+        return self.explore_engine.enchant_choose(run, option_idx)
+
+    def enchant_cancel(self, run: GameRun) -> str:
+        return self.explore_engine.enchant_cancel(run)
 
     def _init_ancient_node(self, run: GameRun):
         from .ancient_reward import build_ancient_options

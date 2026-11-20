@@ -14,8 +14,15 @@ def render_menu(stats: Optional[UserStats] = None) -> str:
         gp_val = getattr(stats, "gp", 0)
         selected_class = getattr(stats, "selected_class", "法师")
         subclass_str = getattr(stats, "selected_subclass", "") or t("renderer_menu.none")
-    title_suffix = t("renderer_menu.title_suffix_warrior") if selected_class == "战士" else t("renderer_menu.title_suffix_wizard")
-    class_info = t("renderer_menu.class_warrior") if selected_class == "战士" else t("renderer_menu.class_wizard", subclass=subclass_str)
+    if selected_class == "战士":
+        title_suffix = t("renderer_menu.title_suffix_warrior")
+        class_info = t("renderer_menu.class_warrior")
+    elif selected_class == "蕾忍":
+        title_suffix = t("renderer_menu.title_suffix_ninja")
+        class_info = t("renderer_menu.class_ninja")
+    else:
+        title_suffix = t("renderer_menu.title_suffix_wizard")
+        class_info = t("renderer_menu.class_wizard", subclass=subclass_str)
     lines = [
         t("renderer_menu.separator"),
         t("renderer_menu.title", suffix=title_suffix),
@@ -87,6 +94,7 @@ def get_rogue_card_library_items(user_id: str | None = None) -> list:
     neutrals = []
     blue_spells = []
     red_cards = []
+    ninja_cards = []
     merc_cards = []
     curses = []
     rarity_map = {
@@ -132,11 +140,13 @@ def get_rogue_card_library_items(user_id: str | None = None) -> list:
             blue_spells.append(f"{get_card_color_icon(card)} {info}")
         elif card.color == "warrior":
             red_cards.append(t("renderer_menu.prefix_warrior", info=info))
+        elif card.color == "ninja":
+            ninja_cards.append(t("renderer_menu.prefix_ninja", info=info))
         elif card.color == "mercenary":
             merc_cards.append(t("renderer_menu.prefix_mercenary", info=info))
         else:
             blue_spells.append(t("renderer_menu.prefix_wizard", info=info))
-    return neutrals + blue_spells + red_cards + merc_cards + curses
+    return neutrals + blue_spells + red_cards + ninja_cards + merc_cards + curses
 def get_rogue_relic_library_items() -> list:
     from ..data.relic_data import RELIC_CONFIG
     items = []

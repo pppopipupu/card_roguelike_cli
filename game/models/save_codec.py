@@ -130,6 +130,7 @@ class SaveCodecMixin:
             hand=p_data.get("hand", []),
             actions=p_data.get("actions", 1),
             bonus_actions=p_data.get("bonus_actions", 1),
+            lex_kela=p_data.get("lex_kela", 0),
             minions=p_minions,
             amulets=p_amulets,
             abilities=p_data.get("abilities", []),

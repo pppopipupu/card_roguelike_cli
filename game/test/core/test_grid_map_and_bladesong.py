@@ -398,25 +398,32 @@ class TestGridMapAndBladesong(unittest.TestCase):
 
         ds_open = self.run_cmd("touch 下降隧道", "gm_lm")
         self.assertIn("下楼回廊", ds_open)
-        self.assertIn("传奇卡牌", ds_open)
+        self.assertNotIn("传奇卡牌", ds_open)
         touched = load_run(self.plugin, "gm_lm")
         self.assertEqual(touched.node_type, "downstairs")
         first_options = [o["text"] for o in touched.node_data["options"]]
-        self.run_cmd("c 4", "gm_lm")
+        self.run_cmd("c 2", "gm_lm")
         self.run_cmd("touch 下降隧道", "gm_lm")
         re_touched = load_run(self.plugin, "gm_lm")
         self.assertEqual([o["text"] for o in re_touched.node_data["options"]], first_options)
 
         ds_res = self.run_cmd("c 1", "gm_lm")
         self.assertIn("第 2 层", ds_res)
-        self.assertIn("先古赐福", ds_res)
+        self.assertIn("降临神明", ds_res)
         floor2 = load_run(self.plugin, "gm_lm")
         self.assertEqual(floor_of(floor2).floor_index, 2)
+        self.assertEqual(floor2.node_type, "ancient")
+        self.assertEqual(len(floor2.node_data.get("options", [])), 5)
         self.assertEqual(floor2.player.sp, floor2.player.max_sp)
         self.assertEqual(floor2.player.exhaustion, 1)
         self.assertEqual(floor2.player.stage, FLOOR_CONFIGS[2]["stage_min"])
-        self.assertEqual(len(floor2.player.relics), before_relics + 1)
-        self.assertEqual(len(floor2.player.deck), before_deck + 1)
+
+        bless_res = self.run_cmd("c 1", "gm_lm")
+        self.assertIn("先古赐福", bless_res)
+        floor2_after = load_run(self.plugin, "gm_lm")
+        self.assertEqual(floor2_after.node_type, "grid_map")
+        self.assertEqual(len(floor2_after.player.relics), before_relics + 1)
+        self.assertEqual(len(floor2_after.player.deck), before_deck + 1)
 
 
 if __name__ == "__main__":

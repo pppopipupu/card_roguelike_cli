@@ -164,7 +164,9 @@ class CombatResolver:
         return dmg
 
     def get_modified_spell_damage(self, run: GameRun, card: Card, damage: int) -> int:
+        from .enchantment_runtime import apply_enchantment_dmg
         damage = self._apply_gem_dmg(card, damage)
+        damage, _ = apply_enchantment_dmg(run, card, "e1", damage)
         dtype = getattr(card, "damage_type", "spell")
         calc_evt = DamageCalculateEvent(run, card, "p0", "e1", dtype, damage, damage)
         self.engine.event_bus.dispatch(calc_evt)
@@ -213,6 +215,9 @@ class CombatResolver:
                             amount += 3
                         elif g == "gem_shield_add_8":
                             amount += 8
+                if card and getattr(card, "enchantments", None):
+                    from .enchantment_runtime import apply_enchantment_shield
+                    amount = apply_enchantment_shield(run, card, amount)
         if run.node_data.get("current_playing_card_cid"):
             run.node_data["card_played_triggered_shield"] = True
         evt = ShieldGainEvent(run, target, amount, amount)
@@ -243,6 +248,9 @@ class CombatResolver:
                     for g in card.gems:
                         if g == "gem_heal_add_2":
                             heal += 2
+                if card and getattr(card, "enchantments", None):
+                    from .enchantment_runtime import apply_enchantment_heal
+                    heal = apply_enchantment_heal(card, heal)
         if run.node_data.get("current_playing_card_cid"):
             run.node_data["card_played_triggered_heal"] = True
         heal_evt = HealEvent(run, target, heal)
@@ -318,8 +326,12 @@ class CombatResolver:
                 card = ALL_CARDS.get(cid)
         if game_run_context.node_data.get("current_playing_card_cid"):
             game_run_context.node_data["card_played_triggered_dmg"] = True
+        enchant_pierce = False
         if not damage_ready and source in ("p0", "player", "effect"):
             dmg = self._apply_gem_dmg(card, dmg)
+            if card and getattr(card, "enchantments", None):
+                from .enchantment_runtime import apply_enchantment_dmg
+                dmg, enchant_pierce = apply_enchantment_dmg(game_run_context, card, target, dmg)
         acting_enemy_idx = game_run_context.node_data.get("current_acting_enemy_idx")
         if acting_enemy_idx is not None and (source.startswith("enemy:") or source in ("effect", "yog_sothoth_passive")):
             source = f"e{acting_enemy_idx+1}"
@@ -349,7 +361,7 @@ class CombatResolver:
         final_dmg = max(0, before_apply_evt.final_damage)
         is_fatal = False
         is_true = False
-        if damage_type_str in ("true", "TRUE"):
+        if damage_type_str in ("true", "TRUE") or enchant_pierce:
             is_true = True
         if target == "p0" and final_dmg > 0:
             source_name = self.get_source_name(game_run_context, source)

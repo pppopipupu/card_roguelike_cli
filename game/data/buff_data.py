@@ -788,3 +788,5 @@ BUFF_CONFIG = {
 from .chireiden_data import CHIREIDEN_BUFF_CONFIG
 
 BUFF_CONFIG.update(CHIREIDEN_BUFF_CONFIG)
+from .ninja_card_data import NINJA_BUFF_CONFIG
+BUFF_CONFIG.update(NINJA_BUFF_CONFIG)

@@ -339,6 +339,11 @@ EVENT_CONFIG = {
             }
         ]
     },
+    "enchant_altar": {
+        "echo_hp_cost": 5,
+        "chaos_gold": 35,
+        "escape_hp_cost": 8,
+    },
     "forge_furnace": {
         "overload_success_chance": 0.8,
         "overload_upgrade_count": 2,

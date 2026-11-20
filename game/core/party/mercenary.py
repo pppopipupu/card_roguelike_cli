@@ -606,6 +606,7 @@ def handle_merc_dialog_input(run: GameRun, owner_uid: str, raw_text: str) -> str
             "id": chosen_p.id,
             "upgraded": chosen_p.upgraded,
             "gems": list(chosen_p.gems or []),
+            "enchantments": list(chosen_p.enchantments or []),
         }
         entry["state"] = "pick_merc_card"
         return render_merc_dialog(run, owner_uid)
@@ -619,7 +620,7 @@ def handle_merc_dialog_input(run: GameRun, owner_uid: str, raw_text: str) -> str
             return get_locale_text("i18n_mercenary.err_invalid_card_index", count=len(grouped))
         chosen_m, _ = grouped[idx - 1]
         p_info = entry.get("player_card") or {}
-        chosen_p = CardState(id=p_info.get("id", ""), upgraded=bool(p_info.get("upgraded", False)), gems=list(p_info.get("gems", [])))
+        chosen_p = CardState(id=p_info.get("id", ""), upgraded=bool(p_info.get("upgraded", False)), gems=list(p_info.get("gems", [])), enchantments=list(p_info.get("enchantments", [])))
         p_match = next((ensure_card_state(c) for c in player.deck if ensure_card_state(c) == chosen_p), None)
         m_match = next((ensure_card_state(c) for c in merc.deck if ensure_card_state(c) == chosen_m), None)
         if p_match is None or m_match is None:

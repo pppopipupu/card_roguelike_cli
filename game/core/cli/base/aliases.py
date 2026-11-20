@@ -10,7 +10,7 @@ def has_pending_node_cancel(run) -> bool:
         return False
     if run.node_data.get("pending_remove") or run.node_data.get("pending_upgrade"):
         return True
-    return run.node_type == "gem_insert"
+    return run.node_type in ("gem_insert", "enchant_card")
 
 
 def normalize_node_alias(run, parts: list[str]) -> list[str]:

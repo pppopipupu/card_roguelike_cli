@@ -86,3 +86,20 @@ class ShatterForgeOption(EventOption, action="shatter_forge", text=get_locale_te
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_events_a.forge_shatter_result", relic_msg=relic_msg)
+
+
+class ForgeEnchantOption(EventOption, action="forge_enchant", text=get_locale_text("i18n_enchantment.events.forge_enchant_text")):
+    def _run_effect(self, run, engine) -> str:
+        from ...core.world.enchant_flow import apply_forced_event_enchant
+        applied = apply_forced_event_enchant(run)
+        engine.enter_next_stage(run)
+        engine.save_manager.save_save(run.user_id, run)
+        if applied is None:
+            return get_locale_text("i18n_enchantment.events.enchant_altar_no_cards")
+        before_name, after_name, enchant_name = applied
+        return get_locale_text(
+            "i18n_enchantment.events.forge_enchant_res",
+            before_name=before_name,
+            enchant_name=enchant_name,
+            after_name=after_name,
+        )

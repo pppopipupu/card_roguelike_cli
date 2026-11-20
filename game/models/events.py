@@ -23,6 +23,13 @@ class TurnEndEvent(GameEvent):
     run: GameRun
     is_player: bool
 
+class LexKelaChangedEvent(GameEvent):
+    run: GameRun
+    player: Any
+    delta: int
+    reason: str = ""
+    source_card_id: str = ""
+
 class CardPlayEvent(GameEvent):
     run: GameRun
     card: Card

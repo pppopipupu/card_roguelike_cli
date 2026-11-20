@@ -103,7 +103,7 @@ def render_battle(run: GameRun) -> str:
     lines = [
         t("renderer.battle.separator"),
         t("renderer.battle.title", coord_prefix=get_run_coord_prefix(run), turn=turn_count),
-        t("renderer.battle.status_line", name=run.player.name, hp=p.hp, max_hp=cur_max, shield=p.shield, actions=p.actions, bonus_actions=p.bonus_actions) + relics_str + potions_str
+        (t("renderer.battle.status_line_ninja", name=run.player.name, hp=p.hp, max_hp=cur_max, shield=p.shield, actions=p.actions, bonus_actions=p.bonus_actions, lex_kela=getattr(p, "lex_kela", 0)) if getattr(p, "selected_class", "") == "蕾忍" else t("renderer.battle.status_line", name=run.player.name, hp=p.hp, max_hp=cur_max, shield=p.shield, actions=p.actions, bonus_actions=p.bonus_actions)) + relics_str + potions_str
     ]
     if getattr(run, "floor_map", None) is not None or getattr(p, "sp", 10) < getattr(p, "max_sp", 10):
         lines.append(t("i18n_grid_map.battle_sp_line", sp=getattr(p, "sp", 10), max_sp=getattr(p, "max_sp", 10)))
@@ -263,7 +263,7 @@ def render_detailed_battle(run: GameRun) -> str:
         t("renderer.battle.lord_title", name=run.player.name),
         t("renderer.battle.hp_line", hp=p.hp, max_hp=cur_max),
         t("renderer.battle.shield_line", shield=p.shield),
-        t("renderer.battle.actions_line", actions=p.actions, bonus_actions=p.bonus_actions),
+        (t("renderer.battle.actions_line_ninja", actions=p.actions, bonus_actions=p.bonus_actions, lex_kela=getattr(p, "lex_kela", 0)) if getattr(p, "selected_class", "") == "蕾忍" else t("renderer.battle.actions_line", actions=p.actions, bonus_actions=p.bonus_actions)),
         t("renderer.battle.potions_slot", potions=detailed_potions),
         t("renderer.battle.piles_status", hand=len(p.hand), draw=len(p.draw_pile), discard=len(p.discard_pile), exhaust=len(p.exhaust_pile), minion_grave=len(p.minion_graveyard), enemy_grave=len(p.enemy_graveyard)),
     ]
