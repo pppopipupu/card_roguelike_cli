@@ -158,6 +158,7 @@ ALL_EVENTS = [
             NinjaSealRelicsOption(get_locale_text("i18n_ninja_events.seal_opt_relics"), "ninja_seal_relics"),
             NinjaSealRemoveOption(get_locale_text("i18n_ninja_events.seal_opt_remove"), "ninja_seal_remove"),
             NinjaSealHamoodOption(get_locale_text("i18n_ninja_events.seal_opt_hamood"), "ninja_seal_hamood"),
+            NinjaSealBreakLimitsOption(get_locale_text("i18n_ninja_events.seal_opt_break_limits"), "ninja_seal_break_limits"),
         ],
         min_stage=1,
         max_stage=MapConfig.COMMON_EVENT_MAX_STAGE

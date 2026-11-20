@@ -33,3 +33,10 @@ class IntangibleWhisperCurse(Card):
         run.node_data["draw_penalty_next_turn"] = run.node_data.get("draw_penalty_next_turn", 0) + 3
         return get_locale_text("i18n_cards_misc.curse.intangible_whisper_log")
 
+
+@register_card("curse_break_break_limits")
+class BreakBreakLimitsCurse(Card):
+    def execute(self, run, target, engine) -> str:
+        run.node_data["break_limits_ignore_cap"] = True
+        return get_locale_text("i18n_cards_misc.curse.break_break_limits_log")
+

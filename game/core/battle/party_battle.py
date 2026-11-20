@@ -58,7 +58,7 @@ def alive_uids(run):
     return [uid for _, uid, _ in party_slots(run, alive_only=True)]
 
 def is_all_downed(run):
-    human_uids = run.human_uids() if hasattr(run, "human_uids") else list(run.players.keys())
+    human_uids = run.all_human_uids() if hasattr(run, "all_human_uids") else list(run.players.keys())
     players = [run.players[uid] for uid in human_uids if uid in run.players]
     if not players:
         players = party_players(run)
@@ -145,7 +145,10 @@ def pick_enemy_target(run, enemy_index, intent, fallback):
 
 
 def mark_downed(battle_engine, run, player):
-    if not run or run.player_count() <= 1:
+    if not run:
+        return
+    humans = run.all_human_uids() if hasattr(run, "all_human_uids") else list(run.players.keys())
+    if len(humans) <= 1 and not getattr(run, "coop_id", ""):
         return
     uid = run.uid_for(player)
     if not uid or player.downed:
@@ -160,7 +163,7 @@ def mark_downed(battle_engine, run, player):
     ready = run.node_data.setdefault("turn_ready", {})
     ready[uid] = True
     battle_engine._log_event(run, get_locale_text("i18n_explore_core.downed_log", player_name=player.name))
-    if not alive_uids(run):
+    if is_all_downed(run):
         run.node_data["coop_wipe"] = True
 
 
@@ -173,3 +176,25 @@ def revive_downed_players(run):
             player.shield = 0
             revived[run.uid_for(player)] = get_locale_text("i18n_explore_core.revive_log", player_name=player.name)
     return revived
+
+
+def revive_downed_ally(save_manager, target_uid: str, run=None) -> str:
+    target_run = run
+    if target_run is None or target_uid not in getattr(target_run, "players", {}):
+        target_run = save_manager.load_save(target_uid)
+    if target_run is None:
+        return ""
+    player = target_run.players.get(target_uid)
+    if player is None or not player.downed:
+        return ""
+    player.downed = False
+    player.hp = 1
+    player.shield = 0
+    player.hand.clear()
+    player.minions.clear()
+    player.amulets.clear()
+    player.abilities.clear()
+    player.actions = 1
+    player.bonus_actions = 1
+    save_manager.save_save(target_uid, target_run)
+    return get_locale_text("i18n_explore_core.revive_by_ally", player_name=player.name)

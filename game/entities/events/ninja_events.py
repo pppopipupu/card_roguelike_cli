@@ -74,6 +74,15 @@ class NinjaSealHamoodOption(EventOption, action="ninja_seal_hamood", text=get_lo
         return get_locale_text("i18n_ninja_events.seal_hamood_res")
 
 
+class NinjaSealBreakLimitsOption(EventOption, action="ninja_seal_break_limits", text=get_locale_text("i18n_ninja_events.seal_opt_break_limits")):
+    def _run_effect(self, run, engine) -> str:
+        p = run.player
+        DeckService.add_card_to_deck(p, CardState(id="curse_break_break_limits"))
+        engine.enter_next_stage(run)
+        engine.save_manager.save_save(run.user_id, run)
+        return get_locale_text("i18n_ninja_events.seal_break_limits_res")
+
+
 class NinjaDrinkSipOption(EventOption, action="ninja_drink_sip", text=get_locale_text("i18n_ninja_events.drink_opt_sip")):
     def _run_effect(self, run, engine) -> str:
         p = run.player

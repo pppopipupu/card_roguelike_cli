@@ -27,7 +27,7 @@ def finalize_defeat(
     if is_tutorial_run(run):
         merged = (res.rstrip() + "\n\n" + settle_msg).strip() if res and res.strip() else settle_msg
         return merged, True, True
-    if allow_coop_msg and len(run.human_uids()) > 1:
+    if allow_coop_msg and len(run.all_human_uids()) > 1:
         return get_locale_text(coop_key, res=res, settle_msg=settle_msg), True, success
     return get_locale_text(solo_key, res=res, settle_msg=settle_msg), True, success
 

@@ -71,11 +71,15 @@ def handle_ninja_turn_end(engine, run, p) -> None:
                 for uid in humans:
                     pl = run.players.get(uid)
                     if pl is not None and not pl.downed and pl.hp > 0:
-                        pl.hp = max(0, pl.hp - dmg)
-                        if pl.hp <= 0 and len(humans) > 1:
-                            pl.downed = True
+                        intangible = any(b.id == "intangible" and b.stacks > 0 for b in pl.buffs)
+                        actual = 1 if intangible else dmg
+                        pl.hp = max(0, pl.hp - actual)
+                        if pl.hp <= 0:
+                            from .party_battle import mark_downed
+                            mark_downed(engine, run, pl)
             else:
-                p.hp = max(0, p.hp - dmg)
+                actual = 1 if any(b.id == "intangible" and b.stacks > 0 for b in p.buffs) else dmg
+                p.hp = max(0, p.hp - actual)
             for e in run.enemies:
                 if e.hp > 0:
                     e.hp = max(0, e.hp - dmg)

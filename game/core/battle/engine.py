@@ -194,6 +194,7 @@ class BattleEngine(BaseBattleEngine):
         run.node_data.pop("enemy_targets", None)
         run.node_data.pop("coop_aggro_cursor", None)
         run.node_data.pop("coop_hp_mult", None)
+        run.node_data.pop("break_limits_ignore_cap", None)
         run.node_data["turn_count"] = 1
         run.node_data["difficulty"] = difficulty
         turn_ready = {}

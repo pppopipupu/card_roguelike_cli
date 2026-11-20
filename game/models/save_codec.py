@@ -325,7 +325,7 @@ class SaveCodecMixin:
             return None
         enemies = self._parse_enemy_list(d.get("enemies") or [])
         floor_map = self._parse_floor_map(d.get("floor_map"))
-        return GameRun(
+        run = GameRun(
             user_id=d["user_id"],
             node_type=d["node_type"],
             player=player,
@@ -339,3 +339,20 @@ class SaveCodecMixin:
             players=players,
             floor_map=floor_map,
         )
+        from ..data.relic_data import migrate_relic_id
+        for state in [run.player, run.player2, *run.players.values()]:
+            if state is not None:
+                state.relics = [migrate_relic_id(rid) for rid in (state.relics or [])]
+        options = run.node_data.get("options")
+        if isinstance(options, list):
+            for option in options:
+                if isinstance(option, dict) and option.get("relic"):
+                    option["relic"] = migrate_relic_id(str(option["relic"]))
+        if run.floor_map is not None:
+            for session in run.floor_map.active_sessions.values():
+                session_options = (session.node_data or {}).get("options")
+                if isinstance(session_options, list):
+                    for option in session_options:
+                        if isinstance(option, dict) and option.get("relic"):
+                            option["relic"] = migrate_relic_id(str(option["relic"]))
+        return run

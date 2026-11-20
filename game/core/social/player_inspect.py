@@ -94,6 +94,10 @@ class PlayerInspectService:
         if target is None:
             return None
         target_uid = str(target.get("user_id", ""))
+        from ..battle.party_battle import revive_downed_ally
+        revived = revive_downed_ally(self.save_manager, target_uid, run)
+        if revived:
+            return RenderedText(text=revived)
         player, stats = self.target_state(target_uid)
         return self.status_node(target, player, stats)
 

@@ -313,6 +313,10 @@ class WorldSocialService:
         live = self._validate_target(uid, target.get("user_id", ""), world, coord)
         if live is None:
             return get_locale_text("i18n_world_social.dialog.target_left", name=_entry_name(target))
+        from ..battle.party_battle import revive_downed_ally
+        revived = revive_downed_ally(self.save_manager, str(target.get("user_id", "") or ""))
+        if revived:
+            return revived
         if not message:
             return self.open_dialog(uid, live, world, coord=coord, stats=stats)
         return self.send(uid, live, message)

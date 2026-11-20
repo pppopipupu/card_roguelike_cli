@@ -572,6 +572,10 @@ RELIC_CONFIG.update(NINJA_RELIC_CONFIG)
 
 NINJA_RELIC_IDS = frozenset(NINJA_RELIC_CONFIG)
 NINJA_CLASS_NAME = "蕾忍"
+LEGACY_RELIC_IDS = {"espresso": "espresso_relic"}
+
+def migrate_relic_id(relic_id: str) -> str:
+    return LEGACY_RELIC_IDS.get(relic_id, relic_id)
 
 def relic_allowed_for_class(relic_id: str, selected_class: str) -> bool:
     if relic_id in NINJA_RELIC_IDS:

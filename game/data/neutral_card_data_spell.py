@@ -227,13 +227,23 @@ NEUTRAL_CARD_SPELLS = {
         "type": "spell",
         "cost_a": 2,
         "cost_ba": 1,
-        "desc": "使你的所有层数不高于 500 的正面 Buff 计数器翻倍，并获得 1A。消耗。",
+        "desc": "使你的所有层数不高于 500 的正面 Buff 计数器翻倍,并获得 1A。消耗。",
         "rarity": "legendary",
         "exhaust": True,
         "threshold": 500,
         "action_gain": 1,
         "gain_a": 1,
-        "feedback": "突破了极限！使层数不高于 500 的正面 Buff 层数翻倍，并获得了 1A。"
+        "feedback": "突破了极限!使层数不高于 500 的正面 Buff 层数翻倍,并获得了 1A。"
+    },
+    "curse_break_break_limits": {
+        "name": "突破突破极限极限",
+        "color": "curse",
+        "type": "spell",
+        "cost_a": 1,
+        "cost_ba": 1,
+        "desc": "在本场战斗中移除【突破极限】的层数上限。",
+        "rarity": "curse",
+        "event_only": True
     },
     "abyss_collapse": {
         "name": "深渊崩塌",

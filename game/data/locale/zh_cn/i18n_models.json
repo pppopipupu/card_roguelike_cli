@@ -29,7 +29,7 @@
     "settle_bonus_victory": "（含通关奖励 1000 GP）",
     "settle_unlock_icerainboww": "\n\n🎉 特别提示：你成功击败了最终BOSS【Icerainboww】！在先古祭坛和先古赐福石碑中已永久解锁传奇随从卡【Icerainboww】！",
     "settle_result": "本局结算：剩余金币 {gold}，折算获得 {gp_gained} GP{victory_bonus}！当前总 GP：{total_gp}。{unlock_msg}{corpse_note}{carryover_note}",
-    "settle_coop_downed": "💀 你已倒地，无法继续行动。请等待队友赢得战斗，或在下一层以 1 HP 复活。",
+    "settle_coop_downed": "💀 你已倒地,无法继续行动。队友可在原地对你使用 talk 或 touch,将你以 1 HP 拉起。",
     "settle_coop_line": "【{name}】{result}"
   },
   "corpse_registry": {

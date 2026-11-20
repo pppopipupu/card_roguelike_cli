@@ -112,9 +112,10 @@ class BreakLimitsCard(Card):
         multiplier = getattr(self, "multiplier", 2)
         gain_a = getattr(self, "gain_a", 1)
         gain_ba = getattr(self, "gain_ba", 1)
+        ignore_cap = bool(run.node_data.get("break_limits_ignore_cap"))
         for b in p.buffs:
             if not is_debuff(b.id):
-                if b.stacks <= threshold:
+                if ignore_cap or b.stacks <= threshold:
                     b.stacks *= multiplier
                     stacks2 = getattr(b, "stacks2", None)
                     if stacks2 is not None:

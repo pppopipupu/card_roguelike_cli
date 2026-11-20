@@ -228,11 +228,18 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
             params={"enemy_logs": JoinedText(parts=enemy_events)},
         )]
 
+    def _exit_downed_battle(self, run: GameRun, uid: str, logs: TextDocument | None = None) -> TextDocument:
+        settle_msg = self.engine.save_manager.settle_game_and_delete(uid, run, is_victory=False)
+        return [locale_text(
+            "i18n_explore_core.coop_downed_exit",
+            params={"logs": JoinedText(parts=list(logs or [])), "settle_msg": settle_msg},
+        )]
+
     def _end_turn_events(self, run: GameRun) -> TextDocument:
         if run.node_type != "battle":
             return [locale_text(key="i18n_battle_core.not_in_battle_end_turn")]
         from .party_battle import alive_uids, assign_enemy_targets, is_all_downed
-        multi = run.player_count() > 1
+        multi = len(run.all_human_uids()) > 1
         if not run.player or run.player.downed:
             if is_all_downed(run):
                 if multi:
@@ -241,7 +248,9 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 if multi:
                     return [locale_text(key="i18n_explore_core.coop_wipe_simple", params={"settle_msg": settle_msg})]
                 return self._defeat_nodes(run, "", settle_msg)
-            return [locale_text(key="i18n_explore_core.downed_spectate")]
+            if alive_uids(run):
+                return [locale_text(key="i18n_explore_core.downed_spectate")]
+            return self._exit_downed_battle(run, run.user_id)
         viewer = run.player
         viewer_uid = run.user_id
         uid = run.uid_for(viewer)
@@ -338,6 +347,8 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
             return self._defeat_nodes(run, JoinedText(parts=enemy_events), settle_msg)
         from ..party.mercenary import end_unended_mercenary_phases
         end_unended_mercenary_phases(self.engine, run)
+        if run.player is not None and run.player.downed and not alive_uids(run):
+            return self._exit_downed_battle(run, viewer_uid, enemy_events)
         if self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
