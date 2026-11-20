@@ -73,6 +73,8 @@ class MapEngine:
         apply_and_scope(run, caller)
 
     def return_to_grid_map(self, run: GameRun):
+        from ..party.mercenary import cleanup_temporary_mercenaries
+        cleanup_temporary_mercenaries(run)
         fm = getattr(run, "floor_map", None)
         if fm is not None:
             sid = fm.player_session_map.get(run.user_id)

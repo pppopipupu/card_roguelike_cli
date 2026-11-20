@@ -30,7 +30,11 @@
     "gem_ba_reduction": "BA消耗减少 {amount}。",
     "gem_inlay_separator": "，",
     "gem_inlay": " （镶嵌：{gems}）",
-    "power_penalty": " （魔力受损：效果降低 {penalty}）"
+    "power_penalty": " （魔力受损：效果降低 {penalty}）",
+    "blade_label": "刀系",
+    "blade_marker": "【刀系】",
+    "hand_label": "手系",
+    "hand_marker": "【手系】"
   },
   "preview": {
     "condition_wrapped": "{prefix}（{body}）",

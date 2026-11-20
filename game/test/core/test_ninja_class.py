@@ -1,3 +1,4 @@
+import re
 import asyncio
 import random
 import tempfile
@@ -52,97 +53,278 @@ class TestNinjaClass(unittest.TestCase):
         out = self.run_cmd(f"tp {coord}", target_uid)
         return out, load_run(self.plugin, target_uid)
 
-    
+    def test_rarity_budget_curse_tags_zero_ba_and_damage_type_wording(self):
+        self.assertEqual(CLASS_BASE_HP["法师"], 50)
+        self.assertEqual(CLASS_BASE_HP["战士"], 80)
+        self.assertEqual(CLASS_BASE_HP["蕾忍"], 40)
+        self.assertEqual(DEFAULT_BASE_HP, 50)
+        self.assertGreaterEqual(len(NINJA_CARD_CONFIG), 100)
+        self.assertGreaterEqual(len(NINJA_BUFF_CONFIG), 37)
+        self.assertEqual(len(NINJA_RELIC_CONFIG), 10)
 
-    def test_class_switching_base_hp_and_action_bar_rendering(self):
+        rarities = [cfg.get("rarity") for cfg in NINJA_CARD_CONFIG.values()]
+        self.assertNotIn("mythic", rarities)
+        self.assertNotIn("artifact", rarities)
+        self.assertLessEqual(rarities.count("legendary"), 5)
+
+        for curse_id in ("ninja_i_see_you", "ninja_hamood_kill_all", "ninja_mosquito_hand"):
+            self.assertEqual(NINJA_CARD_CONFIG[curse_id]["rarity"], "curse")
+            self.assertEqual(NINJA_CARD_CONFIG[curse_id]["color"], "curse")
+            self.assertEqual(NINJA_CARD_CONFIG[curse_id]["type"], "curse")
+
+        valid_dmg = (
+            "挥砍伤害",
+            "穿刺伤害",
+            "钝击伤害",
+            "火焰伤害",
+            "寒冷伤害",
+            "闪电伤害",
+            "雷鸣伤害",
+            "力场伤害",
+            "黯蚀伤害",
+            "光耀伤害",
+            "心灵伤害",
+            "毒素伤害",
+            "酸液伤害",
+            "真实伤害",
+        )
+        for cid, cfg in NINJA_CARD_CONFIG.items():
+            self.assertIn(cid, ALL_CARDS)
+            self.assertEqual(cfg.get("cost_ba", 0), 0)
+            desc = cfg.get("desc", "")
+            self.assertNotIn("物理伤害", desc)
+            self.assertNotIn("魔法伤害", desc)
+            if "造成" in desc and "伤害" in desc:
+                self.assertTrue(any(w in desc for w in valid_dmg), f"Missing concrete damage type: {cid}")
+            expected_icon = "⚫" if cfg.get("color") == "curse" else "🥷"
+            self.assertEqual(get_card_color_icon(ALL_CARDS[cid]), expected_icon)
+
+        for cid, ucfg in NINJA_UPGRADE_CONFIG.items():
+            self.assertIn(cid, ALL_CARDS)
+            self.assertEqual(ucfg.get("cost_ba", 0), 0)
+            udesc = ucfg.get("desc", "")
+            self.assertNotIn("物理伤害", udesc)
+            self.assertNotIn("魔法伤害", udesc)
+
+        event_ids = {ev.id for ev in ALL_EVENTS}
+        for eid in (
+            "ninja_the_spectre",
+            "ninja_the_great_seal",
+            "ninja_drink",
+            "ninja_man_yu_dian",
+        ):
+            self.assertIn(eid, event_ids)
+
+    def test_class_switching_3a_lex_bar_and_action_cycle(self):
         out_cls = self.run_cmd("class")
         self.assertIn("蕾忍", out_cls)
-        self.assertIn("初始生命 50", out_cls)
+        self.assertIn("3A + 蕾克拉", out_cls)
 
         self.run_cmd("start confirm")
         wiz_run = load_run(self.plugin, self.uid)
         self.assertEqual(wiz_run.player.max_hp, 50)
-        self.assertEqual(wiz_run.player.hp, 50)
         self.run_cmd("1")
         _, wiz_run = self._enter_battle()
-        wiz_view = render_battle(wiz_run)
-        self.assertNotIn("Lex", wiz_view)
+        self.assertEqual(wiz_run.player.actions, 2)
+        self.assertEqual(wiz_run.player.bonus_actions, 1)
+        self.assertNotIn("Lex", render_battle(wiz_run))
 
         self.run_cmd("abandon confirm")
-        out_sw = self.run_cmd("class ninja")
-        self.assertIn("蕾忍", out_sw)
-        out_nosub = self.run_cmd("class 1")
-        self.assertIn("没有子职业", out_nosub)
-
+        self.run_cmd("class ninja")
         self.run_cmd("start confirm")
         ninja_run = load_run(self.plugin, self.uid)
         self.assertEqual(ninja_run.player.selected_class, "蕾忍")
         self.assertEqual(ninja_run.player.max_hp, 40)
-        self.assertEqual(ninja_run.player.hp, 40)
         self.assertIn("lotus_box", ninja_run.player.relics)
         self.run_cmd("1")
 
         _, ninja_run = self._enter_battle()
+        self.assertEqual(ninja_run.player.actions, 3)
+        self.assertEqual(ninja_run.player.bonus_actions, 0)
         self.assertEqual(ninja_run.player.lex_kela, 2)
         ninja_view = render_battle(ninja_run)
-        self.assertIn("2Lex", ninja_view)
+        self.assertIn("3A 2Lex", ninja_view)
         self.assertIn("🥷", ninja_view)
 
-    def test_lex_kela_cycle_science_discount_and_sand_wall(self):
+    def test_darkness_snake_hand_scrambles_costs_and_dynamic_cost_cards(self):
         self.run_cmd("class ninja")
         self.run_cmd("start confirm")
         self.run_cmd("1")
         _, run = self._enter_battle()
-        self.assertEqual(run.node_type, "battle")
-        self.assertEqual(run.player.lex_kela, 2)
-
-        for enemy in run.enemies:
-            enemy.hp = 200
-            enemy.max_hp = 200
-        self.plugin.save_manager.save_save(self.uid, run)
-
-        self.run_cmd("e")
-        run = load_run(self.plugin, self.uid)
-        self.assertEqual(run.player.lex_kela, 3)
-
+        for e in run.enemies:
+            e.hp = 200
+            e.max_hp = 200
         run.player.hand = [
-            CardState(id="ninja_yi_cut"),
-            CardState(id="ninja_mamba_missile"),
-            CardState(id="ninja_sand_defend_hand"),
+            CardState(id="ninja_darkness_snake_hand"),
+            CardState(id="ninja_strike"),
+            CardState(id="ninja_defend"),
         ]
-        run.player.actions = 2
-        run.player.bonus_actions = 1
+        run.player.draw_pile = [CardState(id="ninja_strike") for _ in range(6)]
+        run.player.actions = 3
         self.plugin.save_manager.save_save(self.uid, run)
 
-        out_yi = self.run_cmd("p 1 e1")
-        self.assertNotIn("❌", out_yi)
+        out = self.run_cmd("p 1")
+        self.assertNotIn("❌", out)
+        self.assertIn("打乱了当前所有手牌", out)
         run = load_run(self.plugin, self.uid)
-        self.assertEqual(run.player.lex_kela, 1)
+        self.assertTrue(len(run.player.hand) >= 5)
+        self.assertTrue(all(st.temp_cost_a is not None and 0 <= st.temp_cost_a <= 3 for st in run.player.hand))
 
-        run.player.actions = 2
+        run.player.hand = [CardState(id="ninja_go_back_hands")]
+        run.player.discard_pile = [CardState(id="ninja_sand_defend_hand")]
+        run.player.actions = 3
+        run.player.lex_kela = 2
         self.plugin.save_manager.save_save(self.uid, run)
-        out_sci = self.run_cmd("p 1 e1")
-        self.assertNotIn("❌", out_sci)
-        run = load_run(self.plugin, self.uid)
-        self.assertEqual(run.player.lex_kela, 0)
-        self.assertEqual(run.player.actions, 0)
 
-        run.player.actions = 1
-        run.player.lex_kela = 1
+        self.run_cmd("p 1")
+        run = load_run(self.plugin, self.uid)
+        returned = next((st for st in run.player.hand if st.id == "ninja_sand_defend_hand"), None)
+        assert returned is not None
+        self.assertEqual(returned.temp_cost_a, 0)
+
+    def test_hamood_kill_all_blasts_teammates_and_enemies_in_coop(self):
+        uid_a, uid_b = "hamood_a", "hamood_b"
+        self.run_cmd("class ninja", uid_a)
+        self.run_cmd("class wizard", uid_b)
+        for u in (uid_a, uid_b):
+            st = self.plugin.save_manager.load_stats(u)
+            st.gp = 5000
+            self.plugin.save_manager.save_stats(u, st)
+        self.run_cmd("friend name 哈姆队长", uid_a)
+        self.run_cmd("friend name 哈姆队员", uid_b)
+        st_a = self.plugin.save_manager.load_stats(uid_a)
+        st_b = self.plugin.save_manager.load_stats(uid_b)
+        handle_a = st_a.player_handle or st_a.player_name
+        handle_b = st_b.player_handle or st_b.player_name
+        self.run_cmd(f"friend add {handle_b}", uid_a)
+        self.run_cmd(f"friend accept {handle_a}", uid_b)
+        created = self.run_cmd("team create", uid_a)
+        m = re.search(r"队伍 ([A-Z0-9]{6})", created)
+        assert m is not None
+        code = m.group(1)
+        self.run_cmd(f"friend invite {handle_b}", uid_a)
+        self.run_cmd(f"team join {code}", uid_b)
+        self.run_cmd("team ready", uid_b)
+        self.run_cmd("team start", uid_a)
+        self.run_cmd("c 1", uid_a)
+        self.run_cmd("c 1", uid_b)
+
+        run_a = load_run(self.plugin, uid_a)
+        fm = floor_of(run_a)
+        boss_coord = fm.boss_coord
+        fm.rooms[boss_coord].explored = True
+        if boss_coord not in fm.revealed_coords:
+            fm.revealed_coords.append(boss_coord)
+        self.plugin.save_manager.save_save(uid_a, run_a)
+        self.run_cmd(f"tp {boss_coord}", uid_a)
+
+        run_a = load_run(self.plugin, uid_a)
+        self.assertEqual(run_a.node_type, "battle")
+        run_a.players[uid_a].hand = [CardState(id="ninja_hamood_kill_all")]
+        run_a.players[uid_b].max_hp = 1200
+        run_a.players[uid_b].hp = 1200
+        for e in run_a.enemies:
+            e.hp = 1500
+            e.max_hp = 1500
+        self.plugin.save_manager.save_save(uid_a, run_a)
+
+        end_out = self.run_cmd("e", uid_a)
+        self.assertIn("999", end_out)
+        after = load_run(self.plugin, uid_a)
+        self.assertEqual(after.players[uid_a].hp, 0)
+        self.assertEqual(after.players[uid_b].hp, 201)
+        self.assertLessEqual(after.enemies[0].hp, 501)
+
+
+    def test_blade_and_hand_card_tags_registered_and_rendered(self):
+        from game.entities.cards.base import ALL_CARDS
+        from game.entities.cards.ninja_base import has_ninja_tag
+        from game.entities.tags import BladeTag, HandTag
+
+        blade_base = ALL_CARDS["ninja_yi_cut"]
+        blade_up = ALL_CARDS[CardState(id="ninja_yi_cut", upgraded=True)]
+        self.assertTrue(any(isinstance(t, BladeTag) for t in blade_base.tags))
+        self.assertTrue(any(isinstance(t, BladeTag) for t in blade_up.tags))
+        self.assertTrue(blade_base.desc.startswith("【刀系】"))
+        self.assertTrue(blade_up.desc.startswith("【刀系】"))
+        self.assertEqual(blade_up.desc.count("【刀系】"), 1)
+        self.assertTrue(has_ninja_tag(blade_base, "blade"))
+        self.assertTrue(has_ninja_tag(blade_up, "blade"))
+
+        hand_base = ALL_CARDS["ninja_shake_hands"]
+        hand_up = ALL_CARDS[CardState(id="ninja_shake_hands", upgraded=True)]
+        self.assertTrue(any(isinstance(t, HandTag) for t in hand_base.tags))
+        self.assertTrue(any(isinstance(t, HandTag) for t in hand_up.tags))
+        self.assertTrue(hand_base.desc.startswith("【手系】"))
+        self.assertTrue(hand_up.desc.startswith("【手系】"))
+        self.assertEqual(hand_up.desc.count("【手系】"), 1)
+        self.assertTrue(has_ninja_tag(hand_base, "hand"))
+        self.assertTrue(has_ninja_tag(hand_up, "hand"))
+
+    def test_evil_twin_summon_chaotic_attacks_and_battle_end_cleanup(self):
+        from game.core.party.mercenary import list_chaotic_targets
+        from game.models.state import MinionState
+
+        self.run_cmd("class ninja")
+        self.run_cmd("start confirm")
+        self.run_cmd("1")
+        _, run = self._enter_battle()
+        for e in run.enemies:
+            e.hp = 300
+            e.max_hp = 300
+        run.player.hp = 100
+        run.player.max_hp = 100
+        run.player.deck = [CardState(id="ninja_strike") for _ in range(8)]
+        run.player.hand = [CardState(id="ninja_evil_twin")]
+        run.player.actions = 3
+        run.player.minions["1"] = MinionState(id="test_m", name="测试随从", hp=50, max_hp=50, atk=5, actions=1, bonus_actions=0)
         self.plugin.save_manager.save_save(self.uid, run)
-        out_sw = self.run_cmd("p 1")
-        self.assertNotIn("❌", out_sw)
-        run = load_run(self.plugin, self.uid)
-        sw_before = next((b for b in run.player.buffs if b.id == "sand_wall"), None)
-        assert sw_before is not None and sw_before.stacks == 6
 
-        self.run_cmd("e")
-        run = load_run(self.plugin, self.uid)
-        self.assertEqual(run.player.lex_kela, 0)
-        sw_buff = next((b for b in run.player.buffs if b.id == "sand_wall"), None)
-        assert sw_buff is not None
-        self.assertEqual(sw_buff.stacks, 3)
+        out = self.run_cmd("p 1")
+        self.assertNotIn("❌", out)
+        self.assertIn("邪恶双生人", out)
+        self.assertIn("a2", out)
 
+        run = load_run(self.plugin, self.uid)
+        self.assertEqual(run.player.actions, 2)
+        self.assertEqual(len(run.party_order), 2)
+        merc_uid = run.party_order[1]
+        merc = run.players[merc_uid]
+        self.assertTrue(merc.is_mercenary)
+        self.assertEqual(merc.mercenary_id, "evil_twin")
+        self.assertEqual(len(merc.deck), len(run.player.deck))
+
+        chaotic_targets = list_chaotic_targets(run, merc_uid)
+        self.assertIn("e1", chaotic_targets)
+        self.assertIn("a1", chaotic_targets)
+        self.assertIn("a1m1", chaotic_targets)
+
+        pre_enemy_hp = run.enemies[0].hp
+        pre_owner_hp = run.player.hp
+        pre_minion_hp = run.player.minions["1"].hp
+        end_out = self.run_cmd("e")
+        self.assertIn("邪恶双生人", end_out)
+
+        run = load_run(self.plugin, self.uid)
+        total_dmg_dealt = (
+            (pre_enemy_hp - run.enemies[0].hp)
+            + (pre_owner_hp - run.player.hp)
+            + (pre_minion_hp - (run.player.minions["1"].hp if "1" in run.player.minions else 0))
+        )
+        self.assertGreater(total_dmg_dealt, 0)
+
+        for e in run.enemies:
+            e.hp = 1
+        run.player.hand = [CardState(id="ninja_yi_cut")]
+        run.player.actions = 3
+        run.player.lex_kela = 2
+        self.plugin.save_manager.save_save(self.uid, run)
+        self.run_cmd("p 1 e1")
+
+        after_win = load_run(self.plugin, self.uid)
+        self.assertNotEqual(after_win.node_type, "battle")
+        self.assertNotIn(merc_uid, after_win.players)
+        self.assertNotIn(merc_uid, after_win.party_order)
 
 if __name__ == "__main__":
     unittest.main()

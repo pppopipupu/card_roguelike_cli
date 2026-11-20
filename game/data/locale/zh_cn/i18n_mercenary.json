@@ -283,5 +283,9 @@
         "battle_win": "领带依然端正。好吧，至少在昏暗光线下看起来很端正。"
       }
     }
-  }
+  },
+  "evil_twin_name": "邪恶双生人",
+  "evil_twin_summoned": "👥 忍术发动！你在队伍槽位 a{slot} 召唤了【{name}】（HP {hp}/{max_hp}，复制了你的牌组），战斗结束后将自动消失。",
+  "evil_twin_vanished": "💨 战斗结束，临时雇佣兵【{name}】化作黑烟消散了。",
+  "evil_twin_chaotic_attack": "😈 【{name}】陷入混乱，无差别攻击了【{target}】！"
 }

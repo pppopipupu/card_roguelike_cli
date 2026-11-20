@@ -68,6 +68,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 exhaust_evt = CardExhaustEvent(run, c_state, "ethereal")
                 self.engine.event_bus.dispatch(exhaust_evt)
             else:
+                c_state.temp_cost_a = None
                 p.discard_pile.append(c_state)
         p.hand = retained
         run.node_data[retain_key] = []
@@ -118,12 +119,16 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
             pass
         else:
             p.shield = 0
-        p.actions = 2
-        p.bonus_actions = 1
+        if getattr(p, "selected_class", "法师") == "蕾忍":
+            p.actions = 3
+            p.bonus_actions = 0
+        else:
+            p.actions = 2
+            p.bonus_actions = 1
         from .enchantment_runtime import apply_enchantment_turn_start
         apply_enchantment_turn_start(self.engine, run, p)
         from .ninja_runtime import handle_ninja_turn_start
-        handle_ninja_turn_start(run, p)
+        handle_ninja_turn_start(self.engine, run, p)
         evt_start = TurnStartEvent(run, is_player=True)
         self.engine.event_bus.dispatch(evt_start)
         if getattr(p, "subclass", "") == "时序法师":

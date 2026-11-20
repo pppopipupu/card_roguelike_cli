@@ -223,7 +223,21 @@ def render_battle(run: GameRun) -> str:
                     c_desc = void_corrupt_text(c_desc)
                     cost_str = "?A ?BA"
                 else:
-                    cost_str = get_card_cost_str(card)
+                    from ..entities.cards.ninja_base import resolve_card_effective_cost_a
+                    eff_a = resolve_card_effective_cost_a(card, cid, p)
+                    if eff_a != card.cost_a:
+                        parts_c = []
+                        if eff_a == -1:
+                            parts_c.append("X A")
+                        elif eff_a > 0:
+                            parts_c.append(f"{eff_a}A")
+                        if card.cost_ba == -1:
+                            parts_c.append("X BA")
+                        elif card.cost_ba > 0:
+                            parts_c.append(f"{card.cost_ba}BA")
+                        cost_str = " ".join(parts_c) or t("renderer_menu.free_cost")
+                    else:
+                        cost_str = get_card_cost_str(card)
                 if getattr(card, "unplayable", False):
                     lines.append(t("renderer.battle.hand_card_unplayable", idx=valid_idx, color=color_ch, name=c_name, rarity=rname, desc=c_desc))
                 else:

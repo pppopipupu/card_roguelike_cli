@@ -311,6 +311,16 @@ class CombatResolver:
         return None
 
     def damage_target(self, game_run_context: GameRun, target: str, dmg: int, source: str = "effect", damage_type: str | DamageType = "effect", card: Optional[Card] = None, damage_ready: bool = False, is_attack: bool = False):
+        chaotic_uid = game_run_context.node_data.get("chaotic_attacker_uid")
+        if chaotic_uid and target.startswith("e") and source in ("p0", "player", "effect"):
+            from ..party.mercenary import pick_chaotic_target
+            rerouted = pick_chaotic_target(game_run_context, chaotic_uid)
+            if rerouted:
+                target = rerouted
+                if chaotic_uid in game_run_context.party_order:
+                    source = f"a{game_run_context.party_order.index(chaotic_uid) + 1}"
+                else:
+                    source = "chaotic_merc"
         if self._redirect_ally(
             game_run_context,
             target,

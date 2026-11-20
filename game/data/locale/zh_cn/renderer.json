@@ -86,7 +86,7 @@
     "enemy_graveyard_desc": "敌方本场战斗中已被消灭的单位（已去重并排序）：",
     "enemy_graveyard_empty": "  （敌方当前暂无消灭单位）",
     "pile_item": "  {idx}. 【{name}】 x{count}",
-    "status_line_ninja": "{name}：❤️ HP {hp}/{max_hp} | 🛡️ 护盾 {shield} | ⚡ 动作 {actions}A {bonus_actions}BA {lex_kela}Lex",
-    "actions_line_ninja": "  动作资源：{actions}A {bonus_actions}BA {lex_kela}Lex"
+    "status_line_ninja": "{name}：❤️ HP {hp}/{max_hp} | 🛡️ 护盾 {shield} | ⚡ 动作 {actions}A {lex_kela}Lex",
+    "actions_line_ninja": "  动作资源：{actions}A {lex_kela}Lex"
   }
 }

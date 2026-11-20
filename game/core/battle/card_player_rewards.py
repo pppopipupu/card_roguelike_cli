@@ -229,6 +229,8 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
         self.engine.save_manager.save_save(caller, run)
 
     def handle_battle_win(self, run: GameRun):
+        from ..party.mercenary import cleanup_temporary_mercenaries
+        cleanup_temporary_mercenaries(run)
         multi = run.player_count() > 1
         for uid in run.party_order:
             player = run.players.get(uid)

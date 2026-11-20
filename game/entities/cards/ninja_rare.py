@@ -53,11 +53,12 @@ class NinjaDarkSoulCutCard(NinjaCard):
         ok, _ = consume_ninjutsu_lex(engine, run, run.player, 3, self.id)
         hits = 3 if ok else 1
         was_alive = enemy is not None and enemy.hp > 0
+        pre_hp = int(enemy.hp) if enemy is not None else 0
         if ref:
             for _ in range(hits):
-                engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="physical", card=self, is_attack=True)
-        if ok and was_alive and enemy is not None and enemy.hp <= 0:
-            gain = 5 if self.upgraded else 4
+                engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="slashing", card=self, is_attack=True)
+        if ok and was_alive and enemy is not None and enemy.hp <= 0 and pre_hp > 0:
+            gain = min(pre_hp, 30)
             run.player.max_hp += gain
             run.player.hp += gain
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
@@ -99,7 +100,7 @@ class NinjaGetAllHandsCard(NinjaCard):
 class NinjaGetPeopleTaxCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
         alive_before = sum(1 for e in run.enemies if e.hp > 0)
-        deal_all_enemies(engine, run, self, int(getattr(self, "base_dmg", 15) or 15), "physical")
+        deal_all_enemies(engine, run, self, int(getattr(self, "base_dmg", 15) or 15), "slashing")
         ok, _ = consume_ninjutsu_lex(engine, run, run.player, 2, self.id)
         if ok and alive_before > 0:
             run.player.gold += alive_before * (15 if self.upgraded else 12)
@@ -160,12 +161,11 @@ class NinjaNuclearDragonCard(NinjaCard):
 class NinjaOhFuckFlashCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
         add_ninja_buff(engine, run.player, "intangible", 1)
-        add_ninja_buff(engine, run.player, "oh_fuck_flash", 1)
         ok, _ = consume_ninjutsu_lex(engine, run, run.player, getattr(self, "ninjutsu_cost", 3), self.id)
         if ok:
-            run.player.actions += 2
-            run.player.bonus_actions += 1
-            engine.card_player.draw_cards(run.player, 3, run)
+            add_ninja_buff(engine, run.player, "oh_fuck_flash", 1)
+            run.node_data["extra_turns_left"] = int(run.node_data.get("extra_turns_left", 0) or 0) + 1
+            run.node_data["ninja_force_end_turn"] = True
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -218,15 +218,16 @@ class NinjaSariraReviveCard(NinjaCard):
         p = run.player
         change_lex_kela(engine, run, p, 3 if self.upgraded else 2, reason="card", source_card_id=self.id)
         engine.card_player.draw_cards(p, 1, run)
-        if "sarira" not in p.relics and random.random() < 0.25:
-            grant_relic(p, "sarira")
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
 @register_card("ninja_scare_form")
 class NinjaScareFormCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
-        add_ninja_buff(engine, run.player, "scare_form", 2 if self.upgraded else 1)
+        cost = 1 if self.upgraded else 2
+        ok, _ = consume_ninjutsu_lex(engine, run, run.player, cost, self.id)
+        if ok:
+            add_ninja_buff(engine, run.player, "scare_form", 1)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -259,7 +260,7 @@ class NinjaTakeYourHeartCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
         enemy, ref = resolve_enemy_obj(run, target)
         if ref:
-            engine.combat_resolver.damage_target(run, ref, int(getattr(self, "base_dmg", 10) or 10), source="p0", damage_type="physical", card=self, is_attack=True)
+            engine.combat_resolver.damage_target(run, ref, int(getattr(self, "base_dmg", 10) or 10), source="p0", damage_type="piercing", card=self, is_attack=True)
         ok, _ = consume_ninjutsu_lex(engine, run, run.player, 10, self.id)
         if ok and enemy is not None and enemy.hp > 0:
             debuff_total = sum(b.stacks for b in enemy.buffs if is_debuff(b.id) and b.stacks > 0)
@@ -273,9 +274,7 @@ class NinjaTakeYourHeartCard(NinjaCard):
 class NinjaTwoMonksCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
         add_ninja_buff(engine, run.player, "two_monks", 1)
-        run.player.actions += 2
-        run.player.bonus_actions += 1
-        engine.card_player.draw_cards(run.player, 3, run)
+        run.node_data["extra_turns_left"] = int(run.node_data.get("extra_turns_left", 0) or 0) + 1
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -286,7 +285,7 @@ class NinjaUbwCard(NinjaCard):
         if ok:
             dmg = int(getattr(self, "base_dmg", 8) or 8)
             played_blades = max(1, int(run.node_data.get("ninja_blades_played", 1) or 1))
-            deal_random_enemy_hits(engine, run, self, dmg, played_blades, "physical")
+            deal_random_enemy_hits(engine, run, self, dmg, played_blades, "slashing")
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -294,14 +293,14 @@ class NinjaUbwCard(NinjaCard):
 class NinjaShadeCrossSlashCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
         dmg = int(getattr(self, "base_dmg", 10) or 10)
-        deal_all_enemies(engine, run, self, dmg, "physical")
+        deal_all_enemies(engine, run, self, dmg, "slashing")
         for e in run.enemies:
             if e.hp > 0:
                 add_ninja_buff(engine, e, "vulnerable", 2)
         ok, _ = consume_ninjutsu_lex(engine, run, run.player, getattr(self, "ninjutsu_cost", 2), self.id)
         if ok:
-            deal_all_enemies(engine, run, self, dmg, "physical")
-            deal_all_enemies(engine, run, self, dmg, "physical")
+            deal_all_enemies(engine, run, self, dmg, "slashing")
+            deal_all_enemies(engine, run, self, dmg, "slashing")
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -313,3 +312,18 @@ class NinjaShenWeiCard(NinjaCard):
         if ok:
             add_ninja_buff(engine, run.player, "intangible", 1)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
+
+
+@register_card("ninja_evil_twin")
+class NinjaEvilTwinCard(NinjaCard):
+    def execute(self, run, target, engine) -> str:
+        from ...core.party.mercenary import summon_evil_twin_mercenary
+        owner_uid = run.uid_for(run.player) or run.user_id
+        _, slot, merc = summon_evil_twin_mercenary(engine, run, owner_uid)
+        return get_locale_text(
+            "i18n_mercenary.evil_twin_summoned",
+            slot=slot,
+            name=merc.name,
+            hp=merc.hp,
+            max_hp=merc.max_hp,
+        )

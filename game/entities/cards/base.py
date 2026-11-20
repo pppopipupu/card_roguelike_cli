@@ -236,6 +236,37 @@ def add_replay_marker(desc, replay):
         return updated
     return append_card_suffix(desc, get_locale_text("i18n_card_runtime.cards.replay_marker", value=replay))
 
+def add_blade_marker(desc):
+    marker = get_locale_text("i18n_card_runtime.cards.blade_marker")
+    if not desc:
+        return marker
+    if marker in desc:
+        return desc
+    return f"{marker}{desc}"
+
+
+def add_hand_marker(desc):
+    marker = get_locale_text("i18n_card_runtime.cards.hand_marker")
+    if not desc:
+        return marker
+    if marker in desc:
+        return desc
+    return f"{marker}{desc}"
+
+
+def attach_ninja_card_tags(card):
+    ntags = tuple(getattr(card, "ninja_tags", ()) or ())
+    if "blade" in ntags:
+        from ...entities.tags import BladeTag
+        if not any(getattr(t, "name", "") == "blade" for t in card.tags):
+            card.add_tag(BladeTag())
+        card.desc = add_blade_marker(card.desc)
+    if "hand" in ntags:
+        from ...entities.tags import HandTag
+        if not any(getattr(t, "name", "") == "hand" for t in card.tags):
+            card.add_tag(HandTag())
+        card.desc = add_hand_marker(card.desc)
+
 def update_keyword_count_marker(desc, label, total_val, remaining_val):
     if total_val <= 0 or not desc:
         return desc
@@ -335,6 +366,7 @@ class CardRegistryDict(dict):
             inst.ninjutsu_cost = cfg.get("ninjutsu_cost", None)
             inst.science = bool(cfg.get("science", False))
             inst.ninja_tags = tuple(cfg.get("ninja_tags", ()))
+            attach_ninja_card_tags(inst)
             fragile_val = cfg.get("fragile", 0)
             if fragile_val > 0:
                 from ...entities.tags import FragileTag
@@ -438,6 +470,7 @@ class CardRegistryDict(dict):
                     setattr(card, prop, up_cfg[prop])
             if not card.name.endswith("+"):
                 card.name += "+"
+            attach_ninja_card_tags(card)
 
         card.gems = list(card_state.gems)
         if card.gems:
@@ -650,6 +683,7 @@ for cid, cfg in _get_card_config().items():
     inst.ninjutsu_cost = cfg.get("ninjutsu_cost", None)
     inst.science = bool(cfg.get("science", False))
     inst.ninja_tags = tuple(cfg.get("ninja_tags", ()))
+    attach_ninja_card_tags(inst)
     fragile_val = cfg.get("fragile", 0)
     if fragile_val > 0:
         from ...entities.tags import FragileTag

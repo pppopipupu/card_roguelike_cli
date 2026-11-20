@@ -46,9 +46,10 @@ class BattleEngine(BaseBattleEngine):
         self.exhaustion_observer = ExhaustionObserver(self.event_bus, self)
         self.anna_handler = AnnaCardHandler(self.event_bus, self)
         self.millika_handler = MillikaCardHandler(self.event_bus, self)
-        from ...models.events import LexKelaChangedEvent
-        from .ninja_runtime import handle_lex_kela_changed
+        from ...models.events import CardExhaustEvent, LexKelaChangedEvent
+        from .ninja_runtime import handle_lex_kela_changed, handle_ninja_card_exhaust
         self.event_bus.subscribe(LexKelaChangedEvent, lambda evt: handle_lex_kela_changed(self, evt))
+        self.event_bus.subscribe(CardExhaustEvent, lambda evt: handle_ninja_card_exhaust(self, evt))
 
     def _effective_log_uid(self, run: GameRun) -> str:
         effective_uid = run.user_id
@@ -283,6 +284,8 @@ class BattleEngine(BaseBattleEngine):
         for c in p.deck:
             cloned = DeckService.clone_state(c)
             cloned.exhaust_used = 0
+            cloned.temp_cost_a = None
+            cloned.battle_cost_delta_a = 0
             p.draw_pile.append(cloned)
         import random
         random.shuffle(p.draw_pile)
@@ -300,8 +303,12 @@ class BattleEngine(BaseBattleEngine):
         if broken_msg:
             self._log_event(run, broken_msg)
         sync_persistent_buffs_to_battle(p)
-        p.actions = 2
-        p.bonus_actions = 1
+        if getattr(p, "selected_class", "法师") == "蕾忍":
+            p.actions = 3
+            p.bonus_actions = 0
+        else:
+            p.actions = 2
+            p.bonus_actions = 1
         p.shield = 0
         p.lex_kela = 0
         run.node_data[run.turn_key("lex_kela_spent_this_turn", p)] = False

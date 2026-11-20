@@ -14,6 +14,7 @@ from .ninja_base import (
     deal_all_enemies,
     deal_random_enemy_hits,
     resolve_enemy_obj,
+    scramble_hand_costs,
 )
 from .registry import register_card
 
@@ -25,7 +26,7 @@ class NinjaStrikeCard(NinjaCard):
         enemy, ref = resolve_enemy_obj(run, target)
         if not ref:
             return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
-        engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="physical", card=self, is_attack=True)
+        engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="slashing", card=self, is_attack=True)
         return get_locale_text("i18n_cards_ninja.strike_res", name=enemy.name if enemy else ref, dmg=dmg)
 
 
@@ -43,7 +44,7 @@ class NinjaYiCutCard(NinjaCard):
         dmg = int(getattr(self, "base_dmg", 10) or 10)
         ok, _ = consume_ninjutsu_lex(engine, run, run.player, getattr(self, "ninjutsu_cost", 2), self.id)
         if ok:
-            deal_all_enemies(engine, run, self, dmg, "physical")
+            deal_all_enemies(engine, run, self, dmg, "slashing")
         for e in run.enemies:
             if e.hp > 0:
                 add_ninja_buff(engine, e, "vulnerable", 1)
@@ -110,6 +111,8 @@ class NinjaDarknessSnakeHandCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
         change_lex_kela(engine, run, run.player, 2 if self.upgraded else 1, reason="card", source_card_id=self.id)
         engine.card_player.draw_cards(run.player, 5, run)
+        scramble_hand_costs(run.player, 0, 3)
+        engine._log_event(run, get_locale_text("i18n_cards_ninja.darkness_snake_scramble"))
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -145,7 +148,7 @@ class NinjaFrogFrogGoCard(NinjaCard):
 class NinjaGammaBladeCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
         dmg = int(getattr(self, "base_dmg", 13) or 13)
-        deal_all_enemies(engine, run, self, dmg, "physical")
+        deal_all_enemies(engine, run, self, dmg, "slashing")
         for e in run.enemies:
             if e.hp > 0:
                 add_ninja_buff(engine, e, "weak", 2)
@@ -180,7 +183,7 @@ class NinjaHandsTickleCard(NinjaCard):
         hits = min(12, count_ninja_tag_in_deck(run.player, "hand"))
         if ref:
             for _ in range(hits):
-                engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="physical", card=self, is_attack=True)
+                engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="slashing", card=self, is_attack=True)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -190,7 +193,7 @@ class NinjaHolyLittleStormCard(NinjaCard):
         dmg = int(getattr(self, "base_dmg", 7) or 7)
         ok, x_val = consume_ninjutsu_lex(engine, run, run.player, "X", self.id)
         hits = 1 + (x_val if ok else 0)
-        deal_random_enemy_hits(engine, run, self, dmg, hits, "physical")
+        deal_random_enemy_hits(engine, run, self, dmg, hits, "slashing")
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -198,7 +201,7 @@ class NinjaHolyLittleStormCard(NinjaCard):
 class NinjaItalySilverSlashCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
         cnt = 3 if self.upgraded else 2
-        deal_random_enemy_hits(engine, run, self, 4, cnt, "physical")
+        deal_random_enemy_hits(engine, run, self, 4, cnt, "slashing")
         engine.card_player.draw_cards(run.player, cnt, run)
         for _ in range(cnt):
             add_lan_blade_to_hand(engine, run, run.player, to_draw=True)
@@ -209,7 +212,7 @@ class NinjaItalySilverSlashCard(NinjaCard):
 class NinjaMambaMissileCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
         hits = 6 if self.upgraded else 5
-        deal_random_enemy_hits(engine, run, self, 3, hits, "physical")
+        deal_random_enemy_hits(engine, run, self, 3, hits, "bludgeoning")
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -223,7 +226,7 @@ class NinjaMonkHandCard(NinjaCard):
         _, ref = resolve_enemy_obj(run, target)
         dmg = max(0, int(run.player.shield))
         if ref and dmg > 0:
-            engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="physical", card=self, is_attack=True)
+            engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="bludgeoning", card=self, is_attack=True)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -233,7 +236,7 @@ class NinjaOiShengLongCard(NinjaCard):
         dmg = int(getattr(self, "base_dmg", 9) or 9)
         _, ref = resolve_enemy_obj(run, target)
         if ref:
-            engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="physical", card=self, is_attack=True)
+            engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="bludgeoning", card=self, is_attack=True)
         change_lex_kela(engine, run, run.player, 2 if self.upgraded else 1, reason="card", source_card_id=self.id)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
@@ -295,7 +298,7 @@ class NinjaLanBladeCard(NinjaCard):
         dmg = int(getattr(self, "base_dmg", 4) or 4)
         _, ref = resolve_enemy_obj(run, target)
         if ref:
-            engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="physical", card=self, is_attack=True)
+            engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="slashing", card=self, is_attack=True)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -349,6 +352,7 @@ class NinjaSaltyFishCard(NinjaCard):
         cnt = min(2 if self.upgraded else 1, len(p.discard_pile))
         for _ in range(cnt):
             st = p.discard_pile.pop(random.randrange(len(p.discard_pile)))
+            st.temp_cost_a = 0
             DeckService.add_card_to_hand(p, st)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
@@ -374,5 +378,9 @@ class NinjaYeSuanMilkCard(NinjaCard):
 @register_card("ninja_alan_walker")
 class NinjaAlanWalkerCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
+        for e in run.enemies:
+            if e.hp > 0:
+                e.hp = max(0, e.hp - 6)
+        run.player.shield += 7
         add_ninja_buff(engine, run.player, "alan_walker", 1)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)

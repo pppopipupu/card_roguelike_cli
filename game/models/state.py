@@ -118,6 +118,8 @@ class CardState:
     power_penalty: int = 0
     exhaust_used: int = 0
     fleeting_used: int = 0
+    temp_cost_a: Optional[int] = None
+    battle_cost_delta_a: int = 0
 
     def __hash__(self):
         return hash((self.id, self.upgraded, tuple(self.gems), tuple(self.enchantments), self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used))
@@ -189,7 +191,9 @@ def ensure_card_state(c) -> CardState:
             no_copy=c.get("no_copy", False),
             power_penalty=c.get("power_penalty", 0),
             exhaust_used=c.get("exhaust_used", 0),
-            fleeting_used=c.get("fleeting_used", 0)
+            fleeting_used=c.get("fleeting_used", 0),
+            temp_cost_a=c.get("temp_cost_a", None),
+            battle_cost_delta_a=c.get("battle_cost_delta_a", 0),
         )
     return c
 

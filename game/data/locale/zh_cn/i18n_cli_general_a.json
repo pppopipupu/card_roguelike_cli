@@ -51,7 +51,7 @@
     "sub_selected": "🔮 已选择子职业为【{subclass_name}】。将在新的一局游戏中生效！",
     "invalid_format": "❌ 格式错误。请使用 /rogue 职业 (/rogue class) 或 /rogue 职业 选择/c (/rogue class select) <职业名|子职业序号>。",
     "main_ninja": "3. 蕾忍 (ninja)",
-    "main_ninja_desc": "   └─ 使用 🥷 忍术、科学忍具、食物与沙壁体系。无子职业。初始遗物【藕盒】（开战获得 2 点蕾克拉），初始生命 40。",
+    "main_ninja_desc": "   └─ 使用 🥷 忍术、科学忍具、食物与沙壁体系（每回合 3A + 蕾克拉资源，无 BA）。无子职业。初始遗物【藕盒】（开战获得 2 点蕾克拉），初始生命 40。",
     "cmd_ninja": "👉 /rogue class ninja -- 切换到蕾忍职业",
     "switched_ninja": "🥷 主职业已切换为【蕾忍】。将在新的一局游戏中生效！",
     "ninja_no_sub": "❌ 蕾忍职业没有子职业，无法装备子职业。如需装备子职业，请先切换到法师职业。"

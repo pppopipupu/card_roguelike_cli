@@ -58,6 +58,18 @@ MERCENARY_CONFIG = {
             "hisoutensoku_thermonuclear_cannon",
         ],
     },
+    "evil_twin": {
+        "id": "evil_twin",
+        "name": "邪恶双生人",
+        "aliases": ["evil_twin", "邪恶双生人", "双生人"],
+        "hire_cost_gp": 0,
+        "hp": 40,
+        "class_name": "邪恶双生人",
+        "default_timing": "after",
+        "temporary_battle": True,
+        "chaotic_targeting": True,
+        "starting_deck": [],
+    },
 }
 
 HARRY_SKILL_SCENARIOS = (

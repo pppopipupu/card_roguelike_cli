@@ -249,6 +249,9 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
             cid = sorted_items[option_idx - 1][0]
             removed_name = ALL_CARDS[cid].name
             p.deck.remove(cid)
+            if getattr(cid, "id", "") == "ninja_sarira_revive" and "sarira" not in p.relics:
+                from ..inventory.relic_service import grant_relic
+                grant_relic(p, "sarira")
             gold_gain = random.randint(TREASURE_GOLD_MIN, TREASURE_GOLD_MAX)
             p.gold += gold_gain
             relics_pool = TREASURE_RELIC_POOL

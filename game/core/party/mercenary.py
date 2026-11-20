@@ -20,6 +20,133 @@ from .coordinator import restore_player, swap_player
 def is_mercenary(player: Optional[PlayerState]) -> TypeGuard[PlayerState]:
     return bool(player is not None and getattr(player, "is_mercenary", False))
 
+def is_temporary_mercenary(player: Optional[PlayerState]) -> bool:
+    if not is_mercenary(player):
+        return False
+    cfg = get_mercenary_config(getattr(player, "mercenary_id", ""))
+    return bool(cfg.get("temporary_battle", False))
+
+
+def is_chaotic_mercenary(player: Optional[PlayerState]) -> bool:
+    if not is_mercenary(player):
+        return False
+    cfg = get_mercenary_config(getattr(player, "mercenary_id", ""))
+    return bool(cfg.get("chaotic_targeting", False))
+
+
+def list_chaotic_targets(run: GameRun, merc_uid: str) -> list[str]:
+    targets: list[str] = []
+    for idx, enemy in enumerate(run.enemies, 1):
+        if enemy.hp > 0:
+            targets.append(f"e{idx}")
+    for slot, uid in enumerate(run.party_order, 1):
+        player = run.players.get(uid)
+        if player is None:
+            continue
+        if uid != merc_uid and player.hp > 0 and not player.downed:
+            targets.append(f"a{slot}")
+        for grid, minion in list(player.minions.items()):
+            if minion.hp > 0:
+                targets.append(f"a{slot}m{grid}")
+    return targets
+
+
+def pick_chaotic_target(run: GameRun, merc_uid: str) -> Optional[str]:
+    targets = list_chaotic_targets(run, merc_uid)
+    if not targets:
+        return None
+    return random.choice(targets)
+
+
+def summon_evil_twin_mercenary(battle_engine, run: GameRun, owner_uid: str) -> tuple[str, int, PlayerState]:
+    owner = run.players.get(owner_uid) or run.player
+    seq = 1
+    while f"merc_evil_twin_{owner_uid}_{seq}" in run.players:
+        seq += 1
+    merc_uid = f"merc_evil_twin_{owner_uid}_{seq}"
+    cfg = get_mercenary_config("evil_twin")
+    cloned_deck = [DeckService.clone_state(ensure_card_state(c)) for c in owner.deck]
+    random.shuffle(cloned_deck)
+    hp = max(20, int(getattr(owner, "max_hp", 40) or 40))
+    name = get_locale_text("i18n_mercenary.evil_twin_name")
+    merc = PlayerState(
+        hp=hp,
+        max_hp=hp,
+        shield=0,
+        gold=0,
+        stage=owner.stage,
+        name=name,
+        deck=cloned_deck,
+        draw_pile=[],
+        discard_pile=[],
+        hand=[],
+        actions=3 if getattr(owner, "selected_class", "") == "蕾忍" else 1,
+        bonus_actions=0 if getattr(owner, "selected_class", "") == "蕾忍" else 1,
+        minions={},
+        amulets={},
+        abilities=[],
+        subclass=owner.subclass,
+        selected_class=owner.selected_class or cfg.get("class_name", name),
+        is_mercenary=True,
+        mercenary_id="evil_twin",
+        mercenary_owner=owner_uid,
+        mercenary_timing=MERCENARY_TIMING_AFTER,
+    )
+    run.players[merc_uid] = merc
+    run.party_order.append(merc_uid)
+    full_order = getattr(run, "_full_party_order", None)
+    if isinstance(full_order, list) and merc_uid not in full_order:
+        full_order.append(merc_uid)
+    fm = getattr(run, "floor_map", None)
+    if fm is not None and isinstance(getattr(fm, "player_session_map", None), dict):
+        sid = fm.player_session_map.get(owner_uid)
+        if sid and sid in fm.active_sessions:
+            fm.player_session_map[merc_uid] = sid
+            sess = fm.active_sessions[sid]
+            if merc_uid not in sess.participants:
+                sess.participants.append(merc_uid)
+            if merc_uid not in sess.roster:
+                sess.roster.append(merc_uid)
+    slot = run.party_order.index(merc_uid) + 1
+    battle_engine.join_battle(run, merc_uid)
+    return merc_uid, slot, merc
+
+
+def cleanup_temporary_mercenaries(run: Optional[GameRun]) -> list[str]:
+    if run is None:
+        return []
+    removed_names: list[str] = []
+    for uid in list(run.party_order):
+        player = run.players.get(uid)
+        if player is None or not is_temporary_mercenary(player):
+            continue
+        removed_names.append(player.name)
+        run.party_order = [u for u in run.party_order if u != uid]
+        full_order = getattr(run, "_full_party_order", None)
+        if isinstance(full_order, list) and uid in full_order:
+            setattr(run, "_full_party_order", [u for u in full_order if u != uid])
+        fm = getattr(run, "floor_map", None)
+        if fm is not None:
+            if isinstance(getattr(fm, "player_session_map", None), dict):
+                fm.player_session_map.pop(uid, None)
+            if isinstance(getattr(fm, "active_sessions", None), dict):
+                for sess in fm.active_sessions.values():
+                    if uid in sess.participants:
+                        sess.participants = [u for u in sess.participants if u != uid]
+                    if uid in sess.roster:
+                        sess.roster = [u for u in sess.roster if u != uid]
+        run.players.pop(uid, None)
+        if isinstance(run.node_data, dict):
+            turn_ready = run.node_data.get("turn_ready")
+            if isinstance(turn_ready, dict):
+                turn_ready.pop(uid, None)
+        if run.user_id == uid or run.player is player:
+            fallback_uid = next((u for u in run.party_order if u in run.players and not is_mercenary(run.players[u])), None)
+            if fallback_uid:
+                run.user_id = fallback_uid
+                run.player = run.players[fallback_uid]
+    return removed_names
+
 
 def get_mercenary_config(merc_id: str) -> dict:
     return MERCENARY_CONFIG.get(merc_id, MERCENARY_CONFIG["harry_du_bois"])
@@ -203,7 +330,10 @@ def _pick_playable_card(
             continue
         if getattr(card_obj, "type", "") == "curse":
             continue
-        cost_a = getattr(card_obj, "cost_a", 0)
+        if is_chaotic_mercenary(merc) and getattr(card_obj, "id", "") == "ninja_evil_twin":
+            continue
+        from ...entities.cards.ninja_base import resolve_card_effective_cost_a
+        cost_a = resolve_card_effective_cost_a(card_obj, state, merc)
         cost_ba = getattr(card_obj, "cost_ba", 0)
         req_a = merc.actions if cost_a == -1 else cost_a
         req_ba = merc.bonus_actions if cost_ba == -1 else cost_ba
@@ -390,7 +520,14 @@ def run_mercenary_turn(battle_engine, run: GameRun, merc_uid: str) -> str:
             card_obj = ALL_CARDS.get(c_state)
             card_name = card_obj.name if card_obj else c_state.id
             initial_stack_len = len(run.node_data.get("state_stack", []))
-            res = battle_engine.card_player.play_card(run, card_idx, target)
+            chaotic = is_chaotic_mercenary(merc)
+            if chaotic:
+                run.node_data["chaotic_attacker_uid"] = merc_uid
+            try:
+                res = battle_engine.card_player.play_card(run, card_idx, target)
+            finally:
+                if chaotic:
+                    run.node_data.pop("chaotic_attacker_uid", None)
             if not res or res.startswith("[FAIL]") or res.startswith("❌"):
                 skip_obj_ids.add(id(merc.hand[card_idx - 1]) if card_idx - 1 < len(merc.hand) else id(raw_entry))
                 continue
@@ -401,12 +538,23 @@ def run_mercenary_turn(battle_engine, run: GameRun, merc_uid: str) -> str:
         for grid, minion in list(merc.minions.items()):
             if battle_engine.is_battle_won(run):
                 break
-            if minion.hp > 0 and minion.attack_actions > 0 and any(e.hp > 0 for e in run.enemies):
-                target = f"e{next((i + 1 for i, e in enumerate(run.enemies) if e.hp > 0), 1)}"
-                m_res = battle_engine.minion_attack(run, grid, target)
-                if m_res:
-                    acted_any = True
-                    logs.append(get_locale_text("i18n_mercenary.ai_minion_attack", minion=minion.name, result=m_res))
+            if minion.hp > 0 and minion.attack_actions > 0:
+                if is_chaotic_mercenary(merc):
+                    c_target = pick_chaotic_target(run, merc_uid)
+                    if c_target:
+                        minion.attack_actions -= 1
+                        battle_engine.combat_resolver.damage_target(
+                            run, c_target, minion.atk, source=f"a{slot}m{grid}", damage_type="attack", is_attack=True
+                        )
+                        acted_any = True
+                        t_name = battle_engine.combat_resolver.get_target_name(run, c_target)
+                        logs.append(get_locale_text("i18n_mercenary.evil_twin_chaotic_attack", name=minion.name, target=t_name))
+                elif any(e.hp > 0 for e in run.enemies):
+                    target = f"e{next((i + 1 for i, e in enumerate(run.enemies) if e.hp > 0), 1)}"
+                    m_res = battle_engine.minion_attack(run, grid, target)
+                    if m_res:
+                        acted_any = True
+                        logs.append(get_locale_text("i18n_mercenary.ai_minion_attack", minion=minion.name, result=m_res))
     finally:
         restore_player(run, previous, previous_user)
     if not battle_engine.is_battle_won(run) and merc.hp > 0 and not merc.downed:

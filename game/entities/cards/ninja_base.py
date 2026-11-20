@@ -16,8 +16,12 @@ def add_ninja_buff(engine, entity, buff_id: str, stacks: int = 1) -> None:
 def get_card_ninja_tags(card) -> tuple[str, ...]:
     if card is None:
         return ()
-    tags = getattr(card, "ninja_tags", ())
-    return tuple(tags) if tags else ()
+    result: list[str] = [str(x) for x in (getattr(card, "ninja_tags", ()) or ())]
+    for tag in getattr(card, "tags", ()) or ():
+        tname = getattr(tag, "name", "")
+        if tname in ("blade", "hand") and tname not in result:
+            result.append(tname)
+    return tuple(result)
 
 
 def has_ninja_tag(card, tag: str) -> bool:
@@ -30,6 +34,34 @@ def effective_science_cost_a(card, player) -> int:
         return cost_a
     lex = max(0, int(getattr(player, "lex_kela", 0) or 0))
     return max(0, cost_a - lex)
+
+
+def resolve_card_effective_cost_a(card, card_state, player) -> int:
+    base_a = int(getattr(card, "cost_a", 0) or 0)
+    if base_a == -1:
+        return -1
+    temp_a = getattr(card_state, "temp_cost_a", None) if card_state is not None else None
+    if temp_a is not None:
+        eff = max(0, int(temp_a))
+    else:
+        delta = int(getattr(card_state, "battle_cost_delta_a", 0) or 0) if card_state is not None else 0
+        eff = max(0, base_a + delta)
+    if getattr(card, "science", False) and eff > 0 and player is not None:
+        lex = max(0, int(getattr(player, "lex_kela", 0) or 0))
+        eff = max(0, eff - lex)
+    if player is not None and has_ninja_tag(card, "ninjutsu"):
+        if any(b.id == "plasma_arrow" and b.stacks > 0 for b in player.buffs):
+            return 0
+    return eff
+
+
+def scramble_hand_costs(player, low: int = 0, high: int = 3) -> list[int]:
+    results = []
+    for st in player.hand:
+        val = random.randint(low, high)
+        st.temp_cost_a = val
+        results.append(val)
+    return results
 
 
 def change_lex_kela(engine, run: GameRun, player, delta: int, reason: str = "", source_card_id: str = "") -> int:

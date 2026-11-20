@@ -54,6 +54,7 @@ class SouthCrossSealBuff(BuffImpl):
         engine = event.engine
         if event.is_player or entity not in event.run.enemies or entity.hp <= 0 or buff.stacks <= 0:
             return
+        entity.shield += 50
         add_ninja_buff(engine, entity, "stun", 1)
         buff.stacks -= 1
         if buff.stacks <= 0 and buff in entity.buffs:
@@ -110,9 +111,25 @@ class ScareFormBuff(BuffImpl):
         engine = event.engine
         if not event.is_player or entity is not event.run.player or buff.stacks <= 0:
             return
-        gained = change_lex_kela(engine, event.run, entity, buff.stacks, reason="scare_form")
-        engine.card_player.draw_cards(entity, 1, event.run)
-        engine._log_event(event.run, get_locale_text("i18n_cards_ninja.scare_form_trigger", amount=gained))
+        import random
+        from ...data.ninja_card_data_basic import NINJA_CARD_CONFIG_BASIC
+        from ...data.ninja_card_data_uncommon import NINJA_CARD_CONFIG_UNCOMMON
+        from ..cards.base import ALL_CARDS
+        pool = [
+            k for k, v in {**NINJA_CARD_CONFIG_BASIC, **NINJA_CARD_CONFIG_UNCOMMON}.items()
+            if "ninjutsu" in v.get("ninja_tags", ()) and k not in ("ninja_good_night", "ninja_he_bully_me", "ninja_we_peace")
+        ]
+        if not pool:
+            return
+        for _ in range(buff.stacks):
+            cid = random.choice(pool)
+            card = ALL_CARDS.get(cid)
+            if card is None:
+                continue
+            add_ninja_buff(engine, entity, "free_ninjutsu", 1)
+            target = engine._get_first_alive_enemy(event.run)
+            engine._execute_card_effect(event.run, card, target)
+            engine._log_event(event.run, get_locale_text("i18n_cards_ninja.scare_form_cast", name=card.name))
 
 
 @register_buff("two_monks")

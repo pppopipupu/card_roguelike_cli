@@ -95,3 +95,13 @@ class FragileTag(CardTag):
                     next_name = next_card.name if next_card else card.name
                     engine._log_event(run, get_locale_text("i18n_buffs.fragile_wear_log", card=card.name, next=next_name))
         return True
+
+
+class BladeTag(CardTag):
+    def __init__(self, name: str = "blade", value: int = 1):
+        super().__init__(name, value)
+
+
+class HandTag(CardTag):
+    def __init__(self, name: str = "hand", value: int = 1):
+        super().__init__(name, value)

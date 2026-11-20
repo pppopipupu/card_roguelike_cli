@@ -46,11 +46,16 @@
   "get_all_hands_break": "✋ 打出非手系牌，【得到所有手】连携中断。",
   "black_snake_heart_trigger": "🐍 【黑户蛇心】触发，获得 1 层无实体！",
   "scare_form_trigger": "😱 【受惊形态】触发，获得 {amount} 点蕾克拉并抽 1 张牌！",
-  "wild_snake_god_trigger": "🐍 【草野蛇神】触发，获得 1 点蕾克拉并抽 1 张牌！",
+  "wild_snake_god_trigger": "🐍 【草野蛇神】触发：随机化了当前所有手牌的本回合主动作消耗（0~3A）！",
   "ignis_healing_tick": "🔥 【火神医疗】反噬，失去 {loss} 点生命！",
   "man_too_weak_tick": "😓 【好男人也没的身手】回合初消耗了 {loss} 点蕾克拉。",
   "shit_power_tick": "💩 【食大粪后劲】发作，获得 {lex} 点蕾克拉与 1A！",
   "stone_strong_tick": "🪨 【牢石耐击术】触发，获得 {amount} 层沙壁！",
   "infinite_snake_tick": "🐍 【蛇不尽】触发，获得 1 张【豪蛇怒咬+】！",
-  "take_your_heart_kill": "🖤 【我夺取心脏】目标负面状态已满，直接斩杀 {name}！"
+  "take_your_heart_kill": "🖤 【我夺取心脏】目标负面状态已满，直接斩杀 {name}！",
+  "good_night_blocked": "😴 你正处于【好好睡】休眠状态，本回合无法打出任何卡牌！",
+  "mobius_exhaust_replay": "🐍 【莫比乌回环蛇】从消耗堆苏醒，自动重放了【{name}】！",
+  "darkness_snake_scramble": "🐍 【暗秽蛇手】打乱了当前所有手牌的本回合主动作消耗（0~3A）！",
+  "scare_form_cast": "😱 【受惊形态】触发：免费随机释放了忍术【{name}】！",
+  "blade_defence_lex": "🛡️ 【拿刀防卫】完美格挡了攻击，获得 1 点蕾克拉！"
 }

@@ -2,7 +2,7 @@ import random
 from ...data.buff_data import BUFF_CONFIG
 from ...data.locale_data import get_locale_text
 from ...models.state import CardState
-from ..cards.ninja_base import add_lan_blade_to_hand, add_ninja_buff, change_lex_kela, has_ninja_tag
+from ..cards.ninja_base import add_lan_blade_to_hand, add_ninja_buff, change_lex_kela, has_ninja_tag, scramble_hand_costs
 from .base import BuffImpl
 from .registry import register_buff
 
@@ -163,6 +163,12 @@ class BladeDefenceBuff(BuffImpl):
         if event.card is not None and getattr(event.card, "type", "") == "attack":
             engine.combat_resolver.gain_shield(event.run, "p0", buff.stacks)
 
+    def on_damage_take_defend(self, event, buff_state, entity, engine):
+        buff = buff_state
+        if entity is event.run.player and buff.stacks > 0 and event.target == "p0" and event.amount == 0:
+            change_lex_kela(engine, event.run, entity, 1, reason="blade_defence")
+            engine._log_event(event.run, get_locale_text("i18n_cards_ninja.blade_defence_lex"))
+
     def on_turn_end(self, event, buff_state, entity):
         buff = buff_state
         engine = event.engine
@@ -289,13 +295,14 @@ class InfiniteSnakeBitesBuff(BuffImpl):
 
 @register_buff("wild_snake_god")
 class WildSnakeGodBuff(BuffImpl):
-    def on_turn_start(self, event, buff_state, entity):
+    def on_card_played(self, event, buff_state, entity):
         buff = buff_state
         engine = event.engine
-        if not event.is_player or entity is not event.run.player or buff.stacks <= 0:
+        if entity is not event.run.player or buff.stacks <= 0:
             return
-        change_lex_kela(engine, event.run, entity, buff.stacks, reason="wild_snake_god")
-        engine.card_player.draw_cards(entity, buff.stacks, event.run)
+        if event.card is not None and event.card.id == "ninja_wild_snake_god":
+            return
+        scramble_hand_costs(entity, 0, 3)
         engine._log_event(event.run, get_locale_text("i18n_cards_ninja.wild_snake_god_trigger"))
 
 
@@ -306,9 +313,14 @@ class BlackSnakeHeartBuff(BuffImpl):
         engine = event.engine
         if entity is not event.run.player or buff.stacks <= 0 or event.card is None:
             return
-        prev_id = event.run.node_data.get("ninja_last_played_card_id", "")
+        prev_id = event.run.node_data.get("ninja_prev_played_card_id", "")
         if prev_id and prev_id == event.card.id:
-            add_ninja_buff(engine, entity, "intangible", 1)
+            for st in reversed(list(entity.discard_pile)):
+                if st.id == event.card.id:
+                    entity.discard_pile.remove(st)
+                    entity.exhaust_pile.append(st)
+                    break
+            add_ninja_buff(engine, entity, "intangible", buff.stacks)
             engine._log_event(event.run, get_locale_text("i18n_cards_ninja.black_snake_heart_trigger"))
 
 

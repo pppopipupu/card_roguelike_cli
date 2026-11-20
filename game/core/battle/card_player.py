@@ -39,6 +39,7 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         c_state = ensure_card_state(c_state)
         clean_state = _clone_card_state(c_state)
         clean_state.return_left = 0
+        clean_state.temp_cost_a = None
 
         if hasattr(card, "handle_post_play") and card.handle_post_play(run, c_state, source, self.engine):
             return
@@ -385,10 +386,13 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         if card.type in ("minion", "amulet") and self.engine._get_free_grid(p) is None:
             return get_locale_text("i18n_battle_core.battlefield_full")
 
-        req_a = card.cost_a
+        if any(b.id == "good_night" and b.stacks > 0 for b in p.buffs):
+            return get_locale_text("i18n_cards_ninja.good_night_blocked")
+        if getattr(card, "type", "") == "attack" and any(b.id == "we_peace" and b.stacks > 0 for b in p.buffs):
+            return get_locale_text("i18n_cards_ninja.we_peace_blocked")
+        from ...entities.cards.ninja_base import resolve_card_effective_cost_a
+        req_a = resolve_card_effective_cost_a(card, cid, p)
         req_ba = card.cost_ba
-        if getattr(card, "science", False) and req_a > 0:
-            req_a = max(0, req_a - int(getattr(p, "lex_kela", 0) or 0))
         real_x_a = 0
         real_x_ba = 0
         if req_a == -1:
@@ -531,8 +535,12 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         if suspend_post_play:
             self.engine.save_manager.save_save(run.user_id, run)
             return self.engine._append_logs_to_res(run, res)
+        force_end = bool(run.node_data.pop("ninja_force_end_turn", False))
         self.engine.save_manager.save_save(run.user_id, run)
         res = self._post_battle_action_check(run, initial_status, res, p)
+        if force_end and run.node_type == "battle" and not self.engine.is_battle_won(run):
+            end_res = self.end_turn(run)
+            res = f"{res}\n{end_res}" if res else end_res
         return self.engine._append_logs_to_res(run, res)
 
     def play_special_action(self, run: GameRun, hand_idx: int, target: Optional[str] = None) -> str:
