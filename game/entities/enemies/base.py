@@ -49,13 +49,8 @@ class EnemyTemplate:
         p = run.player
         import random
         final_dmg = dmg
-        ward_grids = []
-        if p.minions:
-            for grid, mstate in p.minions.items():
-                if any(bf.id == "ward" for bf in mstate.buffs):
-                    ward_grids.append(grid)
-        if ward_grids:
-            target_key = random.choice(ward_grids)
+        target_key = engine.combat_resolver.pick_ward_minion(p)
+        if target_key is not None:
             target = p.minions[target_key]
             m_name = target.name
             before_len = len(run.node_data.get("battle_logs", []))

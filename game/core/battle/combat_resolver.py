@@ -310,6 +310,18 @@ class CombatResolver:
             return grid
         return None
 
+    def pick_ward_minion(self, player) -> Optional[str]:
+        if player is None:
+            return None
+        grids = [
+            grid
+            for grid, minion in player.minions.items()
+            if any(buff.id == "ward" for buff in minion.buffs)
+        ]
+        if not grids:
+            return None
+        return random.choice(grids)
+
     def damage_target(self, game_run_context: GameRun, target: str, dmg: int, source: str = "effect", damage_type: str | DamageType = "effect", card: Optional[Card] = None, damage_ready: bool = False, is_attack: bool = False):
         chaotic_uid = game_run_context.node_data.get("chaotic_attacker_uid")
         if chaotic_uid and target.startswith("e") and source in ("p0", "player", "effect"):
@@ -321,6 +333,24 @@ class CombatResolver:
                     source = f"a{game_run_context.party_order.index(chaotic_uid) + 1}"
                 else:
                     source = "chaotic_merc"
+        if (
+            target == "p0"
+            and source.startswith("enemy:")
+            and game_run_context.node_data.get("enemy_single_target_attack")
+        ):
+            ward_grid = self.pick_ward_minion(game_run_context.player)
+            if ward_grid is not None:
+                minion_name = game_run_context.player.minions[ward_grid].name
+                self.engine._log_event(
+                    game_run_context,
+                    get_locale_text(
+                        "i18n_entity_wiring.enemy_base.ward_redirect",
+                        name=source[6:],
+                        m_name=minion_name,
+                    ),
+                )
+                self.damage_target(game_run_context, f"p{ward_grid}", dmg, source, damage_type, card, damage_ready, is_attack)
+                return
         if self._redirect_ally(
             game_run_context,
             target,

@@ -170,7 +170,7 @@ class EnemyTurnController:
                 params={"entries": JoinedText(parts=decay_entries, separator="，")},
             ))
         self.engine.event_bus.dispatch(TurnStartEvent(run, is_player=False))
-        from .party_battle import alive_uids, is_all_downed, pick_enemy_target
+        from .party_battle import AOE_INTENT_TYPES, alive_uids, is_all_downed, pick_enemy_target
         viewer = run.player
         viewer_uid = run.user_id
         for index, enemy in enumerate(list(run.enemies), 1):
@@ -213,22 +213,26 @@ class EnemyTurnController:
                     targets = [(uid, run.players[uid]) for uid in alive_uids(run)]
                 else:
                     targets = [(target, run.players.get(target))]
-                for uid, player in targets:
-                    if player is None or player.downed or player.hp <= 0:
-                        continue
-                    run.player = player
-                    run.user_id = uid
-                    run.node_data["coop_damage_target_uid"] = uid
-                    run.node_data["coop_damage_aoe"] = target == "ALL"
-                    run.node_data["current_acting_enemy_idx"] = run.enemies.index(enemy) if enemy in run.enemies else index - 1
-                    template_logs: list[str] = []
-                    try:
-                        template.execute_intent(run, self.engine, enemy, it, template_logs)
-                    finally:
-                        run.node_data.pop("current_acting_enemy_idx", None)
-                        run.player = viewer
-                        run.user_id = viewer_uid
-                    logs.extend(RenderedText(text=item) for item in template_logs if item)
+                run.node_data["enemy_single_target_attack"] = target != "ALL" and it.type not in AOE_INTENT_TYPES
+                try:
+                    for uid, player in targets:
+                        if player is None or player.downed or player.hp <= 0:
+                            continue
+                        run.player = player
+                        run.user_id = uid
+                        run.node_data["coop_damage_target_uid"] = uid
+                        run.node_data["coop_damage_aoe"] = target == "ALL"
+                        run.node_data["current_acting_enemy_idx"] = run.enemies.index(enemy) if enemy in run.enemies else index - 1
+                        template_logs: list[str] = []
+                        try:
+                            template.execute_intent(run, self.engine, enemy, it, template_logs)
+                        finally:
+                            run.node_data.pop("current_acting_enemy_idx", None)
+                            run.player = viewer
+                            run.user_id = viewer_uid
+                        logs.extend(RenderedText(text=item) for item in template_logs if item)
+                finally:
+                    run.node_data.pop("enemy_single_target_attack", None)
                 if is_all_downed(run):
                     if run.player_count() > 1:
                         logs.append(locale_text(key="i18n_battle_core.coop_all_downed_log"))

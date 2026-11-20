@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from game.data.millika_card_config import MILLIKA_TURN_FLAG_KEY
-from game.models.state import CardState, EnemyState, GameRun, MinionState, PlayerState
+from game.models.state import BuffState, CardState, EnemyIntentState, EnemyState, GameRun, MinionState, PlayerState
 from game.test.core.base import CorePlugin, load_run, run_command
 
 MILLIKA_ID = "holy_celestial_millika"
@@ -25,7 +25,7 @@ class TestMillikaCard(unittest.TestCase):
     def run_cmd(self, command, uid):
         return asyncio.run(run_command(self.plugin, command, uid))
 
-    def build_battle(self, uid, hand, draw_pile, discard_pile, deck=None, minions=None, hp=1000, node_data=None):
+    def build_battle(self, uid, hand, draw_pile, discard_pile, deck=None, minions=None, hp=1000, node_data=None, enemy=None):
         p = PlayerState(
             hp=hp, max_hp=hp, shield=0, gold=0, stage=1,
             deck=deck or [], hand=hand, draw_pile=draw_pile, discard_pile=discard_pile,
@@ -34,7 +34,7 @@ class TestMillikaCard(unittest.TestCase):
         )
         run = GameRun(
             user_id=uid, node_type="battle", player=p,
-            enemies=[EnemyState("训练假人", 500, 500, 0)],
+            enemies=[enemy] if enemy is not None else [EnemyState("训练假人", 500, 500, 0)],
             node_data=node_data or {},
         )
         self.plugin.save_manager.save_save(uid, run)
@@ -129,3 +129,16 @@ class TestMillikaCard(unittest.TestCase):
         self.assertIn("光耀", res)
         after = load_run(self.plugin, uid)
         self.assertEqual(after.enemies[0].hp, 495)
+
+    def test_ward_absorbs_single_target_attack(self):
+        uid = "millika_ward_user"
+        millika = MinionState(MILLIKA_ID, "神圣天体‧弥莉卡", 20, 20, 6, 1, 0, buffs=[BuffState("ward", "守护")])
+        enemy = EnemyState("古诺德尸鬼", 22, 22, 0, actions=1, max_actions=1, max_bonus_actions=0)
+        enemy.intents = [EnemyIntentState(type="draugr_cleave", val=7, desc="古诺德斩击 (造成 7 点挥砍伤害)", cost_a=1, cost_ba=0)]
+        self.plugin.engine.battle_engine._sync_enemy_intents(enemy)
+        self.build_battle(uid, [], [], [], minions={"1": millika}, enemy=enemy)
+        res = self.run_cmd("e", uid)
+        self.assertIn("守护", res)
+        after = load_run(self.plugin, uid)
+        self.assertEqual(after.player.hp, 1000)
+        self.assertEqual(after.player.minions["1"].hp, 13)
