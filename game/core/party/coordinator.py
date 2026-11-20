@@ -131,7 +131,7 @@ def finish_player_node(save_manager, map_engine, run, uid, prefix="", on_all_rea
             run.node_data[key] = value
     members = [u for u in run.party_order if u in run.players]
     human_members = [u for u in (run.human_uids() if hasattr(run, "human_uids") else members) if u in run.players]
-    if not human_members or all(ready.get(u, False) or run.players[u].downed for u in human_members):
+    if not human_members or all(ready.get(u, False) for u in human_members):
         pool = run.node_data.get("coop_relic_pool") or []
         merc_notices = []
         if pool:

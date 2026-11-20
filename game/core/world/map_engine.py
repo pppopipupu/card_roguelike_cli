@@ -156,6 +156,8 @@ class MapEngine:
         for member_uid, member in run.players.items():
             if member_uid != uid and getattr(member, "mercenary_owner", "") == uid:
                 leaves.append(member_uid)
+        node_data = run.node_data if isinstance(run.node_data, dict) else {}
+        views = node_data.get("player_views")
         if session is not None:
             for member_uid in list(session.participants):
                 member = run.players.get(member_uid)
@@ -164,15 +166,16 @@ class MapEngine:
                 if getattr(member, "is_mercenary", False):
                     continue
                 if member.downed or member.hp <= 0:
-                    leaves.append(member_uid)
+                    view = views.get(member_uid) if isinstance(views, dict) else None
+                    data = view.get("data") if isinstance(view, dict) else None
+                    if not isinstance(data, dict) or data.get("coop_done", True):
+                        leaves.append(member_uid)
         revived = {}
         for member_uid in leaves:
             notice = self._settle_player_node(run, member_uid, was_start_ancient, True)
             if notice:
                 revived[member_uid] = notice
-        node_data = run.node_data if isinstance(run.node_data, dict) else {}
         ready = node_data.get("stage_ready")
-        views = node_data.get("player_views")
         for member_uid in leaves:
             if isinstance(ready, dict):
                 ready[member_uid] = True

@@ -2,7 +2,7 @@ import random
 
 from ...data.locale_data import get_locale_text
 from ...data.map_config import MapConfig
-from ...data.relic_data import RELIC_CONFIG
+from ...data.relic_data import RELIC_CONFIG, relic_allowed_for_any_class
 from ...data.reward_config import (
     BOSS_MYTHIC_CARDS,
     BOSS_MYTHIC_RELICS,
@@ -42,12 +42,17 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
         for uid in run.party_order:
             if uid in run.players:
                 owned.update(run.players[uid].relics)
+        alive_classes = [
+            getattr(run.players[uid], "selected_class", "法师")
+            for uid in alive
+        ]
         eligible = [
             rid
             for rid, cfg in RELIC_CONFIG.items()
             if cfg.get("rarity") in COOP_ELITE_RANDOM_RELIC_RARITIES
             and cfg.get("price", 0) > 0
             and rid not in pool
+            and relic_allowed_for_any_class(rid, alive_classes)
         ]
         candidates = [rid for rid in eligible if rid not in owned]
         random.shuffle(candidates)
@@ -123,18 +128,9 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
                 views[uid] = {"node_type": "boss_chest", "data": {"items": [], "coop_done": True}}
                 stage_ready[uid] = True
                 continue
-            if player.downed:
-                data = {
-                    "items": [],
-                    "coop_done": True,
-                    "coop_downed": True,
-                    "title": get_locale_text("i18n_explore_core.boss_chest_downed_title"),
-                    "desc": get_locale_text("i18n_explore_core.boss_chest_downed_desc"),
-                }
-            else:
-                data = self._make_boss_chest_view(run, uid)
+            data = self._make_boss_chest_view(run, uid)
             views[uid] = {"node_type": "boss_chest", "data": data}
-            stage_ready[uid] = player.downed
+            stage_ready[uid] = False
         run.node_type = "boss_chest"
         run.node_data = {
             "coop_node_type": "boss_chest",
@@ -148,8 +144,6 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
 
     def _make_player_reward_items(self, run: GameRun, uid: str, difficulty: str, quest: str, pending_gems: list, elite_name: str):
         player = run.players[uid]
-        if player.downed:
-            return [], get_locale_text("i18n_explore_core.downed_no_loot")
         items = []
         quest_bonus = ""
         if quest == "knight_cave":
@@ -211,11 +205,11 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
                 "data": {
                     "items": items,
                     "quest_bonus": note,
-                    "coop_done": player.downed,
+                    "coop_done": False,
                     "coop_downed": player.downed,
                 },
             }
-            stage_ready[uid] = player.downed
+            stage_ready[uid] = False
         run.node_data = {
             "coop_node_type": "reward",
             "player_views": views,

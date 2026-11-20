@@ -5,6 +5,7 @@
   "relic_unclaimed": "↩️ 你取消了对遗物【{relic_name}】的选择。",
   "relic_limit_reached": "❌ 每位玩家最多只能选择 {limit} 件遗物。",
   "relic_already_owned": "❌ 你已拥有遗物【{relic_name}】,请选择其他遗物。",
+  "relic_wrong_class": "❌ 遗物【{relic_name}】仅限【蕾忍】取用。",
   "relic_gained": "🎒 你获得了遗物【{relic_name}】。",
   "relic_taken_notice": "🎒 【{player_name}】夺得了遗物【{relic_name}】。",
   "rest_heal": "你感到精力充沛，恢复了 {heal} 点生命值。",

@@ -160,7 +160,5 @@ NINJA_RELIC_CONFIG: dict[str, dict] = {'lotus_box': {'name': '藕盒', 'desc': '
  'machine_ninja': {'name': '忍机兵·烧油Machine', 'desc': '每回合开始时，下一张【科学忍具】额外触发一次效果。', 'rarity': 'rare', 'price': 240},
  'sarira': {'name': '舍利子', 'desc': '战斗中生命归零时回复 100% 生命并尝试扣除 22000000 金币（每局触发一次）。', 'rarity': 'event', 'price': 300},
  'three_duuz': {'name': '3D幽幽子', 'desc': '每回合首次打出【忍术】牌时，额外抽 2 张牌。', 'rarity': 'shop', 'price': 200},
- 'toilet_water': {'name': '花露水', 'desc': '每场战斗首次抽到诅咒牌时，自动消耗该诅咒并抽 1 张牌。', 'rarity': 'event', 'price': 180},
- 'ninja_evil_twin': {'cost_a': 0,
-                     'desc': '0A。忍术。在队伍空位（a 格子）召唤 1 名「邪恶双生人」雇佣兵（复制你的牌组，战斗结束后消失）。邪恶双生人每回合会无差别出牌攻击随机敌人、队友与随从。消耗。'}
+ 'toilet_water': {'name': '花露水', 'desc': '每场战斗首次抽到诅咒牌时,自动消耗该诅咒并抽 1 张牌。', 'rarity': 'event', 'price': 180},
 }

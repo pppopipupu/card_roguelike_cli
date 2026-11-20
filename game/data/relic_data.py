@@ -570,5 +570,18 @@ RELIC_CONFIG.update(CHIREIDEN_RELIC_CONFIG)
 from .ninja_card_data import NINJA_RELIC_CONFIG
 RELIC_CONFIG.update(NINJA_RELIC_CONFIG)
 
+NINJA_RELIC_IDS = frozenset(NINJA_RELIC_CONFIG)
+NINJA_CLASS_NAME = "蕾忍"
+
+def relic_allowed_for_class(relic_id: str, selected_class: str) -> bool:
+    if relic_id in NINJA_RELIC_IDS:
+        return selected_class == NINJA_CLASS_NAME
+    return True
+
+def relic_allowed_for_any_class(relic_id: str, selected_classes) -> bool:
+    if relic_id not in NINJA_RELIC_IDS:
+        return True
+    return NINJA_CLASS_NAME in selected_classes
+
 BACKPACK_RELIC_IDS = ["backpack_small", "backpack_medium", "backpack_large", "backpack_giant"]
 

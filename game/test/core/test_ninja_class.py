@@ -60,7 +60,8 @@ class TestNinjaClass(unittest.TestCase):
         self.assertEqual(DEFAULT_BASE_HP, 50)
         self.assertGreaterEqual(len(NINJA_CARD_CONFIG), 100)
         self.assertGreaterEqual(len(NINJA_BUFF_CONFIG), 37)
-        self.assertEqual(len(NINJA_RELIC_CONFIG), 10)
+        self.assertEqual(len(NINJA_RELIC_CONFIG), 9)
+        self.assertNotIn("ninja_evil_twin", NINJA_RELIC_CONFIG)
 
         rarities = [cfg.get("rarity") for cfg in NINJA_CARD_CONFIG.values()]
         self.assertNotIn("mythic", rarities)

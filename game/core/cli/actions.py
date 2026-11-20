@@ -298,7 +298,7 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
         if run.node_data.get("pending_upgrade"):
             res = router.engine.upgrade_card_in_deck(run, idx)
             success = "❌" not in res
-            if run.player.hp <= 0:
+            if run.player.hp <= 0 and not run.player.downed:
                 return finalize_defeat(
                     router.save_manager,
                     user_id,
@@ -319,7 +319,7 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
             success = "❌" not in res
             if run.node_data.get("yog_finished") or run.node_data.get("tutorial_finished"):
                 return res, True, success
-            if run.player.hp <= 0:
+            if run.player.hp <= 0 and not run.player.downed:
                 return finalize_defeat(
                     router.save_manager,
                     user_id,

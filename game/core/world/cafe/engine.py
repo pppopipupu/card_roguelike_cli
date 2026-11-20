@@ -2,7 +2,7 @@ import random
 from typing import Optional
 from ....models.state import GameRun
 from ....entities import get_relic_name
-from ....data.relic_data import RELIC_CONFIG
+from ....data.relic_data import RELIC_CONFIG, relic_allowed_for_any_class
 from ....data.gem_data import GEM_CONFIG
 from ....data.cafe_data import (
     CAFE_CARD_MASTER_STOCK,
@@ -94,9 +94,20 @@ class CafeEngine(CafeDialogMixin):
 
         if "凯尔" in selected_npcs:
             owned_relics = {rid for member in run.players.values() for rid in member.relics}
-            relic_keys = [k for k, v in RELIC_CONFIG.items() if v.get("rarity") == "epic" and k not in owned_relics]
+            party_classes = [getattr(member, "selected_class", "法师") for member in run.players.values()]
+            relic_keys = [
+                k
+                for k, v in RELIC_CONFIG.items()
+                if v.get("rarity") == "epic"
+                and k not in owned_relics
+                and relic_allowed_for_any_class(k, party_classes)
+            ]
             if not relic_keys:
-                relic_keys = [k for k in RELIC_CONFIG.keys() if k not in owned_relics]
+                relic_keys = [
+                    k
+                    for k in RELIC_CONFIG.keys()
+                    if k not in owned_relics and relic_allowed_for_any_class(k, party_classes)
+                ]
             if relic_keys:
                 cafe_data["hunter_stock"] = random.choice(relic_keys)
 

@@ -96,7 +96,7 @@ ANCIENT_BLESSING_POOLS = {
     },
     "fortune": {
         "legends": ["archmage_wish", "time_warp", "unmined_gem", "break_limits", "neutral_banish_slash"],
-        "relics": ["gold_compass", "chemical_x", "prayer_wheel", "ancient_eye", "doomsday_core", "arcanist_hand", "espresso"],
+        "relics": ["gold_compass", "chemical_x", "prayer_wheel", "ancient_eye", "doomsday_core", "arcanist_hand", "espresso_relic"],
     },
 }
 

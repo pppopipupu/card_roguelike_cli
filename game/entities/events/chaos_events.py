@@ -81,8 +81,14 @@ class BuyBlackmarketRelicOption(EventOption, action="buy_blackmarket_relic", tex
         else:
             p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("buy_hp_penalty", 15))
             cost_msg = get_locale_text("i18n_events_a.chaos_buy_blackmarket_penalty")
-        from ...data.relic_data import RELIC_CONFIG
-        pool = [rid for rid, r in RELIC_CONFIG.items() if r.get("rarity") != "curse" and rid != "time_sand_blessing"]
+        from ...data.relic_data import RELIC_CONFIG, relic_allowed_for_class
+        pool = [
+            rid
+            for rid, r in RELIC_CONFIG.items()
+            if r.get("rarity") != "curse"
+            and rid != "time_sand_blessing"
+            and relic_allowed_for_class(rid, getattr(p, "selected_class", "法师"))
+        ]
         available = [rid for rid in pool if rid not in p.relics]
         got_relic = random.choice(available) if available else "lucky_coin"
         if got_relic not in p.relics:

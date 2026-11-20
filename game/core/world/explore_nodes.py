@@ -17,6 +17,7 @@ from ...data.balance_config import (
     TREASURE_GOLD_MIN,
 )
 from ...data.reward_config import TREASURE_RELIC_POOL
+from ...data.relic_data import relic_allowed_for_class
 from ...data.locale_data import get_locale_text
 from ..inventory.card_distribution import CardDistributor
 from ..party.coordinator import add_notice, alive_uids, finish_player_node, restore_player, swap_player
@@ -393,6 +394,8 @@ def _claim_coop_relic(engine, run, pool_idx):
     player = run.players.get(uid) or run.player
     if rid in player.relics:
         return get_locale_text("i18n_coop_explore.relic_already_owned", relic_name=get_relic_name(rid))
+    if not relic_allowed_for_class(rid, getattr(player, "selected_class", "法师")):
+        return get_locale_text("i18n_coop_explore.relic_wrong_class", relic_name=get_relic_name(rid))
     entry["claimed_by"] = uid
     from ..inventory.relic_service import grant_relic
     grant_relic(player, rid)

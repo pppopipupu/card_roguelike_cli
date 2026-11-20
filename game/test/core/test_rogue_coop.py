@@ -305,6 +305,43 @@ class TestRogueCoop(unittest.TestCase):
         self.assertIn(relic_a, load_run(self.plugin, uids[0]).players[uids[0]].relics)
         self.assertIn(relic_b, load_run(self.plugin, uids[1]).players[uids[1]].relics)
 
+    def test_ninja_relic_requires_ninja_class(self):
+        uids = ["ninja_relic_a", "ninja_relic_b"]
+        run = self.start_coop(uids)
+        from game.entities import get_relic_name
+        from game.models.coop_view import apply_view
+        relic_id = "machine_ninja"
+        pool = [{"relic_id": relic_id, "claimed_by": ""}]
+        views = {
+            uid: {
+                "node_type": "reward",
+                "data": {
+                    "items": [{"type": "gold", "amount": 1, "taken": False}],
+                    "coop_done": False,
+                },
+            }
+            for uid in uids
+        }
+        SessionContextScoper.create_session(run, "A1", "reward", uids, node_data={
+            "coop_node_type": "reward",
+            "coop_relic_pool": pool,
+            "player_views": views,
+            "stage_ready": {uid: False for uid in uids},
+        })
+        apply_view(run, uids[0])
+        self.plugin.save_manager.save_save(uids[0], run)
+
+        blocked = self.run_cmd("c 1", uids[0])
+        self.assertIn("仅限【蕾忍】", blocked)
+        self.assertNotIn(relic_id, load_run(self.plugin, uids[0]).players[uids[0]].relics)
+
+        ninja_run = load_run(self.plugin, uids[1])
+        ninja_run.players[uids[1]].selected_class = "蕾忍"
+        self.plugin.save_manager.save_save(uids[1], ninja_run)
+        claimed = self.run_cmd("c 1", uids[1])
+        self.assertIn(get_relic_name(relic_id), claimed)
+        self.assertIn(relic_id, load_run(self.plugin, uids[1]).players[uids[1]].relics)
+
     def test_coop_relic_pool_allows_multiple_picks(self):
         uids = ["multi_a", "multi_b"]
         run = self.start_coop(uids)
@@ -431,6 +468,60 @@ class TestRogueCoop(unittest.TestCase):
             self.assertEqual(len(member.players[uid].relics), before[uid] + 1)
 
     
+
+    def test_downed_teammate_keeps_battle_rewards(self):
+        uids = ["downed_reward_a", "downed_reward_b"]
+        run = self.start_coop(uids)
+        _, run = move_to_room(self.plugin, uids[0], ("battle", "elite"), rally=True)
+        from game.core.battle.party_battle import mark_downed
+        mark_downed(self.plugin.engine.battle_engine, run, run.players[uids[1]])
+        self.plugin.save_manager.save_save(uids[0], run)
+        self.plugin.engine.battle_engine.card_player.init_rewards(run, "normal")
+        self.plugin.save_manager.save_save(uids[0], run)
+
+        downed = load_run(self.plugin, uids[1])
+        self.assertEqual(downed.node_type, "reward")
+        self.assertTrue(downed.node_data.get("items"))
+        self.assertFalse(downed.node_data.get("coop_done"))
+        self.assertTrue(downed.players[uids[1]].downed)
+
+        gold_before = downed.players[uids[1]].gold
+        gold_amount = downed.node_data["items"][0]["amount"]
+        self.run_cmd("c 离开", uids[0])
+        still = load_run(self.plugin, uids[1])
+        self.assertEqual(still.node_type, "reward")
+        self.assertTrue(still.players[uids[1]].downed)
+        self.assertTrue(still.node_data.get("items"))
+
+        self.run_cmd("c 1", uids[1])
+        claimed = load_run(self.plugin, uids[1])
+        self.assertEqual(claimed.players[uids[1]].gold, gold_before + gold_amount)
+        self.run_cmd("c 离开", uids[1])
+        revived = load_run(self.plugin, uids[1])
+        self.assertEqual(revived.node_type, "grid_map")
+        self.assertEqual(revived.players[uids[1]].hp, 1)
+        self.assertFalse(revived.players[uids[1]].downed)
+
+    def test_downed_teammate_keeps_boss_chest(self):
+        uids = ["downed_chest_a", "downed_chest_b"]
+        run = self.start_coop(uids)
+        _, run = move_to_room(self.plugin, uids[0], ("battle", "elite"), rally=True)
+        from game.core.battle.party_battle import mark_downed
+        mark_downed(self.plugin.engine.battle_engine, run, run.players[uids[1]])
+        self.plugin.save_manager.save_save(uids[0], run)
+        self.plugin.engine.battle_engine.card_player.init_boss_chest(run)
+        self.plugin.save_manager.save_save(uids[0], run)
+
+        downed = load_run(self.plugin, uids[1])
+        self.assertEqual(downed.node_type, "boss_chest")
+        self.assertEqual(len([it for it in downed.node_data.get("items", []) if not it.get("taken")]), 3)
+        self.assertFalse(downed.node_data.get("coop_done"))
+
+        self.run_cmd("c 1", uids[1])
+        revived = load_run(self.plugin, uids[1])
+        self.assertEqual(revived.node_type, "grid_map")
+        self.assertEqual(revived.players[uids[1]].hp, 1)
+        self.assertFalse(revived.players[uids[1]].downed)
 
     def test_independent_battle_rewards(self):
         uids = ["reward_a", "reward_b"]
