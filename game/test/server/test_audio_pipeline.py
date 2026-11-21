@@ -139,7 +139,7 @@ class TestAudioPipeline(unittest.TestCase):
         bad_resp = self.client.get("/api/v1/audio/ninja/does_not_exist.mp3")
         self.assertEqual(bad_resp.status_code, 404)
 
-    def test_im_channel_never_receives_audio_packets(self):
+    def test_im_channel_receives_audio_packets(self):
         headers = self._im_headers()
         uid = self._prepare_ninja_battle(headers, "im", is_im=True)
 
@@ -150,8 +150,13 @@ class TestAudioPipeline(unittest.TestCase):
         )
         self.assertEqual(r.status_code, 200)
         body = r.json()
-        self.assertNotIn("audio", body)
-        self.assertEqual(self.app.state.service.audio_pipeline.drain(uid, "web"), [])
+        self.assertIn("audio", body)
+        self.assertGreaterEqual(len(body["audio"]), 1)
+        pkt = body["audio"][0]
+        self.assertEqual(pkt["pack"], "ninja")
+        self.assertEqual(pkt["card_id"], "ninja_strike")
+        self.assertTrue(str(pkt["url"]).startswith("/api/v1/audio/ninja/"))
+        self.assertEqual(self.app.state.service.audio_pipeline.drain(uid), [])
 
 
 if __name__ == "__main__":

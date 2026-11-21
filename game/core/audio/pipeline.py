@@ -122,10 +122,8 @@ class AudioPipeline:
             trigger="card_play",
         )
 
-    def drain(self, user_id: str, channel: str) -> list[dict[str, object]]:
+    def drain(self, user_id: str) -> list[dict[str, object]]:
         packets = self._queues.pop(str(user_id), [])
-        if channel.lower() != "web":
-            return []
         return [pkt.to_dict() for pkt in packets]
 
     def clear(self, user_id: str) -> None:
