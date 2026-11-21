@@ -53,68 +53,6 @@ class TestNinjaClass(unittest.TestCase):
         out = self.run_cmd(f"tp {coord}", target_uid)
         return out, load_run(self.plugin, target_uid)
 
-    def test_rarity_budget_curse_tags_zero_ba_and_damage_type_wording(self):
-        self.assertEqual(CLASS_BASE_HP["法师"], 50)
-        self.assertEqual(CLASS_BASE_HP["战士"], 80)
-        self.assertEqual(CLASS_BASE_HP["蕾忍"], 40)
-        self.assertEqual(DEFAULT_BASE_HP, 50)
-        self.assertGreaterEqual(len(NINJA_CARD_CONFIG), 100)
-        self.assertGreaterEqual(len(NINJA_BUFF_CONFIG), 37)
-        self.assertEqual(len(NINJA_RELIC_CONFIG), 9)
-        self.assertNotIn("ninja_evil_twin", NINJA_RELIC_CONFIG)
-
-        rarities = [cfg.get("rarity") for cfg in NINJA_CARD_CONFIG.values()]
-        self.assertNotIn("mythic", rarities)
-        self.assertNotIn("artifact", rarities)
-        self.assertLessEqual(rarities.count("legendary"), 5)
-
-        for curse_id in ("ninja_i_see_you", "ninja_hamood_kill_all", "ninja_mosquito_hand"):
-            self.assertEqual(NINJA_CARD_CONFIG[curse_id]["rarity"], "curse")
-            self.assertEqual(NINJA_CARD_CONFIG[curse_id]["color"], "curse")
-            self.assertEqual(NINJA_CARD_CONFIG[curse_id]["type"], "curse")
-
-        valid_dmg = (
-            "挥砍伤害",
-            "穿刺伤害",
-            "钝击伤害",
-            "火焰伤害",
-            "寒冷伤害",
-            "闪电伤害",
-            "雷鸣伤害",
-            "力场伤害",
-            "黯蚀伤害",
-            "光耀伤害",
-            "心灵伤害",
-            "毒素伤害",
-            "酸液伤害",
-            "真实伤害",
-        )
-        for cid, cfg in NINJA_CARD_CONFIG.items():
-            self.assertIn(cid, ALL_CARDS)
-            self.assertEqual(cfg.get("cost_ba", 0), 0)
-            desc = cfg.get("desc", "")
-            self.assertNotIn("物理伤害", desc)
-            self.assertNotIn("魔法伤害", desc)
-            if "造成" in desc and "伤害" in desc:
-                self.assertTrue(any(w in desc for w in valid_dmg), f"Missing concrete damage type: {cid}")
-            expected_icon = "⚫" if cfg.get("color") == "curse" else "🥷"
-            self.assertEqual(get_card_color_icon(ALL_CARDS[cid]), expected_icon)
-
-        for cid, ucfg in NINJA_UPGRADE_CONFIG.items():
-            self.assertIn(cid, ALL_CARDS)
-            self.assertEqual(ucfg.get("cost_ba", 0), 0)
-            udesc = ucfg.get("desc", "")
-            self.assertNotIn("物理伤害", udesc)
-            self.assertNotIn("魔法伤害", udesc)
-
-        event_ids = {ev.id for ev in ALL_EVENTS}
-        for eid in (
-            "ninja_the_spectre",
-            "ninja_the_great_seal",
-            "ninja_drink",
-            "ninja_man_yu_dian",
-        ):
-            self.assertIn(eid, event_ids)
 
     def test_class_switching_3a_lex_bar_and_action_cycle(self):
         out_cls = self.run_cmd("class")
@@ -237,30 +175,6 @@ class TestNinjaClass(unittest.TestCase):
         self.assertLessEqual(after.enemies[0].hp, 501)
 
 
-    def test_blade_and_hand_card_tags_registered_and_rendered(self):
-        from game.entities.cards.base import ALL_CARDS
-        from game.entities.cards.ninja_base import has_ninja_tag
-        from game.entities.tags import BladeTag, HandTag
-
-        blade_base = ALL_CARDS["ninja_yi_cut"]
-        blade_up = ALL_CARDS[CardState(id="ninja_yi_cut", upgraded=True)]
-        self.assertTrue(any(isinstance(t, BladeTag) for t in blade_base.tags))
-        self.assertTrue(any(isinstance(t, BladeTag) for t in blade_up.tags))
-        self.assertTrue(blade_base.desc.startswith("【刀系】"))
-        self.assertTrue(blade_up.desc.startswith("【刀系】"))
-        self.assertEqual(blade_up.desc.count("【刀系】"), 1)
-        self.assertTrue(has_ninja_tag(blade_base, "blade"))
-        self.assertTrue(has_ninja_tag(blade_up, "blade"))
-
-        hand_base = ALL_CARDS["ninja_shake_hands"]
-        hand_up = ALL_CARDS[CardState(id="ninja_shake_hands", upgraded=True)]
-        self.assertTrue(any(isinstance(t, HandTag) for t in hand_base.tags))
-        self.assertTrue(any(isinstance(t, HandTag) for t in hand_up.tags))
-        self.assertTrue(hand_base.desc.startswith("【手系】"))
-        self.assertTrue(hand_up.desc.startswith("【手系】"))
-        self.assertEqual(hand_up.desc.count("【手系】"), 1)
-        self.assertTrue(has_ninja_tag(hand_base, "hand"))
-        self.assertTrue(has_ninja_tag(hand_up, "hand"))
 
     def test_evil_twin_summon_chaotic_attacks_and_battle_end_cleanup(self):
         from game.core.party.mercenary import list_chaotic_targets

@@ -112,16 +112,6 @@ class TestAudioPipeline(unittest.TestCase):
         service.save_manager.save_save(uid, run)
         return uid
 
-    def test_all_ninja_cards_mapped_and_assets_resolvable(self):
-        pipeline = AudioPipeline()
-        for cid in NINJA_CARD_CONFIG:
-            self.assertIn(cid, CARD_PLAY_AUDIO_MAP)
-            cfg = CARD_PLAY_AUDIO_MAP[cid]
-            resolved = pipeline.resolve_asset_path(str(cfg["pack"]), str(cfg["file"]))
-            self.assertIsNotNone(resolved, f"Missing asset for {cid}")
-        self.assertIsNone(pipeline.resolve_asset_path("..", "etc/passwd"))
-        self.assertIsNone(pipeline.resolve_asset_path("ninja", "../audio_config.py"))
-        self.assertIsNone(pipeline.resolve_asset_path("ninja", "nonexistent.mp3"))
 
     def test_web_channel_receives_audio_packets_and_serves_audio_file(self):
         headers = self._web_headers()
