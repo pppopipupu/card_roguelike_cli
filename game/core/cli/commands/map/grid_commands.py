@@ -63,6 +63,13 @@ class GridTalkCommand(CommandHandler, names=["talk", "talk_to", "interact", "int
         if query == ".":
             query = ""
         if query:
+            from ....prism.card_talk import strip_card_talk_prefix, try_card_talk
+            _, has_card_prefix = strip_card_talk_prefix(query)
+            if has_card_prefix:
+                card_res = try_card_talk(router.save_manager, router.engine, user_id, query, run=run, explicit=True)
+                if card_res is not None:
+                    yield card_res
+                    return
             player_res = router.world_social.try_talk(user_id, query, run=run)
             if player_res is not None:
                 yield player_res
@@ -77,6 +84,10 @@ class GridTalkCommand(CommandHandler, names=["talk", "talk_to", "interact", "int
             npc_res = talk_room_npc(router.save_manager, run, query)
             if npc_res:
                 yield npc_res
+                return
+            card_res = try_card_talk(router.save_manager, router.engine, user_id, query, run=run, explicit=False)
+            if card_res is not None:
+                yield card_res
                 return
             yield get_locale_text("i18n_room_interact.dialog.talk_not_found", target=query)
             return

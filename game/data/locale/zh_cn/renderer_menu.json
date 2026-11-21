@@ -152,6 +152,7 @@
   "gem_all_line": "  • 【{name}】 ({rarity}) - 效果：{desc} | 价格：{price} GP",
   "relic_detail_title": "🎒 遗物：{name} (ID: {id}) ({rarity})",
   "effect_line": "效果：{desc}",
+  "card_lore_line": "背景：{lore}",
   "price_line": "售价：{price} 金币",
   "buff_detail_title": "✨ 战斗效果 (Buff)：{name} (ID: {id})",
   "desc_line": "描述：{desc}",

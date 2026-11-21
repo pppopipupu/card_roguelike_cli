@@ -278,6 +278,8 @@ class Card:
     countdown: int = 0
     desc: str = ""
     exhaust: bool = False
+    eternal: bool = False
+    lore: str = ""
     rarity: str = "common"
     fleeting: bool = False
     agile: bool = False

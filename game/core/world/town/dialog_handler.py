@@ -116,8 +116,24 @@ def _normal_specs(npc_id: str) -> List[Dict[str, Any]]:
         specs.append(_option("quest_hammer_return_fake", _npc_label("option_return_hammer_fake"), condition=lambda s: s.town_flags.get("quest_hammer_state", "unstarted") == "started" and "fake_hammer" in s.town_inventory))
         specs.append(_option("quest_hammer_clue", _npc_label("option_quest_hammer_clue"), condition=lambda s: s.town_flags.get("quest_hammer_state", "unstarted") == "started"))
     elif npc_id == "Market_Merchant":
+        from ....data.ultimate_prism_data import ULTIMATE_PRISM_CONFIG
+        from ...prism.market_service import can_buy_ultimate_prism, can_relock_ultimate_prism
         specs.append(_option("buy_shelf", _npc_label("option_buy_shelf")))
         specs.append(_option("lock_card", _npc_label("option_lock_card")))
+        specs.append(
+            _option(
+                "buy_ultimate_prism",
+                _text_label(get_locale_text("i18n_prism.market.opt_buy_prism", price=ULTIMATE_PRISM_CONFIG["unlock_price_gp"])),
+                condition=can_buy_ultimate_prism,
+            )
+        )
+        specs.append(
+            _option(
+                "relock_ultimate_prism",
+                _text_label(get_locale_text("i18n_prism.market.opt_relock_prism", price=ULTIMATE_PRISM_CONFIG["relock_price_gp"])),
+                condition=can_relock_ultimate_prism,
+            )
+        )
     elif npc_id == "Shopkeeper_Jack":
         specs.append(_option("buy_subclass", _npc_label("option_buy_subclass", get_locale_text("i18n_town.option_buy_subclass"))))
         specs.append(_option("sell_wishing_dew", _npc_label("option_sell_wishing_dew"), condition=lambda s: s.town_flags.get("quest_brew_state", "unstarted") == "started" and "wishing_dew" in s.town_inventory))
@@ -452,21 +468,50 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         res_msg = get_locale_text("global.card_buy_success", price=price, name=c_name)
         return res_msg + "\n\n" + rerender()
 
+    if action == "buy_ultimate_prism":
+        from ...prism.market_service import buy_ultimate_prism
+        ok, msg = buy_ultimate_prism(stats)
+        if ok:
+            save()
+        return msg + "\n\n" + rerender()
+
+    if action == "relock_ultimate_prism":
+        from ...prism.market_service import relock_ultimate_prism
+        ok, msg = relock_ultimate_prism(stats)
+        if ok:
+            save()
+        return msg + "\n\n" + rerender()
+
     if action == "lock_card_name":
         choice = target
         target_cid = None
         from ....entities.cards.base import _get_card_config
         card_config = _get_card_config()
         for cid, cfg in card_config.items():
-            if cfg.get("name") == choice:
+            if cfg.get("name") == choice or cid.lower() == str(choice).strip().lower():
                 target_cid = cid
                 break
         if not target_cid:
             return get_locale_text("global.card_lock_failed_not_found", name=choice)
+        from ....data.ultimate_prism_data import ULTIMATE_PRISM_CARD_ID, ULTIMATE_PRISM_CONFIG
+        from ...prism.market_service import (
+            is_ultimate_prism_departed,
+            is_ultimate_prism_unlocked,
+            relock_ultimate_prism,
+        )
+        if target_cid == ULTIMATE_PRISM_CARD_ID:
+            if not is_ultimate_prism_unlocked(stats):
+                return get_locale_text("i18n_prism.market.lock_need_buy", price=ULTIMATE_PRISM_CONFIG["unlock_price_gp"])
+            if is_ultimate_prism_departed(stats):
+                ok, msg = relock_ultimate_prism(stats)
+                if ok:
+                    stats.town_flags.pop("market_sub_menu", None)
+                    save()
+                return msg + "\n\n" + rerender()
         c_obj = ALL_CARDS[target_cid]
-        if getattr(c_obj, "rarity", "common") in ("legendary", "mythic", "artifact", "curse"):
+        if target_cid != ULTIMATE_PRISM_CARD_ID and getattr(c_obj, "rarity", "common") in ("legendary", "mythic", "artifact", "curse"):
             return get_locale_text("global.card_lock_failed_legendary")
-        if getattr(c_obj, "token", False) or getattr(c_obj, "event_only", False) or getattr(c_obj, "life_merchant_only", False) or getattr(c_obj, "coop_only", False):
+        if target_cid != ULTIMATE_PRISM_CARD_ID and (getattr(c_obj, "token", False) or getattr(c_obj, "event_only", False) or getattr(c_obj, "life_merchant_only", False) or getattr(c_obj, "coop_only", False)):
             return get_locale_text("global.card_lock_failed_special")
         if target_cid in getattr(stats, "locked_cards", []):
             return get_locale_text("i18n_town.card_lock_already", choice=choice)

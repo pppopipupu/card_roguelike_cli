@@ -503,7 +503,8 @@ class NeutralButtonMagicCard(Card):
                 p.hand.clear()
                 removed_names = []
                 remove_count = self._effect_param("up_remove_count", 2)
-                non_mythic_deck_cards = [c for c in p.deck if getattr(ALL_CARDS.get(ensure_card_state(c).id), "rarity", "common") != "mythic"]
+                from .base import is_card_eternal
+                non_mythic_deck_cards = [c for c in p.deck if getattr(ALL_CARDS.get(ensure_card_state(c).id), "rarity", "common") != "mythic" and not is_card_eternal(c)]
                 if len(non_mythic_deck_cards) >= remove_count:
                     to_remove = random.sample(non_mythic_deck_cards, remove_count)
                 else:

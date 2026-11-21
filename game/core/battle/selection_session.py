@@ -309,13 +309,18 @@ def _execute_pre_play_card(
         play_err = card.can_play_error(run, primary_target, engine)
         if play_err:
             return play_err
+        run.node_data["current_playing_card_hand_idx"] = hand_idx - 1
         play_evt = CardPlayEvent(run, card, primary_target, req_a, req_ba)
         engine.event_bus.dispatch(play_evt)
         if play_evt.cancelled:
+            run.node_data.pop("current_playing_card_hand_idx", None)
+            run.node_data.pop("prism_pending_refracts", None)
             return get_locale_text("i18n_battle_core.spacetime_distortion", name=card.name)
         req_a = play_evt.cost_a
         req_ba = play_evt.cost_ba
         if p.actions < req_a or p.bonus_actions < req_ba:
+            run.node_data.pop("current_playing_card_hand_idx", None)
+            run.node_data.pop("prism_pending_refracts", None)
             return get_locale_text(
                 "i18n_battle_core.insufficient_actions",
                 req_a=req_a,
@@ -370,13 +375,18 @@ def _suspend_pre_play(
 ) -> str:
     p = run.player
     engine = card_player.engine
+    run.node_data["current_playing_card_hand_idx"] = hand_idx - 1
     play_evt = CardPlayEvent(run, card, None, req_a, req_ba)
     engine.event_bus.dispatch(play_evt)
     if play_evt.cancelled:
+        run.node_data.pop("current_playing_card_hand_idx", None)
+        run.node_data.pop("prism_pending_refracts", None)
         return get_locale_text("i18n_battle_core.spacetime_distortion", name=card.name)
     req_a = play_evt.cost_a
     req_ba = play_evt.cost_ba
     if p.actions < req_a or p.bonus_actions < req_ba:
+        run.node_data.pop("current_playing_card_hand_idx", None)
+        run.node_data.pop("prism_pending_refracts", None)
         return get_locale_text(
             "i18n_battle_core.insufficient_actions",
             req_a=req_a,

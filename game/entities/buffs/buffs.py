@@ -56,9 +56,10 @@ class EchoFormBuff(BuffImpl):
                 if event.engine.is_battle_won(event.run):
                     break
                 extra_res = event.engine._execute_card_effect(event.run, event.card, event.target)
-                from ...models.events import CardPlayedEvent
+                from ...models.events import CardExtraTriggerEvent, CardPlayedEvent
                 played_evt = CardPlayedEvent(event.run, event.card, event.target, extra_res, is_extra=True)
                 event.engine.event_bus.dispatch(played_evt)
+                event.engine.event_bus.dispatch(CardExtraTriggerEvent(event.run, event.card, "echo"))
                 event.run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.echo_trigger_msg", res=played_evt.feedback))
 
     def on_card_played_legacy(self, run, card, target: str, engine) -> str:
@@ -410,6 +411,8 @@ class DemonContractBuff(BuffImpl):
                 if event.engine.is_battle_won(event.run):
                     break
                 extra_res = event.engine._execute_card_effect(event.run, event.card, event.target)
+                from ...models.events import CardExtraTriggerEvent
+                event.engine.event_bus.dispatch(CardExtraTriggerEvent(event.run, event.card, "echo"))
                 event.run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.demon_contract_trigger_msg", res=extra_res))
             if buff_state in event.run.player.buffs:
                 event.run.player.buffs.remove(buff_state)

@@ -220,6 +220,8 @@ def use_bag_item(engine, run, query: str) -> str:
         return get_locale_text("i18n_bleak_falls.items.use_dragonstone_in_bag")
     if item_id == "survey_chart":
         return get_locale_text("i18n_bleak_falls.items.use_survey_chart")
+    if item_id == "glass_shard":
+        return get_locale_text("i18n_prism.glass_shard.use_msg")
     if item_id == "nordic_mead":
         items.remove(item_id)
         before_hp = p.hp

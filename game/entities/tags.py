@@ -1,7 +1,7 @@
 import copy
 from typing import Optional
 from ..models.state import CardTag, Card, GameRun
-from ..models.events import CardPlayedEvent, CardExhaustEvent
+from ..models.events import CardPlayedEvent, CardExhaustEvent, CardExtraTriggerEvent
 from ..data.locale_data import get_locale_text
 
 class ReplayTag(CardTag):
@@ -13,6 +13,7 @@ class ReplayTag(CardTag):
                 extra_res = engine._execute_card_effect(run, card, target)
                 played_evt_rep = CardPlayedEvent(run, card, target, extra_res, is_extra=True)
                 engine.event_bus.dispatch(played_evt_rep)
+                engine.event_bus.dispatch(CardExtraTriggerEvent(run, card, "replay"))
                 run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.replay_trigger_msg", res=played_evt_rep.feedback))
         return None
 
@@ -104,4 +105,9 @@ class BladeTag(CardTag):
 
 class HandTag(CardTag):
     def __init__(self, name: str = "hand", value: int = 1):
+        super().__init__(name, value)
+
+
+class SentientTag(CardTag):
+    def __init__(self, name: str = "sentient", value: int = 1):
         super().__init__(name, value)

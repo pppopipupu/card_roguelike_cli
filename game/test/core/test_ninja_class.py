@@ -14,7 +14,7 @@ from game.data.starting_deck_config import CLASS_BASE_HP, DEFAULT_BASE_HP
 from game.entities import ALL_CARDS
 from game.entities.cards.base import get_card_color_icon
 from game.entities.events import ALL_EVENTS
-from game.models.state import CardState
+from game.models.state import BuffState, CardState
 from game.renderer.battle import render_battle
 from game.test.core.base import CorePlugin, floor_of, load_run, run_command
 
@@ -120,6 +120,68 @@ class TestNinjaClass(unittest.TestCase):
         returned = next((st for st in run.player.hand if st.id == "ninja_sand_defend_hand"), None)
         assert returned is not None
         self.assertEqual(returned.temp_cost_a, 0)
+
+    def test_power_jesus_doubles_positive_negative_and_neutral_buffs(self):
+        self.run_cmd("class ninja")
+        self.run_cmd("start confirm")
+        self.run_cmd("1")
+        _, run = self._enter_battle()
+        run.player.hand = [CardState(id="ninja_power_jesus")]
+        run.player.actions = 3
+        run.player.lex_kela = 2
+        run.player.buffs = [
+            BuffState(id="strength", name="力量", stacks=3),
+            BuffState(id="vulnerable", name="易伤", stacks=2),
+            BuffState(id="sand_wall", name="沙壁", stacks=5),
+        ]
+        self.plugin.save_manager.save_save(self.uid, run)
+
+        out = self.run_cmd("p 1")
+        self.assertNotIn("❌", out)
+        run = load_run(self.plugin, self.uid)
+        stacks = {b.id: b.stacks for b in run.player.buffs}
+        self.assertEqual(stacks["strength"], 6)
+        self.assertEqual(stacks["vulnerable"], 4)
+        self.assertEqual(stacks["sand_wall"], 10)
+        self.assertEqual(run.player.lex_kela, 4)
+
+    def test_dark_soul_cut_zero_damage_three_hits_and_uncapped_max_hp(self):
+        self.run_cmd("class ninja")
+        self.run_cmd("start confirm")
+        self.run_cmd("1")
+        _, run = self._enter_battle()
+        run.player.hand = [CardState(id="ninja_dark_soul_cut")]
+        run.player.actions = 3
+        run.player.lex_kela = 3
+        run.player.buffs = []
+        enemy = run.enemies[0]
+        enemy.hp = 100
+        enemy.max_hp = 100
+        enemy.shield = 0
+        enemy.buffs = []
+        self.plugin.save_manager.save_save(self.uid, run)
+
+        out = self.run_cmd("p 1 e1")
+        self.assertNotIn("❌", out)
+        self.assertEqual(out.count("造成 0 点挥砍伤害"), 3)
+        self.assertEqual(load_run(self.plugin, self.uid).enemies[0].hp, 100)
+
+        run = load_run(self.plugin, self.uid)
+        run.player.hand = [CardState(id="ninja_dark_soul_cut")]
+        run.player.actions = 3
+        run.player.lex_kela = 3
+        run.player.buffs = [BuffState(id="strength", name="力量", stacks=20)]
+        enemy = run.enemies[0]
+        enemy.hp = 50
+        enemy.max_hp = 50
+        enemy.shield = 0
+        enemy.buffs = []
+        pre_max = run.player.max_hp
+        self.plugin.save_manager.save_save(self.uid, run)
+
+        self.run_cmd("p 1 e1")
+        run = load_run(self.plugin, self.uid)
+        self.assertEqual(run.player.max_hp, pre_max + 50)
 
     def test_hamood_kill_all_blasts_teammates_and_enemies_in_coop(self):
         uid_a, uid_b = "hamood_a", "hamood_b"

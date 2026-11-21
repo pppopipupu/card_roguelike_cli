@@ -18,6 +18,7 @@ from .exhaustion_observer import ExhaustionObserver
 from .daily_blessing import DailyBlessingHandler
 from .anna_handler import AnnaCardHandler
 from .millika_handler import MillikaCardHandler
+from .ultimate_prism_handler import UltimatePrismHandler
 from ..inventory.deck_service import DeckService
 from ...models.stats_tracker import StatsTracker
 from ..text.events import RenderedText, TextDocument, TextNode, coerce_text_node, locale_text
@@ -46,6 +47,7 @@ class BattleEngine(BaseBattleEngine):
         self.exhaustion_observer = ExhaustionObserver(self.event_bus, self)
         self.anna_handler = AnnaCardHandler(self.event_bus, self)
         self.millika_handler = MillikaCardHandler(self.event_bus, self)
+        self.ultimate_prism_handler = UltimatePrismHandler(self.event_bus, self)
         from ...models.events import CardExhaustEvent, LexKelaChangedEvent
         from .ninja_runtime import handle_lex_kela_changed, handle_ninja_card_exhaust
         self.event_bus.subscribe(LexKelaChangedEvent, lambda evt: handle_lex_kela_changed(self, evt))

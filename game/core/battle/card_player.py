@@ -475,14 +475,19 @@ class CardPlayer(CardPlayerTurnMixin, CardPlayerRewardsMixin):
         if play_err:
             return play_err
 
+        run.node_data["current_playing_card_hand_idx"] = hand_idx - 1
         play_evt = CardPlayEvent(run, card, target, req_a, req_ba)
         self.engine.event_bus.dispatch(play_evt)
         if play_evt.cancelled:
+            run.node_data.pop("current_playing_card_hand_idx", None)
+            run.node_data.pop("prism_pending_refracts", None)
             return get_locale_text("i18n_battle_core.spacetime_distortion", name=card.name)
         req_a = play_evt.cost_a
         req_ba = play_evt.cost_ba
         target = play_evt.target
         if p.actions < req_a or p.bonus_actions < req_ba:
+            run.node_data.pop("current_playing_card_hand_idx", None)
+            run.node_data.pop("prism_pending_refracts", None)
             return get_locale_text("i18n_battle_core.insufficient_actions", req_a=req_a, req_ba=req_ba, actions=p.actions, bonus_actions=p.bonus_actions)
         chemical_bonus = 2 if "chemical_x" in p.relics else 0
         if card.cost_a == -1:

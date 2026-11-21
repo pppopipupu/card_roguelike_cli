@@ -291,6 +291,10 @@ class TownEngine:
             )
             if ghost_msg is not None:
                 return ghost_msg
+            from ...prism.card_talk import try_card_talk
+            card_res = try_card_talk(self.save_manager, self.engine, user_id, target_name, run=None, stats=stats, explicit=False)
+            if card_res is not None:
+                return card_res
             return get_locale_text("global.interact_not_found", target=target_name)
         return self._open_dialog(user_id, stats, target_id)
 

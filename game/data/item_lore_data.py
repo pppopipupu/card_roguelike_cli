@@ -76,5 +76,7 @@ ITEM_LORE = {
 }
 
 from .chireiden_data import CHIREIDEN_LORE
+from .ultimate_prism_data import GLASS_SHARD_LORE_CONFIG
 
 ITEM_LORE.update(CHIREIDEN_LORE)
+ITEM_LORE.update(GLASS_SHARD_LORE_CONFIG)

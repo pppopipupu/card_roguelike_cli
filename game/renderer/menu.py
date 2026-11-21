@@ -4,7 +4,7 @@ from ..models.state import GameRun, UserStats
 from ..entities.cards.base import get_card_color_icon
 from ..cards import ALL_CARDS
 from ..data.locale_data import t
-from .formatters import format_large_int
+from .formatters import format_large_int, has_blind_buff, obfuscate_blind_card_name
 
 def render_menu(stats: Optional[UserStats] = None) -> str:
     subclass_str = t("renderer_menu.none")
@@ -372,7 +372,8 @@ def render_deck(run: GameRun) -> str:
             }
             rname = rarity_map.get(getattr(card, "rarity", "common"), t("renderer_menu.rarity_common"))
             cost_str = get_card_cost_str(card)
-            lines.append(t("renderer_menu.deck_line", idx=idx, color=color_type, name=card.name, rarity=rname, cost=cost_str, count=count, desc=card.desc))
+            display_name = obfuscate_blind_card_name(card.name, f"deck:{idx}") if (run.node_type == "battle" and has_blind_buff(run.player)) else card.name
+            lines.append(t("renderer_menu.deck_line", idx=idx, color=color_type, name=display_name, rarity=rname, cost=cost_str, count=count, desc=card.desc))
             idx += 1
     lines.append(t("renderer_menu.separator"))
     return "\n".join(lines)

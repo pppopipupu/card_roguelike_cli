@@ -114,11 +114,20 @@ class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解�
             target_cid = target_cid[:-1]
 
         c_obj = ALL_CARDS[target_cid]
+        from .....data.ultimate_prism_data import ULTIMATE_PRISM_CARD_ID, ULTIMATE_PRISM_CONFIG
+        from ....prism.market_service import is_ultimate_prism_departed, is_ultimate_prism_unlocked
+        if target_cid == ULTIMATE_PRISM_CARD_ID:
+            if not is_ultimate_prism_unlocked(stats):
+                yield get_locale_text("i18n_prism.market.lock_need_buy", price=ULTIMATE_PRISM_CONFIG["unlock_price_gp"])
+                return
+            if is_ultimate_prism_departed(stats):
+                yield get_locale_text("i18n_prism.market.lock_departed_need_market", price=ULTIMATE_PRISM_CONFIG["relock_price_gp"])
+                return
         r = getattr(c_obj, "rarity", "common")
-        if r in ("legendary", "mythic", "artifact", "curse"):
+        if target_cid != ULTIMATE_PRISM_CARD_ID and r in ("legendary", "mythic", "artifact", "curse"):
             yield get_locale_text("i18n_cli_general_a.lock.lock_rarity_denied", rarity=rarity_map.get(r, r))
             return
-        if getattr(c_obj, "token", False) or getattr(c_obj, "event_only", False) or getattr(c_obj, "life_merchant_only", False) or getattr(c_obj, "coop_only", False):
+        if target_cid != ULTIMATE_PRISM_CARD_ID and (getattr(c_obj, "token", False) or getattr(c_obj, "event_only", False) or getattr(c_obj, "life_merchant_only", False) or getattr(c_obj, "coop_only", False)):
             yield get_locale_text("i18n_cli_general_a.lock.lock_token_denied", name=c_obj.name)
             return
 

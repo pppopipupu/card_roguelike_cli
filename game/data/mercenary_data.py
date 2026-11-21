@@ -70,6 +70,26 @@ MERCENARY_CONFIG = {
         "chaotic_targeting": True,
         "starting_deck": [],
     },
+    "ultimate_prism": {
+        "id": "ultimate_prism",
+        "name": "终极棱镜",
+        "aliases": ["ultimate_prism", "prism", "终极棱镜", "棱镜"],
+        "hire_cost_gp": 0,
+        "hp": 120,
+        "class_name": "自律神器",
+        "default_timing": "after",
+        "starting_deck": [
+            "prism_refraction_beam",
+            "prism_refraction_beam",
+            "prism_refraction_beam",
+            "prism_mirror_ward",
+            "prism_mirror_ward",
+            "prism_mirror_ward",
+            "prism_resonant_facet",
+            "prism_resonant_facet",
+            "echo_form",
+        ],
+    },
 }
 
 HARRY_SKILL_SCENARIOS = (

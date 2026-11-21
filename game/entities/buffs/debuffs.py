@@ -407,6 +407,13 @@ class TremorBuff(BuffImpl):
             if buff_state.stacks <= 0 and buff_state in entity.buffs:
                 entity.buffs.remove(buff_state)
 
+class BlindBuff(BuffImpl):
+    def on_turn_end(self, event, buff_state, entity):
+        if entity == event.run.player and event.is_player:
+            buff_state.stacks -= 1
+            if buff_state.stacks <= 0 and buff_state in entity.buffs:
+                entity.buffs.remove(buff_state)
+
 for name, obj in list(globals().items()):
     if isinstance(obj, type) and issubclass(obj, BuffImpl) and obj is not BuffImpl:
         if not getattr(obj, "auto_register", True):

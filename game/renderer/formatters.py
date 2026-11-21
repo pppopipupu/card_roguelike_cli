@@ -1,4 +1,5 @@
 from functools import lru_cache
+import hashlib
 import math
 import re
 from typing import Optional
@@ -21,6 +22,30 @@ def format_buff_stacks(buff) -> str:
 
 def format_buff_list(buffs, sep: str = " | ") -> str:
     return sep.join(format_buff_stacks(b) for b in buffs)
+
+
+def has_blind_buff(player) -> bool:
+    if player is None:
+        return False
+    return any(getattr(b, "id", "") == "blind" and getattr(b, "stacks", 0) > 0 for b in (getattr(player, "buffs", None) or []))
+
+
+def obfuscate_blind_card_name(name: str, seed_key: str = "") -> str:
+    glyphs = ("?", "░", "▒", "▓", "◈", "◇", "※", "×")
+    raw = str(name or "")
+    if not raw:
+        return "???"
+    digest = hashlib.sha256(f"{seed_key}:{raw}".encode("utf-8")).digest()
+    out = []
+    for idx, ch in enumerate(raw):
+        if ch.isspace():
+            out.append(ch)
+        else:
+            out.append(glyphs[digest[idx % len(digest)] % len(glyphs)])
+    obfuscated = "".join(out)
+    if obfuscated == raw:
+        return "?" * max(2, len(raw))
+    return obfuscated
 
 
 def format_persistent_buff_bar(player) -> str:

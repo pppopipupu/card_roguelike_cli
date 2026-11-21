@@ -48,19 +48,18 @@ class NinjaCountlessVampireDogCard(NinjaCard):
 @register_card("ninja_dark_soul_cut")
 class NinjaDarkSoulCutCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
-        dmg = int(getattr(self, "base_dmg", 8) or 8)
+        dmg = int(getattr(self, "base_dmg", 0) or 0)
         enemy, ref = resolve_enemy_obj(run, target)
         ok, _ = consume_ninjutsu_lex(engine, run, run.player, 3, self.id)
-        hits = 3 if ok else 1
+        hits = 3 if ok else 0
         was_alive = enemy is not None and enemy.hp > 0
         pre_hp = int(enemy.hp) if enemy is not None else 0
         if ref:
             for _ in range(hits):
                 engine.combat_resolver.damage_target(run, ref, dmg, source="p0", damage_type="slashing", card=self, is_attack=True)
         if ok and was_alive and enemy is not None and enemy.hp <= 0 and pre_hp > 0:
-            gain = min(pre_hp, 30)
-            run.player.max_hp += gain
-            run.player.hp += gain
+            run.player.max_hp += pre_hp
+            run.player.hp += pre_hp
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -187,7 +186,7 @@ class NinjaPowerJesusCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
         p = run.player
         for b in p.buffs:
-            if not is_debuff(b.id) and b.stacks > 0:
+            if b.stacks > 0:
                 b.stacks *= 2
         cur = int(getattr(p, "lex_kela", 0) or 0)
         if cur > 0:

@@ -47,9 +47,11 @@ class SacrificeMindOption(EventOption, action="sacrifice_mind", text=get_locale_
         cfg = EVENT_CONFIG.get("void_library", {})
         p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("sacrifice_hp_cost", 8))
         removed_names = []
+        from ..cards.base import is_card_eternal
+        removable = [c for c in p.deck if not is_card_eternal(c)]
         sacrifice_count = cfg.get("sacrifice_card_count", 2)
-        if len(p.deck) > cfg.get("sacrifice_deck_threshold", 2):
-            removed = random.sample(p.deck, sacrifice_count)
+        if len(removable) > cfg.get("sacrifice_deck_threshold", 2):
+            removed = random.sample(removable, sacrifice_count)
             for r in removed:
                 p.deck.remove(r)
                 from ...models.state import ensure_card_state
@@ -57,7 +59,7 @@ class SacrificeMindOption(EventOption, action="sacrifice_mind", text=get_locale_
                 if base_cid in ALL_CARDS:
                     removed_names.append(ALL_CARDS[base_cid].name)
         else:
-            for r in list(p.deck):
+            for r in list(removable):
                 p.deck.remove(r)
                 from ...models.state import ensure_card_state
                 base_cid = ensure_card_state(r).id

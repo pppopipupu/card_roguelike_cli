@@ -10,6 +10,16 @@ def is_debuff(buff_id: str) -> bool:
     cfg = BUFF_CONFIG.get(clean_id, {})
     return cfg.get("is_debuff", False)
 
+def is_positive_buff(buff_id: str) -> bool:
+    clean_id = buff_id[:-1] if buff_id.endswith("+") else buff_id
+    if is_debuff(clean_id):
+        return False
+    if clean_id in ("stun", "weak", "electrified", "poison", "agony", "bleed", "void_weakness", "blind"):
+        return False
+    if "vulnerable" in clean_id:
+        return False
+    return True
+
 class BuffImpl:
     auto_register = True
     def __init__(self, stacks: int):

@@ -48,6 +48,11 @@ class CardPlayedCountEvent(GameEvent):
     run: GameRun
     count: int
 
+class CardExtraTriggerEvent(GameEvent):
+    run: GameRun
+    card: Card
+    trigger_type: str
+
 class DamageCalculateEvent(GameEvent):
     run: GameRun
     card: Optional[Card]

@@ -541,8 +541,10 @@ class CafeDialogMixin:
                 return get_locale_text("i18n_map_cafe.cafe_crimson_drain_reward", loss=loss)
             elif idx == 2:
                 removed_name = get_locale_text("i18n_map_cafe.cafe_none")
-                if p.deck:
-                    cid = random.choice(p.deck)
+                from ....entities.cards.base import is_card_eternal
+                removable = [c for c in p.deck if not is_card_eternal(c)]
+                if removable:
+                    cid = random.choice(removable)
                     from ....models.state import ensure_card_state
                     card_obj = ALL_CARDS.get(ensure_card_state(cid).id)
                     removed_name = card_obj.name if card_obj else ensure_card_state(cid).id

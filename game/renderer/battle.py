@@ -7,7 +7,16 @@ from ..data.minion_data import MINION_CONFIG
 from ..data.locale_data import t
 from .menu import get_card_cost_str
 from .card_preview import render_card_description, replace_structured_number
-from .formatters import format_buff_detail, format_buff_list, format_npcs_and_players_line, format_relic_bar, format_relic_name_with_counter, get_effective_max_hp
+from .formatters import (
+    format_buff_detail,
+    format_buff_list,
+    format_npcs_and_players_line,
+    format_relic_bar,
+    format_relic_name_with_counter,
+    get_effective_max_hp,
+    has_blind_buff,
+    obfuscate_blind_card_name,
+)
 from .world_grid import get_run_coord_prefix
 
 
@@ -218,6 +227,8 @@ def render_battle(run: GameRun) -> str:
                     rname = f"{rname} | {t('renderer_menu.token_label')}"
                 c_name = card.name
                 c_desc = render_card_description(card, run)
+                if has_blind_buff(p):
+                    c_name = obfuscate_blind_card_name(c_name, f"{turn_count}:{valid_idx}")
                 if run.node_data.get("is_void_corrupted"):
                     c_name = void_corrupt_text(c_name)
                     c_desc = void_corrupt_text(c_desc)
@@ -396,9 +407,12 @@ def render_draw_pile(run: GameRun) -> str:
     if not p.draw_pile:
         lines.append(t("renderer.battle.draw_pile_empty"))
     else:
+        blinded = has_blind_buff(p)
         counts = {}
         for cid in p.draw_pile:
-            name = ALL_CARDS[cid].name if cid in ALL_CARDS else cid
+            name = ALL_CARDS[cid].name if cid in ALL_CARDS else str(cid)
+            if blinded:
+                name = obfuscate_blind_card_name(name, "draw")
             counts[name] = counts.get(name, 0) + 1
         sorted_names = sorted(counts.keys())
         for idx, name in enumerate(sorted_names, 1):
@@ -417,9 +431,12 @@ def render_discard_pile(run: GameRun) -> str:
     if not p.discard_pile:
         lines.append(t("renderer.battle.discard_pile_empty"))
     else:
+        blinded = has_blind_buff(p)
         counts = {}
         for cid in p.discard_pile:
-            name = ALL_CARDS[cid].name if cid in ALL_CARDS else cid
+            name = ALL_CARDS[cid].name if cid in ALL_CARDS else str(cid)
+            if blinded:
+                name = obfuscate_blind_card_name(name, "discard")
             counts[name] = counts.get(name, 0) + 1
         sorted_names = sorted(counts.keys())
         for idx, name in enumerate(sorted_names, 1):
@@ -438,9 +455,12 @@ def render_exhaust_pile(run: GameRun) -> str:
     if not p.exhaust_pile:
         lines.append(t("renderer.battle.exhaust_pile_empty"))
     else:
+        blinded = has_blind_buff(p)
         counts = {}
         for cid in p.exhaust_pile:
-            name = ALL_CARDS[cid].name if cid in ALL_CARDS else cid
+            name = ALL_CARDS[cid].name if cid in ALL_CARDS else str(cid)
+            if blinded:
+                name = obfuscate_blind_card_name(name, "exhaust")
             counts[name] = counts.get(name, 0) + 1
         sorted_names = sorted(counts.keys())
         for idx, name in enumerate(sorted_names, 1):

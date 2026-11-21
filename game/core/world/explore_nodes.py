@@ -249,6 +249,9 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
                 return get_locale_text("err_invalid_option_idx")
             cid = sorted_items[option_idx - 1][0]
             removed_name = ALL_CARDS[cid].name
+            from ...entities.cards.base import is_card_eternal
+            if is_card_eternal(cid):
+                return get_locale_text("i18n_prism.eternal.cannot_remove", name=removed_name)
             p.deck.remove(cid)
             if getattr(cid, "id", "") == "ninja_sarira_revive" and "sarira" not in p.relics:
                 from ..inventory.relic_service import grant_relic

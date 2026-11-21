@@ -279,6 +279,9 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
             lines.append(get_locale_text("renderer_menu.card_title", name=cname, id=cid, type_ch=ctype_ch, rarity=rname_rarity))
             lines.append(get_locale_text("renderer_menu.cost_line", cost=cost_str))
             lines.append(get_locale_text("renderer_menu.effect_line", desc=desc))
+            card_lore = getattr(card_obj, "lore", "") if card_obj else ""
+            if card_lore and is_card_detail_revealed(cid, stats):
+                lines.append(get_locale_text("renderer_menu.card_lore_line", lore=card_lore))
             lines.append("")
             
             from ..data.card_upgrade_data import CARD_UPGRADE_CONFIG

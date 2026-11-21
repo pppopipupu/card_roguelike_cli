@@ -377,6 +377,9 @@ class ExploreEngine:
         c_state = sorted_items[deck_idx - 1][0]
         card_obj = ALL_CARDS.get(c_state)
         removed_name = card_obj.name if card_obj else get_locale_text("i18n_battle_core.unknown_card")
+        from ...entities.cards.base import is_card_eternal
+        if is_card_eternal(c_state):
+            return get_locale_text("i18n_prism.eternal.cannot_remove", name=removed_name)
         p.deck.remove(c_state)
         
         source = run.node_data.get("remove_source", "shop")

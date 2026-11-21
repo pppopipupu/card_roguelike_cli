@@ -9,6 +9,13 @@ class MercTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
             return
         query = " ".join(parts[1:]).strip() if len(parts) > 1 else ""
         if query:
+            from ....prism.card_talk import strip_card_talk_prefix, try_card_talk
+            _, has_card_prefix = strip_card_talk_prefix(query)
+            if has_card_prefix:
+                card_res = try_card_talk(router.save_manager, router.engine, user_id, query, run=run, explicit=True)
+                if card_res is not None:
+                    yield card_res
+                    return
             player_res = router.world_social.try_talk(user_id, query, run=run)
             if player_res is not None:
                 yield player_res
@@ -30,6 +37,11 @@ class MercTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
         merc_uid, err = find_mercenary_uid(run, query, user_id)
         if merc_uid is None:
             if query:
+                from ....prism.card_talk import try_card_talk
+                card_res = try_card_talk(router.save_manager, router.engine, user_id, query, run=run, explicit=False)
+                if card_res is not None:
+                    yield card_res
+                    return
                 if not list_owned_mercenaries(run, user_id):
                     yield get_locale_text("i18n_room_interact.dialog.talk_not_found", target=query)
                     return

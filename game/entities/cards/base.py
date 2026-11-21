@@ -11,6 +11,7 @@ from . import life_merchant_cards
 from . import mercenary_cards
 from . import map_cards
 from . import chireiden_cards
+from . import ultimate_prism
 import copy
 import re
 
@@ -283,6 +284,7 @@ def _get_card_config():
     from ...data.map_card_data import MAP_CARD_CONFIG
     from ...data.chireiden_data import CHIREIDEN_CARD_CONFIG
     from ...data.ninja_card_data import NINJA_CARD_CONFIG
+    from ...data.ultimate_prism_data import ULTIMATE_PRISM_CARD_CONFIG
     cfg = {}
     cfg.update(NEUTRAL_CARD_CONFIG)
     cfg.update(WIZARD_CARD_CONFIG)
@@ -292,6 +294,7 @@ def _get_card_config():
     cfg.update(MAP_CARD_CONFIG)
     cfg.update(CHIREIDEN_CARD_CONFIG)
     cfg.update(NINJA_CARD_CONFIG)
+    cfg.update(ULTIMATE_PRISM_CARD_CONFIG)
     return cfg
 
 class CardRegistryDict(dict):
@@ -349,6 +352,10 @@ class CardRegistryDict(dict):
             inst.target_type = cfg.get("target_type") or ("self" if cfg.get("id", base_id) in SELF_TARGET_SPELLS else "enemy")
             inst.rarity = rarity
             inst.exhaust = exhaust
+            inst.eternal = bool(cfg.get("eternal", False))
+            lore_key = cfg.get("lore_key", "")
+            inst.lore = get_locale_text(lore_key) if lore_key else str(cfg.get("lore", "") or "")
+            inst.cant_upgrade = bool(cfg.get("cant_upgrade", False))
             inst.fleeting = fleeting
             inst.agile = agile
             inst.retain = retain
@@ -367,6 +374,9 @@ class CardRegistryDict(dict):
             inst.science = bool(cfg.get("science", False))
             inst.ninja_tags = tuple(cfg.get("ninja_tags", ()))
             attach_ninja_card_tags(inst)
+            if cfg.get("sentient", False) or rarity == "artifact":
+                from ...entities.tags import SentientTag
+                inst.add_tag(SentientTag())
             fragile_val = cfg.get("fragile", 0)
             if fragile_val > 0:
                 from ...entities.tags import FragileTag
@@ -661,6 +671,10 @@ for cid, cfg in _get_card_config().items():
     inst.target_type = cfg.get("target_type") or ("self" if cfg.get("id", cid) in SELF_TARGET_SPELLS else "enemy")
     inst.rarity = rarity
     inst.exhaust = exhaust
+    inst.eternal = bool(cfg.get("eternal", False))
+    lore_key = cfg.get("lore_key", "")
+    inst.lore = get_locale_text(lore_key) if lore_key else str(cfg.get("lore", "") or "")
+    inst.cant_upgrade = bool(cfg.get("cant_upgrade", False))
     inst.fleeting = fleeting
     inst.exhaust_total = 1 if exhaust else 0
     inst.exhaust_remaining = inst.exhaust_total
@@ -684,6 +698,9 @@ for cid, cfg in _get_card_config().items():
     inst.science = bool(cfg.get("science", False))
     inst.ninja_tags = tuple(cfg.get("ninja_tags", ()))
     attach_ninja_card_tags(inst)
+    if cfg.get("sentient", False) or rarity == "artifact":
+        from ...entities.tags import SentientTag
+        inst.add_tag(SentientTag())
     fragile_val = cfg.get("fragile", 0)
     if fragile_val > 0:
         from ...entities.tags import FragileTag
@@ -716,3 +733,21 @@ def get_card_color_icon(card_or_color) -> str:
     if color == "mercenary":
         return "🟣"
     return "⚪"
+
+
+def is_card_eternal(card_or_state) -> bool:
+    if card_or_state is None:
+        return False
+    if hasattr(card_or_state, "eternal"):
+        return bool(getattr(card_or_state, "eternal", False))
+    card_obj = ALL_CARDS.get(card_or_state)
+    return bool(getattr(card_obj, "eternal", False)) if card_obj is not None else False
+
+
+def get_card_lore(card_or_cid) -> str:
+    if card_or_cid is None:
+        return ""
+    if hasattr(card_or_cid, "lore"):
+        return str(getattr(card_or_cid, "lore", "") or "")
+    card_obj = ALL_CARDS.get(card_or_cid)
+    return str(getattr(card_obj, "lore", "") or "") if card_obj is not None else ""

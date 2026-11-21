@@ -718,8 +718,11 @@ def handle_merc_dialog_input(run: GameRun, owner_uid: str, raw_text: str) -> str
     entry["last_msg"] = ""
     if state == "main":
         if idx == 1:
-            if getattr(merc, "mercenary_id", "") == "utsuho_reiuji":
+            merc_id = getattr(merc, "mercenary_id", "")
+            if merc_id == "utsuho_reiuji":
                 chats = get_locale_raw("i18n_chireiden.utsuho_ally.chat_lines", [])
+            elif merc_id == "ultimate_prism":
+                chats = get_locale_raw("i18n_prism.mercenary.chats", [])
             else:
                 chats = get_locale_raw("i18n_mercenary.harry_chats", [])
             if isinstance(chats, list) and chats:
@@ -750,6 +753,12 @@ def handle_merc_dialog_input(run: GameRun, owner_uid: str, raw_text: str) -> str
         if idx < 1 or idx > len(grouped):
             return get_locale_text("i18n_mercenary.err_invalid_card_index", count=len(grouped))
         chosen_p, _ = grouped[idx - 1]
+        from ...entities.cards.base import is_card_eternal
+        if is_card_eternal(chosen_p):
+            cname = ALL_CARDS[chosen_p].name if chosen_p in ALL_CARDS else chosen_p.id
+            entry["last_msg"] = get_locale_text("i18n_prism.eternal.cannot_swap", name=cname)
+            entry["state"] = "main"
+            return render_merc_dialog(run, owner_uid)
         entry["player_card"] = {
             "id": chosen_p.id,
             "upgraded": chosen_p.upgraded,

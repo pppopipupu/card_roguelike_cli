@@ -20,6 +20,13 @@ class CafeTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
             yield get_locale_text("i18n_cli_commands.cafe_talk_missing_target")
             return
         target = " ".join(parts[1:])
+        from ....prism.card_talk import strip_card_talk_prefix, try_card_talk
+        _, has_card_prefix = strip_card_talk_prefix(target)
+        if has_card_prefix:
+            card_res = try_card_talk(router.save_manager, router.engine, user_id, target, run=run, explicit=True)
+            if card_res is not None:
+                yield card_res
+                return
         player_res = router.world_social.try_talk(user_id, target, run=run)
         if player_res is not None:
             yield player_res
@@ -33,6 +40,11 @@ class CafeTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
             router.save_manager.save_save(user_id, run)
             yield res
             return
+        if not cafe._find_npc(run, target):
+            card_res = try_card_talk(router.save_manager, router.engine, user_id, target, run=run, explicit=False)
+            if card_res is not None:
+                yield card_res
+                return
         yield cafe.talk_npc(run, target)
 
 class CafeLeaveCommand(CommandHandler, names=["离开", "leave", "exit", "quit"], allowed_states=["cafe"], help_key="cafe_leave"):

@@ -782,6 +782,12 @@ BUFF_CONFIG = {
         "is_debuff": False,
         "dodge_chance": 0.70,
         "desc": "隐匿身形：战斗中有 70% 概率闪避敌方一次攻击，持续回合结束时衰减 1 层；在地图上可进入普通敌对 NPC 格子而不开战，持续至下一次战斗或与 NPC、物体交互，真实视觉生物除外"
+    },
+    "blind": {
+        "name": "盲目",
+        "type": "debuff",
+        "is_debuff": True,
+        "desc": "所有卡牌的名称被混淆，持续回合结束时衰减 1 层"
     }
 }
 

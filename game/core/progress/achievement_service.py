@@ -183,6 +183,10 @@ def _check_chireiden_overcharge_master(stats) -> bool:
     return _stat_int(stats, "max_fusion_overcharge") >= 8
 
 
+def _check_ultimate_prism_awakened(stats) -> bool:
+    return _stat_int(stats, "ultimate_prism_played") >= 1
+
+
 ACHIEVEMENT_EVALUATORS = {
     "first_step": _check_first_step,
     "battle_rookie": _check_battle_rookie,
@@ -221,6 +225,7 @@ ACHIEVEMENT_EVALUATORS = {
     "chireiden_utsuho_ally": _check_chireiden_utsuho_ally,
     "chireiden_penning_sealer": _check_chireiden_penning_sealer,
     "chireiden_overcharge_master": _check_chireiden_overcharge_master,
+    "ultimate_prism_awakened": _check_ultimate_prism_awakened,
 }
 
 

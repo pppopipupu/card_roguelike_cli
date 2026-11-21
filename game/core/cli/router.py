@@ -365,6 +365,20 @@ class CLIRouter:
             return
         if run is None:
             stats = self.save_manager.load_stats(user_id)
+            from ..prism.card_talk import handle_card_talk_input, is_in_card_talk_dialog, render_card_talk_dialog
+            if is_in_card_talk_dialog(None, stats, user_id):
+                sub_t = parts[0].lower()
+                if sub_t in ("0", "离开", "leave", "exit", "quit", "取消", "cancel") or parts[0].lstrip("-").isdigit():
+                    yield handle_card_talk_input(self.save_manager, self.engine, None, stats, user_id, " ".join(parts))
+                    return
+                if sub_t in ("status", "r", "状态"):
+                    yield format_output_numbers(render_card_talk_dialog(None, stats, user_id))
+                    return
+                if sub_t in ("选择", "c") and len(parts) == 2:
+                    yield handle_card_talk_input(self.save_manager, self.engine, None, stats, user_id, parts[1])
+                    return
+                from ..prism.card_talk import close_card_talk_dialog
+                close_card_talk_dialog(self.save_manager, None, stats, user_id)
             if stats.in_town:
                 pvp_res = self._try_pvp_invite_input(user_id, parts, stats=stats, curr_state=curr_state)
                 if pvp_res is not None:
@@ -415,7 +429,25 @@ class CLIRouter:
             return
 
         from ..party.mercenary import handle_merc_dialog_input, is_in_merc_dialog, render_merc_dialog
+        from ..prism.card_talk import close_card_talk_dialog, handle_card_talk_input, is_in_card_talk_dialog, render_card_talk_dialog
         sub = parts[0].lower()
+        if is_in_card_talk_dialog(run, None, user_id):
+            stats_ct = self.save_manager.load_stats(user_id)
+            if sub in ("0", "离开", "leave", "exit", "quit", "取消", "cancel") or parts[0].lstrip("-").isdigit():
+                yield handle_card_talk_input(self.save_manager, self.engine, run, stats_ct, user_id, " ".join(parts))
+                return
+            if sub in ("status", "r", "状态"):
+                yield format_output_numbers(render_card_talk_dialog(run, stats_ct, user_id))
+                return
+            if sub in ("选择", "c") and len(parts) == 2:
+                yield handle_card_talk_input(self.save_manager, self.engine, run, stats_ct, user_id, parts[1])
+                return
+            dialog_handler, _ = CommandHandler.resolve(sub, curr_state)
+            if dialog_handler and sub not in ("对话", "交谈", "talk", "talk_to", "interact", "inter", "ctalk", "cardtalk", "卡牌对话"):
+                res_list = list(dialog_handler.execute(self, user_id, parts))
+                yield "\n".join(res_list)
+                return
+            close_card_talk_dialog(self.save_manager, run, stats_ct, user_id)
         if is_in_merc_dialog(run, user_id):
             if sub in ("离开", "leave", "exit", "quit", "取消", "cancel") or parts[0].lstrip("-").isdigit():
                 res = handle_merc_dialog_input(run, user_id, " ".join(parts))

@@ -52,11 +52,13 @@ class NinjaSealRemoveOption(EventOption, action="ninja_seal_remove", text=get_lo
     def _run_effect(self, run, engine) -> str:
         p = run.player
         p.hp = max(1, p.hp - 8)
+        from ..cards.base import is_card_eternal
         removed = 0
         for _ in range(2):
-            if len(p.deck) <= 4:
+            removable = [c for c in p.deck if not is_card_eternal(c)]
+            if len(p.deck) <= 4 or not removable:
                 break
-            c = random.choice(p.deck)
+            c = random.choice(removable)
             p.deck.remove(c)
             removed += 1
         engine.enter_next_stage(run)
@@ -90,8 +92,10 @@ class NinjaDrinkSipOption(EventOption, action="ninja_drink_sip", text=get_locale
         p.hp = min(p.max_hp, p.hp + 12)
         heal = p.hp - before
         extra = ""
-        if len(p.deck) > 5 and random.random() < 0.45:
-            c = random.choice(p.deck)
+        from ..cards.base import is_card_eternal
+        removable = [c for c in p.deck if not is_card_eternal(c)]
+        if len(p.deck) > 5 and removable and random.random() < 0.45:
+            c = random.choice(removable)
             name = ALL_CARDS[c].name
             p.deck.remove(c)
             extra = get_locale_text("i18n_ninja_events.drink_removed_suffix", name=name)

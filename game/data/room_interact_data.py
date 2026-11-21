@@ -671,9 +671,11 @@ from .chireiden_data import (
     CHIREIDEN_PROPS,
 )
 from .tutorial_data import TUTORIAL_NPCS
+from .ultimate_prism_data import GLASS_SHARD_ITEM_CONFIG
 
 ROGUE_ITEMS.update(CHAOS_ITEMS)
 ROGUE_ITEMS.update(CHIREIDEN_ITEMS)
+ROGUE_ITEMS.update(GLASS_SHARD_ITEM_CONFIG)
 ROOM_GROUND_ITEM_POOL.extend(CHAOS_GROUND_ITEMS)
 ROOM_PROPS.update(CHAOS_PROPS)
 ROOM_PROPS.update(CHIREIDEN_PROPS)

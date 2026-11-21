@@ -238,6 +238,12 @@ ACHIEVEMENTS_CONFIG = {
         "desc": "在单场战斗中将己方【聚变超载】层数叠加至至少 8 层。",
         "gp_reward": 2200,
     },
+    "ultimate_prism_awakened": {
+        "name": "万象折射的意志",
+        "rarity": "legendary",
+        "desc": "在战斗中首次成功打出神器卡牌【终极棱镜】，唤醒其独立意志并开放雇佣兵同行邀约。",
+        "gp_reward": 3000,
+    },
 }
 
 ACHIEVEMENT_ORDER = list(ACHIEVEMENTS_CONFIG.keys())
