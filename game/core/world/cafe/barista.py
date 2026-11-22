@@ -59,12 +59,17 @@ def execute_barista_dialog_choice(cafe_engine, run, idx: int) -> str:
         p.hp = min(p.max_hp, p.hp + 6)
         return get_locale_text("i18n_room_interact.cafe.americano_ok", sp=gained, heal=p.hp - before)
     if idx == 3:
+        shared_cafe = cafe_engine._shared_cafe(run)
+        if shared_cafe.get("macchiato_used"):
+            return get_locale_text("i18n_room_interact.cafe.macchiato_already")
         hpc = cfg["abyss_macchiato_hp_cost"]
         if p.hp <= hpc:
             return get_locale_text("i18n_room_interact.dialog.err_hp")
+        shared_cafe["macchiato_used"] = True
         p.hp -= hpc
         restore_sp(p, int(getattr(p, "max_sp", 10) or 10))
         p.gold += 25
+        cafe_engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_room_interact.cafe.macchiato_ok", hp=hpc, gold=25)
     if idx == 4:
         cost = cfg["chamomile_tea_cost"]

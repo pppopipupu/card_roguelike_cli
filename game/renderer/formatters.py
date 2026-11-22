@@ -15,6 +15,8 @@ def format_buff_stacks(buff) -> str:
     stacks2 = getattr(buff, "stacks2", None)
     if stacks2 is not None and stacks2 > 0:
         return f"{buff.name}({format_large_int(buff.stacks)},{format_large_int(stacks2)})"
+    if buff.stacks < 0:
+        return f"{buff.name} {format_large_int(buff.stacks)}"
     if buff.stacks > 1:
         return f"{buff.name} x{format_large_int(buff.stacks)}"
     return buff.name

@@ -40,7 +40,7 @@ class SecretRiftShadowLordTemplate(EnemyTemplate):
             return ""
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")
         if intent.type == "rift_slash":
-            dmg = intent.val + strength
+            dmg = intent.val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="slashing")
             engine._add_buff_to(run.player, "void_weakness", get_locale_text("i18n_enemy_boss.buff_void_weakness"), get_locale_text("i18n_enemy_boss.buff_void_weakness_desc"), 1)
             logs.append(get_locale_text("i18n_grid_map.secret_boss.rift_slash_log", enemy_name=enemy.name, dmg=dmg))
@@ -48,7 +48,7 @@ class SecretRiftShadowLordTemplate(EnemyTemplate):
             engine._gain_shield(run, f"e{run.enemies.index(enemy)+1}" if enemy in run.enemies else "e1", intent.val)
             logs.append(get_locale_text("i18n_grid_map.secret_boss.shadow_veil_log", enemy_name=enemy.name, shield=intent.val))
         elif intent.type == "mind_flay":
-            dmg = intent.val + strength
+            dmg = intent.val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="psychic")
             logs.append(get_locale_text("i18n_grid_map.secret_boss.mind_flay_log", enemy_name=enemy.name, dmg=dmg))
         return "\n".join(logs)
@@ -77,7 +77,7 @@ class SecretAstralInquisitorTemplate(EnemyTemplate):
             return ""
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")
         if intent.type == "astral_verdict":
-            dmg = intent.val + strength
+            dmg = intent.val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="psychic")
             logs.append(get_locale_text("i18n_grid_map.secret_boss.astral_verdict_log", enemy_name=enemy.name, dmg=dmg))
         elif intent.type == "starlight_ward":
@@ -85,7 +85,7 @@ class SecretAstralInquisitorTemplate(EnemyTemplate):
             engine._add_buff_to(enemy, "strength", get_locale_text("i18n_battle_core.buff_strength_name"), get_locale_text("i18n_battle_core.buff_strength_desc"), 1)
             logs.append(get_locale_text("i18n_grid_map.secret_boss.starlight_ward_log", enemy_name=enemy.name, shield=intent.val))
         elif intent.type == "gravity_lash":
-            dmg = intent.val + strength
+            dmg = intent.val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="bludgeoning")
             run.node_data["drain_ba"] = True
             logs.append(get_locale_text("i18n_grid_map.secret_boss.gravity_lash_log", enemy_name=enemy.name, dmg=dmg))
@@ -115,7 +115,7 @@ class SecretPrimordialEchoTemplate(EnemyTemplate):
             return ""
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")
         if intent.type == "primordial_roar":
-            dmg = intent.val + strength
+            dmg = intent.val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="psychic")
             DeckService.add_card_to_discard(run.player, "curse_dazed")
             logs.append(get_locale_text("i18n_grid_map.secret_boss.primordial_roar_log", enemy_name=enemy.name, dmg=dmg))
@@ -124,7 +124,7 @@ class SecretPrimordialEchoTemplate(EnemyTemplate):
             engine._add_buff_to(enemy, "strength", get_locale_text("i18n_battle_core.buff_strength_name"), get_locale_text("i18n_battle_core.buff_strength_desc"), 2)
             logs.append(get_locale_text("i18n_grid_map.secret_boss.void_aegis_log", enemy_name=enemy.name, shield=intent.val))
         elif intent.type == "abyssal_cleave":
-            dmg = intent.val + strength
+            dmg = intent.val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="force")
             for mk in list(run.player.minions.keys()):
                 if mk in run.player.minions:

@@ -7,9 +7,14 @@ from ...models.state import Card, CardState, GameRun
 
 
 def add_ninja_buff(engine, entity, buff_id: str, stacks: int = 1) -> None:
-    if entity is None or stacks <= 0:
+    if entity is None:
         return
     cfg = BUFF_CONFIG.get(buff_id, {})
+    if cfg.get("allow_negative"):
+        if stacks == 0:
+            return
+    elif stacks <= 0:
+        return
     engine._add_buff_to(entity, buff_id, cfg.get("name", buff_id), cfg.get("desc", ""), stacks)
 
 
@@ -34,35 +39,6 @@ def effective_science_cost_a(card, player) -> int:
         return cost_a
     lex = max(0, int(getattr(player, "lex_kela", 0) or 0))
     return max(0, cost_a - lex)
-
-
-def resolve_card_effective_cost_a(card, card_state, player) -> int:
-    base_a = int(getattr(card, "cost_a", 0) or 0)
-    if base_a == -1:
-        return -1
-    temp_a = getattr(card_state, "temp_cost_a", None) if card_state is not None else None
-    if temp_a is not None:
-        eff = max(0, int(temp_a))
-    else:
-        delta = int(getattr(card_state, "battle_cost_delta_a", 0) or 0) if card_state is not None else 0
-        eff = max(0, base_a + delta)
-    if getattr(card, "science", False) and eff > 0 and player is not None:
-        lex = max(0, int(getattr(player, "lex_kela", 0) or 0))
-        eff = max(0, eff - lex)
-    if player is not None and has_ninja_tag(card, "ninjutsu"):
-        if any(b.id == "plasma_arrow" and b.stacks > 0 for b in player.buffs):
-            return 0
-    return eff
-
-
-def resolve_card_effective_cost_ba(card, card_state, player=None) -> int:
-    base_ba = int(getattr(card, "cost_ba", 0) or 0)
-    if base_ba == -1:
-        return -1
-    temp_ba = getattr(card_state, "temp_cost_ba", None) if card_state is not None else None
-    if temp_ba is not None:
-        return max(0, int(temp_ba))
-    return max(0, base_ba)
 
 
 def scramble_hand_costs(player, low: int = 0, high: int = 3) -> list[int]:

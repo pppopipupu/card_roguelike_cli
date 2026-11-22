@@ -1,11 +1,22 @@
-from ....models.events import DamageCalculateEvent, ShieldGainEvent, HealEvent, BeforeDamageApplyEvent, TurnStartEvent, TurnEndEvent
+from ....models.events import (
+    CardPlayCheckEvent,
+    CardPostPlayEvent,
+    DamageCalculateEvent,
+    ShieldGainEvent,
+    HealEvent,
+    BeforeDamageApplyEvent,
+    TurnStartEvent,
+    TurnEndEvent,
+)
 from ..event_bus import PRIORITY_MODIFIER_ADD, PRIORITY_SYSTEM_PRE
 from ..enchantment_runtime import (
     apply_enchantment_dmg,
     apply_enchantment_shield,
     apply_enchantment_heal,
+    apply_enchantment_post_play,
     apply_enchantment_turn_start,
     apply_enchantment_turn_end,
+    check_enchantment_playable,
     enchantment_pierces,
 )
 
@@ -21,6 +32,8 @@ class EnchantmentTriggerHandler:
         event_bus.subscribe(BeforeDamageApplyEvent, self.on_before_damage_apply)
         event_bus.subscribe(TurnStartEvent, self.on_turn_start, PRIORITY_SYSTEM_PRE)
         event_bus.subscribe(TurnEndEvent, self.on_turn_end, PRIORITY_SYSTEM_PRE)
+        event_bus.subscribe(CardPlayCheckEvent, self.on_card_play_check)
+        event_bus.subscribe(CardPostPlayEvent, self.on_card_post_play)
 
     @staticmethod
     def _playing_card(run):
@@ -29,6 +42,23 @@ class EnchantmentTriggerHandler:
             return None
         from ....entities.cards import ALL_CARDS
         return ALL_CARDS.get(cid)
+
+    def on_card_play_check(self, event):
+        error = check_enchantment_playable(event.run, event.card)
+        if error:
+            event.cancelled = True
+            event.error_message = error
+
+    def on_card_post_play(self, event):
+        apply_enchantment_post_play(
+            self.engine,
+            event.run,
+            event.run.player,
+            event.card,
+            event.card_state,
+            event.target or "",
+            event.prev_alive_enemies,
+        )
 
     def on_damage_calculate(self, event):
         source = event.source

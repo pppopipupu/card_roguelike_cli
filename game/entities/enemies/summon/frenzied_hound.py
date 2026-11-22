@@ -21,7 +21,7 @@ class FrenziedHoundTemplate(EnemyTemplate):
                 strength += b.stacks
         if intent.type == "hound_bite":
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="piercing")
+            engine._damage_target(run, "p0", intent.val, source=f"enemy:{enemy.name}", damage_type="piercing")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             engine._add_buff_to(run.player, "bleed", get_locale_text("i18n_enemy_misc.common.bleed_name"), get_locale_text("i18n_enemy_misc.common.bleed_desc"), 1)

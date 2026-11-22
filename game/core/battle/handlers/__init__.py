@@ -11,6 +11,7 @@ from .class_handler import ClassPassiveHandler
 from .ward_service import WardRedirectHandler
 from .mercenary_handler import ChaoticMercenaryRedirectHandler
 from .ninja_handler import NinjaEventHandler
+from .non_lethal_handler import NonLethalCombatHandler
 
 
 def register_default_battle_handlers(event_bus, engine, save_manager):
@@ -31,4 +32,5 @@ def register_default_battle_handlers(event_bus, engine, save_manager):
         "ward": WardRedirectHandler(event_bus, engine),
         "chaotic_mercenary": ChaoticMercenaryRedirectHandler(event_bus, engine),
         "ninja": NinjaEventHandler(event_bus, engine),
+        "non_lethal": NonLethalCombatHandler(event_bus, engine),
     }

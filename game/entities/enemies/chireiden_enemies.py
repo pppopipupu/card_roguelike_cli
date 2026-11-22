@@ -178,7 +178,7 @@ class ChireidenBaseEnemy(EnemyTemplate):
     def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         itype = intent.type
         val = int(intent.val or 0)
-        bonus = _strength_bonus(enemy) + _overcharge_bonus(enemy)
+        bonus = _overcharge_bonus(enemy)
         tag = _enemy_idx_tag(run, enemy)
         act_name = get_locale_text(f"i18n_chireiden.actions.{itype}")
 
@@ -258,7 +258,7 @@ class KaenbyouRinEnemy(ChireidenBaseEnemy):
     def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         itype = intent.type
         val = int(intent.val or 0)
-        bonus = _strength_bonus(enemy) + _overcharge_bonus(enemy)
+        bonus = _overcharge_bonus(enemy)
         tag = _enemy_idx_tag(run, enemy)
         act_name = get_locale_text(f"i18n_chireiden.actions.{itype}")
         if itype == "rin_cat_wheel_charge":
@@ -309,7 +309,7 @@ class UtsuhoReiujiBossEnemy(ChireidenBaseEnemy):
     def execute_intent(self, run, engine, enemy, intent, logs: Optional[List[str]] = None):
         itype = intent.type
         val = int(intent.val or 0)
-        bonus = _strength_bonus(enemy) + _overcharge_bonus(enemy)
+        bonus = _overcharge_bonus(enemy)
         tag = _enemy_idx_tag(run, enemy)
         act_name = get_locale_text(f"i18n_chireiden.actions.{itype}")
         if itype == "utsuho_d_he3_ray":

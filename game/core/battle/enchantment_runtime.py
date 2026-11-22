@@ -318,6 +318,6 @@ def apply_enchantment_turn_end(run, p) -> None:
             for b in list(p.buffs):
                 if b.id == "strength":
                     b.stacks -= lose_str
-                    if b.stacks <= 0:
+                    if b.stacks == 0:
                         p.buffs.remove(b)
                     break

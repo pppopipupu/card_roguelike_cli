@@ -2,9 +2,10 @@ import random
 from typing import TYPE_CHECKING, Optional
 from ...models.state import GameRun
 from ...data.text.locale_data import get_locale_text
-from ...entities import ALL_CARDS, ALL_AMULETS
+from ...entities import ALL_CARDS
 from ...models.events import (
     TurnEndEvent,
+    TurnEndAfterHandEvent,
     TurnStartEvent,
     TurnResourceInitEvent,
     TurnDrawCalculateEvent,
@@ -62,6 +63,9 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
             self.engine.event_bus.dispatch(evt)
             action = evt.action
             if action == "retain":
+                c_state.temp_cost_a = None
+                c_state.temp_cost_ba = None
+                c_state.temp_retain = False
                 retained.append(c_state)
                 if c_state in temp_retains:
                     temp_retains.remove(c_state)
@@ -85,31 +89,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 p.discard_pile.append(c_state)
         p.hand = retained
         run.node_data[retain_key] = []
-        for ak, av in list(p.amulets.items()):
-            base_id = av.id[:-1] if av.id.endswith("+") else av.id
-            template = ALL_AMULETS.get(base_id)
-            if template:
-                template.on_end_turn(run, ak, self.engine)
-            if p.amulets.get(ak) is not av:
-                continue
-            av.countdown -= 1
-            if av.countdown <= 0:
-                p.amulets.pop(ak, None)
-                p.minion_graveyard.append(av.id)
-                lw_msg = ""
-                if template:
-                    is_upgraded = av.id.endswith("+")
-                    lw_msg = template.on_death(run, ak, is_upgraded, self.engine)
-                if lw_msg:
-                    self.engine._log_event(run, locale_text(
-                        "i18n_battle_core.amulet_requiem_death_log",
-                        params={"name": av.name, "effect": lw_msg},
-                    ))
-                else:
-                    self.engine._log_event(run, locale_text(
-                        "i18n_battle_core.amulet_requiem_log",
-                        params={"name": av.name},
-                    ))
+        self.engine.event_bus.dispatch(TurnEndAfterHandEvent(run, p))
         return [locale_text(key="i18n_battle_core.end_player_phase_log", params={"name": p.name})]
 
     def _begin_player_phase(self, run: GameRun, p, advance_global: bool = True) -> str:
@@ -120,7 +100,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         if p.shield > 0:
             decay_evt = ShieldDecayCalculateEvent(run, p, "p0", p.shield, p.shield - (p.shield // 2))
             self.engine.event_bus.dispatch(decay_evt)
-            lost = max(0, min(p.shield, decay_evt.decay_amount))
+            lost = 0 if decay_evt.cancelled else max(0, min(p.shield, decay_evt.decay_amount))
             p.shield -= lost
             if lost > 0:
                 decay_entries.append(locale_text(
@@ -146,8 +126,6 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 continue
             mv.actions += 1
             mv.attack_actions = 1
-        if advance_global:
-            run.node_data["heart_turn"] = run.node_data.get("heart_turn", 1)
         draw_count = 6
         if run.node_data.get("draw_penalty_next_turn"):
             draw_count = max(0, draw_count - run.node_data["draw_penalty_next_turn"])
@@ -158,7 +136,6 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         self.draw_cards(p, draw_count, run, ignore_focus=True, is_turn_start=True)
         self.engine.event_bus.dispatch(TurnStartAfterDrawEvent(run, p))
         run.node_data[run.turn_key("cards_played_this_turn", p)] = 0
-        run.node_data[run.turn_key("action_surge_turn_used", p)] = False
         self._reindex_minions(p)
         if advance_global:
             run.node_data["turn_count"] = run.node_data.get("turn_count", 1) + 1
@@ -222,6 +199,8 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 return self._defeat_nodes(run, "", settle_msg)
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
+            if run.node_type == "room_dialog":
+                return self._finish_turn(run, [], viewer_uid)
             return self._finish_turn(run, [locale_text(key="i18n_battle_core.battle_victory")], viewer_uid)
         extra_events, in_extra = end_and_begin(self.engine, run, uid)
         if in_extra:
@@ -236,6 +215,8 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 return self._defeat_nodes(run, JoinedText(parts=extra_events), settle_msg)
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
+            if run.node_type == "room_dialog":
+                return self._finish_turn(run, extra_events, viewer_uid)
             return self._finish_turn(run, extra_events + [locale_text(key="i18n_battle_core.battle_victory")], viewer_uid)
         ready = run.node_data.setdefault("turn_ready", {})
         ready[uid] = True
@@ -281,6 +262,8 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 return self._defeat_nodes(run, JoinedText(parts=merc_after_events), settle_msg)
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
+            if run.node_type == "room_dialog":
+                return self._finish_turn(run, merc_after_events, viewer_uid)
             return self._finish_turn(run, self._victory_events(merc_after_events), viewer_uid)
         assign_enemy_targets(run, self.engine)
         enemy_events: TextDocument = self.engine._enemy_turn_events(run)
@@ -299,6 +282,8 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 return self._defeat_nodes(run, JoinedText(parts=enemy_events), settle_msg)
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
+            if run.node_type == "room_dialog":
+                return self._finish_turn(run, enemy_events, viewer_uid)
             return self._finish_turn(run, self._victory_events(enemy_events), viewer_uid)
         if is_all_downed(run):
             if multi:
@@ -327,6 +312,8 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 return self._defeat_nodes(run, JoinedText(parts=enemy_events), settle_msg)
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
+            if run.node_type == "room_dialog":
+                return self._finish_turn(run, enemy_events, viewer_uid)
             return self._finish_turn(run, self._victory_events(enemy_events), viewer_uid)
         turn_logs: TextDocument = []
         first_alive = True
@@ -359,6 +346,8 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 return self._defeat_nodes(run, JoinedText(parts=enemy_events + turn_logs), settle_msg)
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
+            if run.node_type == "room_dialog":
+                return self._finish_turn(run, enemy_events + turn_logs, viewer_uid)
             return self._finish_turn(run, self._victory_events(enemy_events + turn_logs), viewer_uid)
         if is_all_downed(run):
             if multi:

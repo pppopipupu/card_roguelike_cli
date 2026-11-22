@@ -1,7 +1,8 @@
 from typing import List, Optional
 import re
-from .base import BuffImpl
+from .base import BuffImpl, is_damage_event_from_entity
 from .registry import register_buff
+from ...core.battle.event_bus import PRIORITY_MODIFIER_MUL
 from ...data.entities.buffs.buff_data import BUFF_CONFIG
 from ...data.text.locale_data import get_locale_text
 from ...data.battle.damage_type_data import damage_type_matches, is_spell_card_damage
@@ -11,6 +12,12 @@ def _stat(instance, buff_id, name, default):
     return getattr(instance, name, cfg.get(name, default))
 
 class TacticalFocusBuff(BuffImpl):
+    def on_before_card_draw(self, event, buff_state, entity):
+        if event.is_turn_start:
+            return
+        event.cancel()
+        event.engine._log_event(event.run, get_locale_text("i18n_battle_core.cannot_draw_log"))
+
     def on_player_turn_end(self, run, buff_state, engine):
         buff_state.stacks -= 1
         if buff_state.stacks <= 0:
@@ -25,6 +32,14 @@ class TacticalFocusBuff(BuffImpl):
                     event.run.player.buffs.remove(buff_state)
 
 class StunBuff(BuffImpl):
+    def on_buff_applied(self, event, buff_state, entity):
+        from ...models.state import EnemyState
+        if isinstance(entity, EnemyState):
+            event.engine._sync_enemy_intents(entity)
+
+    def on_enemy_roll_intent(self, event, buff_state, entity):
+        event.cancel()
+
     def on_turn_start(self, event, buff_state, entity):
         if not event.is_player and entity in event.run.enemies:
             buff_state.stacks -= 1
@@ -76,6 +91,8 @@ class BeatOfDeathBuff(BuffImpl):
 @register_buff("minor_vulnerable")
 class GenericMinorVulnerableBuff(BuffImpl):
     auto_register = False
+    hook_priorities = {"on_damage_calculate_defend": PRIORITY_MODIFIER_MUL}
+
     def on_damage_calculate_defend(self, event, buff_state, entity):
         event.modified_damage = int(event.modified_damage * _stat(self, "minor_vulnerable", "damage_multiplier", 1.5))
 
@@ -88,6 +105,8 @@ class GenericMinorVulnerableBuff(BuffImpl):
 @register_buff("vulnerable")
 class GenericVulnerableBuff(BuffImpl):
     auto_register = False
+    hook_priorities = {"on_damage_calculate_defend": PRIORITY_MODIFIER_MUL}
+
     def on_damage_calculate_defend(self, event, buff_state, entity):
         event.modified_damage = int(event.modified_damage * _stat(self, "vulnerable", "damage_multiplier", 2))
 
@@ -98,29 +117,37 @@ class GenericVulnerableBuff(BuffImpl):
                 entity.buffs.remove(buff_state)
 
 class WeakBuff(BuffImpl):
+    hook_priorities = {"on_damage_calculate": PRIORITY_MODIFIER_MUL}
+
     def on_damage_calculate(self, event, buff_state, entity):
-        is_owner = False
-        if entity == event.run.player:
-            if event.source == "p0":
-                is_owner = True
-        elif entity in event.run.enemies:
-            try:
-                idx = event.run.enemies.index(entity)
-                if event.source == f"e{idx+1}":
-                    is_owner = True
-            except ValueError:
-                pass
-        if is_owner:
-            event.modified_damage = int(event.modified_damage * _stat(self, "weak", "damage_multiplier", 0.5))
+        if is_damage_event_from_entity(event, entity):
+            event.modified_damage = int(event.modified_damage * _stat(self, "weak", "damage_multiplier", 0.75))
 
     def on_turn_end(self, event, buff_state, entity):
-        if event.is_player == (entity == event.run.player):
+        is_friendly = entity == event.run.player or entity in (getattr(event.run.player, "minions", None) or {}).values()
+        if event.is_player == is_friendly:
             buff_state.stacks -= 1
-            if buff_state.stacks <= 0:
+            if buff_state.stacks <= 0 and buff_state in entity.buffs:
+                entity.buffs.remove(buff_state)
+
+class SevereWeakBuff(BuffImpl):
+    hook_priorities = {"on_damage_calculate": PRIORITY_MODIFIER_MUL}
+
+    def on_damage_calculate(self, event, buff_state, entity):
+        if is_damage_event_from_entity(event, entity):
+            event.modified_damage = int(event.modified_damage * _stat(self, "severe_weak", "damage_multiplier", 0.5))
+
+    def on_turn_end(self, event, buff_state, entity):
+        is_friendly = entity == event.run.player or entity in (getattr(event.run.player, "minions", None) or {}).values()
+        if event.is_player == is_friendly:
+            buff_state.stacks -= 1
+            if buff_state.stacks <= 0 and buff_state in entity.buffs:
                 entity.buffs.remove(buff_state)
 
 class MinorVulnerableBuff(BuffImpl):
     auto_register = False
+    hook_priorities = {"on_damage_calculate_defend": PRIORITY_MODIFIER_MUL}
+
     def __init__(self, stacks: int, damage_type: str):
         super().__init__(stacks)
         self.damage_type = damage_type
@@ -138,6 +165,8 @@ class MinorVulnerableBuff(BuffImpl):
 
 class VulnerableBuff(BuffImpl):
     auto_register = False
+    hook_priorities = {"on_damage_calculate_defend": PRIORITY_MODIFIER_MUL}
+
     def __init__(self, stacks: int, damage_type: str):
         super().__init__(stacks)
         self.damage_type = damage_type
@@ -199,6 +228,11 @@ class VoidWeaknessBuff(BuffImpl):
                 event.run.player.buffs.remove(buff_state)
 
 class VoidExhaustionBuff(BuffImpl):
+    def on_card_post_play_route(self, event, buff_state, entity):
+        event.destination = "exhaust"
+        event.handled = True
+        event.log_key = "i18n_battle_core.void_exhaust_log"
+
     def on_turn_end(self, event, buff_state, entity):
         if entity == event.run.player and event.is_player:
             buff_state.stacks -= 1

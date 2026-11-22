@@ -139,6 +139,14 @@ class TestRoomInteractAndShop(unittest.TestCase):
         run_bat = load_run(self.plugin, uid)
         self.assertEqual(run_bat.node_type, "battle")
         run_end = require_run(self._win_current_battle(uid))
+        if run_end.node_type == "room_dialog":
+            yield_view = self.run_cmd("status", uid)
+            self.assertIn("了结", yield_view)
+            ask_res = self.run_cmd("c 2", uid)
+            self.assertIn("确认", ask_res)
+            confirm_res = self.run_cmd("c 1", uid)
+            self.assertIsInstance(confirm_res, str)
+            run_end = require_run(load_run(self.plugin, uid))
         if run_end.node_type == "reward":
             self.run_cmd("离开", uid)
             run_end = load_run(self.plugin, uid)

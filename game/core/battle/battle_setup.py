@@ -156,19 +156,10 @@ class BattleSetupMixin(BaseBattleEngine):
         legacy_msg = apply_legacy_at_battle_start(self, run, p)
         if legacy_msg:
             self._log_event(run, legacy_msg)
-        selected_class = getattr(p, "selected_class", "法师")
-        if selected_class == "战士":
-            run.node_data[run.turn_key("action_surge_uses", p)] = 2
-            run.node_data[run.turn_key("action_surge_turn_used", p)] = False
-        if getattr(p, "subclass", "") == "秘钥学者":
-            self._add_buff_to(p, "key_scholar_passive", get_locale_text("i18n_battle_core.key_scholar_buff_name"), get_locale_text("i18n_battle_core.key_scholar_buff_desc"))
-        init_draw = 6
-        for r in p.relics:
-            from ...entities.relics import get_relic_impl
-            impl = get_relic_impl(r)
-            if impl:
-                init_draw = impl.modify_initial_draw(run, init_draw, self)
-        init_draw = self.exhaustion_observer.modify_initial_draw(p, init_draw)
+        from ...models.events import TurnDrawCalculateEvent
+        draw_evt = TurnDrawCalculateEvent(run, p, 6, is_initial=True)
+        self.event_bus.dispatch(draw_evt)
+        init_draw = draw_evt.draw_count
         innate_cards = []
         from ...entities.cards.base import ALL_CARDS
         for c_state in list(p.draw_pile):

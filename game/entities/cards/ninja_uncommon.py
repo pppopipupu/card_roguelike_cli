@@ -60,11 +60,7 @@ class NinjaBeastShoutCard(NinjaCard):
             loss = 3 if self.upgraded else 2
             for e in run.enemies:
                 if e.hp > 0:
-                    for b in list(e.buffs):
-                        if b.id == "strength":
-                            b.stacks = max(0, b.stacks - loss)
-                            if b.stacks <= 0:
-                                e.buffs.remove(b)
+                    add_ninja_buff(engine, e, "strength", -loss)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 

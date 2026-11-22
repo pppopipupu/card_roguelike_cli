@@ -39,10 +39,10 @@ class CardTriggerHandler:
         card, state = self._card_for(event.card)
         if card is not None and hasattr(card, "on_exhaust"):
             card.on_exhaust(event, state)
-        for pile_name in ("hand", "exhaust_pile"):
+        for pile_name in ("hand", "draw_pile", "discard_pile"):
             for pile_state in self._pile(event.run, pile_name):
                 other, other_state = self._card_for(pile_state)
-                if other is None or other is card:
+                if other is None or other_state is event.card:
                     continue
                 if hasattr(other, "on_other_card_exhaust"):
                     other.on_other_card_exhaust(event, other_state)

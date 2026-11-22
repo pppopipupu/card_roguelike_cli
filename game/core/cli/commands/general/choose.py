@@ -1,6 +1,7 @@
 from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
+from .....renderer.formatters import format_output_numbers
 from .....data.text.locale_data import get_locale_text
 
 class ChooseCommand(CommandHandler, names=["选择", "c"], allowed_states=["menu", "explore", "battle", "cafe", "outer_plane"], help_key="choose"):
@@ -39,5 +40,12 @@ class ChooseCommand(CommandHandler, names=["选择", "c"], allowed_states=["menu
         if term or (run and run.node_data.get("in_queue")):
             yield res
         else:
-            yield res + "\n" + GameRenderer.render_game(run)
+            rendered = GameRenderer.render_game(run)
+            res_text = res or ""
+            if rendered and rendered.strip() in format_output_numbers(res_text):
+                yield res_text
+            elif not res_text.strip():
+                yield rendered
+            else:
+                yield res_text + "\n" + rendered
         return success

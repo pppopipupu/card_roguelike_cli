@@ -205,7 +205,7 @@ def _needs_target(card) -> bool:
 
 def _playable_candidates(engine, run: GameRun, uid: str, player: PlayerState, blocked: set[int]) -> list[tuple[int, Optional[str], CardState]]:
     from ...entities import ALL_CARDS
-    from ...entities.cards.ninja_base import resolve_card_effective_cost_a
+    from .card_cost import resolve_card_effective_cost_a
     candidates: list[tuple[int, Optional[str], CardState]] = []
     for index, raw_state in enumerate(player.hand, 1):
         if id(raw_state) in blocked:

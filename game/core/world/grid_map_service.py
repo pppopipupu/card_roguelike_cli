@@ -127,6 +127,8 @@ class GridMapService:
         fm.player_coords[uid] = target_coord
         self._reveal_coord(fm, target_coord)
         self._sync_stage_for_coord(run, p, target_coord)
+        from .rooms.dialog.quest_hooks import record_npc_quest_event
+        record_npc_quest_event(run, self.save_manager.load_stats(uid), "clear_obstacle", {"coord": target_coord}, save_manager=self.save_manager)
         broken_msg = break_map_invisibility(run, reason="interact", player=p)
         if broken_msg:
             prefix = f"{prefix}\n{broken_msg}"
@@ -214,7 +216,7 @@ class GridMapService:
         self._reveal_coord(fm, target_coord)
         if not was_explored:
             from .map_quest_service import record_room_explored
-            record_room_explored(run, self.save_manager.load_stats(uid))
+            record_room_explored(run, self.save_manager.load_stats(uid), save_manager=self.save_manager)
         self._sync_stage_for_coord(run, p, target_coord)
         from .presence import sync_active
         sync_active(uid, run=run)

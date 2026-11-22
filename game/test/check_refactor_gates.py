@@ -26,6 +26,7 @@ IDENTIFIER_VALUES = {"选择", "随从 ", "使用 "}
 IDENTIFIER_DICT_KEYS = {"id", "name", "key", "action", "type", "class", "subclass"}
 STRUCTURAL_CALLS = {
     "replace_structured_number",
+    "annotate_number_modifier",
     "adjust_intent_desc_with_modifiers",
     "append_card_suffix",
     "startswith",

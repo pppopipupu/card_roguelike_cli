@@ -1,7 +1,8 @@
 from typing import List, Optional
 import re
-from .base import BuffImpl, is_debuff
+from .base import BuffImpl, is_debuff, is_damage_event_from_entity
 from .registry import register_buff
+from ...core.battle.event_bus import PRIORITY_MODIFIER_ADD
 from ...data.entities.buffs.buff_data import BUFF_CONFIG
 from ...data.text.locale_data import get_locale_text
 from ...data.battle.damage_type_data import damage_type_matches, is_physical_damage, is_spell_card_damage
@@ -132,38 +133,34 @@ class MagicNetworkBuff(BuffImpl):
                 event.run.player.buffs.remove(buff_state)
 
 class StrengthBuff(BuffImpl):
+    hook_priorities = {"on_damage_calculate": PRIORITY_MODIFIER_ADD}
+
     def on_damage_calculate(self, event, buff_state, entity):
-        is_owner = False
-        if entity == event.run.player:
-            if event.source == "p0":
-                is_owner = True
-        elif entity in event.run.enemies:
-            try:
-                idx = event.run.enemies.index(entity)
-                if event.source == f"e{idx+1}":
-                    is_owner = True
-            except ValueError:
-                pass
-        if is_owner:
-            dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
-            is_astral_strike = False
+        if not is_damage_event_from_entity(event, entity):
+            return
+        dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
+        if entity in event.run.enemies:
+            if dtype_str.lower() != "true":
+                event.modified_damage = max(0, event.modified_damage + buff_state.stacks)
+            return
+        is_astral_strike = False
+        if entity == event.run.player and event.card:
+            card_id = event.card.id
+            if card_id.startswith("duel_"):
+                card_id = card_id[5:]
+            if card_id == "neutral_astral_strike":
+                is_astral_strike = True
+        if is_physical_damage(dtype_str) or is_astral_strike:
+            mult = _stat(self, "strength", "default_multiplier", 1)
             if entity == event.run.player and event.card:
                 card_id = event.card.id
                 if card_id.startswith("duel_"):
                     card_id = card_id[5:]
-                if card_id == "neutral_astral_strike":
-                    is_astral_strike = True
-            if is_physical_damage(dtype_str) or is_astral_strike:
-                mult = _stat(self, "strength", "default_multiplier", 1)
-                if entity == event.run.player and event.card:
-                    card_id = event.card.id
-                    if card_id.startswith("duel_"):
-                        card_id = card_id[5:]
-                    if card_id.startswith("heavy_blade"):
-                        mult = _stat(self, "strength", "heavy_blade_upgraded_multiplier", 5) if event.card.upgraded else _stat(self, "strength", "heavy_blade_multiplier", 3)
-                    elif card_id == "neutral_astral_strike":
-                        mult = _stat(self, "strength", "astral_strike_upgraded_multiplier", 5) if event.card.upgraded else _stat(self, "strength", "astral_strike_multiplier", 4)
-                event.modified_damage += buff_state.stacks * mult
+                if card_id.startswith("heavy_blade"):
+                    mult = _stat(self, "strength", "heavy_blade_upgraded_multiplier", 5) if event.card.upgraded else _stat(self, "strength", "heavy_blade_multiplier", 3)
+                elif card_id == "neutral_astral_strike":
+                    mult = _stat(self, "strength", "astral_strike_upgraded_multiplier", 5) if event.card.upgraded else _stat(self, "strength", "astral_strike_multiplier", 4)
+            event.modified_damage = max(0, event.modified_damage + buff_state.stacks * mult)
 
 class FlameBarrierBuff(BuffImpl):
     def on_damage_take_defend(self, event, buff_state, entity, engine=None):
@@ -486,19 +483,6 @@ class HellRaiderBuff(BuffImpl):
         finally:
             run._hell_raider_chain = chain
 
-class VoidExhaustionBuff(BuffImpl):
-    def on_card_post_play_route(self, event, buff_state, entity):
-        event.destination = "exhaust"
-        event.handled = True
-
-
-class TacticalFocusBuff(BuffImpl):
-    def on_before_card_draw(self, event, buff_state, entity):
-        if event.is_turn_start:
-            return
-        event.cancel()
-        event.engine._log_event(event.run, get_locale_text("i18n_battle_core.cannot_draw_log"))
-
 class BarricadeBuff(BuffImpl):
     def on_shield_decay_calculate(self, event, buff_state, entity):
         event.decay_amount = 0
@@ -697,15 +681,33 @@ class PendulumResonanceBuff(BuffImpl):
 
 
 class SplitToTenBuff(BuffImpl):
-    hook_priorities = {"on_card_play": -100}
-
-    def on_card_play(self, event, buff_state, entity):
-        if event.cancelled or buff_state.stacks <= 0:
+    def on_card_effect_resolved(self, event, buff_state, entity):
+        run = event.run
+        if entity != run.player or buff_state.stacks <= 0 or run.node_data.get("split_to_ten_running"):
             return
         buff_state.stacks -= 1
         if buff_state.stacks <= 0 and buff_state in entity.buffs:
             entity.buffs.remove(buff_state)
-        event.run.node_data["split_to_ten_active"] = True
+        engine = event.engine
+        from ...core.battle.card_executor import execute_extra_card_effect
+        replay_amount = int(_stat(self, "split_to_ten", "replay_amount", 10))
+        run.node_data["split_to_ten_running"] = True
+        try:
+            for _ in range(replay_amount):
+                if engine.is_battle_won(run):
+                    break
+                extra_res = execute_extra_card_effect(
+                    engine,
+                    run,
+                    event.card,
+                    event.target,
+                    trigger_type="split_to_ten",
+                )
+                run.node_data.setdefault("extra_play_msgs", []).append(
+                    get_locale_text("i18n_battle_core.split_to_ten_extra", feedback=extra_res)
+                )
+        finally:
+            run.node_data.pop("split_to_ten_running", None)
 
 
 class PhaseTransitionImmuneBuff(BuffImpl):
@@ -798,16 +800,6 @@ class InvisibilityBuff(BuffImpl):
         if random.random() < _stat(self, "invisibility", "dodge_chance", 0.75):
             event.modified_damage = 0
             event.engine._log_event(event.run, get_locale_text("i18n_buffs.invisibility_dodge_log", name=enemy_name))
-
-
-class StunBuff(BuffImpl):
-    def on_buff_applied(self, event, buff_state, entity):
-        from ...models.state import EnemyState
-        if isinstance(entity, EnemyState):
-            event.engine._sync_enemy_intents(entity)
-
-    def on_enemy_roll_intent(self, event, buff_state, entity):
-        event.cancel()
 
 
 class AllResonanceBuff(BuffImpl):

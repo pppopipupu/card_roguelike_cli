@@ -8,7 +8,6 @@ from ...data.enemies.enemy_data import ENEMY_CONFIG
 from ...data.enemies.enemy_data_normal import ENEMY_ENCOUNTER_CONFIG
 from ...data.enemies.enemy_data_boss import BOSS_POOLS
 from ...data.entities.corpse_config import CorpseConfig
-from ...data.text.locale_data import get_locale_text
 from .base import BaseBattleEngine
 from .battle_setup import BattleSetupMixin
 from .combat_resolver import CombatResolver
@@ -122,6 +121,8 @@ class BattleEngine(BattleSetupMixin):
     def is_battle_won(self, run: GameRun) -> bool:
         if run.node_type != "battle":
             return False
+        if (run.node_data or {}).get("non_lethal_result") in ("npc_yield", "player_yield"):
+            return True
         if not run.enemies:
             return True
         if all(e.hp <= 0 for e in run.enemies):
@@ -188,15 +189,8 @@ class BattleEngine(BattleSetupMixin):
     def _execute_card_effect(self, run: GameRun, card: Card, target: Optional[str] = None) -> str:
         self.current_run = run
         res = card.execute(run, target, self)
-        if run.node_data.get("split_to_ten_active"):
-            for _ in range(10):
-                if self.is_battle_won(run):
-                    break
-                extra_res = card.execute(run, target, self)
-                from ...models.events import CardPlayedEvent
-                played_evt = CardPlayedEvent(run, card, target, extra_res, is_extra=True)
-                self.event_bus.dispatch(played_evt)
-                run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_battle_core.split_to_ten_extra", feedback=played_evt.feedback))
+        from ...models.events import CardEffectResolvedEvent
+        self.event_bus.dispatch(CardEffectResolvedEvent(run, card, target, res))
         return res
 
     def get_modified_spell_damage(self, run: GameRun, card: Card, damage: int) -> int:
@@ -204,7 +198,7 @@ class BattleEngine(BattleSetupMixin):
         dtype = getattr(card, "damage_type", "spell")
         calc_evt = DamageCalculateEvent(run, card, "p0", "e1", dtype, damage, damage)
         self.event_bus.dispatch(calc_evt)
-        return calc_evt.modified_damage
+        return max(0, calc_evt.modified_damage)
 
     def _discard_card(self, run: GameRun, cid: str) -> str:
         self.current_run = run

@@ -84,7 +84,7 @@ class TheDefectTemplate(EnemyTemplate):
         if logs is None:
             logs = []
         p = run.player
-        val = intent.val + self._strength(enemy)
+        val = intent.val
         target = self._enemy_target(run, enemy)
     
         if intent.type == "zap_orb":

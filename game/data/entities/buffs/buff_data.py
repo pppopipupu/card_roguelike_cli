@@ -81,6 +81,7 @@ BUFF_CONFIG = {
         "name": "力量",
         "desc": "造成的伤害增加",
         "coop_scale": True,
+        "allow_negative": True,
         "heavy_blade_multiplier": 3,
         "heavy_blade_upgraded_multiplier": 5,
         "astral_strike_multiplier": 4,
@@ -277,7 +278,7 @@ BUFF_CONFIG = {
     },
     "immune_bludgeoning": {
         "name": "钝击免疫",
-        "desc": "受is_debuff到的钝击伤害减少 100%",
+        "desc": "受到的钝击伤害减少 100%",
         "damage_multiplier": 0.0
     },
     "resist_cold": {
@@ -490,6 +491,12 @@ BUFF_CONFIG = {
     },
     "weak": {
         "name": "虚弱",
+        "desc": "造成的伤害减少 25%",
+        "damage_multiplier": 0.75,
+        "is_debuff": True
+    },
+    "severe_weak": {
+        "name": "重度虚弱",
         "desc": "造成的伤害减少 50%",
         "damage_multiplier": 0.5,
         "is_debuff": True

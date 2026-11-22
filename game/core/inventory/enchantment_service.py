@@ -38,16 +38,64 @@ def fold_enchantments(enchantments: list[str] | tuple[str, ...] | None) -> list[
     return [(eid, counts[eid]) for eid in order]
 
 
-def format_enchantment_tags(enchantments: list[str] | tuple[str, ...] | None) -> str:
-    folded = fold_enchantments(enchantments)
+_FLAG_EFFECT_KEYS: tuple[str, ...] = (
+    "only_attacks_in_hand",
+    "only_skills_in_hand",
+    "purify_hand",
+    "reshuffle_to_draw",
+    "pierce_shield",
+    "grave",
+)
+
+_COUNT_EFFECT_KEYS: tuple[str, ...] = (
+    "bonus_shield",
+    "bonus_heal",
+    "self_hp_loss",
+    "draw",
+    "discard_random",
+    "next_turn_a",
+    "next_turn_draw",
+    "gain_strength",
+    "gain_temp_strength",
+    "self_weak",
+    "self_vuln",
+    "enemy_strength",
+    "add_curse_draw",
+    "apply_vuln",
+    "apply_weak",
+    "apply_poison",
+    "apply_poison_all",
+    "aoe_dmg",
+    "copy_to_discard",
+    "kill_gold",
+    "low_hp_dmg_pct",
+    "enemy_debuff_dmg",
+    "self_debuff_shield",
+)
+
+_FLAG_ATTR_KEYS: tuple[str, ...] = ("exhaust", "ethereal", "innate", "retain", "cant_upgrade")
+
+
+def _compose_enchantment_effect_desc(card, folded: list[tuple[str, int]], before: dict[str, bool]) -> str:
     if not folded:
         return ""
-    sep = get_locale_text("i18n_enchantment.ui.tag_sep")
-    parts = []
-    for eid, cnt in folded:
-        name = get_enchantment_name(eid)
-        parts.append(f"{name}x{cnt}" if cnt > 1 else name)
-    return sep.join(parts)
+    parts: list[str] = []
+    for key in _FLAG_EFFECT_KEYS:
+        if any(ENCHANTMENT_CONFIG[eid].get(key) for eid, _ in folded):
+            parts.append(get_locale_text(f"i18n_enchantment.dyn.{key}"))
+    for key in _COUNT_EFFECT_KEYS:
+        total = sum(int(ENCHANTMENT_CONFIG[eid].get(key, 0)) * cnt for eid, cnt in folded)
+        if total > 0:
+            parts.append(get_locale_text(f"i18n_enchantment.dyn.{key}", n=total))
+    for key in _FLAG_ATTR_KEYS:
+        if getattr(card, key, False) and not before[key]:
+            parts.append(get_locale_text(f"i18n_enchantment.dyn.{key}"))
+    if not parts:
+        return ""
+    prefix = get_locale_text("i18n_enchantment.dyn.prefix")
+    sep = get_locale_text("i18n_enchantment.dyn.sep")
+    period = get_locale_text("i18n_card_runtime.cards.sentence_period")
+    return f"{prefix}{sep.join(parts)}{period}"
 
 
 def is_card_enchantable(card_state) -> bool:
@@ -115,6 +163,14 @@ def apply_enchantments_to_card(card, card_state: CardState) -> int:
     if not folded:
         return 0
 
+    before: dict[str, bool] = {
+        "exhaust": bool(getattr(card, "exhaust", False)),
+        "ethereal": bool(getattr(card, "ethereal", False)),
+        "innate": bool(getattr(card, "innate", False)),
+        "retain": bool(getattr(card, "retain", False)),
+        "cant_upgrade": bool(getattr(card, "cant_upgrade", False)),
+    }
+
     card.name = _compose_enchanted_name(card.name, folded)
 
     cost_a_delta = 0
@@ -151,21 +207,53 @@ def apply_enchantments_to_card(card, card_state: CardState) -> int:
     if cost_ba_delta != 0:
         card.cost_ba = max(0, int(card.cost_ba) + cost_ba_delta)
 
+    from ...entities.cards.base import (
+        append_card_suffix,
+        get_gem_numeric_modifiers,
+        replace_structured_number,
+    )
+    gem_mods = get_gem_numeric_modifiers(getattr(card, "gems", None) or [])
+
     base_dmg = int(getattr(card, "base_dmg", 0) or 0)
     if base_dmg > 0 and (dmg_pct != 0 or dmg_add != 0):
-        card.base_dmg = max(1, int(round((base_dmg + dmg_add) * max(0.1, 1.0 + dmg_pct / 100.0))))
+        new_base_dmg = max(1, int(round((base_dmg + dmg_add) * max(0.1, 1.0 + dmg_pct / 100.0))))
+        card.base_dmg = new_base_dmg
+        old_shown = (base_dmg + gem_mods["dmg_add"]) * gem_mods["dmg_mul"]
+        new_shown = (new_base_dmg + gem_mods["dmg_add"]) * gem_mods["dmg_mul"]
+        if new_shown != old_shown:
+            card.desc = replace_structured_number(card.desc, old_shown, new_shown, ("造成",), ("点",))
 
     base_shield = int(getattr(card, "shield_amount", 0) or 0)
     if base_shield > 0 and shield_pct != 0:
-        card.shield_amount = max(1, int(round(base_shield * max(0.1, 1.0 + shield_pct / 100.0))))
+        new_base_shield = max(1, int(round(base_shield * max(0.1, 1.0 + shield_pct / 100.0))))
+        card.shield_amount = new_base_shield
+        old_shown = base_shield + gem_mods["shield_add"]
+        new_shown = new_base_shield + gem_mods["shield_add"]
+        if new_shown != old_shown:
+            card.desc = replace_structured_number(card.desc, old_shown, new_shown, ("获得", "提供", "产生"), ("点护盾",))
 
     base_heal = int(getattr(card, "heal_amount", 0) or 0)
     if base_heal > 0 and heal_pct != 0:
-        card.heal_amount = max(1, int(round(base_heal * max(0.1, 1.0 + heal_pct / 100.0))))
+        new_base_heal = max(1, int(round(base_heal * max(0.1, 1.0 + heal_pct / 100.0))))
+        card.heal_amount = new_base_heal
+        old_shown = base_heal + gem_mods["heal_add"]
+        new_shown = new_base_heal + gem_mods["heal_add"]
+        if new_shown != old_shown:
+            card.desc = replace_structured_number(card.desc, old_shown, new_shown, ("回复", "治疗", "恢复"), ("点生命",))
 
-    tags_str = format_enchantment_tags(enchants)
-    if tags_str:
-        card.desc = card.desc + get_locale_text("i18n_enchantment.ui.card_tag_prefix", tags=tags_str)
+    gem_inlay_marker = get_locale_text("i18n_card_runtime.cards.gem_inlay", gems="__SPLIT__").split("__SPLIT__")[0]
+    inlay_tail = ""
+    body_desc = card.desc
+    if gem_inlay_marker and gem_inlay_marker in body_desc:
+        split_idx = body_desc.index(gem_inlay_marker)
+        inlay_tail = body_desc[split_idx:]
+        body_desc = body_desc[:split_idx]
+
+    effect_desc = _compose_enchantment_effect_desc(card, folded, before)
+    if effect_desc:
+        body_desc = append_card_suffix(body_desc, effect_desc)
+
+    card.desc = f"{body_desc}{inlay_tail}"
     return replay_bonus
 
 

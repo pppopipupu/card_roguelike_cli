@@ -5,6 +5,7 @@ from ...models.state import GameRun, PlayerState
 from .card_player_rewards import CardPlayerRewardsMixin
 from .card_player_turn import CardPlayerTurnMixin
 from .card_player_minion import CardPlayerMinionMixin
+from .card_cost import resolve_card_effective_cost_a, resolve_card_effective_cost_ba
 from .selection.target_rules import normalize_default_target, validate_target
 from .selection import TargetSelectorParser, start_card_selection
 from ..inventory.deck_service import DeckService
@@ -17,6 +18,10 @@ from ...models.events import (
     CardPlayEvent, CardPlayedEvent, CardExhaustEvent, CardDiscardEvent,
     CardCostCalculateEvent, CardDrawnEvent,
 )
+
+def _cancelled_card_message(play_evt, card) -> str:
+    return play_evt.cancel_message or get_locale_text("i18n_battle_core.spacetime_distortion", name=card.name)
+
 
 def _clone_card_state(state):
     clone = copy.copy(state)
@@ -82,11 +87,24 @@ class CardPlayer(CardPlayerMinionMixin, CardPlayerTurnMixin, CardPlayerRewardsMi
             from ...models.events import CardPostPlayRouteEvent
             route_evt = CardPostPlayRouteEvent(run, p, card, clean_state, source)
             self.engine.event_bus.dispatch(route_evt)
-            if route_evt.handled and route_evt.destination == "exhaust":
-                p.exhaust_pile.append(clean_state)
-                self.engine._log_event(run, get_locale_text("i18n_battle_core.void_exhaust_log", name=card.name))
-                exhaust_evt = CardExhaustEvent(run, clean_state, source)
-                self.engine.event_bus.dispatch(exhaust_evt)
+            if route_evt.handled:
+                destination = route_evt.destination
+                if destination == "exhaust":
+                    p.exhaust_pile.append(clean_state)
+                    log_key = route_evt.log_key or "i18n_battle_core.exhaust_card_log"
+                    self.engine._log_event(run, get_locale_text(log_key, name=card.name))
+                    exhaust_evt = CardExhaustEvent(run, clean_state, source)
+                    self.engine.event_bus.dispatch(exhaust_evt)
+                elif destination == "hand":
+                    p.hand.append(clean_state)
+                    self.engine._log_event(run, get_locale_text("i18n_battle_core.card_route_hand_log", name=card.name))
+                elif destination == "draw":
+                    p.draw_pile.insert(0, clean_state)
+                    self.engine._log_event(run, get_locale_text("i18n_battle_core.card_route_draw_log", name=card.name))
+                elif destination == "remove":
+                    self.engine._log_event(run, get_locale_text("i18n_battle_core.card_route_remove_log", name=card.name))
+                else:
+                    p.discard_pile.append(clean_state)
             elif card.type in ("minion", "amulet"):
                 if card.type == "minion":
                     self.engine._log_event(run, get_locale_text("i18n_battle_core.minion_enter_log", name=card.name))
@@ -149,9 +167,9 @@ class CardPlayer(CardPlayerMinionMixin, CardPlayerTurnMixin, CardPlayerRewardsMi
             if added > 0:
                 res += get_locale_text("i18n_battle_core.card_copy_log", name=card.name, count=added)
 
-        from .enchantment_runtime import apply_enchantment_post_play
+        from ...models.events import CardPostPlayEvent
         prev_alive = int(run.node_data.get("pre_play_alive_enemies", sum(1 for e in run.enemies if e.hp > 0)))
-        apply_enchantment_post_play(self.engine, run, p, card, c_state, target or "", prev_alive)
+        self.engine.event_bus.dispatch(CardPostPlayEvent(run, card, c_state, target, prev_alive))
         from ..audio import get_audio_pipeline
         actor_uid = run.uid_for(p) or run.user_id
         if actor_uid:
@@ -238,7 +256,6 @@ class CardPlayer(CardPlayerMinionMixin, CardPlayerTurnMixin, CardPlayerRewardsMi
         self.engine.event_bus.dispatch(check_evt)
         if check_evt.cancelled:
             return check_evt.error_message
-        from ...entities.cards.ninja_base import resolve_card_effective_cost_a, resolve_card_effective_cost_ba
         req_a = resolve_card_effective_cost_a(card, cid, p)
         req_ba = resolve_card_effective_cost_ba(card, cid, p)
         real_x_a = 0
@@ -316,10 +333,6 @@ class CardPlayer(CardPlayerMinionMixin, CardPlayerTurnMixin, CardPlayerRewardsMi
             else:
                 return get_locale_text("i18n_battle_core.invalid_target")
 
-        from .enchantment_runtime import check_enchantment_playable
-        ench_err = check_enchantment_playable(run, card)
-        if ench_err:
-            return ench_err
         play_err = card.can_play_error(run, target, self.engine)
         if play_err:
             return play_err
@@ -330,14 +343,13 @@ class CardPlayer(CardPlayerMinionMixin, CardPlayerTurnMixin, CardPlayerRewardsMi
         if play_evt.cancelled:
             run.node_data.pop("current_playing_card_hand_idx", None)
             run.node_data.pop("prism_pending_refracts", None)
-            return get_locale_text("i18n_battle_core.spacetime_distortion", name=card.name)
+            return _cancelled_card_message(play_evt, card)
         req_a = play_evt.cost_a
         req_ba = play_evt.cost_ba
         target = play_evt.target
         if p.actions < req_a or p.bonus_actions < req_ba:
             run.node_data.pop("current_playing_card_hand_idx", None)
             run.node_data.pop("prism_pending_refracts", None)
-            run.node_data.pop("split_to_ten_active", None)
             return get_locale_text("i18n_battle_core.insufficient_actions", req_a=req_a, req_ba=req_ba, actions=p.actions, bonus_actions=p.bonus_actions)
         if card.cost_a == -1:
             real_x_a = req_a + cost_evt.x_bonus_a
@@ -373,7 +385,6 @@ class CardPlayer(CardPlayerMinionMixin, CardPlayerTurnMixin, CardPlayerRewardsMi
             run.node_data["current_playing_card_id"] = ""
             run.node_data["current_playing_card_cid"] = ""
             run.node_data.pop("current_playing_card_hand_idx", None)
-            run.node_data.pop("split_to_ten_active", None)
 
         if suspend_post_play:
             self.engine.save_manager.save_save(run.user_id, run)
@@ -400,7 +411,6 @@ class CardPlayer(CardPlayerMinionMixin, CardPlayerTurnMixin, CardPlayerRewardsMi
         if getattr(card, "unplayable", False):
             return get_locale_text("i18n_battle_core.card_unplayable")
 
-        from ...entities.cards.ninja_base import resolve_card_effective_cost_a, resolve_card_effective_cost_ba
         req_a = resolve_card_effective_cost_a(card, c_state, p)
         req_ba = resolve_card_effective_cost_ba(card, c_state, p)
         real_x_a = 0
@@ -435,7 +445,7 @@ class CardPlayer(CardPlayerMinionMixin, CardPlayerTurnMixin, CardPlayerRewardsMi
         play_evt = CardPlayEvent(run, card, target, req_a, req_ba)
         self.engine.event_bus.dispatch(play_evt)
         if play_evt.cancelled:
-            return get_locale_text("i18n_battle_core.spacetime_distortion", name=card.name)
+            return _cancelled_card_message(play_evt, card)
         req_a = play_evt.cost_a
         req_ba = play_evt.cost_ba
         target = play_evt.target

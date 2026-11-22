@@ -115,7 +115,7 @@ class BossRedDragonTemplate(EnemyTemplate):
         if logs is None:
             logs = []
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")
-        val = intent.val + strength
+        val = intent.val
         enemy_key = f"e{run.enemies.index(enemy)+1}" if enemy in run.enemies else ""
     
         if intent.type == "summon":
@@ -243,7 +243,7 @@ class BossThunderLordTemplate(EnemyTemplate):
         if logs is None:
             logs = []
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")
-        val = intent.val + strength
+        val = intent.val
     
         if intent.type == "thunder_strike":
             before_len = len(run.node_data.get("battle_logs", []))

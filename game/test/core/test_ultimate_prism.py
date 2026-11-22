@@ -16,7 +16,7 @@ from game.data.content.ultimate_prism_data import (
     ULTIMATE_PRISM_MERC_ID,
 )
 from game.entities import ALL_CARDS
-from game.entities.cards.ninja_base import resolve_card_effective_cost_a
+from game.core.battle.card_cost import resolve_card_effective_cost_a
 from game.models.state import BuffState, CardState, EnemyState, GameRun, PlayerState
 from game.test.core.base import CorePlugin, load_run, run_command
 

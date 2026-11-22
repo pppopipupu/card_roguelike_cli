@@ -228,11 +228,11 @@ class EnemyTurnController:
                         logs.extend(RenderedText(text=item) for item in template_logs if item)
                 finally:
                     run.node_data.pop("enemy_single_target_attack", None)
-                if is_all_downed(run):
-                    if run.player_count() > 1:
+                if is_all_downed(run) or (run.node_data or {}).get("non_lethal_result"):
+                    if is_all_downed(run) and run.player_count() > 1:
                         logs.append(locale_text(key="i18n_battle_core.coop_all_downed_log"))
                     break
-            if is_all_downed(run):
+            if is_all_downed(run) or (run.node_data or {}).get("non_lethal_result"):
                 break
         self.engine.event_bus.dispatch(TurnEndEvent(run, is_player=False))
         run.node_data.pop("coop_damage_aoe", None)

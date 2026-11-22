@@ -122,6 +122,7 @@ class TestRoguePotions(unittest.IsolatedAsyncioTestCase):
         self.assertIn("造成 10 点毒素伤害并施加 4 层【中毒】", res)
 
         run = load_run(self.plugin, self.user_id)
+        run.node_type = "battle"
         run.enemies = [
             EnemyState(name="精英兽人", hp=50, max_hp=50, shield=0)
         ]

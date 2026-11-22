@@ -1,6 +1,6 @@
 PHYSICAL_DAMAGE_TYPES = ("slashing", "piercing", "bludgeoning")
 
-PHYSICAL_DAMAGE_ALIASES = ("attack",)
+PHYSICAL_DAMAGE_ALIASES = ("attack", "physical")
 
 MAGIC_DAMAGE_VARIANTS = {
     "slashing_magic": "slashing",

@@ -297,6 +297,50 @@ UNREGISTERED_ENEMY_CONFIG = {
             {"id": "scarlet_curtain", "val": 15, "desc": "猩红魅惑终舞 (造成 15 点心灵伤害)"},
         ],
     },
+    "十六夜咲夜": {
+        "name": "十六夜咲夜",
+        "hp": "72+",
+        "type": "elite",
+        "actions": "1A 1BA",
+        "intents": [
+            {"id": "sakuya_knives", "val": 10, "desc": "幻象银刀齐射 (造成 10 点穿刺伤害，施加 2 层流血)"},
+            {"id": "sakuya_world", "val": 12, "desc": "咲夜的世界 (获得 12 点护盾与 2 层力量)"},
+            {"id": "sakuya_jack", "val": 14, "desc": "杀人玩偶 (造成 14 点穿刺伤害)"},
+        ],
+    },
+    "古明地恋": {
+        "name": "古明地恋",
+        "hp": "66+",
+        "type": "elite",
+        "actions": "1A 1BA",
+        "intents": [
+            {"id": "koishi_id_release", "val": 9, "desc": "本我的解放 (造成 9 点心灵伤害，塞入 1 张晕眩)"},
+            {"id": "koishi_unconscious", "val": 11, "desc": "无意识遮蔽 (获得 11 点护盾并回复 4 点生命)"},
+            {"id": "koishi_super_ego", "val": 14, "desc": "超我蔷薇 (造成 14 点力场伤害)"},
+        ],
+    },
+    "晓美焰": {
+        "name": "晓美焰",
+        "hp": "74+",
+        "type": "elite",
+        "actions": "1A 1BA",
+        "intents": [
+            {"id": "homura_salvo", "val": 11, "desc": "时停火力倾泻 (造成 11 点穿刺伤害，削减 4 点护盾)"},
+            {"id": "homura_shield_turn", "val": 12, "desc": "圆环沙漏护壁 (获得 12 点护盾与 2 层力量)"},
+            {"id": "homura_rpg", "val": 15, "desc": "反坦克火箭炮 (造成 15 点火焰伤害)"},
+        ],
+    },
+    "八神疾风": {
+        "name": "八神疾风",
+        "hp": "72+",
+        "type": "elite",
+        "actions": "1A 1BA",
+        "intents": [
+            {"id": "hayate_diabolic", "val": 10, "desc": "夜天破灭弹 (造成 10 点寒冷伤害，施加 1 层虚弱)"},
+            {"id": "hayate_heiter", "val": 12, "desc": "苍天守护阵 (获得 12 点护盾并回复 4 点生命)"},
+            {"id": "hayate_ragna", "val": 15, "desc": "终焉镇魂曲 (造成 15 点力场伤害)"},
+        ],
+    },
     "【万物归一】虚空之门·尤格-索托斯": {
         "name": "【万物归一】虚空之门·尤格-索托斯",
         "hp": "极高 (终极觉醒形态)",

@@ -5,14 +5,13 @@ from .registry import register_card
 
 @register_card("curse_dazed")
 @register_card("curse_agony")
-@register_card("curse_dimensional_tear")
 @register_card("curse_wound")
 class CurseCard(Card):
     def execute(self, run, target, engine) -> str:
         return get_locale_text("i18n_cards_misc.curse.cannot_play")
 
 @register_card("curse_dimensional_tear")
-class DimensionalTearCurse(Card):
+class DimensionalTearCurse(CurseCard):
     def on_turn_end_resolve(self, event, card_state):
         event.action = "exhaust"
         event.handled = True

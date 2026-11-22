@@ -19,7 +19,7 @@
       },
       "weak": {
         "name": "虚弱",
-        "desc": "造成的伤害减少 50%"
+        "desc": "造成的伤害减少 25%"
       },
       "vulnerable": {
         "name": "易伤",
@@ -163,7 +163,7 @@
         "bleed_name": "流血",
         "bleed_desc": "每回合开始受到4点真实伤害",
         "weak_name": "虚弱",
-        "weak_desc": "造成的伤害减少50%",
+        "weak_desc": "造成的伤害减少 25%",
         "success": "你吐露痛苦真言：【律令痛苦】！【{target}】浑身皮肤崩裂，痛苦不堪，陷入 {bleed_layers} 层【流血】与 {weak_layers} 层【虚弱】状态！",
         "upgraded_fail": "❌ 律令未达折磨判定条件，但你对【{target}】造成了 12 点物理挥砍伤害！",
         "fail": "❌ 律令失败：目标生命值不低于 {threshold} 点，顶住了痛苦折磨！"

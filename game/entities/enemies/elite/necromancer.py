@@ -42,7 +42,7 @@ class NecromancerTemplate(EnemyTemplate):
         for b in enemy.buffs:
             if b.id == "strength":
                 strength += b.stacks
-        val = intent.val + strength
+        val = intent.val
         if intent.type == "shadow_bolt":
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="necrotic")

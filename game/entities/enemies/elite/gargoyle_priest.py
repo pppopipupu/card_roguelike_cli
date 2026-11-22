@@ -27,7 +27,7 @@ class GargoylePriestTemplate(EnemyTemplate):
             for buff in enemy.buffs:
                 if buff.id == "strength":
                     strength += buff.stacks
-        val = intent.val + strength
+        val = intent.val
         if intent.type == "attack":
             self._perform_attack(run, engine, enemy, val, logs, damage_type="radiant")
         elif intent.type == "defend":

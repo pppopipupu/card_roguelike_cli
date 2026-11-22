@@ -23,7 +23,7 @@ class DeepOneTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             p = run.player
             extra_msg = ""
             if p.shield > 0:
@@ -62,7 +62,7 @@ class GhoulTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             self._perform_attack(run, engine, enemy, final_dmg, logs)
             engine._add_buff_to(run.player, "minor_vulnerable", get_locale_text("i18n_enemy_normal.ghoul.buff_minor_vulnerable"), get_locale_text("i18n_enemy_normal.ghoul.buff_minor_vulnerable_desc"), 1)
             if logs:
@@ -74,7 +74,7 @@ class GhoulTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             self._perform_attack(run, engine, enemy, final_dmg, logs)
 
 @register_enemy("夜魇")
@@ -97,7 +97,7 @@ class NightgauntTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             before_len = len(run.node_data.get("battle_logs", []))
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
@@ -129,7 +129,7 @@ class ShantakTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             before_len = len(run.node_data.get("battle_logs", []))
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="force")
             after_logs = run.node_data.get("battle_logs", [])
@@ -142,7 +142,7 @@ class ShantakTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             before_len = len(run.node_data.get("battle_logs", []))
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
@@ -173,7 +173,7 @@ class DimensionalShamblerTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             before_len = len(run.node_data.get("battle_logs", []))
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="true")
             after_logs = run.node_data.get("battle_logs", [])

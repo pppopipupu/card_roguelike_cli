@@ -5,6 +5,7 @@ import unittest
 
 from game.data.entities.enchantment_data import ENCHANTMENT_CONFIG
 from game.entities import ALL_CARDS
+from game.models.state import CardState
 from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command
 
 
@@ -51,7 +52,7 @@ class TestCardEnchantments(unittest.TestCase):
         self.assertEqual(run.node_type, "rest")
 
         open_out = self.run_cmd("c 4", uid)
-        self.assertIn("卡牌附魔台", open_out)
+        self.assertEqual(open_out.count("卡牌附魔台"), 1)
         run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "enchant_card")
         self.assertEqual(run.node_data.get("stage"), "choose_enchant")
@@ -59,26 +60,41 @@ class TestCardEnchantments(unittest.TestCase):
         self.assertEqual(len(offers), 3)
 
         choose_card_out = self.run_cmd("c 1", uid)
-        self.assertIn("选择要附魔", choose_card_out)
+        self.assertEqual(choose_card_out.count("选择要附魔"), 1)
         run = load_run(self.plugin, uid)
         self.assertEqual(run.node_data.get("stage"), "choose_card")
 
         preview_out = self.run_cmd("c 1", uid)
-        self.assertIn("附魔预览确认", preview_out)
+        self.assertEqual(preview_out.count("附魔预览确认"), 1)
+        self.assertNotIn("{enchant_name}", preview_out)
+        self.assertNotIn("{rarity}", preview_out)
+        self.assertNotIn("{enchant_desc}", preview_out)
         self.assertIn("附魔前", preview_out)
         self.assertIn("附魔后", preview_out)
+        after_line = next(line for line in preview_out.splitlines() if line.startswith("附魔后："))
+        self.assertNotIn("[附魔:", after_line)
         run = load_run(self.plugin, uid)
         self.assertEqual(run.node_data.get("stage"), "confirm_preview")
 
         reselect_out = self.run_cmd("c 2", uid)
-        self.assertIn("选择要附魔", reselect_out)
+        self.assertEqual(reselect_out.count("选择要附魔"), 1)
         self.run_cmd("c 1", uid)
         confirm_out = self.run_cmd("c 1", uid)
         self.assertIn("附魔成功", confirm_out)
+        self.assertEqual(confirm_out.count("当前坐标："), 1)
         after_run = load_run(self.plugin, uid)
         self.assertEqual(after_run.node_type, "grid_map")
         chosen_eid = offers[0]
         self.assertTrue(any(chosen_eid in (c.enchantments or []) for c in after_run.player.deck))
+
+        clash_bash = ALL_CARDS[CardState(id="warrior_bash", enchantments=["clashy"])]
+        self.assertIn("造成 14 点钝击伤害", clash_bash.desc)
+        self.assertNotIn("伤害 +80%", clash_bash.desc)
+        self.assertIn("仅当手牌均为攻击牌时可打出", clash_bash.desc)
+        self.assertNotIn("[附魔:", clash_bash.desc)
+        gem_clash_bash = ALL_CARDS[CardState(id="warrior_bash", gems=["gem_dmg_add_2"], enchantments=["clashy"])]
+        self.assertIn("造成 16 点钝击伤害", gem_clash_bash.desc)
+        self.assertLess(gem_clash_bash.desc.index("仅当手牌均为攻击牌时可打出"), gem_clash_bash.desc.index("（镶嵌："))
 
     def test_shop_preview_cancel_and_confirm_enchant_with_gem_compat(self):
         uid = "ench_shop_u"
@@ -121,9 +137,9 @@ class TestCardEnchantments(unittest.TestCase):
 
         enchanted = next(c for c in run.player.deck if chosen_eid in (c.enchantments or []))
         card_obj = ALL_CARDS[enchanted]
-        self.assertIn("[附魔:", card_obj.desc)
+        self.assertNotIn("[附魔:", card_obj.desc)
         deck_out = self.run_cmd("deck", uid)
-        self.assertIn("[附魔:", deck_out)
+        self.assertNotIn("[附魔:", deck_out)
 
     def test_echo_folding_and_gem_compatibility_and_starting_enchant_chance(self):
         uid = "ench_start_u"
@@ -152,14 +168,19 @@ class TestCardEnchantments(unittest.TestCase):
         echo_twice_with_gem = CardState(id="fire_bolt", gems=["gem_dmg_add_2"], enchantments=["echo", "echo"])
         card_echo2 = ALL_CARDS[echo_twice_with_gem]
         self.assertEqual(card_echo2.name, base_card.name)
-        self.assertIn("回响x2", card_echo2.desc)
+        self.assertNotIn("回响", card_echo2.desc)
+        self.assertNotIn("[附魔:", card_echo2.desc)
         self.assertEqual(card_echo2.replay, 2)
+        self.assertIn("重放 2", card_echo2.desc)
         self.assertIn("红宝石", card_echo2.desc)
 
         brutal_card = ALL_CARDS[CardState(id="fire_bolt", enchantments=["brutal", "brutal"])]
         self.assertTrue(brutal_card.name.startswith("残暴"))
         self.assertNotIn("残暴残暴", brutal_card.name)
-        self.assertIn("残暴x2", brutal_card.desc)
+        self.assertNotIn("[附魔:", brutal_card.desc)
+        self.assertNotIn("伤害 +70%", brutal_card.desc)
+        self.assertIn("造成 5 点火焰伤害", brutal_card.desc)
+        self.assertIn("虚无", brutal_card.desc)
 
     def test_forced_event_enchant_altar(self):
         uid = "ench_event_u"

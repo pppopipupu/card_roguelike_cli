@@ -1,0 +1,13 @@
+from .core_npcs import CORE_NPC_GRAPHS
+from .madoka_nanoha_npcs import MADOKA_NANOHA_NPC_GRAPHS
+from .meta_npcs import META_NPC_GRAPHS
+from .quests import NPC_QUEST_CONFIG
+from .touhou_npcs import TOUHOU_NPC_GRAPHS
+
+NPC_DIALOG_GRAPHS = {}
+NPC_DIALOG_GRAPHS.update(CORE_NPC_GRAPHS)
+NPC_DIALOG_GRAPHS.update(TOUHOU_NPC_GRAPHS)
+NPC_DIALOG_GRAPHS.update(MADOKA_NANOHA_NPC_GRAPHS)
+NPC_DIALOG_GRAPHS.update(META_NPC_GRAPHS)
+
+__all__ = ["NPC_DIALOG_GRAPHS", "NPC_QUEST_CONFIG"]

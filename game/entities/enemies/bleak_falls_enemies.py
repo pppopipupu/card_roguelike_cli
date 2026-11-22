@@ -69,11 +69,11 @@ class BleakFallsEnemyBase(EnemyTemplate):
             )
 
         if itype in ("bandit_slash", "draugr_cleave"):
-            dmg = val + str_val
+            dmg = val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="slashing")
             emit(itype, name=enemy.name, dmg=dmg)
         elif itype in ("bandit_throw", "arvel_backstab"):
-            dmg = val + str_val
+            dmg = val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="piercing")
             emit(itype, name=enemy.name, dmg=dmg)
         elif itype in ("bandit_shield", "draugr_armor"):
@@ -86,13 +86,13 @@ class BleakFallsEnemyBase(EnemyTemplate):
                     engine._add_buff_to(other, "strength", bname, bdesc, max(1, val))
             emit("bandit_warcry", name=enemy.name, str=max(1, val))
         elif itype == "spider_bite":
-            dmg = val + str_val
+            dmg = val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="cold")
             vname, vdesc = buff_pair("cold_vuln")
             engine._add_buff_to(run.player, "minor_vulnerable_cold", vname, vdesc, 1)
             emit("spider_bite", name=enemy.name, dmg=dmg, vuln=1)
         elif itype == "spider_web":
-            dmg = val + str_val
+            dmg = val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="cold")
             bname, bdesc = buff_pair("lose_ba")
             engine._add_buff_to(run.player, "next_turn_lose_ba", bname, bdesc, 1)
@@ -108,11 +108,11 @@ class BleakFallsEnemyBase(EnemyTemplate):
             engine._add_buff_to(enemy, "strength", bname, bdesc, 1)
             emit("arvel_smoke", name=enemy.name, shield=val)
         elif itype == "draugr_frost":
-            dmg = val + str_val
+            dmg = val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="cold")
             emit("draugr_frost", name=enemy.name, dmg=dmg)
         elif itype == "wraith_drain":
-            dmg = val + str_val
+            dmg = val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="necrotic")
             heal_amt = min(enemy.max_hp - enemy.hp, 3)
             enemy.hp += heal_amt
@@ -125,7 +125,7 @@ class BleakFallsEnemyBase(EnemyTemplate):
                     engine._add_buff_to(other, "strength", bname, bdesc, 1)
             emit("wraith_chant", name=enemy.name, shield=val, str=1)
         elif itype == "overlord_shout":
-            dmg = val + str_val
+            dmg = val
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="force")
             bname, bdesc = buff_pair("lose_a")
             engine._add_buff_to(run.player, "next_turn_lose_a", bname, bdesc, 1)

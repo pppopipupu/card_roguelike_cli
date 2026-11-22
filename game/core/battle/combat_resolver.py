@@ -2,6 +2,7 @@ import random
 from typing import Optional
 from ...data.text.locale_data import get_locale_text
 from ...data.battle.damage_type_data import damage_type_value
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
 from ...models.state import GameRun, PlayerState, MinionState, Card, BuffState, DamageType
 from ...models.events import (
     BeforeDamageApplyEvent, DamageCalculateEvent, DamageTakeEvent, HealEvent, MinionDeathEvent, MinionSummonEvent, ShieldGainEvent, HealCalculateEvent, EnemyBeforeDeathEvent, BuffGainEvent, DamageRedirectEvent, BuffAppliedEvent, PlayerBeforeDeathEvent
@@ -36,7 +37,12 @@ class CombatResolver:
         self.engine = engine
 
     def resolve_ally(self, run: GameRun, target: Optional[str]):
-        """resolve_ally 的公共结算入口，保持引擎与实体层解耦。"""
+        """解析联机队友目标引用 ``aN`` 或 ``aNmG``。
+
+        ``aN`` 返回 ``(uid, player, None)``；``aNmG`` 返回
+        ``(uid, player, grid)``，``grid`` 为队友随从格。目标为空、格式非法、
+        队友不存在时返回 ``None``。本方法只读 ``run.party_order``，不派发事件。
+        """
         if not run or not target:
             return None
         text = str(target).strip().lower()
@@ -83,7 +89,12 @@ class CombatResolver:
         return True
 
     def get_target_name(self, run: GameRun, target: Optional[str]) -> str:
-        """get_target_name 的公共结算入口，保持引擎与实体层解耦。"""
+        """把目标引用转换为日志用名称。
+
+        支持 ``p0``（当前玩家）、``pG``（己方随从）、``eN``（敌人）与
+        联机队友 ``aN`` / ``aNmG``。未知或越界引用返回本地化占位文案；
+        方法不修改战斗状态，也不派发事件。
+        """
         if not target:
             return get_locale_text("i18n_battle_misc.target_none")
         resolved = self.resolve_ally(run, target)
@@ -113,7 +124,12 @@ class CombatResolver:
         return get_locale_text("i18n_battle_misc.target_unknown")
 
     def get_source_name(self, run: GameRun, source: str) -> str:
-        """get_source_name 的公共结算入口，保持引擎与实体层解耦。"""
+        """把伤害来源引用转换为展示名称。
+
+        支持 ``p0``/``player``/``effect``、``eN``、队友 ``aN``、
+        ``enemy:<名称>``、``relic:`` 与 ``curse``。无法识别时原样返回
+        ``source``；只读查询，不派发事件。
+        """
         if not source:
             return get_locale_text("i18n_battle_misc.source_unknown")
         if source.startswith("enemy:"):
@@ -141,14 +157,22 @@ class CombatResolver:
         return source
 
     def get_first_alive_enemy(self, run: GameRun) -> str:
-        """get_first_alive_enemy 的公共结算入口，保持引擎与实体层解耦。"""
+        """返回第一个存活敌人的 ``eN`` 引用。
+
+        遍历顺序与 ``run.enemies`` 一致；没有存活敌人时回退为 ``e1``，
+        交由伤害结算处理越界。只读查询，不派发事件。
+        """
         for idx, enemy in enumerate(run.enemies, 1):
             if enemy.hp > 0:
                 return f"e{idx}"
         return "e1"
 
     def get_free_grid(self, p: PlayerState) -> Optional[str]:
-        """get_free_grid 的公共结算入口，保持引擎与实体层解耦。"""
+        """返回 ``"1"`` 到 ``"6"`` 中第一个未占用的随从/护符格。
+
+        随从与护符共享格子；全部占满时返回 ``None``。只读查询，
+        不派发事件。
+        """
         for i in range(1, 7):
             s = str(i)
             if s not in p.minions and s not in p.amulets:
@@ -156,7 +180,15 @@ class CombatResolver:
         return None
 
     def add_buff_to(self, entity, buff_id: str, buff_name: str, desc: str, count: int = 1, count2: Optional[int] = None, run=None):
-        """add_buff_to 的公共结算入口，保持引擎与实体层解耦。"""
+        """给实体添加或叠加 Buff，并派发标准生命周期事件。
+
+        先派发 ``BuffGainEvent``，订阅者可 ``cancel()`` 阻止添加，或改写
+        ``count`` / ``count2``；随后同 ID Buff 叠加层数，否则创建新
+        ``BuffState``，并派发 ``BuffAppliedEvent``。配置了 ``allow_negative``
+        的 Buff 允许负层数施加与正负抵消，层数归零时自动移除。``run``
+        为空时跳过事件，仅做状态写入。
+        """
+        allow_negative = bool(BUFF_CONFIG.get(buff_id, {}).get("allow_negative", False))
         target_run = run or getattr(self.engine, "current_run", None)
         if target_run is not None:
             gain_evt = BuffGainEvent(target_run, entity, buff_id, buff_name, desc, count, count2)
@@ -165,8 +197,11 @@ class CombatResolver:
                 return
             count = int(gain_evt.count)
             count2 = gain_evt.count2
-            if count <= 0:
+        if allow_negative:
+            if count == 0:
                 return
+        elif count <= 0:
+            return
         for b in entity.buffs:
             if b.id == buff_id:
                 b.stacks += count
@@ -174,6 +209,9 @@ class CombatResolver:
                     if b.stacks2 is None:
                         b.stacks2 = 0
                     b.stacks2 += count2
+                if allow_negative and b.stacks == 0:
+                    if b in entity.buffs:
+                        entity.buffs.remove(b)
                 self._after_buff_applied(target_run, entity, b, buff_id, count, False)
                 return
         buff_state = BuffState(buff_id, buff_name, count, count2, desc)
@@ -187,9 +225,17 @@ class CombatResolver:
         self.engine.event_bus.dispatch(evt)
 
     def gain_shield(self, run: GameRun, target: str, amount: int):
-        """gain_shield 的公共结算入口，保持引擎与实体层解耦。"""
+        """给玩家、随从或敌人增加护盾。
+
+        先处理联机队友重定向，再派发 ``ShieldGainEvent``；订阅者通过
+        ``modified_amount`` 修改最终值，非正值直接忽略。目标支持 ``p0``、
+        ``pG``、``eN`` 与 ``aN``/``aNmG``。本方法不检查 0 值，以便宝石
+        与附魔在基础值为 0 时仍能得到加成。
+        """
         if self._redirect_ally(run, target, lambda inner: self.gain_shield(run, inner, amount)):
             return
+        if run.node_data.get("current_playing_card_cid"):
+            run.node_data["card_played_triggered_shield"] = True
         evt = ShieldGainEvent(run, target, amount, amount)
         self.engine.event_bus.dispatch(evt)
         final_amount = evt.modified_amount
@@ -207,9 +253,17 @@ class CombatResolver:
                 run.enemies[idx].shield += final_amount
 
     def heal_target(self, run: GameRun, target: str, heal: int):
-        """heal_target 的公共结算入口，保持引擎与实体层解耦。"""
+        """回复玩家、随从或敌人的生命。
+
+        先处理队友重定向，再派发 ``HealEvent``；``cancel()`` 会取消治疗，
+        订阅者可改写 ``amount``。玩家目标还会派发 ``HealCalculateEvent``，
+        用 ``modified_max_hp`` 限制本次治疗的上限。最终治疗不会超过目标
+        当前生命上限，也不处理致死或复活。
+        """
         if self._redirect_ally(run, target, lambda inner: self.heal_target(run, inner, heal)):
             return
+        if run.node_data.get("current_playing_card_cid"):
+            run.node_data["card_played_triggered_heal"] = True
         heal_evt = HealEvent(run, target, heal)
         self.engine.event_bus.dispatch(heal_evt)
         if heal_evt.cancelled:
@@ -235,7 +289,12 @@ class CombatResolver:
                 run.enemies[idx].hp = min(run.enemies[idx].max_hp, run.enemies[idx].hp + heal)
 
     def summon_minion(self, run: GameRun, minion_id: str, name: str, hp: int, atk: int, ba: int) -> Optional[str]:
-        """summon_minion 的公共结算入口，保持引擎与实体层解耦。"""
+        """在首个空格召唤随从并返回格子编号。
+
+        随从以 ``hp`` 同时作为当前与最大生命，攻击动作固定为 1。
+        召唤成功后派发 ``MinionSummonEvent``；没有空格时返回 ``None``，
+        不派发事件。该事件当前不检查取消标志。
+        """
         grid = self.get_free_grid(run.player)
         if grid:
             from ...data.entities.size_data import resolve_minion_size
@@ -247,7 +306,15 @@ class CombatResolver:
         return None
 
     def damage_target(self, game_run_context: GameRun, target: str, dmg: int, source: str = "effect", damage_type: str | DamageType = "effect", card: Optional[Card] = None, damage_ready: bool = False, is_attack: bool = False):
-        """damage_target 的公共结算入口，保持引擎与实体层解耦。"""
+        """完整的单体伤害结算入口。
+
+        流程依次为：``DamageRedirectEvent``（可改目标/来源/伤害或取消）、
+        队友重定向、``DamageCalculateEvent``（除非 ``damage_ready``）、
+        ``BeforeDamageApplyEvent``（可改最终伤害或声明穿透护盾）、扣减
+        护盾/生命、致死与 ``DamageTakeEvent``。目标支持 ``p0``、``pG``、
+        ``eN`` 与 ``aN``/``aNmG``；``card`` 为空时从当前出牌上下文推断。
+        返回值为 ``None``，最终结果写入战斗状态与事件日志。
+        """
         redirect_evt = DamageRedirectEvent(
             game_run_context,
             source,
@@ -277,6 +344,8 @@ class CombatResolver:
             if cid:
                 from ...entities.cards.base import ALL_CARDS
                 card = ALL_CARDS.get(cid)
+        if game_run_context.node_data.get("current_playing_card_cid"):
+            game_run_context.node_data["card_played_triggered_dmg"] = True
         acting_enemy_idx = game_run_context.node_data.get("current_acting_enemy_idx")
         if acting_enemy_idx is not None and (source.startswith("enemy:") or source in ("effect", "yog_sothoth_passive")):
             source = f"e{acting_enemy_idx+1}"

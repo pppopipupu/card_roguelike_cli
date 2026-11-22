@@ -367,8 +367,20 @@ def touch_in_room(save_manager, run, query: str, map_engine=None) -> str:
         from ...progress.achievement_service import record_run_achievement_stat
 
         record_run_achievement_stat(save_manager, run, "chireiden_facilities_used", 1)
-    save_manager.save_save(run.user_id, run)
-    parts = [x for x in (broken_msg, *trigger_logs, msg) if x]
+    from .dialog.quest_hooks import record_npc_quest_event
+    from ...text.pipeline import render_text_node
+
+    quest_notes = record_npc_quest_event(
+        run,
+        save_manager.load_stats(run.user_id) if save_manager is not None else None,
+        "touch_props",
+        {"prop_id": prop_id},
+        save_manager=save_manager,
+    )
+    quest_msgs = [render_text_node(n) for n in quest_notes]
+    if save_manager is not None:
+        save_manager.save_save(run.user_id, run)
+    parts = [x for x in (broken_msg, *trigger_logs, msg, *quest_msgs) if x]
     return "\n".join(parts)
 
 
@@ -387,7 +399,17 @@ def take_in_room(save_manager, run, query: str) -> str:
     ok, msg = add_bag_item(run.player, item_id)
     if ok:
         remove_effective_item(fm, room, item_id)
-        save_manager.save_save(run.user_id, run)
+        from .dialog.quest_hooks import record_npc_quest_event
+
+        record_npc_quest_event(
+            run,
+            save_manager.load_stats(run.user_id) if save_manager is not None else None,
+            "collect_item",
+            {"item_id": item_id},
+            save_manager=save_manager,
+        )
+        if save_manager is not None:
+            save_manager.save_save(run.user_id, run)
     return msg
 
 

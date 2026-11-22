@@ -1,6 +1,6 @@
 from ....data.entities.gem_data import GEM_CONFIG
 from ....data.text.locale_data import get_locale_text
-from ....models.events import CardPlayedEvent, CardTurnEndResolveEvent, DamageCalculateEvent, ShieldGainEvent, HealEvent
+from ....models.events import CardPlayEvent, CardPostPlayEvent, CardPlayedEvent, CardTurnEndResolveEvent, DamageCalculateEvent, ShieldGainEvent, HealEvent
 from ..event_bus import PRIORITY_MODIFIER_ADD
 
 
@@ -12,8 +12,15 @@ class GemTriggerHandler:
         event_bus.subscribe(DamageCalculateEvent, self.on_damage_calculate, PRIORITY_MODIFIER_ADD + 10)
         event_bus.subscribe(ShieldGainEvent, self.on_shield_gain, PRIORITY_MODIFIER_ADD + 10)
         event_bus.subscribe(HealEvent, self.on_heal, PRIORITY_MODIFIER_ADD + 10)
+        event_bus.subscribe(CardPlayEvent, self.on_card_play)
+        event_bus.subscribe(CardPostPlayEvent, self.on_card_post_play)
         event_bus.subscribe(CardPlayedEvent, self.on_card_played)
         event_bus.subscribe(CardTurnEndResolveEvent, self.on_card_turn_end_resolve)
+
+    def on_card_play(self, event):
+        event.run.node_data["card_played_triggered_dmg"] = False
+        event.run.node_data["card_played_triggered_shield"] = False
+        event.run.node_data["card_played_triggered_heal"] = False
 
     @staticmethod
     def _playing_card(run):
@@ -65,6 +72,30 @@ class GemTriggerHandler:
         added = sum(int(GEM_CONFIG.get(gem_id, {}).get("heal_add", 0)) for gem_id in gems)
         if added:
             event.amount += added
+
+    def on_card_post_play(self, event):
+        run = event.run
+        card = event.card
+        gems = self._gems(card)
+        if not gems:
+            return
+        if any(int(GEM_CONFIG.get(g, {}).get("shield_add", 0)) > 0 for g in gems) and not run.node_data.get("card_played_triggered_shield", False):
+            self.engine.combat_resolver.gain_shield(run, "p0", 0)
+        if any(int(GEM_CONFIG.get(g, {}).get("heal_add", 0)) > 0 for g in gems) and not run.node_data.get("card_played_triggered_heal", False):
+            self.engine.combat_resolver.heal_target(run, "p0", 0)
+        if any(int(GEM_CONFIG.get(g, {}).get("damage_add", 0)) > 0 for g in gems) and not run.node_data.get("card_played_triggered_dmg", False):
+            dmg_target = event.target
+            if not dmg_target or not dmg_target.startswith("e"):
+                dmg_target = self.engine._get_first_alive_enemy(run)
+            if dmg_target and dmg_target != "0" and dmg_target != "e0":
+                self.engine.combat_resolver.damage_target(
+                    run,
+                    dmg_target,
+                    0,
+                    source="p0",
+                    damage_type="effect",
+                    card=card,
+                )
 
     def on_card_played(self, event):
         run = event.run

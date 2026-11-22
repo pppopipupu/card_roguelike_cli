@@ -146,7 +146,7 @@ class RainieLyricCard(_RainieCardBase):
             return get_locale_text("i18n_rainie.effects.emo", stacks=stacks)
         if effect == "transparent":
             from ...core.battle.rainie_runtime import living_enemies
-            from ..cards.ninja_base import resolve_card_effective_cost_a, resolve_card_effective_cost_ba
+            from ...core.battle.card_cost import resolve_card_effective_cost_a, resolve_card_effective_cost_ba
             from .base import ALL_CARDS
             self._buff(p, engine, "intangible", 1)
             self._buff(p, engine, "rainie_transparent", 1)

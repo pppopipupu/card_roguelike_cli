@@ -178,6 +178,8 @@ class BattleBagUseCommand(CommandHandler, names=["use"], allowed_states=["battle
         msg = use_bag_item(router.engine, run, query)
         if run.node_type == "battle":
             msg = router.engine.battle_engine._append_logs_to_res(run, msg)
+            if router.engine.battle_engine.is_battle_won(run):
+                router.engine.battle_engine._handle_battle_win(run)
         router.save_manager.save_save(user_id, run)
         yield msg + "\n" + GameRenderer.render_game(run)
 

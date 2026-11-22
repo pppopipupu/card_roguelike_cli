@@ -25,10 +25,11 @@ class NinjaEventHandler:
             run.node_data["ninja_blades_played"] = int(run.node_data.get("ninja_blades_played", 0) or 0) + 1
         run.node_data["ninja_last_was_ninjutsu"] = has_ninja_tag(card, "ninjutsu")
         run.node_data["ninja_prev_played_card_id"] = run.node_data.get("ninja_last_played_card_id", "")
-        if card.id != "ninja_mobius_loop_snake":
+        if not getattr(card, "exclude_from_last_played", False):
             run.node_data["ninja_last_played_card_id"] = card.id
+        from ....entities.cards import ALL_CARDS
         if any(
-            st.id == "ninja_mosquito_hand"
+            getattr(ALL_CARDS.get(st), "buzz_while_in_piles", False)
             for pile in (p.hand, p.draw_pile, p.discard_pile)
             for st in pile
         ):

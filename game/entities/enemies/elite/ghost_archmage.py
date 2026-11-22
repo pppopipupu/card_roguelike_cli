@@ -27,7 +27,7 @@ class GhostArchmageTemplate(EnemyTemplate):
             for buff in enemy.buffs:
                 if buff.id == "strength":
                     strength += buff.stacks
-        val = intent.val + strength
+        val = intent.val
         if intent.type == "spell_burst":
             self._perform_attack(run, engine, enemy, val, logs, damage_type="lightning")
         elif intent.type == "mana_drain":

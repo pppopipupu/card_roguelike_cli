@@ -4,7 +4,7 @@ from ..data.entities.minions.minion_data import MINION_CONFIG
 from ..data.text.locale_data import get_locale_text
 from ..data.entities.buffs.buff_data import BUFF_CONFIG
 from ..data.battle.damage_type_data import is_physical_damage
-from ..entities.cards.base import get_gem_numeric_modifiers, replace_structured_number
+from ..entities.cards.base import annotate_number_modifier, get_gem_numeric_modifiers
 
 
 CONDITION_PATTERN = re.compile(r"(若|如果|每当|当(?![前后做]))")
@@ -72,9 +72,15 @@ def _card_damage_bonus(card, run) -> int:
     if card_id.startswith("duel_"):
         card_id = card_id[5:]
     if physical:
+        strength_cfg = BUFF_CONFIG.get("strength", {})
+        if card_id.startswith("heavy_blade"):
+            key = "heavy_blade_upgraded_multiplier" if getattr(card, "upgraded", False) else "heavy_blade_multiplier"
+            multiplier = strength_cfg.get(key, strength_cfg.get("default_multiplier", 1))
+        else:
+            multiplier = strength_cfg.get("default_multiplier", 1)
         for buff in run.player.buffs:
             if buff.id == "strength":
-                bonus += buff.stacks
+                bonus += buff.stacks * multiplier
     elif card_id == "neutral_astral_strike":
         strength_cfg = BUFF_CONFIG.get("strength", {})
         key = "astral_strike_upgraded_multiplier" if getattr(card, "upgraded", False) else "astral_strike_multiplier"
@@ -112,8 +118,19 @@ def build_card_template_values(card, run) -> dict:
     base_dmg = _int_value(card, "base_dmg")
     pre_bonus_damage = (base_dmg + modifiers["dmg_add"]) * modifiers["dmg_mul"]
     damage_bonus = _card_damage_bonus(card, run) if run is not None else 0
+    if pre_bonus_damage > 0 or base_dmg > 0:
+        preview_dmg = max(0, pre_bonus_damage + damage_bonus)
+        if run is not None:
+            has_weak = any(b.id == "weak" and b.stacks > 0 for b in run.player.buffs)
+            has_severe_weak = any(b.id == "severe_weak" and b.stacks > 0 for b in run.player.buffs)
+            if has_weak:
+                preview_dmg = int(preview_dmg * float(BUFF_CONFIG.get("weak", {}).get("damage_multiplier", 0.75)))
+            if has_severe_weak:
+                preview_dmg = int(preview_dmg * float(BUFF_CONFIG.get("severe_weak", {}).get("damage_multiplier", 0.5)))
+    else:
+        preview_dmg = max(0, pre_bonus_damage + damage_bonus)
     values = {
-        "base_dmg": pre_bonus_damage + damage_bonus,
+        "base_dmg": preview_dmg,
         "hit_count": _int_value(card, "hit_count", "hits"),
         "shield_amount": _int_value(card, "shield_amount") + modifiers["shield_add"],
         "heal_amount": _int_value(card, "heal_amount") + modifiers["heal_add"],
@@ -148,7 +165,7 @@ def render_description_template(text: str, values: dict) -> str:
 def _replace_damage_numbers(text: str, pre_bonus: int, final_damage: int) -> str:
     if pre_bonus <= 0 or final_damage == pre_bonus:
         return text
-    return replace_structured_number(text, pre_bonus, get_locale_text("i18n_card_runtime.preview.annotated_number", pre=pre_bonus, final=final_damage), ("造成",), ("点",), True)
+    return annotate_number_modifier(text, pre_bonus, final_damage, ("造成",), ("点",), True)
 
 
 def _cards_played_entry_description(card, run, text) -> str:
@@ -168,7 +185,7 @@ def _cards_played_entry_description(card, run, text) -> str:
             damage_bonus += int(effect.get("value", 0))
     actual = damage + damage_bonus
     if actual != damage:
-        text = replace_structured_number(text, damage, get_locale_text("i18n_card_runtime.preview.annotated_number", pre=damage, final=actual), ("造成",), ("点",))
+        text = annotate_number_modifier(text, damage, actual, ("造成",), ("点",))
     if hits:
         text += get_locale_text("i18n_card_runtime.preview.cards_played_hits", count=count, hits=hits, damage=damage_name)
     else:

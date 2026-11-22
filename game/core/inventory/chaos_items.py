@@ -101,7 +101,7 @@ def _use_grief_seed(engine, run, item_id: str, cfg: dict, add_bag_item_fn, revea
     gold = int(cfg.get("gold_bonus", 12))
     p.gold += gold
     if run.node_type == "battle":
-        bad_ids = {"weak", "burning", "bleed", "poison", "shock", "drain_ba", "void_weakness"}
+        bad_ids = {"weak", "severe_weak", "burning", "bleed", "poison", "shock", "drain_ba", "void_weakness"}
         p.buffs = [b for b in getattr(p, "buffs", []) if b.id not in bad_ids]
         p.shield = int(getattr(p, "shield", 0)) + 8
     return get_locale_text(

@@ -411,5 +411,6 @@ NINJA_CARD_CONFIG_BASIC = {'ninja_strike': {'name': '打击',
                          'unplayable': True,
                          'event_only': True,
                          'rarity': 'curse',
+                         'buzz_while_in_piles': True,
                          'ninja_tags': ('hand',),
                          'desc': '诅咒。保留。无法打出。只要此牌不在消耗堆中，每次出牌都会发出恼人的蚊子嗡嗡声。'}}

@@ -487,10 +487,9 @@ class ExploreEngine:
             msg = get_locale_text("msg_upgrade_success_event", old_card_name=old_card_name, new_card_name=new_card_name)
             return self._finish_node(run, msg)
         elif source == "room_dialog":
-            from .rooms.npc_dialog import close_room_dialog
+            from .rooms.npc_dialog import resume_room_dialog_after_flow
             msg = get_locale_text("msg_upgrade_success_event", old_card_name=old_card_name, new_card_name=new_card_name)
-            close_room_dialog(self.save_manager, run)
-            return msg
+            return resume_room_dialog_after_flow(self.save_manager, run, msg, committed=True)
         elif source == "cafe":
             self.save_manager.save_save(run.user_id, run)
             return get_locale_text("msg_upgrade_success_shop", old_card_name=old_card_name, new_card_name=new_card_name)
@@ -538,6 +537,9 @@ class ExploreEngine:
         next_type = gem_data["next_node_type"]
         next_data = gem_data["next_node_data"]
         end_party_gem(run, gem_data, next_type, next_data)
+        if next_type == "room_dialog":
+            from .rooms.npc_dialog import resume_room_dialog_after_flow
+            return resume_room_dialog_after_flow(self.save_manager, run, get_locale_text("i18n_explore_core.gem_insert_cancelled"), committed=False)
         self.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_explore_core.gem_insert_cancelled")
 
@@ -576,5 +578,9 @@ class ExploreEngine:
         next_type = gem_data["next_node_type"]
         next_data = gem_data["next_node_data"]
         end_party_gem(run, gem_data, next_type, next_data)
+        msg = get_locale_text("i18n_explore_core.gem_insert_success", gem_name=gem_name, card_name=card_obj.name)
+        if next_type == "room_dialog":
+            from .rooms.npc_dialog import resume_room_dialog_after_flow
+            return resume_room_dialog_after_flow(self.save_manager, run, msg, committed=True)
         self.save_manager.save_save(run.user_id, run)
-        return get_locale_text("i18n_explore_core.gem_insert_success", gem_name=gem_name, card_name=card_obj.name)
+        return msg

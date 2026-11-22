@@ -16,12 +16,20 @@ from .reward_builder import base_enemy_name
 
 
 def party_players(run):
-    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
+    """按 ``party_order`` 返回当前战斗中的玩家对象。
+
+    缺失于 ``run.players`` 的 UID 会被跳过；返回列表顺序稳定，供需要
+    玩家槽位顺序的同步与结算逻辑使用。不修改状态。
+    """
     return [run.players[uid] for uid in run.party_order if uid in run.players]
 
 
 def party_slots(run, alive_only=False):
-    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
+    """返回 ``(slot, uid, player)`` 槽位列表，槽位从 1 开始。
+
+    ``alive_only=True`` 时排除倒地和生命归零的玩家；缺失玩家不会占位。
+    该列表用于目标选择、复活与联机日志，不修改状态。
+    """
     slots = []
     for slot, uid in enumerate(run.party_order, 1):
         player = run.players.get(uid)
@@ -34,7 +42,11 @@ def party_slots(run, alive_only=False):
 
 
 def party_target_ref(run, uid, grid=None):
-    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
+    """把玩家 UID（可带随从格）转换为战斗目标引用。
+
+    队友在 ``party_order`` 中时返回 ``aN`` / ``aNmG``；否则回退为
+    ``p0`` / ``pG``。仅做引用映射，不验证玩家是否存活。
+    """
     if uid in run.party_order:
         slot = run.party_order.index(uid) + 1
         return f"a{slot}" if grid is None else f"a{slot}m{grid}"
@@ -42,11 +54,19 @@ def party_target_ref(run, uid, grid=None):
 
 
 def alive_uids(run):
-    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
+    """返回当前存活玩家的 UID 列表，顺序同 ``party_order``。
+
+    存活条件为未倒地且生命大于 0；与 ``party_slots(..., alive_only=True)``
+    一致，供敌人目标池使用。
+    """
     return [uid for _, uid, _ in party_slots(run, alive_only=True)]
 
 def is_all_downed(run):
-    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
+    """判断所有人类玩家是否均已倒地或生命归零。
+
+    优先使用 ``run.all_human_uids()``，缺失时回退到全部玩家；没有玩家时
+    返回 ``False``，避免空队伍被误判为团灭。
+    """
     human_uids = run.all_human_uids() if hasattr(run, "all_human_uids") else list(run.players.keys())
     players = [run.players[uid] for uid in human_uids if uid in run.players]
     if not players:
@@ -54,7 +74,11 @@ def is_all_downed(run):
     return bool(players) and all(player.downed or player.hp <= 0 for player in players)
 
 def enemy_hp_multiplier(count):
-    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
+    """按队伍人数返回敌人生命倍率。
+
+    人数先按 ``COOP_DIFFICULTY_MAX_PLAYERS`` 截断；2 人使用固定
+    ``COOP_HP_MULTIPLIERS[2]``，其余读取配置表，未知人数回退默认值。
+    """
     capped = min(count, COOP_DIFFICULTY_MAX_PLAYERS)
     if capped <= 2:
         return COOP_HP_MULTIPLIERS[2]
@@ -62,7 +86,12 @@ def enemy_hp_multiplier(count):
 
 
 def scale_party_enemies(run):
-    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
+    """按队伍人数复制非 Boss 敌人并缩放生命与特定 Buff。
+
+    Boss 仅复制一次以保持独立状态；普通敌人复制两份并追加字母后缀。
+    最大生命、当前生命与护盾按倍率向上取整，带 ``coop_scale`` 的 Buff
+    同步缩放。结果写回 ``run.enemies``，并记录 ``coop_hp_mult``。
+    """
     count = len(run.party_order)
     originals = list(run.enemies)
     if count < 2 or not originals:
@@ -88,14 +117,19 @@ def scale_party_enemies(run):
         enemy.hp = max(1, ceil(enemy.hp * multiplier))
         enemy.shield = max(0, ceil(enemy.shield * multiplier))
         for buff in enemy.buffs:
-            if BUFF_CONFIG.get(buff.id, {}).get("coop_scale"):
+            if BUFF_CONFIG.get(buff.id, {}).get("coop_scale") and buff.stacks > 0:
                 buff.stacks = max(1, ceil(buff.stacks * multiplier))
     run.enemies = expanded
     run.node_data["coop_hp_mult"] = multiplier
 
 
 def assign_enemy_targets(run, engine=None):
-    """为每个存活敌人分配攻击目标，联机时通过事件应用嘲讽与隐匿规则。"""
+    """为每个存活敌人分配本回合攻击目标并写入 ``enemy_targets``。
+
+    AOE 意图记录为 ``"ALL"``；单体意图按存活玩家轮询，联机时派发
+    ``EnemyTargetSelectEvent``，订阅者可改写 ``taunt_uids`` 与
+    ``excluded_uids``。游标保存在 ``coop_aggro_cursor``，保证跨敌人公平。
+    """
     alive = alive_uids(run)
     targets = {}
     cursor = int(run.node_data.get("coop_aggro_cursor", 0))
@@ -129,7 +163,11 @@ def assign_enemy_targets(run, engine=None):
 
 
 def pick_enemy_target(run, enemy_index, intent, fallback):
-    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
+    """读取敌人已分配目标，失效时回退到首个存活玩家。
+
+    AOE 意图返回 ``"ALL"``；记录目标仍存活且未倒地时优先使用；否则
+    返回 ``fallback``。本函数不重新分配目标，也不派发事件。
+    """
     targets = run.node_data.get("enemy_targets", {})
     marked = targets.get(str(enemy_index))
     if intent.type in AOE_INTENT_TYPES:
@@ -143,7 +181,12 @@ def pick_enemy_target(run, enemy_index, intent, fallback):
 
 
 def mark_downed(battle_engine, run, player):
-    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
+    """把玩家标记为倒地并清空其战斗资源。
+
+    单人非联机战斗直接返回；多人战斗中清空手牌、随从、护符与能力，
+    设置 ``turn_ready`` 并记录日志。若所有人类玩家均倒地，则写入
+    ``coop_wipe``。
+    """
     if not run:
         return
     humans = run.all_human_uids() if hasattr(run, "all_human_uids") else list(run.players.keys())
@@ -167,7 +210,11 @@ def mark_downed(battle_engine, run, player):
 
 
 def revive_downed_players(run):
-    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
+    """在下一层开始时复活所有倒地玩家。
+
+    复活后生命为 1、护盾清零，返回 ``{uid: 日志文本}``；尚未倒地的
+    玩家不会出现在结果中。不派发事件。
+    """
     revived = {}
     for player in party_players(run):
         if player.downed or player.hp <= 0:
@@ -179,7 +226,12 @@ def revive_downed_players(run):
 
 
 def revive_downed_ally(save_manager, target_uid: str, run=None) -> str:
-    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
+    """由队友救治指定倒地玩家并立即写回存档。
+
+    未提供 ``run`` 时按 ``target_uid`` 读取存档；目标不存在或未倒地时
+    返回空字符串。复活后生命为 1、护盾清零、动作恢复为 1A 1BA，
+    并清空手牌、随从、护符与能力。
+    """
     target_run = run
     if target_run is None or target_uid not in getattr(target_run, "players", {}):
         target_run = save_manager.load_save(target_uid)

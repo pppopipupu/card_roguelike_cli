@@ -20,7 +20,7 @@ class VoidWandererTemplate(EnemyTemplate):
         for b in enemy.buffs:
             if b.id == "strength":
                 strength += b.stacks
-        val = intent.val + strength
+        val = intent.val
     
         if intent.type == "void_bite":
             before_len = len(run.node_data.get("battle_logs", []))

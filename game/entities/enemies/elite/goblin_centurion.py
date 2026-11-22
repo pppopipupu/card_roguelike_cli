@@ -31,14 +31,14 @@ class GoblinCenturionTemplate(EnemyTemplate):
                 strength += b.stacks
         if intent.type == "heavy_strike":
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="slashing")
+            engine._damage_target(run, "p0", intent.val, source=f"enemy:{enemy.name}", damage_type="slashing")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             engine._add_buff_to(run.player, "minor_vulnerable_slashing", get_locale_text("i18n_enemy_elite_a.common.slashing_vulnerable_name"), get_locale_text("i18n_enemy_elite_a.common.slashing_vulnerable_desc"), 1)
             logs.append(get_locale_text("i18n_enemy_elite_b.goblin_centurion.heavy_strike", name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "phalanx_spear":
             other_count = sum(1 for e in run.enemies if e is not enemy and e.hp > 0)
-            dmg = intent.val + strength + cfg.get("phalanx_bonus", 3) * other_count
+            dmg = intent.val + cfg.get("phalanx_bonus", 3) * other_count
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", dmg, source=f"enemy:{enemy.name}", damage_type="piercing")
             after_logs = run.node_data.get("battle_logs", [])

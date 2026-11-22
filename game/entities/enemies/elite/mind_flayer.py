@@ -47,7 +47,7 @@ class MindFlayerTemplate(EnemyTemplate):
             for b in enemy.buffs:
                 if b.id == "strength":
                     strength += b.stacks
-            val = intent.val + strength
+            val = intent.val
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
@@ -59,7 +59,7 @@ class MindFlayerTemplate(EnemyTemplate):
             for b in enemy.buffs:
                 if b.id == "strength":
                     strength += b.stacks
-            val = intent.val + strength
+            val = intent.val
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
@@ -79,7 +79,7 @@ class MindFlayerTemplate(EnemyTemplate):
             for b in enemy.buffs:
                 if b.id == "strength":
                     strength += b.stacks
-            val = dmg_val + strength
+            val = dmg_val
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="piercing")
             after_logs = run.node_data.get("battle_logs", [])
@@ -135,7 +135,7 @@ class MindFlayerArcanistTemplate(EnemyTemplate):
             for b in enemy.buffs:
                 if b.id == "strength":
                     strength += b.stacks
-            val = intent.val + strength
+            val = intent.val
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
@@ -147,7 +147,7 @@ class MindFlayerArcanistTemplate(EnemyTemplate):
             for b in enemy.buffs:
                 if b.id == "strength":
                     strength += b.stacks
-            val = intent.val + strength
+            val = intent.val
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
@@ -167,7 +167,7 @@ class MindFlayerArcanistTemplate(EnemyTemplate):
             for b in enemy.buffs:
                 if b.id == "strength":
                     strength += b.stacks
-            val = dmg_val + strength
+            val = dmg_val
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="piercing")
             after_logs = run.node_data.get("battle_logs", [])
@@ -178,7 +178,7 @@ class MindFlayerArcanistTemplate(EnemyTemplate):
             for b in enemy.buffs:
                 if b.id == "strength":
                     strength += b.stacks
-            single_val = intent.val + strength
+            single_val = intent.val
             missile_logs = []
             for _ in range(3):
                 before_len = len(run.node_data.get("battle_logs", []))

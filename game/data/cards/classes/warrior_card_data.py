@@ -18,6 +18,7 @@ WARRIOR_CARD_CONFIG = {
         "cost_a": 2,
         "cost_ba": 0,
         "coef": 8,
+        "damage_type": "slashing",
         "desc": "造成 1.5^X * 8 点物理伤害，将弃牌堆、抽牌堆、消耗堆中所有名称含“打击”的卡牌抽入手牌。X为牌组中名称含“打击”的卡牌数量。",
         "rarity": "legendary",
         "feedback": "对【{target}】使用了【万物一打】。"
@@ -547,6 +548,7 @@ WARRIOR_CARD_CONFIG = {
         "desc": "获得 16 点护盾，造成当前护盾值一半的钝击伤害。如果此卡牌被消耗，则你获得 2A 2BA。",
         "rarity": "rare",
         "shield_amount": 16,
+        "damage_type": "bludgeoning",
         "action_gain": 2,
         "bonus_action_gain": 2,
         "feedback": "你紧握重盾对【{target}】发起了【盾牌猛击】！"

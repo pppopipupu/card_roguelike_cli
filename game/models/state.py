@@ -322,6 +322,8 @@ class Card:
     ninjutsu_cost: Optional[int | str] = None
     science: bool = False
     ninja_tags: tuple = ()
+    exclude_from_last_played: bool = False
+    buzz_while_in_piles: bool = False
     instant_summon: bool = False
     instant_summon_thresholds: tuple = ()
     instant_summon_piles: tuple = ()

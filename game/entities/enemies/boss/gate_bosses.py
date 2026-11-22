@@ -73,7 +73,7 @@ class BossCorruptedHeartTemplate(EnemyTemplate):
             logs.append(get_locale_text("i18n_enemy_boss.corrupted_heart_log_evil_words", enemy_name=enemy.name))
             
         elif intent.type == "multi_attack":
-            dmg = intent.val + strength
+            dmg = intent.val
             logs.append(get_locale_text("i18n_enemy_boss.corrupted_heart_log_blood_bullets", enemy_name=enemy.name, dmg=dmg))
             for _ in range(8):
                 if enemy.hp <= 0:
@@ -81,7 +81,7 @@ class BossCorruptedHeartTemplate(EnemyTemplate):
                 self._perform_attack(run, engine, enemy, dmg, logs)
                 
         elif intent.type == "big_attack":
-            dmg = intent.val + strength
+            dmg = intent.val
             self._perform_attack(run, engine, enemy, dmg, logs)
             
         elif intent.type == "strength_buff":
@@ -98,7 +98,7 @@ class BossCorruptedHeartTemplate(EnemyTemplate):
             logs.append(get_locale_text("i18n_enemy_boss.corrupted_heart_log_void_song", enemy_name=enemy.name))
             
         elif intent.type == "heart_strike":
-            dmg = intent.val + strength
+            dmg = intent.val
             self._perform_attack(run, engine, enemy, dmg, logs)
             
         elif intent.type == "gaze_discard":
@@ -191,7 +191,7 @@ class BossIcerainbowwTemplate(EnemyTemplate):
             if b.id == "strength":
                 strength += b.stacks
      
-        val = intent.val + strength
+        val = intent.val
      
         if intent.type == "icerain_shoot":
             if p.minions and random.random() < 0.5:

@@ -255,6 +255,11 @@ def use_bag_item(engine, run, query: str) -> str:
                             break
         sp = restore_sp(p, 1)
         if cleared_coord:
+            from ..world.rooms.dialog.quest_hooks import record_npc_quest_event
+
+            sm = getattr(engine, "save_manager", None)
+            stats = sm.load_stats(run.user_id) if sm is not None else None
+            record_npc_quest_event(run, stats, "clear_obstacle", {"coord": cleared_coord}, save_manager=sm)
             return get_locale_text("i18n_room_interact.bag.use_rusty_pickaxe_clear", coord=cleared_coord, sp=sp)
         return get_locale_text("i18n_room_interact.bag.use_rusty_pickaxe_sp", sp=sp)
     if item_id == "glowing_runestone":

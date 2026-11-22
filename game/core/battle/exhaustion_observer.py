@@ -5,6 +5,7 @@ from ...models.events import (
     DamageCalculateEvent,
     HealCalculateEvent,
     ShieldGainEvent,
+    TurnDrawCalculateEvent,
     TurnStartEvent,
 )
 from ...data.battle.damage_type_data import is_spell_card_damage
@@ -18,9 +19,14 @@ class ExhaustionObserver:
         event_bus.subscribe(DamageCalculateEvent, self.on_damage_calculate)
         event_bus.subscribe(ShieldGainEvent, self.on_shield_gain)
         event_bus.subscribe(HealCalculateEvent, self.on_heal_calculate)
+        event_bus.subscribe(TurnDrawCalculateEvent, self.on_turn_draw_calculate)
 
-    def modify_initial_draw(self, player, draw_count: int) -> int:
+    def on_turn_draw_calculate(self, event):
+        if not event.is_initial:
+            return
         from ..world.persistent_buffs import get_persistent_buff_stacks
+        player = event.player
+        draw_count = int(event.draw_count)
         ex = int(getattr(player, "exhaustion", 0) or 0)
         if ex >= 1:
             draw_count -= EXHAUSTION_CONFIG.get("level1_draw_penalty", 1)
@@ -28,7 +34,7 @@ class ExhaustionObserver:
             draw_count -= EXHAUSTION_CONFIG.get("level4_draw_penalty", 1)
         if get_persistent_buff_stacks(player, "arcane_clarity") > 0:
             draw_count += 1
-        return max(1, draw_count)
+        event.draw_count = max(1, draw_count)
 
     def on_battle_start(self, event):
         from ..world.persistent_buffs import consume_persistent_buff_in_battle, get_persistent_buff_stacks

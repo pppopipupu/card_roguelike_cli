@@ -101,22 +101,24 @@ class TestChaosExpansionAndTriggers(unittest.TestCase):
 
         self.run_cmd("d", uid)
         scholar_dlg = self.run_cmd("talk 艾拉", uid)
-        self.assertIn("你知道隐秘首领祭坛是什么吗？", scholar_dlg)
-        self.assertIn("（", scholar_dlg)
-        self.assertIn("）", scholar_dlg)
+        self.assertIn("研究草稿", scholar_dlg)
+        self.assertNotIn("（", scholar_dlg.split("\n\n")[2])
+        scholar_desk = self.run_cmd("c 2", uid)
+        self.assertIn("你知道隐秘祭坛在哪吗", scholar_desk)
         self.run_cmd("leave", uid)
 
         reimu_dlg = self.run_cmd("talk 博丽灵梦", uid)
-        self.assertIn("香油钱", reimu_dlg)
-        self.assertIn("（", reimu_dlg)
+        self.assertIn("赛钱箱", reimu_dlg)
         reimu_donate = self.run_cmd("c 1", uid)
         self.assertIn("灵梦", reimu_donate)
+        self.run_cmd("leave", uid)
 
         self.run_cmd("d", uid)
         nanoha_dlg = self.run_cmd("talk 高町奈叶", uid)
         self.assertIn("旭日之心", nanoha_dlg)
         nanoha_charge = self.run_cmd("c 2", uid)
         self.assertIn("SP", nanoha_charge)
+        self.run_cmd("leave", uid)
 
         kyubey_dlg = self.run_cmd("talk 丘比", uid)
         self.assertIn("契约", kyubey_dlg)
@@ -138,6 +140,12 @@ class TestChaosExpansionAndTriggers(unittest.TestCase):
         self.run_cmd("use 迷你八卦炉", uid)
         self.run_cmd("use 迷你八卦炉", uid)
         self.run_cmd("结束", uid)
+        post_kyubey = load_run(self.plugin, uid)
+        if post_kyubey is not None and post_kyubey.node_type == "room_dialog":
+            self.run_cmd("c 2", uid)
+            self.run_cmd("c 1", uid)
+            if load_run(self.plugin, uid).node_type == "reward":
+                self.run_cmd("leave", uid)
 
     def test_chaos_items_use_in_map_and_floor_generation_consistency(self):
         uid = "chaos_item_user"

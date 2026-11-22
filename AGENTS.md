@@ -31,6 +31,7 @@
 - 拆分：一个文件只承担一个职责；非二进制文件超过 1000 行必须物理拆分。核心引擎只做 Facade，具体逻辑委派给子组件。
 - 上帝类红线：非二进制文件超过 500 行应考虑重构，超过 1000 行必须立即重构；无论用户是否要求，均须执行。
 - 复用：通用判断、数值缩放、排版与流程使用基类模板方法或共享工具函数，禁止复制粘贴相似逻辑。
+- 卡牌预览：`game/renderer/card_preview.py` 是卡牌介绍的渲染边界，负责 `{base_dmg}` 等占位符替换、动态伤害数值与条件文案括号。宝石、附魔等持久修改必须在生成卡牌对象时直接写入基础数值与介绍中的数字；力量、虚弱、重度虚弱等战斗内条件修饰才在预览时通过 `game/entities/cards/base.py` 的 `annotate_number_modifier` 以“原值（当前值）”追加，且仅在数值实际变化时显示。禁止在预览层或执行类中手写数字括号或复制该格式化逻辑。
 - 文本管线：底层逻辑返回 `msgspec.Struct` 事件，经 `game/core/text/pipeline.py` 按 `game/data/text_layout_data.py` 聚合后，在渲染边界加载本地化键名。
 - 状态：实体状态使用 `models/state.py` 中的 Dataclass，持久化统一走 `models/manager.py` 的 SaveManager。卡牌堆中的卡牌必须是 `CardState`，禁止使用裸字符串。新代码禁止 `from_cid`；禁止修改卡牌 id 或追加后缀，升级、宝石、重放等状态只改属性。重放、易碎等修饰不得写入卡牌名称，只追加到描述末尾。
 - 序列化：JSON 读写与 HTTP 响应统一走 `game/json_codec.py` 与 `server/responses.py`（orjson），禁止直接 `import json`。

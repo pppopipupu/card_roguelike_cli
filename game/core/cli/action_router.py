@@ -1,8 +1,6 @@
 from typing import Tuple
 from ...models.state import set_user_id
-from ...entities import ALL_CARDS
 from ..cli.base import ActionHandler
-from .actions import finalize_defeat, finalize_victory
 from .base.aliases import normalize_node_alias
 from ...data.text.locale_data import get_locale_text
 

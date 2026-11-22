@@ -25,7 +25,7 @@ class DemonServantTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             self._perform_attack(run, engine, enemy, final_dmg, logs, damage_type="piercing")
         elif intent.type == "evil_gaze":
             if enemy in run.enemies:

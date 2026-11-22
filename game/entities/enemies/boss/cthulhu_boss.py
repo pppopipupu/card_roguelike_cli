@@ -147,12 +147,12 @@ class BossCthulhuTemplate(EnemyTemplate):
         if intent.type in MIST_INTENTS:
             self._execute_mist_intent(run, engine, enemy, intent, logs)
         elif intent.type == "call_of_rlyeh":
-            dmg_msg = _damage_and_capture(run, engine, "p0", intent.val + strength, f"enemy:{enemy.name}", "psychic")
+            dmg_msg = _damage_and_capture(run, engine, "p0", intent.val, f"enemy:{enemy.name}", "psychic")
             DeckService.add_card_to_draw(p, "curse_intangible_whisper")
             random.shuffle(p.draw_pile)
             logs.append(get_locale_text("i18n_enemy_boss.cthulhu_log_call_of_rlyeh", enemy_name=enemy.name, dmg_msg=dmg_msg))
         elif intent.type == "star_spawn_claw":
-            dmg_msg = _damage_and_capture(run, engine, "p0", intent.val + strength, f"enemy:{enemy.name}", "bludgeoning")
+            dmg_msg = _damage_and_capture(run, engine, "p0", intent.val, f"enemy:{enemy.name}", "bludgeoning")
             vuln_cfg = BUFF_CONFIG.get("minor_vulnerable_bludgeoning", {})
             engine._add_buff_to(p, "minor_vulnerable_bludgeoning", vuln_cfg.get("name", ""), vuln_cfg.get("desc", ""), 1)
             logs.append(get_locale_text("i18n_enemy_boss.cthulhu_log_star_spawn_claw", enemy_name=enemy.name, dmg_msg=dmg_msg))
@@ -160,13 +160,13 @@ class BossCthulhuTemplate(EnemyTemplate):
             entry = _intent_entry(CTHULHU_NAME, "sunken_tsunami")
             bonus = int(entry.get("shield_bonus_damage", 4))
             had_shield = p.shield > 0
-            dmg_msg = _damage_and_capture(run, engine, "p0", intent.val + strength, f"enemy:{enemy.name}", "cold")
+            dmg_msg = _damage_and_capture(run, engine, "p0", intent.val, f"enemy:{enemy.name}", "cold")
             logs.append(get_locale_text("i18n_enemy_boss.cthulhu_log_sunken_tsunami_player", enemy_name=enemy.name, dmg_msg=dmg_msg))
             if had_shield:
                 _damage_and_capture(run, engine, "p0", bonus, f"enemy:{enemy.name}", "true")
                 logs.append(get_locale_text("i18n_enemy_boss.cthulhu_log_sunken_tsunami_shield"))
             for grid, minion in list(p.minions.items()):
-                minion_msg = _damage_and_capture(run, engine, f"p{grid}", intent.val + strength, f"enemy:{enemy.name}", "cold")
+                minion_msg = _damage_and_capture(run, engine, f"p{grid}", intent.val, f"enemy:{enemy.name}", "cold")
                 logs.append(get_locale_text("i18n_enemy_boss.cthulhu_log_sunken_tsunami_minion", minion_name=minion.name, dmg_msg=minion_msg))
         elif intent.type == "cosmic_regen":
             entry = _intent_entry(CTHULHU_NAME, "cosmic_regen")

@@ -169,6 +169,12 @@ def get_gem_numeric_modifiers(gems):
         "sturdy_mul": sturdy_mul,
     }
 
+def format_card_number(value) -> str:
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
 def replace_structured_number(text, old_value, new_value, before_markers=(), after_markers=(), trim_after_space=False):
     if not text or old_value == new_value:
         return text
@@ -193,6 +199,18 @@ def replace_structured_number(text, old_value, new_value, before_markers=(), aft
                         replace_end += 1
                 return text[:index] + str(new_value) + text[replace_end:]
         search_from = end
+
+
+def annotate_number_modifier(text, old_value, new_value, before_markers=(), after_markers=(), trim_after_space=False):
+    if not text or old_value == new_value:
+        return text
+    annotated = get_locale_text(
+        "i18n_card_runtime.preview.annotated_number",
+        pre=format_card_number(old_value),
+        final=format_card_number(new_value),
+    )
+    return replace_structured_number(text, old_value, annotated, before_markers, after_markers, trim_after_space)
+
 
 def append_card_suffix(desc, suffix):
     if not suffix:
@@ -408,6 +426,8 @@ class CardRegistryDict(dict):
             inst.ninjutsu_cost = cfg.get("ninjutsu_cost", None)
             inst.science = bool(cfg.get("science", False))
             inst.ninja_tags = tuple(cfg.get("ninja_tags", ()))
+            inst.exclude_from_last_played = bool(cfg.get("exclude_from_last_played", False))
+            inst.buzz_while_in_piles = bool(cfg.get("buzz_while_in_piles", False))
             attach_ninja_card_tags(inst)
             attach_lyrics_tag(inst)
             if cfg.get("sentient", False) or rarity == "artifact":
@@ -740,6 +760,8 @@ for cid, cfg in _get_card_config().items():
     inst.ninjutsu_cost = cfg.get("ninjutsu_cost", None)
     inst.science = bool(cfg.get("science", False))
     inst.ninja_tags = tuple(cfg.get("ninja_tags", ()))
+    inst.exclude_from_last_played = bool(cfg.get("exclude_from_last_played", False))
+    inst.buzz_while_in_piles = bool(cfg.get("buzz_while_in_piles", False))
     attach_ninja_card_tags(inst)
     attach_lyrics_tag(inst)
     if cfg.get("sentient", False) or rarity == "artifact":

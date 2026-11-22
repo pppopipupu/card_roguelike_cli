@@ -2,7 +2,7 @@ from typing import Optional, List
 from ...models.state import Card
 from ...data.cards.card_data import CARD_CONFIG
 from ...data.text.locale_data import get_locale_text
-from ...core.battle.selection import SelectionResult, pile_card_step, target_step
+from ...core.battle.selection import SelectionResult, discard_hand_spec
 from .registry import register_card
 
 THUNDERWAVE_ACTION_LOSS = 1
@@ -197,20 +197,19 @@ class MagicNetworkCard(Card):
 @register_card("fleeting_spark")
 class FleetingSparkCard(Card):
     def get_selection_spec(self, run, engine) -> Optional[dict]:
-        return {
-            "phase": "post_play",
-            "can_cancel": False,
-            "steps": [
-                target_step("target", "enemy", allow_simple_auto=True),
-                pile_card_step(
-                    "discard_card",
-                    "hand",
-                    prompt_key="i18n_cli_core.select_prompt_default",
-                    error_key="i18n_cli_core.err_force_discard_required",
-                    invalid_index_key="i18n_cli_core.err_invalid_hand_index",
-                ),
-            ],
-        }
+        return discard_hand_spec(
+            step_id="discard_card",
+            min_count=1,
+            max_count=1,
+            prompt_key="i18n_cli_core.select_prompt_default",
+            error_key="i18n_cli_core.err_force_discard_required",
+            invalid_index_key="i18n_cli_core.err_invalid_hand_index",
+            with_enemy_target=True,
+            enemy_target_step_id="target",
+            enemy_target_allow_simple_auto=True,
+            phase="post_play",
+            can_cancel=False,
+        )
 
     def execute(self, run, target, engine) -> str:
         dmg = getattr(self, "base_dmg", 9 if self.upgraded else 6)

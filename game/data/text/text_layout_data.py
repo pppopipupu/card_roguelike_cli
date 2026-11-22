@@ -21,4 +21,14 @@ TEXT_LAYOUTS = {
             "screen": {"order": 60, "separator": "\n\n"},
         },
     },
+    "room_dialog": {
+        "separator": "\n\n",
+        "sections": {
+            "header": {"order": 10, "separator": "\n"},
+            "outcome": {"order": 20, "separator": "\n"},
+            "body": {"order": 30, "separator": "\n\n"},
+            "options": {"order": 40, "separator": "\n"},
+            "footer": {"order": 50, "separator": "\n"},
+        },
+    },
 }

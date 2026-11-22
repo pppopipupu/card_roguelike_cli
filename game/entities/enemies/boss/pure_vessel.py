@@ -127,7 +127,7 @@ class BossPureVesselTemplate(EnemyTemplate):
         cfg = self._config()
         buff_cfg = BUFF_CONFIG.get("pure_focus_charge", {})
         strength = self._strength_bonus(enemy)
-        val = intent.val + strength
+        val = intent.val
         grid = self._enemy_grid(run, enemy)
     
         if intent.type == "triple_slash":

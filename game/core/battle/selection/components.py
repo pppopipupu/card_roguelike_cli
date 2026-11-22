@@ -265,11 +265,22 @@ def discard_hand_spec(
     invalid_index_key: str,
     exclude_playing_card: bool = False,
     with_enemy_target: bool = False,
+    enemy_target_step_id: str = "discard_target",
+    enemy_target_allow_simple_auto: bool = False,
     phase: str = "pre_play",
     can_cancel: bool = True,
 ) -> SelectionSpec:
-    """构造弃牌选择规格，可选追加一个敌方目标步骤。"""
-    steps = [
+    """构造弃牌选择规格；需要目标时按“先目标、后弃牌”排序。"""
+    steps = []
+    if with_enemy_target:
+        steps.append(
+            target_step(
+                enemy_target_step_id,
+                "enemy",
+                allow_simple_auto=enemy_target_allow_simple_auto,
+            )
+        )
+    steps.append(
         pile_card_step(
             step_id,
             "hand",
@@ -280,9 +291,7 @@ def discard_hand_spec(
             error_key=error_key,
             invalid_index_key=invalid_index_key,
         )
-    ]
-    if with_enemy_target:
-        steps.append(target_step("discard_target", "enemy"))
+    )
     return {"phase": phase, "can_cancel": can_cancel, "steps": steps}
 
 

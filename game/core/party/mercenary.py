@@ -328,7 +328,7 @@ def _pick_playable_card(
             continue
         if is_chaotic_mercenary(merc) and getattr(card_obj, "id", "") == "ninja_evil_twin":
             continue
-        from ...entities.cards.ninja_base import resolve_card_effective_cost_a
+        from ..battle.card_cost import resolve_card_effective_cost_a
         cost_a = resolve_card_effective_cost_a(card_obj, state, merc)
         cost_ba = getattr(card_obj, "cost_ba", 0)
         req_a = merc.actions if cost_a == -1 else cost_a

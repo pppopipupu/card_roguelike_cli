@@ -263,7 +263,7 @@ def update_bleak_falls_stage(run: GameRun, stats: Optional[UserStats], stage: st
         multi[QUEST_BLEAK_FALLS] = dict(entry)
 
 
-def record_room_explored(run: GameRun, stats: Optional[UserStats]) -> None:
+def record_room_explored(run: GameRun, stats: Optional[UserStats], save_manager=None) -> None:
     store = _quest_store(run)
     echoes = store.get(QUEST_RUNIC_ECHOES)
     if echoes and echoes.get("status") == "active":
@@ -279,6 +279,9 @@ def record_room_explored(run: GameRun, stats: Optional[UserStats]) -> None:
             carto["progress"] = prog + 1
         if stats is not None:
             _multi_store(stats)[QUEST_ANCIENT_CARTOGRAPHER] = dict(carto)
+    from .rooms.dialog.quest_hooks import record_npc_quest_event
+
+    record_npc_quest_event(run, stats, "explore_rooms", {}, save_manager=save_manager)
 
 
 def record_brazier_lit(run: GameRun) -> None:
@@ -291,7 +294,10 @@ def record_brazier_lit(run: GameRun) -> None:
             echoes["progress"] = prog + 1
 
 
-def record_battle_won(run: GameRun, stats: Optional[UserStats], is_elite_or_boss: bool) -> None:
+def record_battle_won(run: GameRun, stats: Optional[UserStats], is_elite_or_boss: bool, difficulty: str = "normal", save_manager=None) -> None:
+    from .rooms.dialog.quest_hooks import record_npc_quest_event
+
+    record_npc_quest_event(run, stats, "win_battles", {"difficulty": difficulty}, save_manager=save_manager)
     if not is_elite_or_boss:
         return
     store = _quest_store(run)
@@ -313,6 +319,11 @@ def sync_run_to_stats(run: GameRun, stats: Optional[UserStats]) -> None:
     carto = store.get(QUEST_ANCIENT_CARTOGRAPHER)
     if carto:
         multi[QUEST_ANCIENT_CARTOGRAPHER] = dict(carto)
+    from ...data.world.npc_dialog.quests import NPC_QUEST_CONFIG
+
+    for qid, qcfg in NPC_QUEST_CONFIG.items():
+        if qcfg.get("kind") == "multi" and isinstance(store.get(qid), dict):
+            multi[qid] = dict(store[qid])
     bleak = store.get(QUEST_BLEAK_FALLS)
     if not isinstance(stats.town_flags, dict):
         stats.town_flags = {}
@@ -394,11 +405,28 @@ def render_map_quests(stats: Optional[UserStats], run: Optional[GameRun] = None)
         merged = ordered
     if not merged:
         return ""
+    from ...data.world.npc_dialog.quests import NPC_QUEST_CONFIG
+    from .rooms.dialog.quest_hooks import render_npc_quest_entries
+
+    npc_merged: dict[str, dict[str, Any]] = {}
+    legacy_merged: dict[str, dict[str, Any]] = {}
+    for qid, qval in merged.items():
+        if qid in NPC_QUEST_CONFIG:
+            npc_merged[qid] = qval
+        else:
+            legacy_merged[qid] = qval
     doc: TextDocument = [locale_text("i18n_bleak_falls.quest_ui.section_map_quests")]
-    for idx, (qid, qdata) in enumerate(merged.items()):
+    has_legacy = False
+    for idx, (qid, qdata) in enumerate(legacy_merged.items()):
+        has_legacy = True
         if idx > 0:
             doc.append(RenderedText(text=""))
         doc.extend(_quest_doc_entry(qid, qdata))
+    npc_doc = render_npc_quest_entries(npc_merged)
+    if npc_doc:
+        if has_legacy:
+            doc.append(RenderedText(text=""))
+        doc.extend(npc_doc)
     return render_text(doc, "battle")
 
 

@@ -1,7 +1,8 @@
 from ....models.events import (
     CardPlayedEvent, DamageTakeEvent, MinionSummonEvent,
-    DamageCalculateEvent, TurnStartEvent, TurnEndEvent,
+    DamageCalculateEvent, TurnStartEvent, TurnEndAfterHandEvent,
 )
+from ...text.events import locale_text
 
 
 class AmuletTriggerHandler:
@@ -14,7 +15,7 @@ class AmuletTriggerHandler:
         event_bus.subscribe(MinionSummonEvent, self.on_minion_summon)
         event_bus.subscribe(DamageCalculateEvent, self.on_damage_calculate)
         event_bus.subscribe(TurnStartEvent, self.on_turn_start)
-        event_bus.subscribe(TurnEndEvent, self.on_turn_end)
+        event_bus.subscribe(TurnEndAfterHandEvent, self.on_after_hand)
 
     def on_turn_start(self, event):
         if event.is_player:
@@ -28,17 +29,35 @@ class AmuletTriggerHandler:
                 if msg:
                     self.engine._log_event(event.run, msg)
 
-    def on_turn_end(self, event):
-        if not event.is_player:
-            return
+    def on_after_hand(self, event):
         from ....entities.amulets.amulets import ALL_AMULETS
-        for ak, av in list(event.run.player.amulets.items()):
+        run = event.run
+        player = event.player
+        for ak, av in list(player.amulets.items()):
             base_id = av.id[:-1] if av.id.endswith("+") else av.id
             template = ALL_AMULETS.get(base_id)
-            if template and hasattr(template, "on_turn_end"):
-                msg = template.on_turn_end(event.run, ak, event, self.engine)
-                if msg:
-                    self.engine._log_event(event.run, msg)
+            if template:
+                template.on_end_turn(run, ak, self.engine)
+            if player.amulets.get(ak) is not av:
+                continue
+            av.countdown -= 1
+            if av.countdown > 0:
+                continue
+            player.amulets.pop(ak, None)
+            player.minion_graveyard.append(av.id)
+            death_message = ""
+            if template:
+                death_message = template.on_death(run, ak, av.id.endswith("+"), self.engine)
+            if death_message:
+                self.engine._log_event(run, locale_text(
+                    "i18n_battle_core.amulet_requiem_death_log",
+                    params={"name": av.name, "effect": death_message},
+                ))
+            else:
+                self.engine._log_event(run, locale_text(
+                    "i18n_battle_core.amulet_requiem_log",
+                    params={"name": av.name},
+                ))
 
     def on_card_played(self, event):
         from ....entities.amulets.amulets import ALL_AMULETS

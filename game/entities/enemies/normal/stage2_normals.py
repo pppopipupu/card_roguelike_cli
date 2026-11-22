@@ -38,7 +38,7 @@ class GhostMageTemplate(EnemyTemplate):
         if intent.type == "soul_frost":
             entry = _intent_config(self.name, intent.type)
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="cold")
+            engine._damage_target(run, "p0", intent.val, source=f"enemy:{enemy.name}", damage_type="cold")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             engine._add_buff_to(p, "mana_leak", get_locale_text("i18n_enemy_normal.ghost_mage.buff_mana_leak"), get_locale_text("i18n_enemy_normal.ghost_mage.buff_mana_leak_desc"), entry.get("mana_leak", 1))
@@ -78,7 +78,7 @@ class VenomSpiderTemplate(EnemyTemplate):
         if intent.type == "neuro_fang":
             entry = _intent_config(self.name, intent.type)
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="piercing")
+            engine._damage_target(run, "p0", intent.val, source=f"enemy:{enemy.name}", damage_type="piercing")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             engine._add_buff_to(p, "poison", get_locale_text("i18n_enemy_normal.venom_spider.buff_poison"), get_locale_text("i18n_enemy_normal.venom_spider.buff_poison_desc"), entry.get("poison", 3))
@@ -120,7 +120,7 @@ class DreamlandsProwlerTemplate(EnemyTemplate):
             from ....entities import ALL_CARDS
             entry = _intent_config(self.name, intent.type)
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="psychic")
+            engine._damage_target(run, "p0", intent.val, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             candidates = []
@@ -141,7 +141,7 @@ class DreamlandsProwlerTemplate(EnemyTemplate):
             has_fragile = any(getattr(c_state, "fragile", 0) > 0 for c_state in p.hand)
             if has_fragile:
                 before_len = len(run.node_data.get("battle_logs", []))
-                engine._damage_target(run, "p0", entry.get("extra_damage", 6) + strength, source=f"enemy:{enemy.name}", damage_type="piercing")
+                engine._damage_target(run, "p0", entry.get("extra_damage", 6), source=f"enemy:{enemy.name}", damage_type="piercing")
                 after_logs = run.node_data.get("battle_logs", [])
                 dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
                 engine._add_buff_to(enemy, "strength", get_locale_text("i18n_enemy_normal.dreamlands_prowler.buff_strength"), get_locale_text("i18n_enemy_normal.dreamlands_prowler.buff_strength_desc"), entry.get("strength", 1))

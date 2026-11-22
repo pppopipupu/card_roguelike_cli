@@ -157,6 +157,9 @@ def handle_shop_lobby_or_dialog_choice(explore_engine, run, option_idx: int) -> 
         explore_engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_room_interact.shop.intel_success", coords="、".join(revealed))
     if option_idx == 5:
+        if run.node_data.get("extorted"):
+            return get_locale_text("i18n_room_interact.shop.extort_already")
+        run.node_data["extorted"] = True
         if random.random() < SHOP_DIALOG_CONFIG["extort_success_chance"]:
             p.gold += 40
             apply_shop_price_multiplier(run.node_data.get("items", []), 0.75)
@@ -164,7 +167,7 @@ def handle_shop_lobby_or_dialog_choice(explore_engine, run, option_idx: int) -> 
             explore_engine.save_manager.save_save(run.user_id, run)
             return get_locale_text("i18n_room_interact.shop.extort_success", gold=40)
         msg = get_locale_text("i18n_room_interact.shop.extort_fail")
-        battle_res = start_npc_combat(explore_engine.map_engine, run, "shop_merchant", npc_source="shop")
+        battle_res = start_npc_combat(explore_engine.map_engine, run, "shop_merchant", npc_source="shop", non_lethal=False)
         return f"{msg}\n{battle_res}"
     if option_idx == 6:
         run.node_data["shop_mode"] = "lobby"

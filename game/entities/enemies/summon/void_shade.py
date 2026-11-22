@@ -21,7 +21,7 @@ class VoidShadeTemplate(EnemyTemplate):
                 strength += b.stacks
         if intent.type == "void_strike":
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="necrotic")
+            engine._damage_target(run, "p0", intent.val, source=f"enemy:{enemy.name}", damage_type="necrotic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             logs.append(get_locale_text("i18n_enemy_misc.void_shade.void_strike", name=enemy.name, dmg_msg=dmg_msg))

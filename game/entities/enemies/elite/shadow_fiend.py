@@ -29,7 +29,7 @@ class ShadowFiendTemplate(EnemyTemplate):
             for buff in enemy.buffs:
                 if buff.id == "strength":
                     strength += buff.stacks
-        val = intent.val + strength
+        val = intent.val
         if intent.type == "shadow_strike":
             before_len = len(run.node_data.get("battle_logs", []))
             engine._damage_target(run, "p0", val, source=f"enemy:{enemy.name}", damage_type="true")

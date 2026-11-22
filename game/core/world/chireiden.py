@@ -409,7 +409,8 @@ def build_rin_npc_dialog(save_manager, run: GameRun, room: RoomState, nid: str) 
     options = []
     if not room.shared_payload.get("rin_gifted"):
         options.append({"id": "study_lbe", "text": get_locale_text("i18n_chireiden.npcs.kaenbyou_rin.opt_study_lbe")})
-    options.append({"id": "trade_coolant", "text": get_locale_text("i18n_chireiden.npcs.kaenbyou_rin.opt_trade_coolant")})
+    if not room.shared_payload.get("rin_coolant_traded"):
+        options.append({"id": "trade_coolant", "text": get_locale_text("i18n_chireiden.npcs.kaenbyou_rin.opt_trade_coolant")})
     options.append({"id": "challenge_rin", "text": get_locale_text("i18n_chireiden.npcs.kaenbyou_rin.opt_challenge_rin")})
     options.append({"id": "leave", "text": get_locale_text("i18n_chireiden.npcs.kaenbyou_rin.opt_leave")})
     return {
@@ -456,9 +457,14 @@ def handle_rin_npc_choice(map_engine, run: GameRun, dlg: dict, chosen_opt: dict)
         map_engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_chireiden.npcs.kaenbyou_rin.study_lbe_res", item=get_item_display_name("lbe_cooling_flask"))
     if opt_id == "trade_coolant":
+        if room is not None and room.shared_payload.get("rin_coolant_traded"):
+            map_engine.complete_session(run, mark_cleared=False)
+            return get_locale_text("i18n_chireiden.npcs.kaenbyou_rin.left")
         cost = 75
         if p.gold < cost:
             return get_locale_text("i18n_chireiden.npcs.kaenbyou_rin.no_gold", cost=cost)
+        if room is not None:
+            room.shared_payload["rin_coolant_traded"] = True
         p.gold -= cost
         p.max_hp += 6
         healed = min(p.max_hp - p.hp, 30)

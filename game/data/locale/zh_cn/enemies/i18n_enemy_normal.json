@@ -56,7 +56,7 @@
     "vicious_mockery": "【{name}】恶毒地嘲笑着你。{dmg_msg}，并对你施加了 1 层【虚弱】。",
     "self_motivation": "【{name}】开始自我激励，恢复了 {heal} 点生命，获得 {val} 点护盾与 1 层力量！",
     "buff_weak": "虚弱",
-    "buff_weak_desc": "造成的伤害减少 50%",
+    "buff_weak_desc": "造成的伤害减少 25%",
     "buff_strength": "力量",
     "buff_strength_desc": "造成的伤害增加"
   },

@@ -29,7 +29,7 @@ class LengSpiderTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             self._perform_attack(run, engine, enemy, final_dmg, logs)
             engine._add_buff_to(run.player, "minor_vulnerable", get_locale_text("i18n_enemy_elite_a.common.minor_vulnerable_name"), get_locale_text("i18n_enemy_elite_a.common.minor_vulnerable_desc"), 1)
             if logs:
@@ -47,7 +47,7 @@ class LengSpiderTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             self._perform_attack(run, engine, enemy, final_dmg, logs)
 
 @register_enemy("米·戈")
@@ -76,7 +76,7 @@ class MigoTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             before_len = len(run.node_data.get("battle_logs", []))
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="lightning")
             after_logs = run.node_data.get("battle_logs", [])
@@ -90,7 +90,7 @@ class MigoTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             before_len = len(run.node_data.get("battle_logs", []))
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
@@ -139,7 +139,7 @@ class ShoggothTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             before_len = len(run.node_data.get("battle_logs", []))
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="acid")
             after_logs = run.node_data.get("battle_logs", [])
@@ -157,7 +157,7 @@ class ShoggothTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             self._perform_attack(run, engine, enemy, final_dmg, logs)
 
 @register_enemy("星之精")
@@ -186,7 +186,7 @@ class StarVampireTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             before_len = len(run.node_data.get("battle_logs", []))
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="necrotic")
             after_logs = run.node_data.get("battle_logs", [])
@@ -207,7 +207,7 @@ class StarVampireTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             self._perform_attack(run, engine, enemy, final_dmg, logs)
 
 @register_enemy("克苏鲁之星之眷族")
@@ -236,7 +236,7 @@ class StarspawnOfCthulhuTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             before_len = len(run.node_data.get("battle_logs", []))
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="force")
             after_logs = run.node_data.get("battle_logs", [])
@@ -249,7 +249,7 @@ class StarspawnOfCthulhuTemplate(EnemyTemplate):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
-            final_dmg = val + strength
+            final_dmg = val
             before_len = len(run.node_data.get("battle_logs", []))
             engine.combat_resolver.damage_target(run, "p0", final_dmg, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])

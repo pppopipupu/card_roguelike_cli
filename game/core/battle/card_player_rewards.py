@@ -348,8 +348,13 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
             for uid in run.human_uids():
                 stats = self.engine.save_manager.load_stats(uid)
                 from ..world.map_quest_service import record_battle_won
-                record_battle_won(run, stats, True)
+                record_battle_won(run, stats, True, difficulty="elite", save_manager=self.engine.save_manager)
                 self.engine.save_manager.save_stats(uid, stats)
+        else:
+            for uid in run.human_uids():
+                stats = self.engine.save_manager.load_stats(uid)
+                from ..world.map_quest_service import record_battle_won
+                record_battle_won(run, stats, False, difficulty=difficulty, save_manager=self.engine.save_manager)
         self.init_rewards(run, difficulty)
         self.engine._reindex_minions(run.player)
 

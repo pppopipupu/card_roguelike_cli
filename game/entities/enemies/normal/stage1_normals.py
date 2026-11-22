@@ -39,7 +39,7 @@ class GoblinRaiderTemplate(EnemyTemplate):
             entry = _intent_config(self.name, intent.type)
             had_shield = getattr(p, "shield", 0) > 0
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="piercing")
+            engine._damage_target(run, "p0", intent.val, source=f"enemy:{enemy.name}", damage_type="piercing")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             bleed_suffix = ""
@@ -82,7 +82,7 @@ class CorruptApprenticeTemplate(EnemyTemplate):
         if intent.type == "cinder_bolt":
             entry = _intent_config(self.name, intent.type)
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="fire")
+            engine._damage_target(run, "p0", intent.val, source=f"enemy:{enemy.name}", damage_type="fire")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             engine._add_buff_to(p, "burning", get_locale_text("i18n_enemy_normal.corrupt_apprentice.buff_burning"), get_locale_text("i18n_enemy_normal.corrupt_apprentice.buff_burning_desc"), entry.get("burning", 2))
@@ -122,7 +122,7 @@ class NazeemTemplate(EnemyTemplate):
         if intent.type == "vicious_mockery":
             entry = _intent_config(self.name, intent.type)
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="psychic")
+            engine._damage_target(run, "p0", intent.val, source=f"enemy:{enemy.name}", damage_type="psychic")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             engine._add_buff_to(p, "weak", get_locale_text("i18n_enemy_normal.na_qi_mu.buff_weak"), get_locale_text("i18n_enemy_normal.na_qi_mu.buff_weak_desc"), entry.get("weak", 1))

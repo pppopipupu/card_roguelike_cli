@@ -188,13 +188,13 @@ class DeepSeekFlashTemplate(EnemyTemplate):
                 )
             logs.append(get_locale_text("i18n_enemy_normal.deepseek_flash.baguwen_prep", name=enemy.name, val=intent.val))
         elif intent.type == "cyber_ddos":
-            hit_dmg = intent.val + strength
+            hit_dmg = intent.val
             dmg_msgs = [_damage_player(run, engine, enemy, hit_dmg, "lightning") for _ in range(3)]
             run.node_data["draw_penalty_next_turn"] = run.node_data.get("draw_penalty_next_turn", 0) + 1
             penalty = get_locale_text("i18n_enemy_normal.deepseek_flash.cyber_ddos_penalty")
             logs.append(get_locale_text("i18n_enemy_normal.deepseek_flash.cyber_ddos", name=enemy.name, dmg_msg=" ".join(m for m in dmg_msgs if m) + penalty))
         elif intent.type == "cyber_ablation":
-            dmg_msg = _damage_player(run, engine, enemy, intent.val + strength, "force")
+            dmg_msg = _damage_player(run, engine, enemy, intent.val, "force")
             card_msg = ""
             candidates = [cs for cs in run.player.hand if getattr(ALL_CARDS.get(cs.id), "type", "") != "curse"]
             if candidates:
@@ -216,7 +216,7 @@ class DeepSeekFlashTemplate(EnemyTemplate):
             engine._add_buff_to(enemy, "strength", buff_name, buff_desc, 2)
             logs.append(get_locale_text("i18n_enemy_normal.deepseek_flash.overclock_cache", name=enemy.name, val=intent.val))
         elif intent.type == "standard_query":
-            dmg_msg = _damage_player(run, engine, enemy, intent.val + strength, "psychic")
+            dmg_msg = _damage_player(run, engine, enemy, intent.val, "psychic")
             logs.append(get_locale_text("i18n_enemy_normal.deepseek_flash.standard_query", name=enemy.name, dmg_msg=dmg_msg))
 
     def on_damage_take(self, event, enemy, engine):

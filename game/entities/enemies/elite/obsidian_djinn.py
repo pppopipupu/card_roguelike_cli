@@ -27,7 +27,7 @@ class ObsidianDjinnTemplate(EnemyTemplate):
             for buff in enemy.buffs:
                 if buff.id == "strength":
                     strength += buff.stacks
-        val = intent.val + strength
+        val = intent.val
         if intent.type == "quake":
             self._perform_attack(run, engine, enemy, val, logs, damage_type="bludgeoning")
             engine._add_buff_to(run.player, "drain_ba", get_locale_text("i18n_enemy_elite_c.drain_ba_name"), get_locale_text("i18n_enemy_elite_c.drain_ba_desc"), 1)

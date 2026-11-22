@@ -256,7 +256,7 @@ RAINIE_CARD_CONFIG = {
 
 
 def _to_upgraded_desc(desc: str) -> str:
-    return desc.replace("抽 3 张牌", "抽 4 张牌")
+    return desc.replace("抽 3 张牌（升级后 4 张）", "抽 4 张牌").replace("抽 3 张牌", "抽 4 张牌")
 
 
 RAINIE_CARD_UPGRADE_CONFIG = {

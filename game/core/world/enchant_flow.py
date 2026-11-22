@@ -242,7 +242,7 @@ def render_enchant_card(run: GameRun) -> str:
             "i18n_enchantment.ui.preview_enchant_line",
             enchant_name=get_enchantment_name(eid),
             rarity=get_enchantment_rarity_label(eid),
-            desc=get_enchantment_desc(eid),
+            enchant_desc=get_enchantment_desc(eid),
         )
     )
     if preview.get("name_changed"):

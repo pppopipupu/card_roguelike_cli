@@ -89,10 +89,10 @@ class SniperEliteTemplate(EnemyTemplate):
             enemy.buffs.append(BuffState(id="strength", name=get_locale_text("i18n_enemy_misc.common.strength_name"), stacks=3, desc=get_locale_text("i18n_enemy_misc.sniper_elite.strength_desc")))
             logs.append(get_locale_text("i18n_enemy_misc.sniper_elite.aim_log", name=enemy.name))
         else:
+            super().execute_intent(run, engine, enemy, intent, logs)
             for b in list(enemy.buffs):
                 if b.id == "strength":
                     enemy.buffs.remove(b)
-            super().execute_intent(run, engine, enemy, intent, logs)
 
 @register_enemy("pppopipupu")
 class PppopipupuTemplate(EnemyTemplate):

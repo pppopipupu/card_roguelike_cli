@@ -138,6 +138,8 @@ class PotionCommand(CommandHandler, names=["药水", "喝药水", "potion", "dri
         res_msg = router.engine.potion_resolver.use_potion(run, potion_id, target, is_throw)
         if run.node_type == "battle":
             res_msg = router.engine.battle_engine._append_logs_to_res(run, res_msg)
+            if router.engine.battle_engine.is_battle_won(run):
+                router.engine.battle_engine._handle_battle_win(run)
         router.save_manager.save_save(user_id, run)
         yield res_msg + "\n" + GameRenderer.render_game(run)
 

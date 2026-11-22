@@ -208,12 +208,9 @@ class NinjaRadiationAnnihilationCard(NinjaCard):
 
 @register_card("ninja_reaper_flame_blade")
 class NinjaReaperFlameBladeCard(NinjaCard):
-    def on_exhaust(self, event, card_state):
-        p = event.run.player
-        for pile in (p.hand, p.draw_pile, p.discard_pile):
-            for st in pile:
-                if getattr(st, "id", "") == "ninja_reaper_flame_blade":
-                    st.battle_cost_delta_a = int(getattr(st, "battle_cost_delta_a", 0) or 0) - 1
+    def on_other_card_exhaust(self, event, card_state):
+        if getattr(card_state, "id", "") == "ninja_reaper_flame_blade":
+            card_state.battle_cost_delta_a = int(getattr(card_state, "battle_cost_delta_a", 0) or 0) - 1
 
     def execute(self, run, target, engine) -> str:
         add_ninja_buff(engine, run.player, "intangible", 1)

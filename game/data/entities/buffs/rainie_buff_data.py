@@ -39,7 +39,8 @@ RAINIE_BUFF_CONFIG = {
     },
     "rainie_transparent": {
         "name": "小透明",
-        "desc": "本回合若场上存在我方随从或联机队友，敌人将完全无视你。"
+        "desc": "本回合若场上存在我方随从或联机队友，敌人将完全无视你。",
+        "internal": True
     },
     "rainie_courage": {
         "name": "Rainie 给的勇气",
@@ -77,24 +78,29 @@ RAINIE_BUFF_CONFIG = {
     },
     "infinite_refill": {
         "name": "无限续杯",
-        "desc": "本场战斗中，你的正面状态不再衰减，护盾回合开始不减半，未消耗的 A 与 BA 保留到下回合。"
+        "desc": "本场战斗中，你的正面状态不再衰减，护盾回合开始不减半，未消耗的 A 与 BA 保留到下回合。",
+        "infinite_refill": True
     },
     "rainie_cross_battle": {
         "name": "跨战延续",
-        "desc": "本场胜利时，将当前力量（至多 15 层）与剩余护盾的一半（至多 40 点）带入下一场战斗开局。"
+        "desc": "本场胜利时，将当前力量（至多 15 层）与剩余护盾的一半（至多 40 点）带入下一场战斗开局。",
+        "internal": True
     },
     "rain_wish_replay_pending": {
         "name": "暴雨预警",
-        "desc": "本回合打出的下一张非【歌词】牌附加重放。"
+        "desc": "本回合打出的下一张非【歌词】牌附加重放。",
+        "internal": True
     },
     "rain_wish_rain_pending": {
         "name": "倾盆冷雨",
         "desc": "本回合每再打出 1 张【歌词】牌，对所有敌人造成 6 点寒冷伤害。",
-        "rain_damage": 6
+        "rain_damage": 6,
+        "internal": True
     },
     "rain_wish_retain_hand": {
         "name": "暴雨保留",
-        "desc": "本回合结束时手牌全部临时获得【保留】。"
+        "desc": "本回合结束时手牌全部临时获得【保留】。",
+        "internal": True
     },
     "i_believe_you_will_die": {
         "name": "我信你会死",
@@ -112,7 +118,8 @@ RAINIE_BUFF_CONFIG = {
     },
     "rain_wish_free_pending": {
         "name": "言出法随",
-        "desc": "你打出的下一张牌费用变为 0A 0BA。"
+        "desc": "你打出的下一张牌费用变为 0A 0BA。",
+        "internal": True
     },
 
     "rain_wish_amplify": {

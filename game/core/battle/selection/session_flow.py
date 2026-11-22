@@ -17,6 +17,10 @@ from .session_state import (
 from .spec import SelectionStepSpec
 
 
+def _play_cancelled_message(play_evt, card) -> str:
+    return play_evt.cancel_message or get_locale_text("i18n_battle_core.spacetime_distortion", name=card.name)
+
+
 def _execute_pre_play_card(
     card_player,
     run: GameRun,
@@ -45,7 +49,7 @@ def _execute_pre_play_card(
         if play_evt.cancelled:
             run.node_data.pop("current_playing_card_hand_idx", None)
             run.node_data.pop("prism_pending_refracts", None)
-            return get_locale_text("i18n_battle_core.spacetime_distortion", name=card.name)
+            return _play_cancelled_message(play_evt, card)
         req_a = play_evt.cost_a
         req_ba = play_evt.cost_ba
         if p.actions < req_a or p.bonus_actions < req_ba:
@@ -108,7 +112,7 @@ def _suspend_pre_play(
     if play_evt.cancelled:
         run.node_data.pop("current_playing_card_hand_idx", None)
         run.node_data.pop("prism_pending_refracts", None)
-        return get_locale_text("i18n_battle_core.spacetime_distortion", name=card.name)
+        return _play_cancelled_message(play_evt, card)
     req_a = play_evt.cost_a
     req_ba = play_evt.cost_ba
     if p.actions < req_a or p.bonus_actions < req_ba:
@@ -170,7 +174,7 @@ def _start_post_play_selection(
     play_evt = CardPlayEvent(run, card, first_target, req_a, req_ba)
     engine.event_bus.dispatch(play_evt)
     if play_evt.cancelled:
-        return get_locale_text("i18n_battle_core.spacetime_distortion", name=card.name)
+        return _play_cancelled_message(play_evt, card)
     req_a = play_evt.cost_a
     req_ba = play_evt.cost_ba
     if p.actions < req_a or p.bonus_actions < req_ba:

@@ -21,7 +21,7 @@ class FlameImpTemplate(EnemyTemplate):
                 strength += b.stacks
         if intent.type == "imp_claw":
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="fire")
+            engine._damage_target(run, "p0", intent.val, source=f"enemy:{enemy.name}", damage_type="fire")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             logs.append(get_locale_text("i18n_enemy_misc.flame_imp.imp_claw", name=enemy.name, dmg_msg=dmg_msg))

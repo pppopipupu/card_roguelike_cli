@@ -58,6 +58,18 @@ CHAOS_INTENT_SPECS: Dict[str, dict] = {
     "plasma_scythe": {"kind": "attack", "damage_type": "lightning", "debuff": ("shock", 1), "log_key": "i18n_chaos_expansion.enemies.fate_testarossa.scythe_log"},
     "sonic_form": {"kind": "guard", "strength": 2, "log_key": "i18n_chaos_expansion.enemies.fate_testarossa.sonic_log"},
     "thunder_rage": {"kind": "attack", "damage_type": "lightning", "log_key": "i18n_chaos_expansion.enemies.fate_testarossa.thunder_log"},
+    "sakuya_knives": {"kind": "attack", "damage_type": "piercing", "debuff": ("bleed", 2)},
+    "sakuya_world": {"kind": "guard", "strength": 2},
+    "sakuya_jack": {"kind": "attack", "damage_type": "piercing"},
+    "koishi_id_release": {"kind": "attack", "damage_type": "psychic", "dazed": 1},
+    "koishi_unconscious": {"kind": "guard", "self_heal": 4},
+    "koishi_super_ego": {"kind": "attack", "damage_type": "force"},
+    "homura_salvo": {"kind": "attack", "damage_type": "piercing", "strip_shield": 4},
+    "homura_shield_turn": {"kind": "guard", "strength": 2},
+    "homura_rpg": {"kind": "attack", "damage_type": "fire"},
+    "hayate_diabolic": {"kind": "attack", "damage_type": "cold", "debuff": ("weak", 1)},
+    "hayate_heiter": {"kind": "guard", "self_heal": 4},
+    "hayate_ragna": {"kind": "attack", "damage_type": "force"},
     "gargoyle_stone_slam": {"kind": "attack", "damage_type": "bludgeoning", "self_shield": 4},
     "gargoyle_fortify": {"kind": "guard", "strength": 2},
     "beast_savage_bite": {"kind": "attack", "damage_type": "piercing", "debuff": ("bleed", 2)},
@@ -125,7 +137,7 @@ class ConfiguredChaosEnemyTemplate(EnemyTemplate):
                 strength += buff.stacks
         enemy_idx = run.enemies.index(enemy) + 1 if enemy in run.enemies else 1
         etag = f"e{enemy_idx}"
-        dmg_dealt = int(intent.val) + strength
+        dmg_dealt = int(intent.val)
         if spec["kind"] == "attack":
             if spec.get("strip_shield", 0) > 0 and getattr(p, "shield", 0) > 0:
                 p.shield = max(0, p.shield - int(spec["strip_shield"]))
@@ -221,6 +233,10 @@ NPC_AND_CHAOS_NAMES = (
     "巴麻美",
     "高町奈叶",
     "菲特·泰斯特罗莎",
+    "十六夜咲夜",
+    "古明地恋",
+    "晓美焰",
+    "八神疾风",
     "石像鬼守卫",
     "狂暴野兽",
     "冰霜史莱姆",

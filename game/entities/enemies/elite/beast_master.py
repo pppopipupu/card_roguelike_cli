@@ -43,7 +43,7 @@ class BeastMasterTemplate(EnemyTemplate):
         if intent.type == "attack":
             living_hounds = self._living_hounds(run, hound_name)
             before_len = len(run.node_data.get("battle_logs", []))
-            engine._damage_target(run, "p0", intent.val + strength, source=f"enemy:{enemy.name}", damage_type="slashing")
+            engine._damage_target(run, "p0", intent.val, source=f"enemy:{enemy.name}", damage_type="slashing")
             after_logs = run.node_data.get("battle_logs", [])
             dmg_msg = after_logs.pop() if len(after_logs) > before_len else ""
             extra_dmg = cfg.get("hound_bonus", 3) * len(living_hounds)

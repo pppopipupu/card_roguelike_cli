@@ -1,12 +1,12 @@
 from ..models.state import GameRun
 from ..cards import ALL_CARDS, MINION_SKILLS
-from ..entities.cards.base import get_card_color_icon
+from ..entities.cards.base import get_card_color_icon, replace_structured_number
 from ..entities import get_relic_name, get_relic_desc
 from ..data.entities.buffs.buff_data import BUFF_CONFIG
 from ..data.entities.minions.minion_data import MINION_CONFIG
 from ..data.text.locale_data import t
 from .menu import get_card_cost_str
-from .card_preview import render_card_description, replace_structured_number
+from .card_preview import render_card_description
 from .formatters import (
     format_buff_detail,
     format_buff_list,
@@ -60,16 +60,21 @@ def _find_intent_damage_value(desc: str) -> int:
                 return value
         search_from = marker + 2
 
-def adjust_intent_desc_with_modifiers(desc: str, strength: int, weak: int, base_value: int = 0) -> str:
-    if strength == 0 and weak == 0:
+def adjust_intent_desc_with_modifiers(desc: str, strength: int, weak: int, base_value: int = 0, severe_weak: int = 0) -> str:
+    if strength == 0 and weak == 0 and severe_weak == 0:
         return desc
     if base_value <= 0:
         base_value = _find_intent_damage_value(desc)
     if base_value <= 0:
         return desc
-    adjusted = base_value + strength
-    final_val = int(adjusted * 0.5) if weak > 0 else adjusted
-    final_val = max(0, final_val)
+    adjusted = max(0, base_value + strength)
+    if weak > 0:
+        weak_mult = float(BUFF_CONFIG.get("weak", {}).get("damage_multiplier", 0.75))
+        adjusted = int(adjusted * weak_mult)
+    if severe_weak > 0:
+        severe_mult = float(BUFF_CONFIG.get("severe_weak", {}).get("damage_multiplier", 0.5))
+        adjusted = int(adjusted * severe_mult)
+    final_val = max(0, adjusted)
     if final_val == base_value:
         return desc
     updated = replace_structured_number(desc, base_value, final_val, ("造成",), ("伤害",))
@@ -159,12 +164,15 @@ def render_battle(run: GameRun) -> str:
         for idx, enemy in enumerate(run.enemies, 1):
             strength = 0
             weak = 0
+            severe_weak = 0
             if getattr(enemy, "buffs", None):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
                     elif b.id == "weak":
                         weak += b.stacks
+                    elif b.id == "severe_weak":
+                        severe_weak += b.stacks
             intent_parts = []
             a_parts = []
             ba_parts = []
@@ -172,7 +180,7 @@ def render_battle(run: GameRun) -> str:
                 desc = it.cancelled_desc if it.cancelled else it.desc
                 if not desc:
                     continue
-                desc = adjust_intent_desc_with_modifiers(desc, strength, weak, getattr(it, "val", 0))
+                desc = adjust_intent_desc_with_modifiers(desc, strength, weak, getattr(it, "val", 0), severe_weak)
                 if it.cost_ba > 0:
                     ba_parts.append(desc)
                 else:
@@ -234,7 +242,7 @@ def render_battle(run: GameRun) -> str:
                     c_desc = void_corrupt_text(c_desc)
                     cost_str = "?A ?BA"
                 else:
-                    from ..entities.cards.ninja_base import resolve_card_effective_cost_a, resolve_card_effective_cost_ba
+                    from ..core.battle.card_cost import resolve_card_effective_cost_a, resolve_card_effective_cost_ba
                     eff_a = resolve_card_effective_cost_a(card, cid, p)
                     eff_ba = resolve_card_effective_cost_ba(card, cid, p)
                     if eff_a != card.cost_a or eff_ba != card.cost_ba:
@@ -353,12 +361,15 @@ def render_detailed_battle(run: GameRun) -> str:
             e_name = enemy.name
             strength = 0
             weak = 0
+            severe_weak = 0
             if getattr(enemy, "buffs", None):
                 for b in enemy.buffs:
                     if b.id == "strength":
                         strength += b.stacks
                     elif b.id == "weak":
                         weak += b.stacks
+                    elif b.id == "severe_weak":
+                        severe_weak += b.stacks
             intent_parts = []
             a_parts = []
             ba_parts = []
@@ -366,7 +377,7 @@ def render_detailed_battle(run: GameRun) -> str:
                 desc = it.cancelled_desc if it.cancelled else it.desc
                 if not desc:
                     continue
-                desc = adjust_intent_desc_with_modifiers(desc, strength, weak, getattr(it, "val", 0))
+                desc = adjust_intent_desc_with_modifiers(desc, strength, weak, getattr(it, "val", 0), severe_weak)
                 if it.cost_ba > 0:
                     ba_parts.append(desc)
                 else:

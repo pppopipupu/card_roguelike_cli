@@ -264,7 +264,7 @@ class BossYogSothothTemplate(EnemyTemplate):
         if logs is None:
             logs = []
         strength = sum(b.stacks for b in enemy.buffs if b.id == "strength")
-        val = intent.val + strength
+        val = intent.val
         handler_name = YOG_INTENT_HANDLERS.get(intent.type)
         if handler_name:
             getattr(self, handler_name)(run, engine, enemy, intent, val, logs)

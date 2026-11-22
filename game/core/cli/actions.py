@@ -47,6 +47,11 @@ def finalize_victory(
     if settled_msg:
         msg = (res.rstrip() + "\n\n" + settled_msg).strip() if res and res.strip() else settled_msg
         return msg, True, success
+    if run.node_type == "room_dialog":
+        from ..world.rooms.npc_dialog import render_room_dialog
+        rendered = render_room_dialog(run, save_manager=save_manager)
+        out = (res.rstrip() + "\n\n" + rendered).strip() if res and res.strip() else rendered
+        return out, True, success
     if run.node_type == "victory":
         settle_msg = save_manager.settle_game_and_delete(user_id, run, is_victory=True)
         boss_name = run.node_data.get("boss_name")
@@ -227,11 +232,15 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                     return get_locale_text("i18n_cli_core.msg_cancel_remove"), False, True
                 if run.node_data.get("pending_upgrade"):
                     run.node_data["pending_upgrade"] = False
+                    if run.node_data.get("upgrade_source") == "room_dialog":
+                        from ..world.rooms.npc_dialog import resume_room_dialog_after_flow
+                        res = resume_room_dialog_after_flow(router.save_manager, run, get_locale_text("i18n_cli_core.msg_cancel_upgrade"), committed=False)
+                        return res, True, True
                     router.save_manager.save_save(user_id, run)
                     return get_locale_text("i18n_cli_core.msg_cancel_upgrade"), False, True
                 if run.node_type == "gem_insert":
                     res = router.engine.gem_insert_cancel(run)
-                    return res, False, "❌" not in res
+                    return res, run.node_type == "room_dialog", "❌" not in res
                 if run.node_type == "enchant_card":
                     res = router.engine.enchant_cancel(run)
                     return res, False, "❌" not in res
@@ -287,7 +296,7 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
             return get_locale_text("i18n_cli_core.err_index_numeric"), False, False
         if run.node_type == "gem_insert":
             res = router.engine.gem_insert_choose(run, idx)
-            return res, False, "❌" not in res
+            return res, run.node_type == "room_dialog", "❌" not in res
         if run.node_type == "enchant_card":
             res = router.engine.enchant_choose(run, idx)
             return res, False, "❌" not in res
@@ -304,7 +313,7 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                     solo_key="i18n_cli_core.death_wilderness",
                 )
             router.save_manager.save_save(user_id, run)
-            return res, False, success
+            return res, run.node_type == "room_dialog", success
         elif run.node_data.get("pending_remove"):
             res = router.engine.remove_card_from_deck(run, idx)
             router.save_manager.save_save(user_id, run)
@@ -372,6 +381,11 @@ class EndTurnAction(ActionHandler, actions=["结束", "e"]):
             return msg, True, True
         res = router.engine.end_turn(run)
         success = "❌" not in res
+        if run.node_type == "room_dialog":
+            from ..world.rooms.npc_dialog import render_room_dialog
+            rendered = render_room_dialog(run, save_manager=router.save_manager)
+            out = (res.rstrip() + "\n\n" + rendered).strip() if res and res.strip() else rendered
+            return out, True, success
         if run.node_type == "victory":
             settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=True)
             boss_name = run.node_data.get("boss_name") or get_locale_text("i18n_cli_core.final_boss_default")

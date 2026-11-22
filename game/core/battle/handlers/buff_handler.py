@@ -5,9 +5,9 @@ from ....models.events import (
     MinionDeathEvent, BeforeDamageApplyEvent, BattleBeforeWinCleanupEvent,
     BuffAppliedEvent, ShieldDecayCalculateEvent, TurnStartAfterDrawEvent,
     BeforeCardDrawEvent, CardDrawnEvent, CardCostCalculateEvent,
-    CardPlayCheckEvent, CardPostPlayRouteEvent, DamageRedirectEvent,
-    PlayerBeforeDeathEvent, EnemyTargetSelectEvent, EnemyRollIntentEvent,
-    LexKelaChangedEvent,
+    CardPlayCheckEvent, CardPostPlayRouteEvent, CardEffectResolvedEvent,
+    DamageRedirectEvent, PlayerBeforeDeathEvent, EnemyTargetSelectEvent,
+    EnemyRollIntentEvent, LexKelaChangedEvent,
 )
 
 
@@ -24,6 +24,7 @@ class BuffTriggerHandler:
         event_bus.subscribe(TurnStartEvent, self.on_turn_start)
         event_bus.subscribe(TurnEndEvent, self.on_turn_end)
         event_bus.subscribe(CardPlayEvent, self.on_card_play)
+        event_bus.subscribe(CardEffectResolvedEvent, self.on_card_effect_resolved)
         event_bus.subscribe(CardPlayedEvent, self.on_card_played)
         event_bus.subscribe(DamageCalculateEvent, self.on_damage_calculate)
         event_bus.subscribe(HealEvent, self.on_heal)
@@ -102,8 +103,12 @@ class BuffTriggerHandler:
         return None
 
     def _source_entity(self, run, source):
-        if source in ("p0", "player", "effect"):
+        if source in ("p0", "player", "effect") or source.startswith("player:"):
             return run.player
+        if source.startswith("p") and len(source) > 1:
+            grid = source[1:]
+            if grid in run.player.minions:
+                return run.player.minions[grid]
         if source.startswith("e"):
             try:
                 index = int(source[1:]) - 1
@@ -117,15 +122,9 @@ class BuffTriggerHandler:
         from ....entities.buffs import get_buff_impl
         from ....entities.buffs.base import is_positive_buff
         import copy
-        internal = {
-            "rain_wish_replay_pending",
-            "rain_wish_rain_pending",
-            "rain_wish_retain_hand",
-            "rain_wish_free_pending",
-            "rainie_transparent",
-            "rainie_cross_battle",
-        }
-        has_refill = any(b.id == "infinite_refill" and b.stacks > 0 for b in entity.buffs)
+        from ....data.entities.buffs.buff_data import BUFF_CONFIG
+        internal = {bid for bid, cfg in BUFF_CONFIG.items() if cfg.get("internal")}
+        has_refill = any(BUFF_CONFIG.get(b.id, {}).get("infinite_refill") and b.stacks > 0 for b in entity.buffs)
         snapshot = []
         if has_refill:
             snapshot = [(b, int(b.stacks)) for b in entity.buffs if is_positive_buff(b.id) and b.id not in internal and b.stacks > 0]
@@ -161,6 +160,8 @@ class BuffTriggerHandler:
     def on_turn_end(self, event):
         if event.is_player:
             self._trigger_turn_buffs(event, event.run.player, "on_turn_end")
+            for minion in list(event.run.player.minions.values()):
+                self._trigger_turn_buffs(event, minion, "on_turn_end")
             return
         for enemy in list(event.run.enemies):
             self._trigger_turn_buffs(event, enemy, "on_turn_end")
@@ -169,6 +170,9 @@ class BuffTriggerHandler:
 
     def on_card_play(self, event):
         self._dispatch(event, [event.run.player], "on_card_play")
+
+    def on_card_effect_resolved(self, event):
+        self._dispatch(event, [event.run.player], "on_card_effect_resolved")
 
     def on_card_played(self, event):
         self._dispatch(event, [event.run.player, *event.run.enemies], "on_card_played")
