@@ -1,0 +1,1 @@
+ARHAT_MAX_PLAYS = 24

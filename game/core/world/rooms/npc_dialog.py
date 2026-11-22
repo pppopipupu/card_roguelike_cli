@@ -1,9 +1,9 @@
 import random
 from typing import List, Optional, Tuple
-from ....data.battle_mode_config import BATTLE_MODE_FORCED_SOLO
-from ....data.locale_data import get_locale_text
-from ....data.potion_data import roll_potion
-from ....data.room_interact_data import CAFE_GUEST_COMBAT_STATS, ROOM_NPCS
+from ....data.battle.battle_mode_config import BATTLE_MODE_FORCED_SOLO
+from ....data.text.locale_data import get_locale_text
+from ....data.entities.potion_data import roll_potion
+from ....data.world.room_interact_data import CAFE_GUEST_COMBAT_STATS, ROOM_NPCS
 from ...inventory.bag_service import add_bag_item, get_item_display_name
 from ...inventory.card_distribution import CardDistributor
 from ...inventory.deck_service import DeckService
@@ -14,9 +14,9 @@ from .hostile_npc import is_hostile_npc, trigger_hostile_npc_battle
 from ...party.session import SessionContextScoper
 from ..persistent_buffs import break_map_invisibility
 from ..sp_system import reduce_exhaustion, restore_sp
-from ....data.open_world_config import WORLD_YOG_TEMPLE
-from ....data.world_social_config import WORLD_SNOWFIELD
-from ....data.yog_quest_config import YOG_FLOOR_TEMPLE
+from ....data.world.open_world_config import WORLD_YOG_TEMPLE
+from ....data.world.world_social_config import WORLD_SNOWFIELD
+from ....data.world.yog_quest_config import YOG_FLOOR_TEMPLE
 from ...text.pipeline import render_text_node
 from ..open_world.ghost_service import OpenWorldGhostService
 from ..open_world.loadout_service import is_open_world_run
@@ -268,7 +268,7 @@ def handle_room_dialog_choice(map_engine, run, idx: int) -> str:
             cost = cfg["forge_cost"]
             if p.gold < cost:
                 return get_locale_text("i18n_room_interact.dialog.err_gold", cost=cost)
-            from ....data.card_upgrade_data import CARD_UPGRADE_CONFIG
+            from ....data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
             if not any(not c.upgraded and c.id in CARD_UPGRADE_CONFIG for c in p.deck):
                 return get_locale_text("i18n_room_interact.dialog.smith_no_unupgraded")
             p.gold -= cost
@@ -280,7 +280,7 @@ def handle_room_dialog_choice(map_engine, run, idx: int) -> str:
             cost = cfg["gem_cost"]
             if p.gold < cost:
                 return get_locale_text("i18n_room_interact.dialog.err_gold", cost=cost)
-            from ....data.gem_data import GEM_CONFIG
+            from ....data.entities.gem_data import GEM_CONFIG
             p.gold -= cost
             gid = random.choice(list(GEM_CONFIG.keys()))
             res = map_engine.explore_engine.start_gem_insert_flow(run, gid, "room_dialog", dict(run.node_data))
@@ -407,7 +407,7 @@ def handle_room_dialog_choice(map_engine, run, idx: int) -> str:
         if p.gold < 35:
             return get_locale_text("i18n_room_interact.dialog.err_gold", cost=35)
         p.gold -= 35
-        from ....data.reward_config import TREASURE_RELIC_POOL
+        from ....data.progression.reward_config import TREASURE_RELIC_POOL
         avail = [r for r in TREASURE_RELIC_POOL if r not in p.relics]
         if avail:
             rid = random.choice(avail)
@@ -521,7 +521,7 @@ def attack_in_room(map_engine, run, query: str) -> str:
             return start_npc_combat(map_engine, run, "shop_merchant", npc_source="shop")
         return get_locale_text("i18n_room_interact.combat.attack_not_found", target=q)
     if run.node_type == "cafe":
-        from ....data.cafe_data import NPC_SHOW_NAMES
+        from ....data.world.cafe_data import NPC_SHOW_NAMES
         barista_cfg = ROOM_NPCS["cafe_barista"]
         bname = get_locale_text(barista_cfg["name_key"])
         ql = q.lower()

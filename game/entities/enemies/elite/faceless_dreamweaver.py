@@ -1,8 +1,8 @@
 from typing import List, Optional
 import random
 from ..base import EnemyTemplate, register_enemy
-from ....data.enemy_data import ENEMY_CONFIG
-from ....data.locale_data import get_locale_text
+from ....data.enemies.enemy_data import ENEMY_CONFIG
+from ....data.text.locale_data import get_locale_text
 from ....core.inventory.deck_service import DeckService
 
 @register_enemy("无面织梦者")

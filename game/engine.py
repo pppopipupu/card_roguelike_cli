@@ -6,7 +6,7 @@ from .entities.cards.market import is_card_available, is_coop_only
 from .models.manager import SaveManager
 from .core.battle.engine import BattleEngine
 from .core.world.map_engine import MapEngine
-from .data.starting_deck_config import CLASS_BASE_HP, CLASS_STARTING_CARDS, DEFAULT_BASE_HP, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
+from .data.progression.starting_deck_config import CLASS_BASE_HP, CLASS_STARTING_CARDS, DEFAULT_BASE_HP, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
 
 class GameEngine:
     def __init__(self, save_manager: SaveManager):
@@ -67,7 +67,7 @@ class GameEngine:
 
     def start_party_game(self, member_ids: List[str], leader_id: Optional[str] = None, shared_save: bool = False) -> Optional[GameRun]:
         import uuid
-        from .data.balance_config import COOP_MAX_PLAYERS
+        from .data.progression.balance_config import COOP_MAX_PLAYERS
         from .core.battle.daily_blessing import apply_pending_blessing
         from .core.party.mercenary import build_mercenary_player
         if not member_ids:
@@ -172,8 +172,6 @@ class GameEngine:
     def _discard_card(self, run: GameRun, cid: str) -> str:
         return self.battle_engine._discard_card(run, cid)
 
-    def execute_emperor_eye_resolve(self, run: GameRun, keep_idx: int, upgraded: bool) -> str:
-        return self.battle_engine.execute_emperor_eye_resolve(run, keep_idx, upgraded)
 
     def upgrade_card_in_deck(self, run: GameRun, deck_idx: int) -> str:
         return self.map_engine.upgrade_card_in_deck(run, deck_idx)

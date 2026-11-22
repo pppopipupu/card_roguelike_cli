@@ -1,8 +1,8 @@
 from ..models.state import GameRun
-from ..data.ancient_node_config import ANCIENT_DEITIES
+from ..data.world.ancient_node_config import ANCIENT_DEITIES
 from ..entities import get_relic_name, get_relic_desc
 from ..cards import ALL_CARDS
-from ..data.locale_data import get_locale_text
+from ..data.text.locale_data import get_locale_text
 from .formatters import format_npcs_and_players_line
 from .world_grid import get_run_coord_prefix
 

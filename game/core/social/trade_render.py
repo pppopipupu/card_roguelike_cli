@@ -1,4 +1,4 @@
-from ...data.trade_config import TRADE_KIND_CARD, TRADE_KIND_RELIC
+from ...data.progression.trade_config import TRADE_KIND_CARD, TRADE_KIND_RELIC
 from ...entities import ALL_CARDS, get_relic_name
 from ..inventory.bag_service import get_item_display_name
 from ..text.events import JoinedText, LocaleText

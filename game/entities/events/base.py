@@ -1,5 +1,5 @@
 from typing import List
-from ...data.map_config import MapConfig
+from ...data.world.map_config import MapConfig
 
 class EventOption:
     registry = {}

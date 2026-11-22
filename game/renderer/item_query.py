@@ -1,5 +1,5 @@
 from ..core.inventory.item_lore import query_item_lore
-from ..data.locale_data import get_locale_text
+from ..data.text.locale_data import get_locale_text
 
 
 def render_item_lore(query, stats=None, run=None):

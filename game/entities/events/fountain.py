@@ -1,10 +1,10 @@
 import random
 from .base import EventOption
-from ...data.event_data import EVENT_CONFIG
+from ...data.world.event_data import EVENT_CONFIG
 from ..cards import ALL_CARDS
 from ...core.inventory.card_distribution import CardDistributor
 from ...core.inventory.deck_service import DeckService
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 
 class DrinkFountainOption(EventOption, action="drink_fountain", text=get_locale_text("i18n_events_b.option_drink_fountain")):
     def _run_effect(self, run, engine) -> str:

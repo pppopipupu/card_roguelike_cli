@@ -1,6 +1,6 @@
 from typing import Optional
-from ...data.buff_data import BUFF_CONFIG
-from ...data.ultimate_prism_data import (
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.content.ultimate_prism_data import (
     BLIND_BUFF_ID,
     ULTIMATE_PRISM_CONFIG,
     ULTIMATE_PRISM_YOG_MARKERS,

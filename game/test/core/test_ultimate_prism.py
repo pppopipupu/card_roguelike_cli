@@ -4,7 +4,7 @@ import tempfile
 import unittest
 
 from game.core.inventory.card_distribution import CardDistributor
-from game.data.ultimate_prism_data import (
+from game.data.content.ultimate_prism_data import (
     CHIREIDEN_QUEST_COMPLETED_FLAG,
     GLASS_SHARD_ITEM_ID,
     ULTIMATE_PRISM_ACHIEVEMENT_ID,
@@ -90,7 +90,7 @@ class TestUltimatePrism(unittest.TestCase):
         self.assertIn("终极棱镜", buy_res)
 
         after_stats = self.plugin.save_manager.load_stats(uid)
-        from game.data.achievement_data import ACHIEVEMENTS_CONFIG
+        from game.data.progression.achievement_data import ACHIEVEMENTS_CONFIG
         bonus_gp = ACHIEVEMENTS_CONFIG["collection_complete"]["gp_reward"] if "collection_complete" in after_stats.unlocked_achievements else 0
         self.assertEqual(after_stats.gp, 10000 - 7891 + bonus_gp)
         self.assertTrue(after_stats.town_flags.get(ULTIMATE_PRISM_FLAG_UNLOCKED))
@@ -250,8 +250,10 @@ class TestUltimatePrism(unittest.TestCase):
     def test_lore_card_talk_and_mercenary_recruitment(self):
         uid = "prism_talk_user"
         query_res = self.run_cmd("i 终极棱镜", uid)
-        self.assertIn("背景：", query_res)
-        self.assertIn("自主晶体", query_res)
+        self.assertNotIn("背景：", query_res)
+        self.assertIn("「", query_res)
+        self.assertIn("」", query_res)
+        self.assertIn("泰拉瑞亚", query_res)
 
         no_resp = self.run_cmd("talk 火焰弹", uid)
         self.assertIn("没有任何反应", no_resp)
@@ -267,7 +269,7 @@ class TestUltimatePrism(unittest.TestCase):
         self.assertIn("卡牌低语", talk_before)
         self.assertNotIn("雇佣兵", talk_before)
         lore_reply = self.run_cmd("2", uid)
-        self.assertIn("自主晶体", lore_reply)
+        self.assertIn("泰拉瑞亚", lore_reply)
         self.run_cmd("0", uid)
 
         self.run_cmd("p 1", uid)

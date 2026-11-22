@@ -3,15 +3,15 @@ from typing import TYPE_CHECKING, Tuple, Optional
 from ....models.state import GameRun
 from ....cards import ALL_CARDS
 from ....entities import get_relic_name
-from ....data.gem_data import GEM_CONFIG
-from ....data.cafe_data import (
+from ....data.entities.gem_data import GEM_CONFIG
+from ....data.world.cafe_data import (
     CAFE_MIN_HP,
     CAFE_MIN_MAX_HP,
     CAFE_PRICES,
     NPC_DIALOGS,
     NPC_TALKED_FALLBACK,
 )
-from ....data.locale_data import get_locale_text
+from ....data.text.locale_data import get_locale_text
 from ...inventory.deck_service import DeckService
 
 if TYPE_CHECKING:
@@ -203,7 +203,7 @@ class CafeDialogMixin:
                 if p.deck:
                     from ....models.state import ensure_card_state
                     cid = ensure_card_state(random.choice(p.deck))
-                    from ....data.card_upgrade_data import CARD_UPGRADE_CONFIG
+                    from ....data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
                     if cid.id in CARD_UPGRADE_CONFIG and not cid.upgraded:
                         upg_cid = DeckService.upgrade_state(cid)
                         p.deck.remove(cid)

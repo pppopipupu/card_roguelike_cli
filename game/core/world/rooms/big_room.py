@@ -1,13 +1,13 @@
 import random
-from ....data.big_room_config import (
+from ....data.world.big_room_config import (
     BIG_ROOM_MAX_DIM,
     BIG_ROOM_MIN_DIM,
     BIG_ROOM_TEMPLATES,
     compute_offsets_bbox,
     is_valid_big_room_offsets,
 )
-from ....data.grid_map_config import ROOM_ICONS
-from ....data.locale_data import get_locale_text
+from ....data.world.grid_map_config import ROOM_ICONS
+from ....data.text.locale_data import get_locale_text
 from ....models.state import BigRoomState, RoomState
 from ..grid_map_generator import coord_to_xy
 

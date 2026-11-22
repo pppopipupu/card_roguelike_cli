@@ -2,19 +2,17 @@ import copy
 from typing import Optional
 from ..models.state import CardTag, Card, GameRun
 from ..models.events import CardPlayedEvent, CardExhaustEvent, CardExtraTriggerEvent
-from ..data.locale_data import get_locale_text
+from ..data.text.locale_data import get_locale_text
 
 class ReplayTag(CardTag):
     def execute(self, card: Card, run: GameRun, target: Optional[str], engine) -> Optional[str]:
         if self.value > 0:
+            from ..core.battle.card_executor import execute_extra_card_effect
             for _ in range(self.value):
                 if engine.is_battle_won(run):
                     break
-                extra_res = engine._execute_card_effect(run, card, target)
-                played_evt_rep = CardPlayedEvent(run, card, target, extra_res, is_extra=True)
-                engine.event_bus.dispatch(played_evt_rep)
-                engine.event_bus.dispatch(CardExtraTriggerEvent(run, card, "replay"))
-                run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.replay_trigger_msg", res=played_evt_rep.feedback))
+                result = execute_extra_card_effect(engine, run, card, target, trigger_type="replay")
+                run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.replay_trigger_msg", res=result))
         return None
 
 class FragileTag(CardTag):
@@ -105,6 +103,11 @@ class BladeTag(CardTag):
 
 class HandTag(CardTag):
     def __init__(self, name: str = "hand", value: int = 1):
+        super().__init__(name, value)
+
+
+class LyricsTag(CardTag):
+    def __init__(self, name: str = "lyrics", value: int = 1):
         super().__init__(name, value)
 
 

@@ -1,9 +1,9 @@
 from typing import Optional
 from ...models.state import Card
-from ...data.card_data import CARD_CONFIG
-from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
-from ...data.locale_data import get_locale_text
-from ...core.battle.target_selector import SelectionStepSpec, pop_selected_pile_cards
+from ...data.cards.card_data import CARD_CONFIG
+from ...data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...core.battle.selection import SelectionStepSpec, pop_selected_pile_cards
 from .registry import register_card
 
 @register_card("tactical_focus")
@@ -11,7 +11,7 @@ class TacticalFocusCard(Card):
     def execute(self, run, target, engine) -> str:
         draw_count = getattr(self, "draw_count", 5 if self.upgraded else 3)
         engine._draw_cards(run.player, draw_count, run)
-        from ...data.buff_data import BUFF_CONFIG
+        from ...data.entities.buffs.buff_data import BUFF_CONFIG
         buff_info = BUFF_CONFIG.get("tactical_focus", {})
         buff_name = buff_info.get("name", get_locale_text("i18n_cards_neutral.neutral.cards.tactical_focus.buff_name"))
         buff_desc = buff_info.get("desc", get_locale_text("i18n_cards_neutral.neutral.cards.tactical_focus.buff_desc"))
@@ -178,7 +178,8 @@ class KeyResonanceCard(Card):
         recall_count = getattr(self, "hit_count", 10)
         logs = []
         for _ in range(X):
-            msg = engine.combat_resolver.recall_dead_minion(run, recall_count)
+            from ...core.battle.minion_service import recall_dead_minion
+            msg = recall_dead_minion(engine.combat_resolver, run, recall_count)
             logs.append(msg)
         stats = engine.save_manager.load_stats(run.user_id)
         has_key = getattr(stats, "unlocked_gatekey", False)
@@ -234,24 +235,16 @@ class MasterKeyCard(Card):
 @register_card("moyai_trio")
 class MoyaiTrioCard(Card):
     def get_selection_spec(self, run, engine) -> Optional[dict]:
-        return {
-            "phase": "pre_play",
-            "can_cancel": True,
-            "steps": [
-                SelectionStepSpec(
-                    step_id="discard_card",
-                    kind="hand",
-                    min_count=1,
-                    max_count=1,
-                    required=True,
-                    auto_single=True,
-                    exclude_playing_card=True,
-                    prompt_key="i18n_cards_neutral.neutral.cards.moyai_trio.prompt",
-                    error_key="i18n_cli_core.err_force_discard_required",
-                    invalid_index_key="i18n_cards_neutral.neutral.cards.moyai_trio.invalid",
-                )
-            ],
-        }
+        from ...core.battle.selection import discard_hand_spec
+        return discard_hand_spec(
+            step_id="discard_card",
+            min_count=1,
+            max_count=1,
+            exclude_playing_card=True,
+            prompt_key="i18n_cards_neutral.neutral.cards.moyai_trio.prompt",
+            error_key="i18n_cli_core.err_force_discard_required",
+            invalid_index_key="i18n_cards_neutral.neutral.cards.moyai_trio.invalid",
+        )
 
     def execute_with_selections(self, run, selections: dict, engine) -> str:
         shield = getattr(self, "shield_amount", 10)

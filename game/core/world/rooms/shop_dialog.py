@@ -1,6 +1,6 @@
 import random
-from ....data.locale_data import get_locale_text
-from ....data.room_interact_data import ROOM_NPCS, ROOM_PROPS, SHOP_DIALOG_CONFIG
+from ....data.text.locale_data import get_locale_text
+from ....data.world.room_interact_data import ROOM_NPCS, ROOM_PROPS, SHOP_DIALOG_CONFIG
 from ....entities import ALL_CARDS, get_relic_desc, get_relic_name
 from ...inventory.bag_service import get_bag_max_weight, get_bag_weight, get_item_display_name
 from .npc_dialog import start_npc_combat

@@ -1,5 +1,5 @@
-from ...data.balance_config import PROJECTION_MAX_ENTRIES
-from ...data.locale_data import get_locale_text
+from ...data.progression.balance_config import PROJECTION_MAX_ENTRIES
+from ...data.text.locale_data import get_locale_text
 from .log_service import LOG_COMMANDS
 
 PROJECTION_COMMANDS = {"projection", "投影", "pj"}

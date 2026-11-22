@@ -7,8 +7,8 @@ import jwt
 from fastapi.testclient import TestClient
 
 from game.core.audio import AudioPipeline, reset_audio_pipeline
-from game.data.audio_config import CARD_PLAY_AUDIO_MAP
-from game.data.ninja_card_data import NINJA_CARD_CONFIG
+from game.data.media.audio_config import CARD_PLAY_AUDIO_MAP
+from game.data.cards.classes.ninja_card_data import NINJA_CARD_CONFIG
 from game.models.state import CardState
 from server.app import create_app
 from server.config import Settings

@@ -1,8 +1,9 @@
 from typing import Optional
 
 from ...models.state import Card
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from .registry import register_card
+from ...core.battle.selection.target_rules import TargetRule
 
 
 def _resolve_ally(engine, run, target, allow_self=False):
@@ -37,6 +38,8 @@ def _draw_for(engine, run, player, count):
 
 @register_card("coop_tactical_command")
 class CoopTacticalCommand(Card):
+    target_rule = TargetRule(requires_ally=True, allow_minion=True)
+
     def execute(self, run, target, engine) -> str:
         resolved = _resolve_ally(engine, run, target)
         if not resolved:
@@ -71,6 +74,14 @@ class CoopTacticalCommand(Card):
 
 @register_card("coop_phalanx_bulwark")
 class CoopPhalanxBulwark(Card):
+    target_rule = TargetRule(
+        requires_ally=True,
+        allow_self=True,
+        allow_minion=False,
+        upgraded_allow_self=True,
+        self_denied_key="i18n_battle_misc.coop_bulwark_unupgraded_self",
+    )
+
     def execute(self, run, target, engine) -> str:
         resolved = _resolve_ally(engine, run, target, allow_self=self.upgraded)
         if not resolved:
@@ -102,6 +113,14 @@ class CoopPhalanxBulwark(Card):
 
 @register_card("coop_resonance_hymn")
 class CoopResonanceHymn(Card):
+    target_rule = TargetRule(
+        requires_ally=True,
+        allow_self=True,
+        allow_minion=True,
+        upgraded_allow_self=True,
+        self_denied_key="i18n_battle_misc.coop_hymn_unupgraded_self",
+    )
+
     def execute(self, run, target, engine) -> str:
         resolved = _resolve_ally(engine, run, target, allow_self=self.upgraded)
         if not resolved:
@@ -129,6 +148,8 @@ class CoopResonanceHymn(Card):
 
 @register_card("coop_soul_link")
 class CoopSoulLink(Card):
+    target_rule = TargetRule(requires_ally=True, allow_minion=False)
+
     def execute(self, run, target, engine) -> str:
         resolved = _resolve_ally(engine, run, target)
         if not resolved:

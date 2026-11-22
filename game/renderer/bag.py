@@ -1,8 +1,8 @@
 from typing import Optional
 from ..models.state import UserStats, GameRun
 from ..entities import get_relic_desc, get_relic_name
-from ..data.locale_data import get_locale_text
-from ..data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
+from ..data.text.locale_data import get_locale_text
+from ..data.world.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 from ..core.inventory.bag_service import (
     calc_bag_items_weight,
     format_weight,

@@ -1,6 +1,6 @@
 import random
 from typing import List
-from ...data.trash_talk_data import TALKING_ENEMIES, TRASH_TALK_DB
+from ...data.text.trash_talk_data import TALKING_ENEMIES, TRASH_TALK_DB
 
 def try_trash_talk(run, enemy, logs: List[str]):
     if enemy.name not in TALKING_ENEMIES:

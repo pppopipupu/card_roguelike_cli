@@ -1,9 +1,9 @@
 import random
 from typing import Optional
 
-from ...data.battle_mode_config import BATTLE_MODE_FORCED_SOLO
-from ...data.buff_data import BUFF_CONFIG
-from ...data.chireiden_data import (
+from ...data.battle.battle_mode_config import BATTLE_MODE_FORCED_SOLO
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.content.chireiden_data import (
     CHIREIDEN_BIG_ROOM_PLANS,
     CHIREIDEN_CARD_POOL,
     CHIREIDEN_EXIT_COORD,
@@ -22,16 +22,16 @@ from ...data.chireiden_data import (
     CHIREIDEN_UTSUHO_BOSS_COORD,
     CHIREIDEN_WALL_COORDS,
 )
-from ...data.enemy_data import ENEMY_CONFIG
-from ...data.enemy_data_chireiden import (
+from ...data.enemies.enemy_data import ENEMY_CONFIG
+from ...data.enemies.enemy_data_chireiden import (
     CHIREIDEN_ELITE_ENCOUNTER,
     CHIREIDEN_HIGH_DANGER_ENCOUNTERS,
     CHIREIDEN_NORMAL_ENCOUNTERS,
     CHIREIDEN_PORTAL_ENCOUNTER,
     CHIREIDEN_UTSUHO_ENCOUNTER,
 )
-from ...data.grid_map_config import FLOOR_CONFIGS
-from ...data.locale_data import get_locale_raw, get_locale_text
+from ...data.world.grid_map_config import FLOOR_CONFIGS
+from ...data.text.locale_data import get_locale_raw, get_locale_text
 from ...models.state import FloorMapState, GameRun, RoomState
 from ..inventory.bag_service import add_bag_item, get_item_display_name
 from ..inventory.deck_service import DeckService
@@ -286,7 +286,7 @@ def on_chireiden_combat_resolved(run: GameRun, room: RoomState, save_manager=Non
         DeckService.add_card_to_deck(run.player, "hisoutensoku_thermonuclear_cannon")
         portal_msg = get_locale_text("i18n_chireiden.gate.portal_defeated_unlock", coord=CHIREIDEN_EXIT_COORD)
         if save_manager is not None:
-            from ...data.ultimate_prism_data import CHIREIDEN_QUEST_COMPLETED_FLAG
+            from ...data.content.ultimate_prism_data import CHIREIDEN_QUEST_COMPLETED_FLAG
             ach = AchievementService(save_manager)
             for msg_uid in run.human_uids():
                 ach.record_stat(msg_uid, "chireiden_portal_kills", 1, mode="add", run=run)

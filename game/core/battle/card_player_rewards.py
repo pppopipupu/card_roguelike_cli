@@ -1,16 +1,16 @@
 import random
 
-from ...data.locale_data import get_locale_text
-from ...data.map_config import MapConfig
-from ...data.relic_data import RELIC_CONFIG, relic_allowed_for_any_class
-from ...data.reward_config import (
+from ...data.text.locale_data import get_locale_text
+from ...data.world.map_config import MapConfig
+from ...data.entities.relic_data import RELIC_CONFIG, relic_allowed_for_any_class
+from ...data.progression.reward_config import (
     BOSS_MYTHIC_CARDS,
     BOSS_MYTHIC_RELICS,
     COOP_ELITE_RANDOM_RELIC_RARITIES,
     COOP_ELITE_RANDOM_RELICS_PER_PLAYER,
 )
 from ...entities import get_relic_name
-from ...models.events import BattleWinEvent, RewardGenerateEvent
+from ...models.events import BattleWinEvent, RewardGenerateEvent, BattleBeforeWinCleanupEvent
 from ...models.state import GameRun, PlayerState
 from ..progress.achievement_service import AchievementService
 from ..party.coordinator import apply_and_scope, restore_player, swap_player, team_notice
@@ -74,7 +74,7 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
         options = []
         is_chireiden = bool(run.floor_map and run.floor_map.floor_flags.get("chireiden_zone"))
         if is_chireiden:
-            from ...data.chireiden_data import CHIREIDEN_CARD_POOL, CHIREIDEN_RELIC_CONFIG
+            from ...data.content.chireiden_data import CHIREIDEN_CARD_POOL, CHIREIDEN_RELIC_CONFIG
             avail_c = [r for r in CHIREIDEN_RELIC_CONFIG if r not in player.relics]
             if avail_c:
                 options.append({"type": "relic", "id": avail_c[0]})
@@ -230,13 +230,14 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
             player = run.players.get(uid)
             if player is None:
                 continue
-            player.buffs.clear()
+            self.engine.event_bus.dispatch(BattleBeforeWinCleanupEvent(run=run, player=player))
             player.hp = min(max(player.hp, 0), player.max_hp)
             if multi and player.hp <= 0:
                 player.downed = True
             previous, previous_user = swap_player(run, player)
             self.engine.event_bus.dispatch(BattleWinEvent(run))
             restore_player(run, previous, previous_user)
+            player.buffs.clear()
         if run.node_data.get("corpse_battle"):
             self.handle_corpse_win(run)
             return
@@ -248,7 +249,7 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
             from ..world.rooms.npc_dialog import handle_npc_combat_win
             handle_npc_combat_win(self, run)
             return
-        from ...data.open_world_config import OPEN_WORLD_COMBAT_FLAG
+        from ...data.world.open_world_config import OPEN_WORLD_COMBAT_FLAG
         if run.node_data.get("is_town_combat") or run.node_data.get(OPEN_WORLD_COMBAT_FLAG):
             self.engine.save_manager.save_save(run.user_id, run)
             return

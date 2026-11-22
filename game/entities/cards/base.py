@@ -12,11 +12,12 @@ from . import mercenary_cards
 from . import map_cards
 from . import chireiden_cards
 from . import ultimate_prism
+from . import rainie
 import copy
 import re
 
-from ...data.card_target_data import SELF_TARGET_SPELLS
-from ...data.locale_data import get_locale_text
+from ...data.cards.card_target_data import SELF_TARGET_SPELLS
+from ...data.text.locale_data import get_locale_text
 
 NUMERIC_CARD_FIELDS = (
     "base_dmg",
@@ -126,7 +127,7 @@ def _gem_effect_suffixes():
     }
 
 def get_gem_numeric_modifiers(gems):
-    from ...data.gem_data import GEM_CONFIG
+    from ...data.entities.gem_data import GEM_CONFIG
     dmg_add = 0
     dmg_mul = 1
     shield_add = 0
@@ -255,6 +256,34 @@ def add_hand_marker(desc):
     return f"{marker}{desc}"
 
 
+def add_lyrics_marker(desc, index: int = 0, alt_index: int = 0):
+    if index and alt_index:
+        marker = get_locale_text("i18n_rainie.lyrics_marker_alt", index=index, alt=alt_index)
+    elif index:
+        marker = get_locale_text("i18n_rainie.lyrics_marker_index", index=index)
+    else:
+        marker = get_locale_text("i18n_rainie.lyrics_marker")
+    if not desc:
+        return marker
+    if "【歌词" in desc:
+        return desc
+    return f"{marker}{desc}"
+
+
+def attach_lyrics_tag(card):
+    if not getattr(card, "lyrics", False):
+        return
+    from ...entities.tags import LyricsTag
+    index = int(getattr(card, "lyric_index", 0) or 0)
+    if not any(getattr(tag, "name", "") == "lyrics" for tag in card.tags):
+        card.add_tag(LyricsTag("lyrics", index or 1))
+    card.desc = add_lyrics_marker(
+        card.desc,
+        index,
+        int(getattr(card, "lyric_alt_index", 0) or 0),
+    )
+
+
 def attach_ninja_card_tags(card):
     ntags = tuple(getattr(card, "ninja_tags", ()) or ())
     if "blade" in ntags:
@@ -276,15 +305,16 @@ def update_keyword_count_marker(desc, label, total_val, remaining_val):
     return pattern.sub(target_text, desc)
 
 def _get_card_config():
-    from ...data.neutral_card_data import NEUTRAL_CARD_CONFIG
-    from ...data.wizard_card_data import WIZARD_CARD_CONFIG
-    from ...data.warrior_card_data import WARRIOR_CARD_CONFIG
-    from ...data.coop_card_data import COOP_CARD_CONFIG
-    from ...data.mercenary_card_data import MERCENARY_CARD_CONFIG
-    from ...data.map_card_data import MAP_CARD_CONFIG
-    from ...data.chireiden_data import CHIREIDEN_CARD_CONFIG
-    from ...data.ninja_card_data import NINJA_CARD_CONFIG
-    from ...data.ultimate_prism_data import ULTIMATE_PRISM_CARD_CONFIG
+    from ...data.cards.neutral.neutral_card_data import NEUTRAL_CARD_CONFIG
+    from ...data.cards.classes.wizard_card_data import WIZARD_CARD_CONFIG
+    from ...data.cards.classes.warrior_card_data import WARRIOR_CARD_CONFIG
+    from ...data.cards.sets.coop_card_data import COOP_CARD_CONFIG
+    from ...data.cards.sets.mercenary_card_data import MERCENARY_CARD_CONFIG
+    from ...data.cards.sets.map_card_data import MAP_CARD_CONFIG
+    from ...data.content.chireiden_data import CHIREIDEN_CARD_CONFIG
+    from ...data.cards.classes.ninja_card_data import NINJA_CARD_CONFIG
+    from ...data.content.ultimate_prism_data import ULTIMATE_PRISM_CARD_CONFIG
+    from ...data.cards.classes.rainie_card_data import RAINIE_CARD_CONFIG
     cfg = {}
     cfg.update(NEUTRAL_CARD_CONFIG)
     cfg.update(WIZARD_CARD_CONFIG)
@@ -295,6 +325,7 @@ def _get_card_config():
     cfg.update(CHIREIDEN_CARD_CONFIG)
     cfg.update(NINJA_CARD_CONFIG)
     cfg.update(ULTIMATE_PRISM_CARD_CONFIG)
+    cfg.update(RAINIE_CARD_CONFIG)
     return cfg
 
 class CardRegistryDict(dict):
@@ -350,6 +381,7 @@ class CardRegistryDict(dict):
                     setattr(inst, prop, cfg[prop])
             base_id = key.split("+")[0]
             inst.target_type = cfg.get("target_type") or ("self" if cfg.get("id", base_id) in SELF_TARGET_SPELLS else "enemy")
+            inst.arhat_forbidden = bool(cfg.get("arhat_forbidden", False))
             inst.rarity = rarity
             inst.exhaust = exhaust
             inst.eternal = bool(cfg.get("eternal", False))
@@ -370,10 +402,14 @@ class CardRegistryDict(dict):
             inst.life_merchant_only = cfg.get("life_merchant_only", False)
             inst.event_only = cfg.get("event_only", False)
             inst.token = cfg.get("token", False)
+            inst.lyrics = bool(cfg.get("lyrics", False))
+            inst.next_lyric = str(cfg.get("next_lyric", ""))
+            inst.effect = str(cfg.get("effect", ""))
             inst.ninjutsu_cost = cfg.get("ninjutsu_cost", None)
             inst.science = bool(cfg.get("science", False))
             inst.ninja_tags = tuple(cfg.get("ninja_tags", ()))
             attach_ninja_card_tags(inst)
+            attach_lyrics_tag(inst)
             if cfg.get("sentient", False) or rarity == "artifact":
                 from ...entities.tags import SentientTag
                 inst.add_tag(SentientTag())
@@ -456,10 +492,11 @@ class CardRegistryDict(dict):
         card = copy.copy(base_card)
         card.id = base_key
         card.tags = [copy.copy(t) for t in base_card.tags]
+        card.card_state = card_state
 
         if card_state.upgraded:
             card.upgraded = True
-            from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
+            from ...data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
             up_cfg = CARD_UPGRADE_CONFIG.get(base_key, {})
             if "cost_a" in up_cfg:
                 card.cost_a = up_cfg["cost_a"]
@@ -481,6 +518,7 @@ class CardRegistryDict(dict):
             if not card.name.endswith("+"):
                 card.name += "+"
             attach_ninja_card_tags(card)
+            attach_lyrics_tag(card)
 
         card.gems = list(card_state.gems)
         if card.gems:
@@ -565,7 +603,7 @@ class CardRegistryDict(dict):
             card.desc = update_keyword_count_marker(card.desc, get_locale_text("i18n_card_runtime.cards.fleeting_label"), fleeting_total, fleeting_remaining)
 
         if card.gems:
-            from ...data.gem_data import GEM_CONFIG
+            from ...data.entities.gem_data import GEM_CONFIG
             gem_descs = []
             for g in card.gems:
                 if g in GEM_CONFIG:
@@ -694,10 +732,16 @@ for cid, cfg in _get_card_config().items():
     inst.life_merchant_only = cfg.get("life_merchant_only", False)
     inst.event_only = cfg.get("event_only", False)
     inst.token = cfg.get("token", False)
+    inst.lyrics = bool(cfg.get("lyrics", False))
+    inst.lyric_index = int(cfg.get("lyric_index", 0) or 0)
+    inst.lyric_alt_index = int(cfg.get("lyric_alt_index", 0) or 0)
+    inst.next_lyric = str(cfg.get("next_lyric", ""))
+    inst.effect = str(cfg.get("effect", ""))
     inst.ninjutsu_cost = cfg.get("ninjutsu_cost", None)
     inst.science = bool(cfg.get("science", False))
     inst.ninja_tags = tuple(cfg.get("ninja_tags", ()))
     attach_ninja_card_tags(inst)
+    attach_lyrics_tag(inst)
     if cfg.get("sentient", False) or rarity == "artifact":
         from ...entities.tags import SentientTag
         inst.add_tag(SentientTag())

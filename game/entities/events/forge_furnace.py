@@ -1,13 +1,13 @@
 import random
 from .base import EventOption
-from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
-from ...data.event_data import EVENT_CONFIG
-from ...data.relic_data import RELIC_CONFIG
+from ...data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
+from ...data.world.event_data import EVENT_CONFIG
+from ...data.entities.relic_data import RELIC_CONFIG
 from ..cards import ALL_CARDS
 from ..relics import get_relic_name
 from ...models.state import BuffState, ensure_card_state
 from ...core.inventory.deck_service import DeckService
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 
 class ForgeFireOption(EventOption, action="forge_fire", text=get_locale_text("i18n_events_a.forge_fire_text")):
     def _run_effect(self, run, engine) -> str:

@@ -1,13 +1,22 @@
 from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
 from ....core.inventory.deck_service import DeckService
-from ....data.buff_data import BUFF_CONFIG
-from ....data.enemy_data import ENEMY_CONFIG
-from ....data.locale_data import get_locale_text
+from ....data.entities.buffs.buff_data import BUFF_CONFIG
+from ....data.enemies.enemy_data import ENEMY_CONFIG
+from ....data.text.locale_data import get_locale_text
 from ...buffs import is_debuff
 
 @register_enemy("腐化之心")
 class BossCorruptedHeartTemplate(EnemyTemplate):
+    def on_battle_start(self, run, enemy, engine):
+        engine._add_buff_to(enemy, "beat_of_death", get_locale_text("i18n_battle_core.beat_of_death_name"), get_locale_text("i18n_battle_core.beat_of_death_desc"))
+        engine._add_buff_to(enemy, "unyielding", get_locale_text("i18n_battle_core.unyielding_name"), get_locale_text("i18n_battle_core.unyielding_desc"), 40)
+        run.node_data["boss_name"] = enemy.name
+
+    def on_turn_start(self, event, enemy, engine):
+        if event.is_player:
+            event.run.node_data["heart_turn"] = event.run.node_data.get("heart_turn", 1) + 1
+
     def roll_intents(self, run, engine, enemy) -> List:
         from ....models.state import EnemyIntentState
         turn = run.node_data.get("heart_turn", 1)
@@ -141,6 +150,8 @@ class BossIcerainbowwTemplate(EnemyTemplate):
         return EnemyIntentState(type=intent_id, val=val, desc=self._intent_desc(intent_id, val, cost_ba), cost_a=cost_a, cost_ba=cost_ba)
 
     def on_battle_start(self, run, enemy, engine):
+        run.node_data["boss_name"] = "Icerainboww"
+        run.node_data["icerainboww_turn"] = 1
         engine._add_buff_to(
             enemy,
             "permafrost_aura_passive",

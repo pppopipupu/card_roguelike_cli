@@ -1,5 +1,5 @@
-from ...data.buff_data import BUFF_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.text.locale_data import get_locale_text
 from ...models.state import Card
 from .registry import register_card
 

@@ -1,7 +1,7 @@
 from typing import Callable
 
 from ..core.world.grid_map_generator import coord_to_xy, xy_to_coord
-from ..data.locale_data import get_locale_text
+from ..data.text.locale_data import get_locale_text
 
 VIEWPORT_WIDTH = 10
 VIEWPORT_HEIGHT = 10

@@ -1,7 +1,7 @@
 from typing import Optional
 
-from ....data.corpse_config import CorpseConfig
-from ....data.open_world_config import (
+from ....data.entities.corpse_config import CorpseConfig
+from ....data.world.open_world_config import (
     OPEN_WORLD_COMBAT_FLAG,
     OPEN_WORLD_COORD_KEY,
     OPEN_WORLD_GHOST_ID_KEY,
@@ -11,7 +11,7 @@ from ....data.open_world_config import (
     OPEN_WORLD_WORLD_KEY,
     WORLD_YOG_TEMPLE,
 )
-from ....data.outer_plane_config import OUTER_PLANE_COMBAT_FLAG, OUTER_PLANE_ROOMS
+from ....data.world.outer_plane_config import OUTER_PLANE_COMBAT_FLAG, OUTER_PLANE_ROOMS
 from ....models.state import GameRun, UserStats
 from ...text.events import LocaleText
 from ...text.pipeline import render_text_node
@@ -137,7 +137,7 @@ class OpenWorldGhostService:
         *,
         is_touch: bool = False,
     ) -> Optional[str]:
-        from ....data.locale_data import get_locale_raw
+        from ....data.text.locale_data import get_locale_raw
         clean = (query or "").strip()
         if not clean:
             return None

@@ -1,6 +1,6 @@
 from .base import BuffImpl
 from .registry import register_buff
-from ...data.buff_data import BUFF_CONFIG
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
 
 
 def _stat(instance, buff_id: str, key: str, default):
@@ -85,7 +85,8 @@ class MagneticConfinementBuff(BuffImpl):
         pct = int(_stat(self, "magnetic_confinement", "reduction_pct", 25))
         event.modified_damage = max(0, (event.modified_damage * (100 - pct)) // 100)
 
-    def on_damage_take_defend(self, event, buff_state, entity, engine):
+    def on_damage_take_defend(self, event, buff_state, entity, engine=None):
+        engine = event.engine
         if not _is_defend_owner(event, entity) or buff_state.stacks <= 0:
             return
         rebound = int(_stat(self, "magnetic_confinement", "rebound_shield", 4))

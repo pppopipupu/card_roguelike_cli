@@ -1,7 +1,7 @@
 from ...models.state import Card
-from ...data.card_data import CARD_CONFIG
-from ...data.buff_data import BUFF_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.cards.card_data import CARD_CONFIG
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.text.locale_data import get_locale_text
 from ...core.world.sp_system import consume_sp, restore_sp
 from .registry import register_card
 

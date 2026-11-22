@@ -14,8 +14,8 @@ from .save_codec import SaveCodecMixin
 from .settlement import SettlementMixin
 from ..json_codec import dumps, load
 from ..core.social.player_names import fallback_player_name, unique_handle
-from ..data.locale_data import get_locale_text
-from ..data.starting_deck_config import LOCK_SLOT_LIMIT
+from ..data.text.locale_data import get_locale_text
+from ..data.progression.starting_deck_config import LOCK_SLOT_LIMIT
 
 logger = logging.getLogger(__name__)
 
@@ -334,7 +334,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 from .coop_view import apply_view, scope_view
                 apply_view(run, user_id)
                 scope_view(run, user_id)
-                from ..data.pvp_config import PVP_MATCH_KEY
+                from ..data.world.pvp_config import PVP_MATCH_KEY
                 if run.node_data.get(PVP_MATCH_KEY):
                     from ..core.battle.pvp_service import PvpService
                     PvpService.bind_run_from_match(self, run, user_id)
@@ -382,7 +382,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 SessionContextScoper.sync_from_run(run, save_uid)
                 persist_view(run, save_uid)
                 self._sync_open_world_from_run(run)
-                from ..data.pvp_config import PVP_MATCH_KEY
+                from ..data.world.pvp_config import PVP_MATCH_KEY
                 if run.node_data.get(PVP_MATCH_KEY):
                     from ..core.battle.pvp_service import PvpService
                     PvpService.sync_match_from_run(self, run, save_uid)
@@ -429,7 +429,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 from .coop_view import apply_view, scope_view
                 apply_view(run, user_id)
                 scope_view(run, user_id)
-                from ..data.pvp_config import PVP_MATCH_KEY
+                from ..data.world.pvp_config import PVP_MATCH_KEY
                 if run.node_data.get(PVP_MATCH_KEY):
                     from ..core.battle.pvp_service import PvpService
                     PvpService.bind_run_from_match(self, run, user_id)

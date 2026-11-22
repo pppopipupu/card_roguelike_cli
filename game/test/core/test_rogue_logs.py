@@ -4,6 +4,8 @@ import tempfile
 import unittest
 
 from game.test.core.base import CorePlugin, move_to_room, run_command
+from game.entities.cards.base import ALL_CARDS
+from game.models.state import ensure_card_state
 
 
 class TestRogueLogs(unittest.TestCase):
@@ -26,16 +28,21 @@ class TestRogueLogs(unittest.TestCase):
         self.run_cmd("c 1", uid)
         _, run = move_to_room(self.plugin, uid, ("battle", "elite"))
         self.assertEqual(run.node_type, "battle")
-        self.run_cmd("p 1", uid)
+        damage_idx = next(
+            idx
+            for idx, state in enumerate(run.player.hand, 1)
+            if getattr(ALL_CARDS[ensure_card_state(state)], "base_dmg", 0) > 0
+        )
+        self.run_cmd(f"p {damage_idx}", uid)
         result = self.run_cmd("logs 10", uid)
         self.assertIn("最近", result)
         self.assertIn("start confirm", result)
         self.assertIn("战斗", result)
-        self.assertIn("p 1", result)
+        self.assertIn(f"p {damage_idx}", result)
         self.assertIn("造成", result)
         short = self.run_cmd("logs 2", uid)
         self.assertIn("最近 2 条", short)
-        self.assertIn("p 1", short)
+        self.assertIn(f"p {damage_idx}", short)
         self.assertNotIn("start confirm", short)
 
     

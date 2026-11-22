@@ -2,8 +2,8 @@ import random
 from typing import Dict, List, Optional
 from .base import ALL_ENEMIES, EnemyTemplate
 from .trash_talk_actions import try_trash_talk
-from ...data.enemy_data import ENEMY_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.enemies.enemy_data import ENEMY_CONFIG
+from ...data.text.locale_data import get_locale_text
 from ...models.state import CardState, EnemyIntentState
 
 CHAOS_INTENT_SPECS: Dict[str, dict] = {

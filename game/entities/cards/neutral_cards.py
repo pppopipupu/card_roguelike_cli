@@ -1,7 +1,7 @@
 from typing import Optional
 from ...models.state import Card, ensure_card_state
-from ...data.locale_data import get_locale_text
-from ...core.battle.target_selector import SelectionStepSpec
+from ...data.text.locale_data import get_locale_text
+from ...core.battle.selection import SelectionResult, pile_card_step
 from .registry import register_card
 from .neutral_cards_base import (
     TacticalFocusCard,
@@ -160,7 +160,7 @@ class NeutralPlaneShiftCard(Card):
         if run.player.stage in forbidden_stages:
             return get_locale_text("i18n_cards_neutral.neutral.cards.plane_shift.forbidden")
 
-        from ...data.pvp_config import PVP_ESCAPE_KEY, PVP_MATCH_KEY
+        from ...data.world.pvp_config import PVP_ESCAPE_KEY, PVP_MATCH_KEY
         if run.node_data.get(PVP_MATCH_KEY):
             run.node_data[PVP_ESCAPE_KEY] = True
             return get_locale_text("i18n_cards_neutral.neutral.cards.plane_shift.result_pvp")
@@ -182,13 +182,9 @@ class NeutralEmperorEyeCard(Card):
             "can_cancel": True,
             "cancel_key": "i18n_cli_core.err_cancel_overload",
             "steps": [
-                SelectionStepSpec(
-                    step_id="keep_card",
-                    kind="hand",
-                    min_count=1,
-                    max_count=1,
-                    required=True,
-                    auto_single=True,
+                pile_card_step(
+                    "keep_card",
+                    "hand",
                     exclude_playing_card=True,
                     prompt_key="i18n_cards_neutral.neutral.cards.emperor_eye.prompt",
                     error_key="i18n_cli_core.err_overload_required",
@@ -199,34 +195,80 @@ class NeutralEmperorEyeCard(Card):
 
     def execute_with_selections(self, run, selections: dict, engine) -> str:
         p = run.player
+        result = SelectionResult.from_raw(selections)
         selected = selections.get("keep_card", [])
         if not selected or not p.hand:
-            return engine.execute_emperor_eye_resolve(run, -1, self.upgraded)
-        cand = selected[0]
-        keep_idx = self._find_hand_index(p.hand, cand)
-        return engine.execute_emperor_eye_resolve(run, keep_idx, self.upgraded)
+            return self._resolve(run, -1, engine)
+        indices = result.find_card_indices(p.hand, "keep_card")
+        keep_idx = indices[0] if indices else -1
+        return self._resolve(run, keep_idx, engine)
 
     def execute(self, run, target, engine) -> str:
-        p = run.player
-        if not p.hand:
-            return engine.execute_emperor_eye_resolve(run, -1, self.upgraded)
-        return engine.execute_emperor_eye_resolve(run, 0, self.upgraded)
+        if not run.player.hand:
+            return self._resolve(run, -1, engine)
+        return self._resolve(run, 0, engine)
 
-    @staticmethod
-    def _find_hand_index(hand: list, cand: dict) -> int:
-        src_idx = cand.get("source_idx")
-        card_id = cand.get("card_id")
-        upgraded = bool(cand.get("upgraded", False))
-        gems = list(cand.get("gems", []) or [])
-        if isinstance(src_idx, int) and 0 <= src_idx < len(hand):
-            st = ensure_card_state(hand[src_idx])
-            if st.id == card_id and bool(st.upgraded) == upgraded and list(st.gems or []) == gems:
-                return src_idx
-        for i, raw_c in enumerate(hand):
-            st = ensure_card_state(raw_c)
-            if st.id == card_id and bool(st.upgraded) == upgraded and list(st.gems or []) == gems:
-                return i
-        return -1
+    def _resolve(self, run, keep_idx: int, engine) -> str:
+        from ...core.inventory.deck_service import DeckService
+        from ...core.text.events import locale_text
+        from ...models.events import CardExhaustEvent
+        from .base import ALL_CARDS
+        p = run.player
+        exhausted_count = 0
+        retained_cid = None
+        if 0 <= keep_idx < len(p.hand):
+            retained_cid = p.hand[keep_idx]
+        cards_to_exhaust = [cid for i, cid in enumerate(p.hand) if i != keep_idx]
+        p.hand.clear()
+        if retained_cid:
+            DeckService.add_card_to_hand(p, retained_cid)
+        for cid in cards_to_exhaust:
+            DeckService.add_card_to_exhaust(p, cid)
+            card_obj = ALL_CARDS.get(cid)
+            cname = card_obj.name if card_obj else cid
+            engine._log_event(run, locale_text(key="i18n_battle_core.exhaust_to_pile_log", params={"name": cname}))
+            engine.event_bus.dispatch(CardExhaustEvent(run, cid, "emperor_eye"))
+            exhausted_count += 1
+        from .market import is_card_available
+        stat_uid = getattr(p, "mercenary_owner", "") if getattr(p, "is_mercenary", False) else run.user_id
+        stats = engine.save_manager.load_stats(stat_uid) if stat_uid and hasattr(engine.save_manager, "load_stats") else None
+        card_pool = []
+        for cid, card_obj in ALL_CARDS.items():
+            if cid.startswith("duel_") or cid.startswith("curse_") or cid.endswith("+"):
+                continue
+            if getattr(card_obj, "unplayable", False) or getattr(card_obj, "coop_only", False) or getattr(card_obj, "token", False):
+                continue
+            if getattr(card_obj, "event_only", False) or getattr(card_obj, "life_merchant_only", False):
+                continue
+            if getattr(card_obj, "color", "") == "mercenary" or not is_card_available(cid, stats):
+                continue
+            card_pool.append(cid)
+        drawn = []
+        if card_pool and exhausted_count > 0:
+            import random
+            max_hand = engine.get_max_hand_size(run, p)
+            for _ in range(exhausted_count):
+                if len(p.hand) < max_hand:
+                    new_cid = random.choice(card_pool)
+                    DeckService.add_card_to_hand(p, new_cid)
+                    card_obj = ALL_CARDS.get(new_cid)
+                    drawn.append(card_obj.name if card_obj else new_cid)
+        dmg_msg = ""
+        if self.upgraded:
+            alive_enemies = [e for e in run.enemies if e.hp > 0]
+            if alive_enemies:
+                import random
+                target_enemy = random.choice(alive_enemies)
+                target_idx = run.enemies.index(target_enemy) + 1
+                engine.combat_resolver.damage_target(run, f"e{target_idx}", 49, source="p0", damage_type="force")
+                dmg_msg = get_locale_text("i18n_battle_core.emperor_eye_damage_log", name=target_enemy.name)
+        engine.resolve_suspended_card(run)
+        retained_name = ALL_CARDS[retained_cid].name if retained_cid else get_locale_text("i18n_battle_core.none_label")
+        drawn_str = "，".join(drawn) if drawn else get_locale_text("i18n_battle_core.none_label")
+        res_str = get_locale_text("i18n_battle_core.emperor_eye_success_log", retained_name=retained_name, count=exhausted_count, drawn=drawn_str, damage_msg=dmg_msg)
+        engine.save_manager.save_save(run.user_id, run)
+        return engine._append_logs_to_res(run, res_str)
+
 
 @register_card("neutral_astral_strike")
 class AstralStrikeCard(Card):

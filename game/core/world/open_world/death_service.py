@@ -1,17 +1,17 @@
 from typing import Optional
 
-from ....data.open_world_config import (
+from ....data.world.open_world_config import (
     OPEN_WORLD_COORD_KEY,
     OPEN_WORLD_WORLD_KEY,
     WORLD_YOG_TEMPLE,
 )
-from ....data.outer_plane_config import (
+from ....data.world.outer_plane_config import (
     OUTER_PLANE_ACTIVE_FLAG,
     OUTER_PLANE_LUCIDITY_KEY,
     OUTER_PLANE_ROOM_KEY,
     OUTER_PLANE_START_ROOM,
 )
-from ....data.yog_quest_config import YOG_FLOOR_TEMPLE
+from ....data.world.yog_quest_config import YOG_FLOOR_TEMPLE
 from ....models.state import GameRun, PlayerState, UserStats
 from ...text.events import LocaleText
 from ...text.pipeline import render_text_node

@@ -4,8 +4,9 @@ from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
 from ...buffs import is_debuff
 from ....core.inventory.deck_service import DeckService
-from ....data.locale_data import get_locale_text
-from ....data.yog_sothoth_data import (
+from ....data.text.locale_data import get_locale_text
+from ....core.text.events import locale_text
+from ....data.enemies.yog_sothoth_data import (
     YOG_HELP_CARDS,
     YOG_INTENT_EFFECTS,
     YOG_INTENT_HANDLERS,
@@ -20,6 +21,25 @@ from ....data.yog_sothoth_data import (
 class BossYogSothothTemplate(EnemyTemplate):
     def _text(self, key: str, **kwargs) -> str:
         return get_locale_text(f"i18n_enemy_boss.{key}", **kwargs)
+
+    def on_battle_start(self, run, enemy, engine):
+        engine._add_buff_to(enemy, "ancient_protection", get_locale_text("i18n_battle_core.ancient_protection_name"), get_locale_text("i18n_battle_core.ancient_protection_desc"))
+        run.node_data["boss_name"] = enemy.name
+        run.node_data["yog_sothoth_phase"] = 1
+        run.node_data["yog_sothoth_turn"] = 1
+        stats = engine.save_manager.load_stats(run.user_id) if engine.save_manager else None
+        if stats:
+            stats.yog_sothoth_challenge_count = getattr(stats, "yog_sothoth_challenge_count", 0) + 1
+            from ....core.progress.achievement_service import AchievementService
+            AchievementService(engine.save_manager).reconcile(run.user_id, stats=stats, save=False, run=run, battle_engine=engine)
+            engine.save_manager.save_stats(run.user_id, stats)
+            challenge_count = stats.yog_sothoth_challenge_count
+        else:
+            challenge_count = 1
+        if challenge_count == 1:
+            engine._log_event(run, locale_text(key="i18n_battle_core.yog_sothoth_intro_first"))
+        else:
+            engine._log_event(run, locale_text(key="i18n_battle_core.yog_sothoth_intro_repeat", params={"name": run.player.name}))
 
     def _hit_target(self, run, engine, enemy, target: str, amount: int, damage_type: str) -> str:
         before_len = len(run.node_data.get("battle_logs", []))

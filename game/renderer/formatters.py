@@ -4,9 +4,9 @@ import math
 import re
 from typing import Optional
 
-from ..data.balance_config import SCIENTIFIC_NOTATION_MAX_DIGITS, SCIENTIFIC_NOTATION_PRECISION
+from ..data.progression.balance_config import SCIENTIFIC_NOTATION_MAX_DIGITS, SCIENTIFIC_NOTATION_PRECISION
 from ..entities import get_relic_name
-from ..data.locale_data import get_locale_text
+from ..data.text.locale_data import get_locale_text
 
 
 def format_buff_stacks(buff) -> str:
@@ -69,7 +69,7 @@ def get_effective_max_hp(player, run=None) -> int:
 
 def format_relic_name_with_counter(relic_id: str, relic_counters: Optional[dict] = None) -> str:
     name = get_relic_name(relic_id)
-    from ..data.relic_data import RELIC_CONFIG
+    from ..data.entities.relic_data import RELIC_CONFIG
     cfg = RELIC_CONFIG.get(relic_id, {})
     if "counter_max" in cfg:
         counters = relic_counters if relic_counters is not None else {}
@@ -87,7 +87,7 @@ def format_relic_bar(relics, relic_counters: Optional[dict] = None) -> str:
 
 
 def format_world_player_names(world_players: Optional[list[dict]]) -> list[str]:
-    from ..data.world_social_config import WORLD_PLAYER_ICON
+    from ..data.world.world_social_config import WORLD_PLAYER_ICON
     if not world_players:
         return []
     result: list[str] = []

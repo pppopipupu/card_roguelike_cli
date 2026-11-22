@@ -1,6 +1,6 @@
 from .entities.cards import ALL_CARDS
 from .entities.minions import MINION_SKILLS
-from .data.card_data import CARD_CONFIG
+from .data.cards.card_data import CARD_CONFIG
 
 def resolve_card_id(card_input: str) -> str | None:
     card_input = card_input.strip()

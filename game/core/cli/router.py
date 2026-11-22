@@ -17,15 +17,15 @@ from ..world.presence import set_active_service
 from ..telemetry.projection_service import ProjectionService
 from ..telemetry.log_service import LogService
 from ..text.pipeline import render_text_node
-from ...data.locale_data import get_locale_text
-from ...data.open_world_config import (
+from ...data.text.locale_data import get_locale_text
+from ...data.world.open_world_config import (
     OPEN_WORLD_COMBAT_FLAG,
     OPEN_WORLD_GHOST_ID_KEY,
     OPEN_WORLD_ORIGIN_KEY,
     OPEN_WORLD_SETTLED_MSG_KEY,
 )
-from ...data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG, OUTER_PLANE_COMBAT_FLAG, OUTER_PLANE_TRIGGER_FLAG
-from ...data.world_social_config import WORLD_PLAYER_DIALOG_EXIT_WORDS
+from ...data.world.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG, OUTER_PLANE_COMBAT_FLAG, OUTER_PLANE_TRIGGER_FLAG
+from ...data.world.world_social_config import WORLD_PLAYER_DIALOG_EXIT_WORDS
 from ..world.open_world.loadout_service import is_open_world_run
 
 

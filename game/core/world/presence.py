@@ -3,14 +3,14 @@ import threading
 import time
 from datetime import datetime, timezone
 
-from ...data.locale_data import get_locale_text
-from ...data.outer_plane_config import (
+from ...data.text.locale_data import get_locale_text
+from ...data.world.outer_plane_config import (
     OUTER_PLANE_ACTIVE_FLAG,
     OUTER_PLANE_ROOM_KEY,
     OUTER_PLANE_START_ROOM,
 )
-from ...data.town_map_config import TOWN_ROOM_COORDS
-from ...data.world_social_config import (
+from ...data.world.town_map_config import TOWN_ROOM_COORDS
+from ...data.world.world_social_config import (
     WORLD_COOP_PREFIX,
     WORLD_LIVE_MESSAGE_LIMIT,
     WORLD_OUTER_PLANE,
@@ -19,7 +19,7 @@ from ...data.world_social_config import (
     WORLD_SNOWFIELD,
     WORLD_TOWN,
 )
-from ...data.yog_quest_config import YOG_FLOOR_WILDS
+from ...data.world.yog_quest_config import YOG_FLOOR_WILDS
 from ...json_codec import load
 from ...models.manager import _atomic_write_json
 

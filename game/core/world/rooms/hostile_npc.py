@@ -1,8 +1,8 @@
 import random
-from ....data.grid_map_config import FLOOR_CONFIGS, HIGH_DANGER_CONFIG
-from ....data.locale_data import get_locale_text
-from ....data.map_config import MapConfig
-from ....data.room_interact_data import ROOM_NPCS, STEALTH_PEACE_BUFF_IDS, TRUE_SIGHT_ENEMIES, TRUE_SIGHT_NPCS
+from ....data.world.grid_map_config import FLOOR_CONFIGS, HIGH_DANGER_CONFIG
+from ....data.text.locale_data import get_locale_text
+from ....data.world.map_config import MapConfig
+from ....data.world.room_interact_data import ROOM_NPCS, STEALTH_PEACE_BUFF_IDS, TRUE_SIGHT_ENEMIES, TRUE_SIGHT_NPCS
 from ..persistent_buffs import add_persistent_buff
 from .big_room import get_effective_alive_npcs, mark_effective_npc_defeated, sync_big_room_clear_state
 
@@ -96,7 +96,7 @@ def resolve_room_true_sight_enemy(fm, room, npc_id: str, player=None) -> str:
         return preset_enemy
     yog_enc = str(room.shared_payload.get("yog_encounter") or "")
     if yog_enc:
-        from ....data.yog_quest_config import YOG_ENCOUNTERS
+        from ....data.world.yog_quest_config import YOG_ENCOUNTERS
         for ename, _ in (YOG_ENCOUNTERS.get(yog_enc, {}).get("enemies") or []):
             if has_true_sight_enemy_name(ename):
                 return ename
@@ -112,7 +112,7 @@ def resolve_room_true_sight_enemy(fm, room, npc_id: str, player=None) -> str:
             return ""
         boss_name = str(room.shared_payload.get("preset_boss_name") or "")
         if not boss_name:
-            from ....data.enemy_data_boss import BOSS_POOLS
+            from ....data.enemies.enemy_data_boss import BOSS_POOLS
             stage = int(getattr(player, "stage", 1) or 1)
             if fm is not None:
                 cfg = FLOOR_CONFIGS.get(fm.floor_index)

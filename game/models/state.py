@@ -3,9 +3,9 @@ from typing import List, Dict, Optional, Any
 from contextvars import ContextVar
 from enum import Enum
 
-from ..data.locale_data import get_locale_text
-from ..data.card_alias_data import resolve_card_id
-from ..data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
+from ..data.text.locale_data import get_locale_text
+from ..data.cards.card_alias_data import resolve_card_id
+from ..data.world.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 
 current_user_id = ContextVar("current_user_id", default="")
 
@@ -119,10 +119,15 @@ class CardState:
     exhaust_used: int = 0
     fleeting_used: int = 0
     temp_cost_a: Optional[int] = None
+    temp_cost_ba: Optional[int] = None
     battle_cost_delta_a: int = 0
+    lyric_form: int = 0
+    temp_ethereal: bool = False
+    temp_exhaust: bool = False
+    temp_retain: bool = False
 
     def __hash__(self):
-        return hash((self.id, self.upgraded, tuple(self.gems), tuple(self.enchantments), self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used))
+        return hash((self.id, self.upgraded, tuple(self.gems), tuple(self.enchantments), self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used, self.lyric_form, self.temp_ethereal, self.temp_exhaust, self.temp_retain))
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -138,7 +143,11 @@ class CardState:
                         self.no_copy == temp_state.no_copy and
                         self.power_penalty == getattr(temp_state, "power_penalty", 0) and
                         self.exhaust_used == getattr(temp_state, "exhaust_used", 0) and
-                        self.fleeting_used == getattr(temp_state, "fleeting_used", 0))
+                        self.fleeting_used == getattr(temp_state, "fleeting_used", 0) and
+                        self.lyric_form == getattr(temp_state, "lyric_form", 0) and
+                        self.temp_ethereal == getattr(temp_state, "temp_ethereal", False) and
+                        self.temp_exhaust == getattr(temp_state, "temp_exhaust", False) and
+                        self.temp_retain == getattr(temp_state, "temp_retain", False))
             except (ValueError, TypeError, KeyError):
                 return False
         if not isinstance(other, CardState):
@@ -153,7 +162,11 @@ class CardState:
                 self.no_copy == other.no_copy and
                 self.power_penalty == other.power_penalty and
                 self.exhaust_used == other.exhaust_used and
-                self.fleeting_used == other.fleeting_used)
+                self.fleeting_used == other.fleeting_used and
+                self.lyric_form == other.lyric_form and
+                self.temp_ethereal == other.temp_ethereal and
+                self.temp_exhaust == other.temp_exhaust and
+                self.temp_retain == other.temp_retain)
 
     def __lt__(self, other):
         if isinstance(other, str):
@@ -172,7 +185,7 @@ class CardState:
             return tuple(self.gems) < tuple(other.gems)
         if self.enchantments != other.enchantments:
             return tuple(self.enchantments) < tuple(other.enchantments)
-        return (self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used) < (other.return_left, other.replay, other.fragile, other.no_copy, other.power_penalty, other.exhaust_used, other.fleeting_used)
+        return (self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used, self.lyric_form, self.temp_ethereal, self.temp_exhaust, self.temp_retain) < (other.return_left, other.replay, other.fragile, other.no_copy, other.power_penalty, other.exhaust_used, other.fleeting_used, other.lyric_form, other.temp_ethereal, other.temp_exhaust, other.temp_retain)
 
 def ensure_card_state(c) -> CardState:
     if isinstance(c, CardState):
@@ -193,7 +206,12 @@ def ensure_card_state(c) -> CardState:
             exhaust_used=c.get("exhaust_used", 0),
             fleeting_used=c.get("fleeting_used", 0),
             temp_cost_a=c.get("temp_cost_a", None),
+            temp_cost_ba=c.get("temp_cost_ba", None),
             battle_cost_delta_a=c.get("battle_cost_delta_a", 0),
+            lyric_form=c.get("lyric_form", 0),
+            temp_ethereal=c.get("temp_ethereal", False),
+            temp_exhaust=c.get("temp_exhaust", False),
+            temp_retain=c.get("temp_retain", False),
         )
     return c
 
@@ -269,6 +287,13 @@ class CardTag:
 
 @dataclass
 class Card:
+    """卡牌运行时基类，承载结算入口、声明式选择规格与被动钩子。
+
+    卡牌通过 ``get_selection_spec`` 声明多步选择，由统一选择状态机推进；
+    ``on_draw``/``on_exhaust``/``on_turn_end_in_hand`` 等钩子由
+    CardTriggerHandler 自动派发，不应在核心出牌逻辑中按卡牌 ID 特判。
+    """
+
     id: str
     name: str
     color: str
@@ -301,10 +326,18 @@ class Card:
     instant_summon_thresholds: tuple = ()
     instant_summon_piles: tuple = ()
     target_type: str = "enemy"
+    arhat_forbidden: bool = False
     coop_only: bool = False
     life_merchant_only: bool = False
     event_only: bool = False
     token: bool = False
+    lyrics: bool = False
+    lyric_index: int = 0
+    lyric_alt_index: int = 0
+    next_lyric: str = ""
+    effect: str = ""
+    effect_params: Dict[str, Any] = field(default_factory=dict)
+    card_state: Optional['CardState'] = None
     exhaust_total: int = 0
     exhaust_remaining: int = 0
     fleeting_total: int = 0
@@ -348,15 +381,19 @@ class Card:
             self.remove_tag("fragile")
 
     def can_play_error(self, run: 'GameRun', target: Optional[str], engine) -> Optional[str]:
+        """处理 can_play_error 生命周期扩展，具体字段与取消语义见事件定义。"""
         return None
 
     def get_selection_spec(self, run: 'GameRun', engine) -> Optional[dict]:
+        """处理 get_selection_spec 生命周期扩展，具体字段与取消语义见事件定义。"""
         return None
 
     def execute(self, run: 'GameRun', target: Optional[str], engine) -> str:
+        """处理 execute 生命周期扩展，具体字段与取消语义见事件定义。"""
         return ""
 
     def execute_with_selections(self, run: 'GameRun', selections: dict, engine) -> str:
+        """处理 execute_with_selections 生命周期扩展，具体字段与取消语义见事件定义。"""
         for items in selections.values():
             for item in items:
                 if item.get("value"):
@@ -364,9 +401,11 @@ class Card:
         return self.execute(run, None, engine)
 
     def execute_post_selections(self, run: 'GameRun', selections: dict, engine) -> str:
+        """处理 execute_post_selections 生命周期扩展，具体字段与取消语义见事件定义。"""
         return ""
 
     def special_action(self, run: 'GameRun', target: Optional[str] = None) -> str:
+        """处理 special_action 生命周期扩展，具体字段与取消语义见事件定义。"""
         return get_locale_text("i18n_models.state.special_action", name=self.name)
 
     def add_tag(self, tag: CardTag):
@@ -402,6 +441,46 @@ class Card:
                 logs.append(res)
         return "\n".join(logs) if logs else None
 
+    def on_draw(self, event, card_state):
+        """处理 on_draw 生命周期扩展，具体字段与取消语义见事件定义。"""
+        pass
+
+    def on_discard(self, event, card_state):
+        """处理 on_discard 生命周期扩展，具体字段与取消语义见事件定义。"""
+        pass
+
+    def on_exhaust(self, event, card_state):
+        """处理 on_exhaust 生命周期扩展，具体字段与取消语义见事件定义。"""
+        pass
+
+    def on_other_card_exhaust(self, event, card_state):
+        """处理 on_other_card_exhaust 生命周期扩展，具体字段与取消语义见事件定义。"""
+        pass
+
+    def on_turn_start_in_hand(self, event, card_state):
+        """处理 on_turn_start_in_hand 生命周期扩展，具体字段与取消语义见事件定义。"""
+        pass
+
+    def on_turn_start_in_exhaust(self, event, card_state):
+        """处理 on_turn_start_in_exhaust 生命周期扩展，具体字段与取消语义见事件定义。"""
+        pass
+
+    def on_turn_end_in_hand(self, event, card_state):
+        """处理 on_turn_end_in_hand 生命周期扩展，具体字段与取消语义见事件定义。"""
+        pass
+
+    def on_turn_end_resolve(self, event, card_state):
+        """处理 on_turn_end_resolve 生命周期扩展，具体字段与取消语义见事件定义。"""
+        pass
+
+    def on_other_card_played(self, event, card_state):
+        """处理 on_other_card_played 生命周期扩展，具体字段与取消语义见事件定义。"""
+        pass
+
+    def on_cost_calculate(self, event, card_state):
+        """处理 on_cost_calculate 生命周期扩展，具体字段与取消语义见事件定义。"""
+        pass
+
     def handle_post_play(self, run: 'GameRun', cid: str, source: str, engine) -> bool:
         if not hasattr(self, "tags") or not self.tags:
             return False
@@ -425,7 +504,7 @@ class MinionState:
     size: str = ""
 
     def __post_init__(self):
-        from ..data.size_data import resolve_minion_size
+        from ..data.entities.size_data import resolve_minion_size
         self.size = resolve_minion_size(self.id, self.name, self.size or None)
 
 @dataclass
@@ -476,6 +555,9 @@ class PlayerState:
     quest_relics: List[str] = field(default_factory=list)
     bag_items: List[str] = field(default_factory=list)
     bag_max_weight: int = BAG_DEFAULT_MAX_WEIGHT
+    rainie_legacy_strength: int = 0
+    rainie_legacy_shield: int = 0
+    rainie_cross_battle: bool = False
 
     @property
     def exhaustion(self) -> int:
@@ -510,6 +592,7 @@ class EnemyIntentState:
     cost_ba: int = 0
     cancelled: bool = False
     cancelled_desc: str = ""
+    is_aoe: bool = False
 
 @dataclass
 class EnemyState:
@@ -543,7 +626,7 @@ class EnemyState:
     size: str = ""
 
     def __post_init__(self):
-        from ..data.size_data import resolve_enemy_size
+        from ..data.entities.size_data import resolve_enemy_size
         self.size = resolve_enemy_size(self.name, self.size or None)
         if not self.intents:
             if self.intent_type or self.intent_desc:

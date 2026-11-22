@@ -7,8 +7,8 @@ from unittest.mock import patch
 from game.entities.events import ALL_EVENTS
 from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command, walk_to_boss_battle
 from game.core.party.session import SessionContextScoper
-from game.data.account_config import RENAME_COST_GP
-from game.data.gem_data import GEM_CONFIG
+from game.data.progression.account_config import RENAME_COST_GP
+from game.data.entities.gem_data import GEM_CONFIG
 from game.entities.cards.base import ALL_CARDS
 from game.models.state import CardState, GameRun, PlayerState
 from game.test.core.coop_base import CoopTestBase

@@ -2,7 +2,7 @@ from typing import Generator
 
 from ...base import CommandHandler
 from .....renderer import GameRenderer
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 
 
 class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobby"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe", "outer_plane"], help_key="team"):

@@ -461,7 +461,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
         self.assertIn("不可用", self.run_cmd("map", uid))
 
         import re
-        from game.data.account_config import RENAME_COST_GP
+        from game.data.progression.account_config import RENAME_COST_GP
         uid1, uid2 = "pb_c1", "pb_c2"
         for u in (uid1, uid2):
             st = self.plugin.save_manager.load_stats(u)

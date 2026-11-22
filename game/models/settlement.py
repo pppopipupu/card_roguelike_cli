@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from .state import GameRun, UserStats
-from ..data.map_config import MapConfig
-from ..data.locale_data import get_locale_text
+from ..data.world.map_config import MapConfig
+from ..data.text.locale_data import get_locale_text
 
 
 if TYPE_CHECKING:

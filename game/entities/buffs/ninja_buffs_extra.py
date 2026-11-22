@@ -1,4 +1,4 @@
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ...models.state import CardState
 from ..cards.ninja_base import add_ninja_buff, change_lex_kela
 from .base import BuffImpl
@@ -60,7 +60,8 @@ class SouthCrossSealBuff(BuffImpl):
         if buff.stacks <= 0 and buff in entity.buffs:
             entity.buffs.remove(buff)
 
-    def on_damage_take_defend(self, event, buff_state, entity, engine):
+    def on_damage_take_defend(self, event, buff_state, entity, engine=None):
+        engine = event.engine
         buff = buff_state
         if entity not in event.run.enemies or event.amount <= 0:
             return
@@ -75,6 +76,12 @@ class SouthCrossSealBuff(BuffImpl):
 
 @register_buff("we_peace")
 class WePeaceBuff(BuffImpl):
+    def on_card_play_check(self, event, buff_state, entity):
+        if getattr(event.card, "type", "") != "attack":
+            return
+        event.cancel()
+        event.error_message = get_locale_text("i18n_cards_ninja.we_peace_blocked")
+
     def on_turn_end(self, event, buff_state, entity):
         buff = buff_state
         engine = event.engine
@@ -95,6 +102,12 @@ class IgnisHealingBuff(BuffImpl):
 
 @register_buff("good_night")
 class GoodNightBuff(BuffImpl):
+    def on_card_play_check(self, event, buff_state, entity):
+        if buff_state.stacks <= 0:
+            return
+        event.cancel()
+        event.error_message = get_locale_text("i18n_cards_ninja.good_night_blocked")
+
     def on_turn_end(self, event, buff_state, entity):
         buff = buff_state
         engine = event.engine
@@ -112,8 +125,8 @@ class ScareFormBuff(BuffImpl):
         if not event.is_player or entity is not event.run.player or buff.stacks <= 0:
             return
         import random
-        from ...data.ninja_card_data_basic import NINJA_CARD_CONFIG_BASIC
-        from ...data.ninja_card_data_uncommon import NINJA_CARD_CONFIG_UNCOMMON
+        from ...data.cards.classes.ninja_card_data_basic import NINJA_CARD_CONFIG_BASIC
+        from ...data.cards.classes.ninja_card_data_uncommon import NINJA_CARD_CONFIG_UNCOMMON
         from ..cards.base import ALL_CARDS
         pool = [
             k for k, v in {**NINJA_CARD_CONFIG_BASIC, **NINJA_CARD_CONFIG_UNCOMMON}.items()
@@ -132,11 +145,6 @@ class ScareFormBuff(BuffImpl):
             engine._log_event(event.run, get_locale_text("i18n_cards_ninja.scare_form_cast", name=card.name))
 
 
-@register_buff("two_monks")
-class TwoMonksBuff(BuffImpl):
-    pass
-
-
 @register_buff("oh_fuck_flash")
 class OhFuckFlashBuff(BuffImpl):
     pass
@@ -144,7 +152,8 @@ class OhFuckFlashBuff(BuffImpl):
 
 @register_buff("become_nong")
 class BecomeNongBuff(BuffImpl):
-    def on_battle_win(self, event, entity, buff, engine):
+    def on_battle_before_win_cleanup(self, event, buff_state, entity):
+        engine = event.engine
         if entity is not event.run.player:
             return
         cid = event.run.node_data.pop("ninja_nong_card_id", "")

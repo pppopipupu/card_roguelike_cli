@@ -1,14 +1,13 @@
-from ...data.grid_map_config import EXHAUSTION_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.world.grid_map_config import EXHAUSTION_CONFIG
+from ...data.text.locale_data import get_locale_text
 from ...models.events import (
     BattleStartEvent,
-    BeforeDamageApplyEvent,
     DamageCalculateEvent,
     HealCalculateEvent,
     ShieldGainEvent,
     TurnStartEvent,
 )
-from ...data.damage_type_data import is_spell_card_damage
+from ...data.battle.damage_type_data import is_spell_card_damage
 
 
 class ExhaustionObserver:
@@ -19,7 +18,6 @@ class ExhaustionObserver:
         event_bus.subscribe(DamageCalculateEvent, self.on_damage_calculate)
         event_bus.subscribe(ShieldGainEvent, self.on_shield_gain)
         event_bus.subscribe(HealCalculateEvent, self.on_heal_calculate)
-        event_bus.subscribe(BeforeDamageApplyEvent, self.on_before_damage_apply)
 
     def modify_initial_draw(self, player, draw_count: int) -> int:
         from ..world.persistent_buffs import get_persistent_buff_stacks
@@ -98,17 +96,3 @@ class ExhaustionObserver:
         if ex >= 4:
             divisor = EXHAUSTION_CONFIG.get("level4_max_hp_divisor", 2)
             event.modified_max_hp = min(event.modified_max_hp, max(1, p.max_hp // divisor))
-
-    def on_before_damage_apply(self, event):
-        if event.target != "p0" or event.final_damage <= 0:
-            return
-        p = event.run.player
-        dtype = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
-        if dtype.lower() == "true" and "ghost_body" in getattr(p, "relics", []):
-            event.final_damage = 0
-            self.engine._log_event(event.run, get_locale_text("i18n_grid_map.ghost_body_immune_log", name=p.name))
-            return
-        if any(b.id == "intangible" for b in getattr(p, "buffs", [])):
-            if event.final_damage > 1:
-                event.final_damage = 1
-                self.engine._log_event(event.run, get_locale_text("i18n_grid_map.intangible_cap_log"))

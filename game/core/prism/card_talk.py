@@ -1,8 +1,8 @@
 import random
 from typing import Optional
-from ...data.balance_config import COOP_MAX_PLAYERS
-from ...data.locale_data import get_locale_raw
-from ...data.ultimate_prism_data import (
+from ...data.progression.balance_config import COOP_MAX_PLAYERS
+from ...data.text.locale_data import get_locale_raw
+from ...data.content.ultimate_prism_data import (
     PRISM_TALK_PREFIXES,
     ULTIMATE_PRISM_ACHIEVEMENT_ID,
     ULTIMATE_PRISM_CARD_ID,

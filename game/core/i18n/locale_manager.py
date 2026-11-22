@@ -5,7 +5,7 @@ from ...json_codec import load
 
 logger = logging.getLogger(__name__)
 
-_ROOT_MERGE_FILES = ("global.json", "explore.json")
+_NPC_FILE_NAME = "npcs.json"
 
 
 class LocaleManager:
@@ -25,30 +25,55 @@ class LocaleManager:
             return
 
         try:
-            names = sorted(os.listdir(locale_dir))
+            os.listdir(locale_dir)
         except OSError as exc:
             logger.warning("locale directory read failed %s: %s", locale_dir, exc)
             return
 
-        for name in names:
-            if not name.endswith(".json"):
+        seen_stems = set()
+        for dirpath, dirnames, filenames in os.walk(locale_dir):
+            dirnames[:] = sorted(
+                (name for name in dirnames if name != "__pycache__"),
+                key=lambda name: (name != "_root", name),
+            )
+            filenames.sort()
+
+            relative = os.path.relpath(dirpath, locale_dir)
+            if relative == ".":
+                for name in filenames:
+                    logger.warning("locale entry in locale root, skipped %s", os.path.join(dirpath, name))
                 continue
-            path = os.path.join(locale_dir, name)
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    payload = load(f)
-            except (OSError, ValueError, TypeError) as exc:
-                logger.warning("locale file read failed %s: %s", path, exc)
-                continue
-            if not isinstance(payload, dict):
-                logger.warning("locale payload is not an object %s", path)
-                continue
-            if name in _ROOT_MERGE_FILES:
-                cls._data.update(payload)
-            elif name == "npcs.json":
-                cls._data["interactive_entities"] = payload
-            else:
-                cls._data[os.path.splitext(name)[0]] = payload
+
+            merge_to_root = relative.split(os.sep)[0] == "_root"
+            for name in filenames:
+                path = os.path.join(dirpath, name)
+                if not name.endswith(".json"):
+                    logger.warning("locale entry is not JSON, skipped %s", path)
+                    continue
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        payload = load(f)
+                except (OSError, ValueError, TypeError) as exc:
+                    logger.warning("locale file read failed %s: %s", path, exc)
+                    continue
+                if not isinstance(payload, dict):
+                    logger.warning("locale payload is not an object %s", path)
+                    continue
+
+                if name == _NPC_FILE_NAME:
+                    if "interactive_entities" in cls._data:
+                        logger.warning("duplicate npcs file ignored %s", path)
+                        continue
+                    cls._data["interactive_entities"] = payload
+                elif merge_to_root:
+                    cls._data.update(payload)
+                else:
+                    stem = os.path.splitext(name)[0]
+                    if stem in seen_stems:
+                        logger.warning("duplicate locale namespace %s ignored %s", stem, path)
+                        continue
+                    seen_stems.add(stem)
+                    cls._data[stem] = payload
 
         cls._loaded = True
 

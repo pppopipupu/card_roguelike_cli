@@ -16,7 +16,7 @@ class BagCommand(CommandHandler, names=["背包", "bag", "inventory", "inv"], al
             elif arg in ("o", "w", "open", "开放世界"):
                 mode = "o"
             else:
-                from .....data.locale_data import get_locale_text
+                from .....data.text.locale_data import get_locale_text
                 yield get_locale_text("i18n_room_interact.bag.invalid_mode")
                 return
         yield GameRenderer.render_bag(stats, run=run, mode=mode)

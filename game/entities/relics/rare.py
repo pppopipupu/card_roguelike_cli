@@ -1,7 +1,7 @@
 import re
-from ...data.relic_data import RELIC_CONFIG
-from ...data.locale_data import get_locale_text
-from ...data.damage_type_data import is_physical_damage, is_spell_card_damage
+from ...data.entities.relic_data import RELIC_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.battle.damage_type_data import is_physical_damage, is_spell_card_damage
 from .base import RelicImpl
 from .registry import register_relic
 
@@ -40,7 +40,16 @@ class ArcaneRuneRelic(RelicImpl):
             event.modified_damage += self.spell_bonus
 
 class ChemicalXRelic(RelicImpl):
-    pass
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.x_bonus = cfg.get("x_bonus", 2)
+
+    def on_card_cost_calculate(self, event, run, engine):
+        if event.card.cost_a == -1:
+            event.x_bonus_a += self.x_bonus
+        if event.card.cost_ba == -1:
+            event.x_bonus_ba += self.x_bonus
 
 class AncientCompassRelic(RelicImpl):
     def __init__(self, relic_id: str):
@@ -127,13 +136,36 @@ class DjinnShardRelic(RelicImpl):
                 engine.combat_resolver.damage_target(run, f"e{idx}", self.damage, source="relic:djinn_shard", damage_type="force")
 
 class ArchmageRobeRelic(RelicImpl):
-    pass
+    def on_minion_skill_used(self, event, run, engine):
+        shield_gain = int(RELIC_CONFIG.get("archmage_robe", {}).get("shield_gain", 2))
+        engine._gain_shield(run, "p0", shield_gain)
+        engine._log_event(run, get_locale_text("i18n_battle_core.archmage_robe_log"))
 
 class ShadowTentacleRelic(RelicImpl):
-    pass
+    def on_buff_applied(self, event, run, engine):
+        from ...models.state import EnemyState
+        from ..buffs.base import is_debuff
+        if not isinstance(event.entity, EnemyState):
+            return
+        if not is_debuff(event.buff_id):
+            return
+        shield_gain = int(RELIC_CONFIG.get("shadow_tentacle", {}).get("shield_gain", 2))
+        engine._gain_shield(run, "p0", shield_gain)
+        engine._log_event(run, get_locale_text("i18n_battle_misc.shadow_tentacle_trigger"))
 
 class MindflayerBrainRelic(RelicImpl):
-    pass
+    def on_card_discard(self, event, run, engine):
+        if event.source != "manual":
+            return
+        import random
+        alive = [e for e in run.enemies if e.hp > 0]
+        if not alive:
+            return
+        target_enemy = random.choice(alive)
+        idx = run.enemies.index(target_enemy) + 1
+        damage = int(RELIC_CONFIG.get("mindflayer_brain", {}).get("damage", 3))
+        engine._log_event(run, get_locale_text("i18n_battle_core.mindflayer_brain_log", name=target_enemy.name))
+        engine.combat_resolver.damage_target(run, f"e{idx}", damage, source="relic:mindflayer_brain", damage_type="psychic")
 
 class LengSpiderVenomRelic(RelicImpl):
     def __init__(self, relic_id: str):

@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import CommandHandler
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 
 class SkillCommand(CommandHandler, names=["技能", "skill", "sk", "k"], allowed_states=["battle"], help_key="skill"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:

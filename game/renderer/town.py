@@ -2,12 +2,12 @@ import os
 from typing import List, Dict, Any
 from ..models.state import UserStats, get_user_id
 from ..core.world.presence import render_players
-from ..data.world_social_config import WORLD_PLAYER_ICON, WORLD_TOWN
+from ..data.world.world_social_config import WORLD_PLAYER_ICON, WORLD_TOWN
 from ..entities import ALL_CARDS
 from ..entities.cards.market import MARKET_SHELF_CARDS, get_market_price
-from ..data.locale_data import t, get_locale_text
-from ..data.balance_config import TOWN_INVENTORY_FOLD_THRESHOLD
-from ..data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
+from ..data.text.locale_data import t, get_locale_text
+from ..data.progression.balance_config import TOWN_INVENTORY_FOLD_THRESHOLD
+from ..data.world.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 from ..core.inventory.bag_service import calc_bag_items_weight, get_item_display_name
 from ..core.world.open_world.loadout_service import OpenWorldLoadoutService
 
@@ -16,7 +16,7 @@ def _load_zh_cn() -> Dict[str, Any]:
     return LocaleManager.get_all_translations()
 
 def render_town_map(stats: UserStats, current_id: str) -> str:
-    from ..data.town_map_config import (
+    from ..data.world.town_map_config import (
         TOWN_EMPTY_ICON,
         TOWN_ICON_ORDER,
         TOWN_MAP_HEIGHT,
@@ -131,7 +131,7 @@ def render_town(stats: UserStats, room_data: Dict[str, Any], world_players: List
     current_id = stats.town_pos
     if world_players is None:
         world_players = render_players(WORLD_TOWN, None, get_user_id())
-    from ..data.town_map_config import TOWN_ROOM_COORDS
+    from ..data.world.town_map_config import TOWN_ROOM_COORDS
     coord = TOWN_ROOM_COORDS.get(stats.town_pos, "C2")
     world_here = [entry for entry in world_players if str(entry.get("coord", "")) == coord]
     map_str = render_town_map(stats, current_id)

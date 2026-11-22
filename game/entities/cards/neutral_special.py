@@ -1,6 +1,6 @@
 from ...models.state import Card
-from ...data.card_data import CARD_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.cards.card_data import CARD_CONFIG
+from ...data.text.locale_data import get_locale_text
 from .registry import register_card
 
 @register_card("ancient_wisdom")

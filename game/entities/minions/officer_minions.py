@@ -1,5 +1,5 @@
-from ...data.minion_data import MINION_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.entities.minions.minion_data import MINION_CONFIG
+from ...data.text.locale_data import get_locale_text
 from .minion_base import BaseMinionSkill, MinionTemplate
 
 

@@ -1,14 +1,15 @@
 import random
+from typing import Optional
 
-from ...data.enemy_data import ENEMY_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.enemies.enemy_data import ENEMY_CONFIG
+from ...data.text.locale_data import get_locale_text
 from ...models.state import Card
 from .registry import register_card
 
 
 def _card_config(card):
-    from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
-    from ...data.neutral_card_data import NEUTRAL_CARD_CONFIG
+    from ...data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
+    from ...data.cards.neutral.neutral_card_data import NEUTRAL_CARD_CONFIG
 
     base_id = str(getattr(card, "id", "")).replace("+", "")
     cfg = dict(NEUTRAL_CARD_CONFIG.get(base_id, {}))
@@ -89,9 +90,37 @@ class BanishSlashCard(Card):
 
 @register_card("special_rlyeh_astrolabe")
 class RlyehAstrolabeCard(Card):
+    def get_selection_spec(self, run, engine) -> Optional[dict]:
+        from ...core.battle.selection import ChoiceOption, choose_one_spec
+        stage = int(run.node_data.get("cthulhu_seal_stage", 1) or 1)
+        max_option = 2 if stage >= 3 else 3
+        options = [
+            ChoiceOption(
+                id=str(idx),
+                label_key=f"i18n_cli_core.cthulhu_puzzle_stage{stage}_option{idx}",
+                value=str(idx),
+            )
+            for idx in range(1, max_option + 1)
+        ]
+        return choose_one_spec(
+            options,
+            step_id="cthulhu_choice",
+            prompt_key="i18n_cli_core.cthulhu_puzzle_prompt",
+            error_key="i18n_cli_core.err_cthulhu_puzzle_invalid",
+            invalid_index_key="i18n_cli_core.err_cthulhu_puzzle_invalid",
+            cancel_key="i18n_cli_core.cthulhu_puzzle_cancelled",
+        )
+
+    def execute_with_selections(self, run, selections: dict, engine) -> str:
+        from ...core.battle.selection import SelectionResult
+        from ...entities.enemies.boss.cthulhu_boss import resolve_cthulhu_puzzle
+        choice = SelectionResult.from_raw(selections).choice("cthulhu_choice")
+        if choice is None:
+            return get_locale_text("i18n_cli_core.err_cthulhu_puzzle_invalid")
+        return resolve_cthulhu_puzzle(run, engine, int(choice), run.player)
+
     def execute(self, run, target, engine) -> str:
-        run.node_data.setdefault("state_stack", []).append({
-            "type": "cthulhu_puzzle_choice",
-            "stage": run.node_data.get("cthulhu_seal_stage", 1),
-        })
-        return get_locale_text("i18n_cards_neutral.neutral.cards.rlyeh_astrolabe.feedback")
+        from ...entities.enemies.boss.cthulhu_boss import resolve_cthulhu_puzzle
+        stage = int(run.node_data.get("cthulhu_seal_stage", 1) or 1)
+        option = 2 if stage == 2 else 1
+        return resolve_cthulhu_puzzle(run, engine, option, run.player)

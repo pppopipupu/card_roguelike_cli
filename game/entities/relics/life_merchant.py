@@ -1,5 +1,5 @@
-from ...data.locale_data import get_locale_text
-from ...data.relic_data import RELIC_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.entities.relic_data import RELIC_CONFIG
 from ...models.events import CardPlayedEvent
 from .base import RelicImpl
 from .registry import register_relic

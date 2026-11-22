@@ -1,5 +1,5 @@
 from .base import EventOption
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 
 class LeaveEventOption(EventOption, action="leave_event", text=get_locale_text("i18n_events_c.opt_leave")):
     def __init__(self, text: str | None = None, action: str | None = None, event_id: str = "fountain"):

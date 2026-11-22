@@ -1,8 +1,8 @@
 import random
 from typing import Callable, Dict, Optional
-from ...data.locale_data import get_locale_raw, get_locale_text
-from ...data.potion_data import roll_potion
-from ...data.room_interact_data import ROGUE_ITEMS
+from ...data.text.locale_data import get_locale_raw, get_locale_text
+from ...data.entities.potion_data import roll_potion
+from ...data.world.room_interact_data import ROGUE_ITEMS
 from ..world.persistent_buffs import add_persistent_buff
 from ..world.sp_system import reduce_exhaustion, restore_sp
 

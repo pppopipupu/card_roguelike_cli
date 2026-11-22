@@ -1,7 +1,7 @@
 import random
-from ...data.grid_map_config import FLOOR_CONFIGS, LANDMARK_CONFIGS, QUEST_RELIC_CONFIG, SP_CONFIG
-from ...data.locale_data import get_locale_text, get_locale_raw
-from ...data.yog_quest_config import YOG_ENDING_BRANCH_FLAGS, YOG_LANDMARKS
+from ...data.world.grid_map_config import FLOOR_CONFIGS, LANDMARK_CONFIGS, QUEST_RELIC_CONFIG, SP_CONFIG
+from ...data.text.locale_data import get_locale_text, get_locale_raw
+from ...data.world.yog_quest_config import YOG_ENDING_BRANCH_FLAGS, YOG_LANDMARKS
 from ...entities import ALL_CARDS, get_relic_name
 from .ancient_reward import build_ancient_options, grant_ancient_blessing
 from ...models.state import ensure_card_state

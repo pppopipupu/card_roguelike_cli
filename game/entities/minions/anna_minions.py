@@ -1,7 +1,7 @@
 import random
 from ...core.battle.vanish import vanish_cards
-from ...data.anna_card_config import ANNE_SKILL_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.cards.classes.anna_card_config import ANNE_SKILL_CONFIG
+from ...data.text.locale_data import get_locale_text
 from .minion_base import BaseMinionSkill
 
 

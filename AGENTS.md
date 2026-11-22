@@ -2,7 +2,7 @@
 
 ## 1. 基础约束
 
-- Python 源码、测试脚本与 JSON 配置中禁止任何注释和 docstring。
+- 在用户没有明确要求的情况下，禁止在 Python 源码、测试脚本中编写新注释或新 docstring；JSON 配置中严禁任何注释。核心公共接口、事件模型、实体钩子基类与通用组件上已维护的多行文档注释（`"""`）必须随接口变更同步保持准确，禁止随意删除。
 - 本项目统一使用 Python 3.15：`py`、`.venv`、`pyproject.toml` 与 Pyright 的 `pythonVersion` 均以 3.15 为准，源码采用 3.15 兼容语法，不保留 3.12 兼容写法。
 - AstrBot 客户端插件使用 Python 3.12，以兼容 AstrBot 运行时；除该插件外不得为 3.12 降级本仓库语法或依赖。
 - 所有文本文件读写必须显式指定 UTF-8。
@@ -20,7 +20,10 @@
 - 文本管线：新编写的代码一律采用事件流架构。底层逻辑禁止拼接展示字符串或调用 `get_locale_text`，必须返回 `msgspec.Struct` 事件流（`LocaleText` 携带本地化键名与参数）；由 `game/core/text/pipeline.py` 按 `game/data/text_layout_data.py` 的配置聚合，统一在上层渲染边界完成本地化与拼接。`RenderedText` 仅允许包装其他渲染器已产出的最终 UI 片段；存量代码按改动范围逐步迁移。
 - 数值：所有玩法数值（伤害、生命、护盾、金币、概率、层数、数量、价格、倍率等）必须放入 `game/data/` 配置并具名引用；执行类禁止硬编码玩法数值。
 - 开闭原则：新增卡牌、遗物、Buff、事件或敌人机制时，不修改核心战斗引擎；通过订阅 `event_bus` 的原子事件实现。Boss 濒死、死亡拦截、形态转换由具体敌人模板订阅事件并取消结算。
+- 结算全面钩子化：所有卡牌、Buff、遗物、随从、护符、宝石与附魔的战斗结算必须注册为标准事件与实体钩子（`EventBus`、`BuffImpl`、`Card`、`RelicImpl`、`MinionTemplate`、`EnemyTemplate` 及对应 `TriggerHandler`）；严禁向 `card_player_turn.py`、`card_player.py`、`party_battle.py`、`combat_resolver.py`、`enemy_controller.py` 等核心战斗类添加具体实体 ID 的硬编码判断逻辑，需要新时机时必须先在 `game/models/events.py` 定义标准 `GameEvent` 子类并经由 `event_bus` 派发。
 - 事件模型：`game/models/events.py` 中的所有战斗事件必须继承 `GameEvent`（`msgspec.Struct`，基类字段 `cancelled`、`engine` 为 keyword-only）；禁止使用 `@dataclass` 定义事件，禁止给事件实例动态追加未声明字段。新增事件只声明业务字段，并保持既有位置参数顺序。
+- 额外回合：统一通过 `game/core/battle/extra_turn_service.py` 的 `grant_extra_turn` 与 `end_and_begin` 管理，除该服务的旧存档迁移逻辑外，禁止直接读写 `extra_turns_left`、`time_stop_upgraded` 或自行维护额外回合计数。额外回合按玩家排队，结束回合时必须先进入自己的额外回合；单机、协作与 PVP 都只在最后一个额外回合结束后才认定回合结束。时间停止等“造成伤害提前结束”“暂停负面状态”的行为通过额外回合条目的 `break_on_damage` 与 `pause_debuffs` 声明。
+- 统一选择器与通用选择组件：所有战斗内的目标选择、抉择（多选一）、发掘（从牌堆或卡池选卡）、强制弃牌与多步交互必须复用 `game/core/battle/selection/` 中的通用声明式组件（如 `choose_one_spec`、`discover_from_pile_spec`、`discover_from_pool_spec`、`discard_hand_spec`、`target_step`、`SelectionResult` 与 `TargetRule`），通过 `Card.get_selection_spec` / `execute_with_selections` / `execute_post_selections` 接入统一 `interaction_session` 协议；严禁在卡牌、Buff、遗物或 CLI 路由中直接向 `state_stack` 追加自定义选择类型或手写 `pending_*` 状态流转。
 - 注册：卡牌、遗物、Buff、命令与事件分支使用装饰器或 `__init_subclass__` 自动注册；禁止硬编码注册字典和大型 if-else。
 - 命令模式：具体动作与命令拆为独立 Handler，由路由表分发。新增命令必须同时提供英文变体、至少一个快捷别名，并同步更新状态白名单与 allowed_states。
 - 指令优先级：所有玩家可见的指令提示、用法、帮助条目与错误文案必须优先展示英文简写指令（如 `trade`、`touch`），中文指令仅作为辅助别名随后展示；新增指令必须同时提供英文变体与中文别名，英文别名注册在别名列表首位。
@@ -38,7 +41,7 @@
 
 ## 3. 测试
 
-- 测试代码同样禁止注释与 docstring。
+- 在用户没有明确要求的情况下，测试代码同样禁止编写新注释与 docstring。
 - 核心测试通过 `run_command(plugin, "command")` 模拟真实输入，禁止直接调用 `cli_router.handle_command`；后端测试通过 FastAPI TestClient 调用 `POST /api/v1/action`。
 - 禁止直接改写关卡节点、怪物血量或动作点、Buff、卡牌堆等内存状态。关卡切换与战斗结算必须由真实命令触发；高血量目标使用测试训练假人。
 - 允许的 Mock 仅限：存档 IO 桩、随机数确定化、事件监听计数桩。禁止用 Mock 替代关卡流转、战斗结算和卡牌堆演进。

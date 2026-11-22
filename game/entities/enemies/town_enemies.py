@@ -1,7 +1,7 @@
 from typing import Tuple, List, Optional
 from .base import EnemyTemplate, register_enemy
 from ...models.state import EnemyIntentState, BuffState
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 
 @register_enemy("训练假人")
 class DummyTemplate(EnemyTemplate):

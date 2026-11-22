@@ -1,8 +1,8 @@
 import random
 from typing import Optional, TypeGuard
 
-from ...data.locale_data import get_locale_raw, get_locale_text
-from ...data.mercenary_data import (
+from ...data.text.locale_data import get_locale_raw, get_locale_text
+from ...data.entities.mercenary_data import (
     HARRY_MAX_VOICES_PER_TURN,
     HARRY_SKILL_IDS,
     HARRY_VOICE_CHANCE,
@@ -229,18 +229,16 @@ def find_mercenary_uid(run: Optional[GameRun], query: str = "", owner_uid: str =
 
 
 def _pick_card_target(run: GameRun, merc_uid: str, card_obj) -> Optional[str]:
-    from ..battle.coop_targeting import COOP_ALLY_CARDS
     from ..battle.party_battle import party_slots, party_target_ref
 
     base_id = getattr(card_obj, "id", "")
     target_type = getattr(card_obj, "target_type", "enemy")
     if base_id == "discover" or base_id.startswith("neutral_emperor_eye"):
         return None
-    if base_id in COOP_ALLY_CARDS:
-        allow_self = bool(getattr(card_obj, "upgraded", False)) and base_id in (
-            "coop_resonance_hymn",
-            "coop_phalanx_bulwark",
-        )
+    from ..battle.selection.target_rules import is_coop_ally_card
+    if is_coop_ally_card(card_obj):
+        rule = card_obj.target_rule
+        allow_self = bool(getattr(card_obj, "upgraded", False)) and rule.upgraded_allow_self
         slots = party_slots(run, alive_only=True)
         if not allow_self:
             slots = [(s, u, p) for s, u, p in slots if u != merc_uid]
@@ -316,8 +314,6 @@ def _pick_playable_card(
     merc: PlayerState,
     skip_obj_ids: Optional[set[int]] = None,
 ) -> Optional[tuple[int, Optional[str]]]:
-    from ..battle.coop_targeting import COOP_ALLY_CARDS
-
     best_idx = None
     best_target = None
     best_score = -999
@@ -350,7 +346,8 @@ def _pick_playable_card(
         if getattr(card_obj, "type", "") in ("minion", "amulet") and battle_engine._get_free_grid(merc) is None:
             continue
         target = _pick_card_target(run, merc_uid, card_obj)
-        if (getattr(card_obj, "target_type", "enemy") in ("ally", "ally_or_self", "any_other") or card_obj.id in COOP_ALLY_CARDS) and target is None:
+        from ..battle.selection.target_rules import is_coop_ally_card
+        if (getattr(card_obj, "target_type", "enemy") in ("ally", "ally_or_self", "any_other") or is_coop_ally_card(card_obj)) and target is None:
             continue
         if card_obj.can_play_error(run, target, battle_engine):
             continue
@@ -368,95 +365,19 @@ def _resolve_merc_interactions(battle_engine, run: GameRun, merc_uid: str, merc:
     extra_notes = []
     for _ in range(16):
         did_work = False
-        if run.node_data.pop("pending_discard", None):
-            run.node_data.pop("pending_discard_source", None)
-            if merc.hand:
-                d_idx = _pick_discard_index(merc)
-                cid = merc.hand.pop(d_idx)
-                d_obj = ALL_CARDS.get(ensure_card_state(cid))
-                d_res = battle_engine._discard_card(run, cid)
-                extra_notes.append(get_locale_text("i18n_cli_core.discard_result", card_name=d_obj.name if d_obj else ensure_card_state(cid).id))
-                if d_res:
-                    extra_notes.append(d_res)
-                did_work = True
         state_stack = run.node_data.get("state_stack", [])
         if len(state_stack) <= initial_stack_len:
             if not did_work:
                 break
             continue
-        top = state_stack.pop()
-        stype = top.get("type")
-        if stype == "card_selection":
-            from ..battle.selection_session import resolve_session_for_mercenary
-            state_stack.append(top)
-            extra_notes.extend(
-                resolve_session_for_mercenary(battle_engine, run, merc_uid, merc, top, _score_card_obj)
-            )
-        elif stype == "force_discard":
-            req_count = int(top.get("required_count", 1) or 1)
-            already_cnt = len(top.get("discarded", []))
-            need = max(0, req_count - already_cnt)
-            for _ in range(need):
-                if not merc.hand:
-                    break
-                d_idx = _pick_discard_index(merc)
-                cid = merc.hand.pop(d_idx)
-                d_obj = ALL_CARDS.get(ensure_card_state(cid))
-                d_res = battle_engine._discard_card(run, cid)
-                extra_notes.append(get_locale_text("i18n_cli_core.discard_result", card_name=d_obj.name if d_obj else ensure_card_state(cid).id))
-                if d_res:
-                    extra_notes.append(d_res)
-            battle_engine.resolve_suspended_card(run)
-        elif stype == "discover_selection":
-            req_count = int(top.get("count", 1) or 1)
-            already = list(top.get("selected", []))
-            need = max(0, req_count - len(already))
-            picked_names = []
-            for _ in range(need):
-                valid_exhaust = [c for c in merc.exhaust_pile if ensure_card_state(c).id != "discover"]
-                if not valid_exhaust:
-                    break
-                best_c = max(valid_exhaust, key=lambda c: _score_card_obj(merc, ALL_CARDS.get(ensure_card_state(c))))
-                merc.exhaust_pile.remove(best_c)
-                DeckService.add_card_to_hand(merc, best_c)
-                b_obj = ALL_CARDS.get(ensure_card_state(best_c))
-                picked_names.append(b_obj.name if b_obj else ensure_card_state(best_c).id)
-            battle_engine.resolve_suspended_card(run)
-            if picked_names:
-                sep = get_locale_text("i18n_cli_core.list_separator")
-                extra_notes.append(get_locale_text("i18n_cli_core.discover_complete", selected_cards_str=sep.join(picked_names)))
-        elif stype == "overload_star_select":
-            upgraded = bool(top.get("upgraded", False))
-            if merc.hand:
-                keep_idx = max(range(len(merc.hand)), key=lambda i: _score_card_obj(merc, ALL_CARDS.get(ensure_card_state(merc.hand[i]))))
-            else:
-                keep_idx = -1
-            emp_res = battle_engine.execute_emperor_eye_resolve(run, keep_idx, upgraded)
-            if emp_res:
-                extra_notes.append(emp_res)
-        elif stype == "cthulhu_puzzle_choice":
-            stage = int(top.get("stage", run.node_data.get("cthulhu_seal_stage", 1)) or 1)
-            option = 2 if stage == 2 else 1
-            from ...entities.enemies.boss.cthulhu_boss import resolve_cthulhu_puzzle
-            puz_res = resolve_cthulhu_puzzle(run, battle_engine, option, merc)
-            battle_engine.resolve_suspended_card(run)
-            if puz_res:
-                extra_notes.append(puz_res)
-        elif stype == "awaiting_target":
-            action_info = top.get("action")
-            if action_info == "play_card":
-                h_idx = top.get("hand_idx")
-                if isinstance(h_idx, int) and 1 <= h_idx <= len(merc.hand):
-                    c_obj = ALL_CARDS.get(ensure_card_state(merc.hand[h_idx - 1]))
-                    t = _pick_card_target(run, merc_uid, c_obj) if c_obj else None
-                    if t:
-                        t_res = battle_engine.card_player.play_card(run, h_idx, t)
-                        if t_res and not t_res.startswith("[FAIL]") and not t_res.startswith("❌"):
-                            extra_notes.append(t_res)
-                            continue
-            battle_engine.rollback_suspended_card(run)
-        else:
-            battle_engine.rollback_suspended_card(run)
+        top = state_stack[-1]
+        if top.get("type") not in ("interaction_session", "card_selection"):
+            break
+        from ..battle.selection import resolve_session_for_mercenary
+        extra_notes.extend(
+            resolve_session_for_mercenary(battle_engine, run, merc_uid, merc, top, _score_card_obj)
+        )
+        did_work = True
     return [n for n in extra_notes if n]
 
 

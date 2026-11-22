@@ -1,9 +1,10 @@
-from ...data.minion_data import MINION_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.entities.minions.minion_data import MINION_CONFIG
+from ...data.text.locale_data import get_locale_text
 from .minion_base import BaseMinionSkill, MinionTemplate
 
 
 class MercenaryHeavyStrike(BaseMinionSkill):
+    target_type = "enemy"
     def execute(self, run, my_grid, target, engine) -> str:
         m = run.player.minions[my_grid]
         cfg = MINION_CONFIG[m.id]["skills"][0]
@@ -32,6 +33,7 @@ class ShieldGuardDefend(BaseMinionSkill):
 
 
 class ShieldGuardBash(BaseMinionSkill):
+    target_type = "enemy"
     def execute(self, run, my_grid, target, engine) -> str:
         m = run.player.minions[my_grid]
         cfg = MINION_CONFIG[m.id]["skills"][1]
@@ -95,6 +97,7 @@ class WaterTouch(BaseMinionSkill):
 
 
 class WaterLance(BaseMinionSkill):
+    target_type = "enemy"
     def execute(self, run, my_grid, target, engine) -> str:
         m = run.player.minions[my_grid]
         cfg = MINION_CONFIG[m.id]["skills"][1]

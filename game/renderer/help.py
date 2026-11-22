@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple
-from ..data.locale_data import get_locale_text
-from ..data.command_data import GAME_STATE_ORDER
+from ..data.text.locale_data import get_locale_text
+from ..data.text.command_data import GAME_STATE_ORDER
 
 
 def _state_text(states: List[str]) -> str:

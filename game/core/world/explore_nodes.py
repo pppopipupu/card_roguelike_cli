@@ -2,8 +2,8 @@ import random
 
 from ...entities import ALL_CARDS, get_relic_name
 from ...entities.events import get_option_by_action
-from ...data.battle_mode_config import BATTLE_MODE_TEAM
-from ...data.balance_config import (
+from ...data.battle.battle_mode_config import BATTLE_MODE_TEAM
+from ...data.progression.balance_config import (
     COOP_AUTO_TARGET_CANDIDATE_COUNT,
     COOP_BUFF_STACKS_MIN,
     COOP_DOWNED_HP,
@@ -16,10 +16,11 @@ from ...data.balance_config import (
     TREASURE_GOLD_MAX,
     TREASURE_GOLD_MIN,
 )
-from ...data.reward_config import TREASURE_RELIC_POOL
-from ...data.relic_data import relic_allowed_for_class
-from ...data.locale_data import get_locale_text
+from ...data.progression.reward_config import TREASURE_RELIC_POOL
+from ...data.entities.relic_data import relic_allowed_for_class
+from ...data.text.locale_data import get_locale_text
 from ..inventory.card_distribution import CardDistributor
+from ..inventory.relic_service import has_relic_flag
 from ..party.coordinator import add_notice, alive_uids, finish_player_node, restore_player, swap_player
 
 class _TeamEventSaveManager:
@@ -67,7 +68,7 @@ class _TeamEventExploreEngine:
         if self._owner.suppress:
             return ""
         self._owner.gem_id = gem_id
-        from ...data.gem_data import GEM_CONFIG
+        from ...data.entities.gem_data import GEM_CONFIG
         return get_locale_text("i18n_explore_core.gem_gained", gem_name=GEM_CONFIG[gem_id]["name"])
 
 
@@ -103,7 +104,7 @@ def _team_auto_flow(run, flow, gem_id):
     from ...models.state import ensure_card_state
     from ...entities.cards.base import ALL_CARDS
     if flow == "UPGRADE_FLOW":
-        from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
+        from ...data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
         for player in [run.players[u] for u in run.human_uids() if u in run.players]:
             for card_state in player.deck:
                 if not card_state.upgraded and card_state.id in CARD_UPGRADE_CONFIG:
@@ -121,7 +122,7 @@ def _team_auto_flow(run, flow, gem_id):
             player.deck.append(ensure_card_state(cid))
         return get_locale_text("i18n_explore_core.event_team_card", card_name=ALL_CARDS[cid].name if cid in ALL_CARDS else cid)
     if gem_id:
-        from ...data.gem_data import GEM_CONFIG
+        from ...data.entities.gem_data import GEM_CONFIG
         for player in [run.players[u] for u in run.human_uids() if u in run.players]:
             for card_state in player.deck:
                 card_obj = ALL_CARDS.get(card_state)
@@ -271,7 +272,7 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
                     p.hp += 5
             stats = engine.save_manager.load_stats(run.user_id) if hasattr(engine.save_manager, "load_stats") else None
             reward_cards = CardDistributor.roll("treasure", run, p, stats, count=3)
-            from ...data.gem_data import GEM_CONFIG
+            from ...data.entities.gem_data import GEM_CONFIG
             gift_gem_id = random.choice(list(GEM_CONFIG.keys()))
             box_items = [
                 {"type": "gold", "amount": gold_gain, "taken": True},
@@ -535,12 +536,35 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
     if not items:
         engine._init_rest_node(run)
         items = run.node_data["items"]
+    camping = has_relic_flag(p, "rest_all_options")
+    selected_item: dict = {}
+    if camping:
+        available_items = [it for it in items if not it.get("taken")]
+        if option_idx < 1 or option_idx > len(available_items):
+            return get_locale_text("err_invalid_option_idx")
+        selected_item = available_items[option_idx - 1]
+        itype = selected_item.get("type")
+        if itype == "rest_heal":
+            option_idx = 1
+        elif itype == "rest_meditate":
+            option_idx = 2
+        elif itype == "rest_upgrade":
+            option_idx = 3
+        elif itype == "rest_mend":
+            option_idx = 4
+        elif itype == "rest_enchant":
+            option_idx = 5 if multi else 4
+        else:
+            return get_locale_text("err_invalid_option_idx")
     if option_idx == 1:
-        for it in items:
-            it["taken"] = True
+        if camping:
+            selected_item["taken"] = True
+        else:
+            for it in items:
+                it["taken"] = True
         heal = (p.max_hp * COOP_REST_HEAL_PERCENT // COOP_PERCENT_BASE) if multi else int(p.max_hp * REST_HEAL_RATIO)
         p.hp = min(p.max_hp, p.hp + heal)
-        from ...data.grid_map_config import SP_CONFIG
+        from ...data.world.grid_map_config import SP_CONFIG
         from .persistent_buffs import cure_persistent_debuffs
         from .sp_system import reduce_exhaustion, restore_sp
         sp_gain = restore_sp(p, SP_CONFIG["rest_sp_gain"])
@@ -549,10 +573,17 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
         cure_persistent_debuffs(p, 1)
         sp_suffix = get_locale_text("i18n_grid_map.rest_sp_suffix", sp_gain=sp_gain, exhaustion_cured=max(0, old_ex - new_ex))
         msg = (get_locale_text("i18n_coop_explore.rest_heal", heal=heal) if multi else get_locale_text("msg_rest_heal", heal=heal)) + sp_suffix
+        if camping:
+            engine.save_manager.save_save(run.user_id, run)
+            from ...renderer.explore import render_rest
+            return f"{msg}\n\n{render_rest(run)}"
         return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
     if option_idx == 2:
-        for it in items:
-            it["taken"] = True
+        if camping:
+            selected_item["taken"] = True
+        else:
+            for it in items:
+                it["taken"] = True
         stats = engine.save_manager.load_stats(run.user_id)
         reward_cards = CardDistributor.roll("rest_meditate", run, p, stats, count=REWARD_CARD_COUNT, include_coop=multi)
         engine.start_card_select(run, reward_cards, "rest", init_event=False, title_key="i18n_explore_core.meditate_title", desc_key="i18n_explore_core.meditate_desc")
@@ -593,6 +624,11 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
                     ally.buffs.remove(buff)
                 break
         msg = get_locale_text("i18n_coop_explore.mend_success", ally_name=ally.name, heal=heal, removed=removed)
+        if camping:
+            selected_item["taken"] = True
+            engine.save_manager.save_save(run.user_id, run)
+            from ...renderer.explore import render_rest
+            return f"{msg}\n\n{render_rest(run)}"
         return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
     if (option_idx == 4 and not multi) or (option_idx == 5 and multi):
         return engine.start_enchant_flow(run, "rest", "rest", dict(run.node_data))

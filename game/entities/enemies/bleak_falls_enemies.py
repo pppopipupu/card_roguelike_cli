@@ -2,9 +2,9 @@ import random
 from typing import List, Optional
 
 from .base import EnemyTemplate, register_enemy
-from ...data.enemy_data import ENEMY_CONFIG
-from ...data.enemy_data_bleak_falls import BLEAK_DRAUGR_SUMMON_NAME, ENEMY_BLEAK_FALLS_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.enemies.enemy_data import ENEMY_CONFIG
+from ...data.enemies.enemy_data_bleak_falls import BLEAK_DRAUGR_SUMMON_NAME, ENEMY_BLEAK_FALLS_CONFIG
+from ...data.text.locale_data import get_locale_text
 from ...models.state import EnemyIntentState, EnemyState
 
 

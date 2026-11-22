@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import CommandHandler
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 
 class ClassCommand(CommandHandler, names=["职业", "class"], allowed_states=["menu", "town"], help_key="class"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
@@ -8,7 +8,7 @@ class ClassCommand(CommandHandler, names=["职业", "class"], allowed_states=["m
         selected_class = getattr(stats, "selected_class", "法师")
         selected_subclass = getattr(stats, "selected_subclass", "") or get_locale_text("i18n_cli_general_a.class.none")
         if len(parts) == 1:
-            from .....data.shop_data import SHOP_ITEMS
+            from .....data.progression.shop_data import SHOP_ITEMS
             gp = getattr(stats, "gp", 0)
             unlocked = getattr(stats, "unlocked_subclasses", [])
             status_time = get_locale_text("i18n_cli_general_a.class.status_unlocked") if "时序法师" in unlocked else get_locale_text("i18n_cli_general_a.class.status_locked", price=SHOP_ITEMS['时序法师']['price'])
@@ -102,7 +102,7 @@ class ClassCommand(CommandHandler, names=["职业", "class"], allowed_states=["m
                     return
                 unlocked = getattr(stats, "unlocked_subclasses", [])
                 if subclass_name not in unlocked:
-                    from .....data.shop_data import SHOP_ITEMS
+                    from .....data.progression.shop_data import SHOP_ITEMS
                     price = SHOP_ITEMS.get(subclass_name, {}).get("price", 2888)
                     yield get_locale_text("i18n_cli_general_a.class.sub_locked", subclass_name=subclass_name, price=price)
                     return

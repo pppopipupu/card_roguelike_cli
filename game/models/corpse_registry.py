@@ -9,8 +9,8 @@ from typing import Optional
 
 from .state import GameRun, ensure_card_state
 from ..json_codec import dumps, load
-from ..data.corpse_config import CorpseConfig
-from ..data.locale_data import get_locale_text
+from ..data.entities.corpse_config import CorpseConfig
+from ..data.text.locale_data import get_locale_text
 
 _LOCK = threading.RLock()
 

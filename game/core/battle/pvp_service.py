@@ -3,13 +3,13 @@ import random
 import time
 from typing import Optional
 
-from ...data.pvp_config import (
+from ...data.world.pvp_config import (
     PVP_MATCH_KEY,
     PVP_ROPE_WARNING_SECONDS,
     PVP_TURN_TIMEOUT_SECONDS,
     PVP_WIN_GP_REWARD,
 )
-from ...data.open_world_config import (
+from ...data.world.open_world_config import (
     OPEN_WORLD_COMBAT_FLAG,
     OPEN_WORLD_COORD_KEY,
     OPEN_WORLD_ORIGIN_KEY,
@@ -17,7 +17,7 @@ from ...data.open_world_config import (
     OPEN_WORLD_WORLD_KEY,
     WORLD_YOG_TEMPLE,
 )
-from ...data.world_social_config import (
+from ...data.world.world_social_config import (
     WORLD_OUTER_PLANE,
     WORLD_SNOWFIELD,
     WORLD_TOWN,
@@ -26,7 +26,8 @@ from ...models.events import BattleStartEvent
 from ...models.state import EnemyIntentState, EnemyState, GameRun, PlayerState
 from ..inventory.deck_service import DeckService
 from ..text.events import LocaleText
-from ..text.pipeline import render_text_node
+from ..text.pipeline import render_text, render_text_node
+from .extra_turn_service import end_and_begin
 from ..world.open_world.death_service import OpenWorldDeathService
 from ..world.open_world.loadout_service import OpenWorldLoadoutService
 
@@ -62,7 +63,13 @@ def _init_pvp_player(battle_engine, p_state: PlayerState, is_first: bool, user_i
     p_state.actions = 2 if is_first else 0
     p_state.bonus_actions = 1 if is_first else 0
     stub = GameRun(user_id=user_id, node_type="battle", player=p_state, node_data={})
-    battle_engine.card_player.draw_cards(p_state, 6, stub, ignore_focus=True)
+    from ...entities import get_relic_impl
+    init_draw = 6
+    for rid in list(p_state.relics):
+        impl = get_relic_impl(rid)
+        if impl is not None:
+            init_draw = impl.modify_initial_draw(stub, init_draw, battle_engine)
+    battle_engine.card_player.draw_cards(p_state, init_draw, stub, ignore_focus=True, is_turn_start=True)
     battle_engine.event_bus.dispatch(BattleStartEvent(stub))
     return dict(stub.node_data)
 
@@ -465,29 +472,88 @@ class PvpService:
         return _t("i18n_pvp.battle.rope_auto_end", name=active_name)
 
     @staticmethod
+    def _reset_rope(save_manager, run: GameRun, now: Optional[float] = None) -> None:
+        match = save_manager.pvp.get_match(run.node_data.get(PVP_MATCH_KEY))
+        if match is None:
+            return
+        match["turn_started_at"] = time.time() if now is None else float(now)
+        save_manager.pvp.save_match(match)
+
+    @staticmethod
+    def _pvp_finished(run: GameRun) -> bool:
+        if run.player.hp <= 0:
+            return True
+        return run.player2 is not None and run.player2.hp <= 0
+
+    @staticmethod
+    def _settle_if_finished(
+        save_manager,
+        town_engine,
+        world_social,
+        match_id: str,
+        run: GameRun,
+        uid: str,
+        opp_uid: str,
+    ) -> str:
+        if town_engine is None or world_social is None:
+            return ""
+        if run.player.hp <= 0:
+            _, lose_msg = PvpService.settle_pvp_match(
+                save_manager, town_engine, world_social, match_id, opp_uid, str(uid), actor_uid=str(uid)
+            )
+            return lose_msg
+        if run.player2 is not None and run.player2.hp <= 0:
+            win_msg, _ = PvpService.settle_pvp_match(
+                save_manager, town_engine, world_social, match_id, str(uid), opp_uid, actor_uid=str(uid)
+            )
+            return win_msg
+        return ""
+
+    @staticmethod
+    def _join_extra_events(extra_events, message: str) -> str:
+        rendered = render_text(extra_events, "battle") if extra_events else ""
+        if rendered and message:
+            return rendered.rstrip() + "\n" + message
+        return rendered or message
+
+    @staticmethod
     def consume_extra_turn(
         save_manager,
         battle_engine,
         run: GameRun,
         uid: str,
         *,
-        run_end_phase: bool,
         now: Optional[float] = None,
     ) -> str:
-        match_id = str(run.node_data.get(PVP_MATCH_KEY) or "")
-        if run_end_phase:
-            battle_engine.card_player._end_player_phase_events(run, run.player)
-            PvpService.sync_opponent_from_enemies(run)
-        remaining = max(0, int(run.node_data.get("extra_turns_left", 0) or 0) - 1)
-        run.node_data["extra_turns_left"] = remaining
-        battle_engine.card_player._begin_player_phase_events(run, run.player, advance_global=False)
-        PvpService.sync_enemies_from_opponent(run)
+        battle_engine.card_player._end_player_phase_events(run, run.player)
+        PvpService.sync_opponent_from_enemies(run)
         save_manager.save_save(uid, run)
-        match = save_manager.pvp.get_match(match_id)
-        if match is not None:
-            match["turn_started_at"] = time.time() if now is None else float(now)
-            save_manager.pvp.save_match(match)
-        return _t("i18n_battle_core.time_stop_extra_turn", count=remaining)
+        extra_events, in_extra = end_and_begin(battle_engine, run, uid)
+        PvpService.sync_opponent_from_enemies(run)
+        if PvpService._pvp_finished(run):
+            save_manager.save_save(uid, run)
+            return render_text(extra_events, "battle")
+        if in_extra:
+            run.node_data["pvp_turn_uid"] = str(uid)
+            PvpService.sync_enemies_from_opponent(run)
+            save_manager.save_save(uid, run)
+            PvpService._reset_rope(save_manager, run, now=now)
+            return render_text(extra_events, "battle")
+        map_engine = getattr(battle_engine, "map_engine", None)
+        town_engine = getattr(map_engine, "town_engine", None)
+        grid_service = getattr(map_engine, "grid_map_service", None)
+        world_social = getattr(grid_service, "world_social", None)
+        switch_msg = PvpService.advance_pvp_turn(
+            save_manager,
+            battle_engine,
+            town_engine,
+            world_social,
+            run,
+            uid,
+            now=now,
+            phase_ended=True,
+        )
+        return PvpService._join_extra_events(extra_events, switch_msg)
 
     @staticmethod
     def advance_pvp_turn(
@@ -499,6 +565,7 @@ class PvpService:
         uid: str,
         *,
         now: Optional[float] = None,
+        phase_ended: bool = False,
     ) -> str:
         match_id = str(run.node_data.get(PVP_MATCH_KEY) or "")
         match = save_manager.pvp.get_match(match_id)
@@ -510,49 +577,51 @@ class PvpService:
         opp_name = str(match["p2_name"] if str(uid) == p1_uid else match["p1_name"])
         my_name = str(match["p1_name"] if str(uid) == p1_uid else match["p2_name"])
 
-        PvpService.sync_enemies_from_opponent(run)
-        battle_engine.card_player._end_player_phase_events(run, run.player)
+        if not phase_ended:
+            PvpService.sync_enemies_from_opponent(run)
+            battle_engine.card_player._end_player_phase_events(run, run.player)
+            PvpService.sync_opponent_from_enemies(run)
+            save_manager.save_save(uid, run)
+        finished_msg = PvpService._settle_if_finished(
+            save_manager, town_engine, world_social, match_id, run, uid, opp_uid
+        )
+        if finished_msg:
+            return finished_msg
+        extra_events, in_extra = end_and_begin(battle_engine, run, uid)
         PvpService.sync_opponent_from_enemies(run)
-        save_manager.save_save(uid, run)
-
-        if run.player.hp <= 0:
-            _, lose_msg = PvpService.settle_pvp_match(
-                save_manager, town_engine, world_social, match_id, opp_uid, str(uid), actor_uid=str(uid)
-            )
-            return lose_msg
-        if run.player2 is not None and run.player2.hp <= 0:
-            win_msg, _ = PvpService.settle_pvp_match(
-                save_manager, town_engine, world_social, match_id, str(uid), opp_uid, actor_uid=str(uid)
-            )
-            return win_msg
-
+        finished_msg = PvpService._settle_if_finished(
+            save_manager, town_engine, world_social, match_id, run, uid, opp_uid
+        )
+        if finished_msg:
+            return PvpService._join_extra_events(extra_events, finished_msg)
+        if in_extra:
+            run.node_data["pvp_turn_uid"] = str(uid)
+            PvpService.sync_enemies_from_opponent(run)
+            save_manager.save_save(uid, run)
+            PvpService._reset_rope(save_manager, run, now=now)
+            return render_text(extra_events, "battle")
         match = save_manager.pvp.get_match(match_id) or match
-        if int(run.node_data.get("extra_turns_left", 0) or 0) > 0:
-            return PvpService.consume_extra_turn(
-                save_manager,
-                battle_engine,
-                run,
-                uid,
-                run_end_phase=False,
-                now=now,
-            )
         match["current_turn_uid"] = opp_uid
         if opp_uid == p1_uid:
             match["turn_count"] = int(match.get("turn_count", 1)) + 1
         match["turn_started_at"] = time.time() if now is None else float(now)
         save_manager.pvp.save_match(match)
+        run.node_data["pvp_turn_uid"] = opp_uid
 
         opp_run = save_manager.load_save(opp_uid)
         if opp_run is not None:
+            opp_run.node_data["pvp_turn_uid"] = opp_uid
             opp_run.node_data["turn_count"] = int(match["turn_count"])
             battle_engine.card_player._begin_player_phase_events(opp_run, opp_run.player, advance_global=False)
             PvpService.sync_opponent_from_enemies(opp_run)
             save_manager.save_save(opp_uid, opp_run)
             if opp_run.player.hp <= 0:
+                if town_engine is None or world_social is None:
+                    return PvpService._join_extra_events(extra_events, "")
                 win_msg, _ = PvpService.settle_pvp_match(
                     save_manager, town_engine, world_social, match_id, str(uid), opp_uid, actor_uid=str(uid)
                 )
-                return win_msg
+                return PvpService._join_extra_events(extra_events, win_msg)
 
         world_social.push_log(
             opp_uid,
@@ -560,7 +629,10 @@ class PvpService:
             command="pvp_turn",
             player_name=my_name,
         )
-        return _t("i18n_pvp.battle.turn_ended_wait", turn=int(match["turn_count"]), opp=opp_name)
+        return PvpService._join_extra_events(
+            extra_events,
+            _t("i18n_pvp.battle.turn_ended_wait", turn=int(match["turn_count"]), opp=opp_name),
+        )
 
     @staticmethod
     def settle_pvp_match(

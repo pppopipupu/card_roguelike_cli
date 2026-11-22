@@ -1,11 +1,23 @@
 import random
 from typing import TYPE_CHECKING, Optional
-from ...models.state import GameRun, ensure_card_state
-from ...data.locale_data import get_locale_text
+from ...models.state import GameRun
+from ...data.text.locale_data import get_locale_text
 from ...entities import ALL_CARDS, ALL_AMULETS
-from ...models.events import TurnEndEvent, TurnStartEvent, CardExhaustEvent
+from ...models.events import (
+    TurnEndEvent,
+    TurnStartEvent,
+    TurnResourceInitEvent,
+    TurnDrawCalculateEvent,
+    TurnStartAfterDrawEvent,
+    ShieldDecayCalculateEvent,
+    CardExhaustEvent,
+    CardTurnEndResolveEvent,
+    CardDrawnEvent,
+    CardDiscardEvent,
+)
 from ..text.events import JoinedText, LocaleText, RenderedText, TextDocument, locale_text
 from ..text.pipeline import render_text
+from .extra_turn_service import end_and_begin
 
 if TYPE_CHECKING:
     from ...models.state import PlayerState
@@ -22,9 +34,9 @@ class CardPlayerEngineMixin:
 class CardPlayerTurnMixin(CardPlayerEngineMixin):
     if TYPE_CHECKING:
 
-        def draw_cards(self, p: PlayerState, count: int, run: Optional[GameRun] = None, ignore_focus: bool = False, depth: int = 0) -> None: ...
-
         def handle_battle_win(self, run: GameRun) -> None: ...
+
+        def _finalize_card_play(self, run, p, card, c_state, target, res, source="played", register=True, allow_return=True) -> tuple[str, bool]: ...
 
         def _reindex_minions(self, p: PlayerState) -> None: ...
     def _render_events(self, document: TextDocument) -> str:
@@ -34,41 +46,42 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         return self._render_events(self._end_player_phase_events(run, p))
 
     def _end_player_phase_events(self, run: GameRun, p) -> TextDocument:
-        from .enchantment_runtime import apply_enchantment_turn_end
-        apply_enchantment_turn_end(run, p)
-        from .ninja_runtime import handle_ninja_turn_end
-        handle_ninja_turn_end(self.engine, run, p)
         evt_end = TurnEndEvent(run, is_player=True)
         self.engine.event_bus.dispatch(evt_end)
         retain_key = run.turn_key("temp_retain_cards", p)
         retained = []
         temp_retains = list(run.node_data.get(retain_key, []))
-        for c_state in p.hand:
+        for c_state in list(p.hand):
             card = ALL_CARDS.get(c_state)
-            if card and (getattr(card, "retain", False) or (hasattr(card, "gems") and card.gems and "gem_retain" in card.gems)):
+            action = "discard"
+            if card and (getattr(card, "retain", False) or getattr(c_state, "temp_retain", False) or c_state in temp_retains):
+                action = "retain"
+            elif card and (getattr(card, "ethereal", False) or getattr(c_state, "temp_ethereal", False)):
+                action = "exhaust"
+            evt = CardTurnEndResolveEvent(run, p, c_state, card, action=action)
+            self.engine.event_bus.dispatch(evt)
+            action = evt.action
+            if action == "retain":
                 retained.append(c_state)
-            elif c_state in temp_retains:
-                retained.append(c_state)
-                temp_retains.remove(c_state)
-            elif card and card.id == "curse_dimensional_tear":
+                if c_state in temp_retains:
+                    temp_retains.remove(c_state)
+            elif action == "exhaust":
                 p.exhaust_pile.append(c_state)
-                self.engine._log_event(run, locale_text(
-                    "i18n_battle_core.dimensional_tear_log",
-                    params={"name": card.name, "player": run.player.name},
-                ))
-                self.engine.combat_resolver.damage_target(run, "p0", 3, source="curse", damage_type="true")
-                exhaust_evt = CardExhaustEvent(run, c_state, "curse_dimensional_tear")
+                if not evt.handled:
+                    self.engine._log_event(run, locale_text(
+                        "i18n_battle_core.ethereal_exhaust_log",
+                        params={"name": card.name if card else c_state.id},
+                    ))
+                exhaust_evt = CardExhaustEvent(run, c_state, "turn_end")
                 self.engine.event_bus.dispatch(exhaust_evt)
-            elif card and getattr(card, "ethereal", False):
-                p.exhaust_pile.append(c_state)
-                self.engine._log_event(run, locale_text(
-                    "i18n_battle_core.ethereal_exhaust_log",
-                    params={"name": card.name},
-                ))
-                exhaust_evt = CardExhaustEvent(run, c_state, "ethereal")
-                self.engine.event_bus.dispatch(exhaust_evt)
-            else:
+            elif action == "draw":
+                p.draw_pile.append(c_state)
+            elif action != "remove":
                 c_state.temp_cost_a = None
+                c_state.temp_cost_ba = None
+                c_state.temp_ethereal = False
+                c_state.temp_exhaust = False
+                c_state.temp_retain = False
                 p.discard_pile.append(c_state)
         p.hand = retained
         run.node_data[retain_key] = []
@@ -104,10 +117,11 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
 
     def _begin_player_phase_events(self, run: GameRun, p, advance_global: bool = True) -> TextDocument:
         decay_entries: list[LocaleText] = []
-        has_barricade = any(b.id.startswith("barricade") for b in p.buffs)
-        if p.shield > 0 and not has_barricade:
-            lost = p.shield - (p.shield // 2)
-            p.shield = p.shield // 2
+        if p.shield > 0:
+            decay_evt = ShieldDecayCalculateEvent(run, p, "p0", p.shield, p.shield - (p.shield // 2))
+            self.engine.event_bus.dispatch(decay_evt)
+            lost = max(0, min(p.shield, decay_evt.decay_amount))
+            p.shield -= lost
             if lost > 0:
                 decay_entries.append(locale_text(
                     "i18n_battle_core.shield_decay_entry",
@@ -115,27 +129,15 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 ))
                 from ...models.events import ShieldDecayEvent
                 self.engine.event_bus.dispatch(ShieldDecayEvent(run, "p0", lost))
-        elif p.shield > 0 and has_barricade:
-            pass
         else:
             p.shield = 0
-        if getattr(p, "selected_class", "法师") == "蕾忍":
-            p.actions = 3
-            p.bonus_actions = 0
-        else:
-            p.actions = 2
-            p.bonus_actions = 1
-        from .enchantment_runtime import apply_enchantment_turn_start
-        apply_enchantment_turn_start(self.engine, run, p)
-        from .ninja_runtime import handle_ninja_turn_start
-        handle_ninja_turn_start(self.engine, run, p)
+        resource_evt = TurnResourceInitEvent(run, p, 2, 1)
+        self.engine.event_bus.dispatch(resource_evt)
+        p.actions = resource_evt.actions
+        p.bonus_actions = resource_evt.bonus_actions
         evt_start = TurnStartEvent(run, is_player=True)
         self.engine.event_bus.dispatch(evt_start)
-        if getattr(p, "subclass", "") == "时序法师":
-            if random.random() < 0.25:
-                p.bonus_actions += 1
-                self.engine._log_event(run, locale_text(key="i18n_battle_core.time_shift_turn_log"))
-        from ...data.minion_data import MINION_CONFIG
+        from ...data.entities.minions.minion_data import MINION_CONFIG
         for mk, mv in p.minions.items():
             if MINION_CONFIG.get(mv.id, {}).get("no_attack_actions"):
                 mv.actions = 0
@@ -144,62 +146,17 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 continue
             mv.actions += 1
             mv.attack_actions = 1
-            if mv.id == "mercenary":
-                mv.atk = 4
-            elif mv.id == "mercenary+":
-                mv.atk = 5
-            elif mv.id == "arcane_golem":
-                mv.atk = 6
-            elif mv.id == "arcane_golem+":
-                mv.atk = 8
         if advance_global:
-            if run.enemies and any(e.name.startswith("腐化之心") for e in run.enemies):
-                run.node_data["heart_turn"] = run.node_data.get("heart_turn", 1) + 1
+            run.node_data["heart_turn"] = run.node_data.get("heart_turn", 1)
         draw_count = 6
         if run.node_data.get("draw_penalty_next_turn"):
             draw_count = max(0, draw_count - run.node_data["draw_penalty_next_turn"])
             run.node_data.pop("draw_penalty_next_turn", None)
-        self.draw_cards(p, draw_count, run, ignore_focus=True)
-        discard_buff = next((b for b in p.buffs if b.id == "discard_next_turn"), None)
-        if discard_buff:
-            count = discard_buff.stacks
-            discarded_names = []
-            for _ in range(count):
-                if p.hand:
-                    discarded = p.hand.pop(random.randint(0, len(p.hand) - 1))
-                    card_name = ALL_CARDS[discarded].name if discarded in ALL_CARDS else get_locale_text("i18n_battle_core.unknown_card")
-                    discarded_names.append(f"【{card_name}】")
-                    self.engine._discard_card(run, discarded)
-            p.buffs.remove(discard_buff)
-            if discarded_names:
-                self.engine._log_event(run, locale_text(
-                    "i18n_battle_core.discard_start_turn_log",
-                    params={"cards": ', '.join(discarded_names)},
-                ))
-        if any(b.id == "baguwen_restriction" for b in p.buffs):
-            required_key = run.turn_key("baguwen_required_card", p)
-            checked_key = run.turn_key("baguwen_checked", p)
-            candidates = []
-            for hand_state in p.hand:
-                state = ensure_card_state(hand_state)
-                card = ALL_CARDS.get(state)
-                if card is None:
-                    continue
-                if getattr(card, "unplayable", False):
-                    continue
-                if getattr(card, "type", "") == "curse":
-                    continue
-                candidates.append((state, card))
-            if candidates:
-                state, card = random.choice(candidates)
-                run.node_data[required_key] = {"id": state.id, "upgraded": bool(state.upgraded)}
-                self.engine._log_event(run, locale_text(
-                    "i18n_buffs.baguwen_required_log",
-                    params={"card_name": card.name},
-                ))
-            else:
-                run.node_data.pop(required_key, None)
-            run.node_data[checked_key] = False
+        draw_evt = TurnDrawCalculateEvent(run, p, draw_count)
+        self.engine.event_bus.dispatch(draw_evt)
+        draw_count = draw_evt.draw_count
+        self.draw_cards(p, draw_count, run, ignore_focus=True, is_turn_start=True)
+        self.engine.event_bus.dispatch(TurnStartAfterDrawEvent(run, p))
         run.node_data[run.turn_key("cards_played_this_turn", p)] = 0
         run.node_data[run.turn_key("action_surge_turn_used", p)] = False
         self._reindex_minions(p)
@@ -266,6 +223,20 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
             return self._finish_turn(run, [locale_text(key="i18n_battle_core.battle_victory")], viewer_uid)
+        extra_events, in_extra = end_and_begin(self.engine, run, uid)
+        if in_extra:
+            return self._finish_turn(run, extra_events, viewer_uid)
+        if extra_events and self.engine.is_battle_won(run):
+            if is_all_downed(run):
+                if multi:
+                    run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
+                settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
+                if multi:
+                    return [locale_text(key="i18n_explore_core.coop_wipe_simple", params={"settle_msg": settle_msg})]
+                return self._defeat_nodes(run, JoinedText(parts=extra_events), settle_msg)
+            self.handle_battle_win(run)
+            self._reindex_minions(viewer)
+            return self._finish_turn(run, extra_events + [locale_text(key="i18n_battle_core.battle_victory")], viewer_uid)
         ready = run.node_data.setdefault("turn_ready", {})
         ready[uid] = True
         alive = alive_uids(run)
@@ -278,7 +249,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
             return [locale_text(
                 "i18n_explore_core.turn_waiting_others",
                 params={
-                    "logs": JoinedText(parts=end_events + log_nodes),
+                    "logs": JoinedText(parts=end_events + extra_events + log_nodes),
                     "count": len(ready_uids),
                     "total": len(alive),
                     "names": names,
@@ -290,11 +261,13 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
             if member in run.players
         }
         from ..party.mercenary import run_mercenaries_for_timing
-        from ...data.mercenary_data import MERCENARY_TIMING_AFTER, MERCENARY_TIMING_BEFORE
+        from ...data.entities.mercenary_data import MERCENARY_TIMING_AFTER, MERCENARY_TIMING_BEFORE
         merc_after_logs = run_mercenaries_for_timing(self.engine, run, MERCENARY_TIMING_AFTER)
         merc_after_events: TextDocument = []
         if merc_after_logs:
             merc_after_events.append(RenderedText(text=merc_after_logs))
+        if extra_events:
+            merc_after_events = extra_events + merc_after_events
         if self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
@@ -309,16 +282,8 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
             self.handle_battle_win(run)
             self._reindex_minions(viewer)
             return self._finish_turn(run, self._victory_events(merc_after_events), viewer_uid)
-        extra_turns = run.node_data.get("extra_turns_left", 0)
-        if extra_turns > 0:
-            run.node_data["extra_turns_left"] = extra_turns - 1
-            enemy_events: TextDocument = [locale_text(
-                "i18n_battle_core.time_stop_extra_turn",
-                params={"count": extra_turns - 1},
-            )]
-        else:
-            assign_enemy_targets(run)
-            enemy_events = self.engine._enemy_turn_events(run)
+        assign_enemy_targets(run, self.engine)
+        enemy_events: TextDocument = self.engine._enemy_turn_events(run)
         if merc_after_events:
             enemy_events = merc_after_events + enemy_events
         if self.engine.is_battle_won(run):
@@ -376,7 +341,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         run.player = viewer
         run.user_id = viewer_uid
         self.engine._roll_enemy_intent(run)
-        assign_enemy_targets(run)
+        assign_enemy_targets(run, self.engine)
         merc_before_logs = run_mercenaries_for_timing(self.engine, run, MERCENARY_TIMING_BEFORE)
         if merc_before_logs:
             turn_logs.append(RenderedText(text=merc_before_logs))
@@ -437,3 +402,81 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
                 params={"enemy_actions": enemy_actions_node, "settle_msg": settle_msg},
             )
         ]
+
+    def draw_cards(self, p: PlayerState, count: int, run: Optional[GameRun] = None, ignore_focus: bool = False, is_turn_start: bool = False, depth: int = 0):
+        if run is not None:
+            from ...models.events import BeforeCardDrawEvent
+            pre_evt = BeforeCardDrawEvent(run, p, count, ignore_focus, is_turn_start)
+            self.engine.event_bus.dispatch(pre_evt)
+            if pre_evt.cancelled:
+                return
+        max_hand = self.engine.get_max_hand_size(run, p)
+        drawn_cards = []
+        reshuffled = False
+        for _ in range(count):
+            if not p.draw_pile:
+                if p.discard_pile:
+                    p.draw_pile = p.discard_pile.copy()
+                    random.shuffle(p.draw_pile)
+                    p.discard_pile.clear()
+                    reshuffled = True
+            if p.draw_pile:
+                cid = p.draw_pile.pop()
+                card_obj = ALL_CARDS.get(cid)
+                if run is not None:
+                    drawn_evt = CardDrawnEvent(run, p, cid, card_obj, False, depth)
+                    self.engine.event_bus.dispatch(drawn_evt)
+                    if drawn_evt.intercepted:
+                        continue
+                if len(p.hand) < max_hand:
+                    p.hand.append(cid)
+                    drawn_cards.append(cid)
+                else:
+                    p.discard_pile.append(cid)
+                    if run is not None:
+                        card_obj = ALL_CARDS.get(cid)
+                        card_name = card_obj.name if card_obj else get_locale_text("i18n_battle_core.unknown_card")
+                        self.engine._log_event(run, get_locale_text("i18n_battle_core.hand_full_discard_log", name=card_name))
+        if run is not None:
+            if reshuffled:
+                self.engine._log_event(run, get_locale_text("i18n_battle_core.reshuffle_log"))
+
+    def discard_card(self, run: GameRun, cid) -> str:
+        from ...models.state import ensure_card_state
+        c_state = ensure_card_state(cid)
+        p = run.player
+        card = ALL_CARDS.get(c_state)
+        discard_evt = CardDiscardEvent(run, c_state, "manual")
+        self.engine.event_bus.dispatch(discard_evt)
+        if not card:
+            p.discard_pile.append(c_state)
+            return self.engine._append_logs_to_res(run, "")
+        is_agile = getattr(card, "agile", False)
+        is_cryptic = getattr(card, "cryptic", False)
+        if is_agile or is_cryptic:
+            target = None
+            if card.type == "spell":
+                if getattr(card, "target_type", "enemy") == "self":
+                    target = "p0"
+                else:
+                    target = self.engine._get_first_alive_enemy(run)
+                if target == "0" or target == "e0":
+                    target = "e1"
+            elif card.type == "ability":
+                target = "p0"
+            elif card.type in ("minion", "amulet"):
+                if getattr(card, "target_type", "enemy") == "enemy":
+                    target = self.engine._get_first_alive_enemy(run)
+                else:
+                    target = self.engine._get_free_grid(run.player) or "p1"
+            run.node_data["extra_play_msgs"] = []
+            play_source = "agile" if is_agile else "cryptic"
+            res = self.engine._execute_card_effect(run, card, target)
+            res, _ = self._finalize_card_play(run, p, card, c_state, target, res, source=play_source, register=False)
+            self._reindex_minions(p)
+            log_key = "i18n_battle_core.agile_discard_log" if is_agile else "i18n_battle_core.cryptic_discard_log"
+            return self.engine._append_logs_to_res(run, get_locale_text(log_key, name=card.name, effect=res))
+        else:
+            p.discard_pile.append(c_state)
+            self._reindex_minions(p)
+            return self.engine._append_logs_to_res(run, "")

@@ -1,4 +1,4 @@
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ..cards.ninja_base import add_ninja_buff, add_random_food_to_hand, change_lex_kela, has_ninja_tag
 from .base import RelicImpl
 from .registry import register_relic
@@ -79,7 +79,15 @@ class MachineNinjaRelic(RelicImpl):
 
 @register_relic("sarira")
 class SariraRelic(RelicImpl):
-    pass
+    def on_player_before_death(self, event, run, engine):
+        p = event.player
+        if p.relic_counters.get("sarira_used", 0) > 0:
+            return
+        p.relic_counters["sarira_used"] = 1
+        p.hp = p.max_hp
+        p.gold = max(0, p.gold - 22000000)
+        engine._log_event(run, get_locale_text("i18n_cards_ninja.sarira_revive"))
+        event.cancel()
 
 
 @register_relic("three_duuz")
@@ -103,3 +111,26 @@ class ThreeDuuzRelic(RelicImpl):
 class ToiletWaterRelic(RelicImpl):
     def on_battle_start(self, run, engine):
         run.node_data[run.turn_key("toilet_water_count", run.player)] = 2
+
+    def on_card_drawn(self, event, run, engine):
+        if event.intercepted:
+            return
+        drawn_state = event.card_state
+        p = run.player
+        if drawn_state is not None and getattr(drawn_state, "id", "") == "ninja_hamood_kick":
+            drawn_state.battle_cost_delta_a = int(getattr(drawn_state, "battle_cost_delta_a", 0) or 0) + 1
+        key = run.turn_key("toilet_water_count", p)
+        remaining = int(run.node_data.get(key, 0) or 0)
+        if remaining <= 0:
+            return
+        from ..cards.base import ALL_CARDS
+        card = ALL_CARDS.get(drawn_state)
+        if card is None or getattr(card, "color", "") != "curse":
+            return
+        run.node_data[key] = remaining - 1
+        if drawn_state in p.hand:
+            p.hand.remove(drawn_state)
+        p.exhaust_pile.append(drawn_state)
+        engine._log_event(run, get_locale_text("i18n_cards_ninja.toilet_water_trigger", name=card.name))
+        engine.card_player.draw_cards(p, 1, run)
+        event.intercepted = True

@@ -1,8 +1,8 @@
 import math
 from .base import EventOption
-from ...data.event_data import EVENT_CONFIG, EVENT_MIN_MAX_HP
+from ...data.world.event_data import EVENT_CONFIG, EVENT_MIN_MAX_HP
 from ...core.inventory.deck_service import DeckService
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 
 class ContractPortalOption(EventOption, action="contract_portal", text=get_locale_text("i18n_events_c.opt_contract_portal")):
     def _run_effect(self, run, engine) -> str:

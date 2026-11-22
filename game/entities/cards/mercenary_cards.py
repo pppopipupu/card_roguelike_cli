@@ -1,8 +1,8 @@
 import random
 from ...models.state import Card
-from ...data.locale_data import get_locale_text
-from ...data.buff_data import BUFF_CONFIG
-from ...data.mercenary_card_data import MERCENARY_CARD_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.cards.sets.mercenary_card_data import MERCENARY_CARD_CONFIG
 from .registry import register_card
 from .coop import _resolve_ally
 

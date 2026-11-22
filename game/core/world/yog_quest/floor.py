@@ -1,6 +1,6 @@
 from typing import Dict
 
-from ....data.yog_quest_config import YOG_BOSS_HP_MODIFIERS, YOG_ENCOUNTERS, YOG_MAPS
+from ....data.world.yog_quest_config import YOG_BOSS_HP_MODIFIERS, YOG_ENCOUNTERS, YOG_MAPS
 from ....models.state import EnemyState, FloorMapState, GameRun, RoomState
 from ..grid_map_generator import xy_to_coord
 

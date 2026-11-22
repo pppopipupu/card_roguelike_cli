@@ -3,7 +3,7 @@ import time
 import uuid
 from typing import Dict, Optional
 
-from ..data.trade_config import TRADE_OFFER_EXPIRE_SECONDS, TRADE_OFFER_FILE
+from ..data.progression.trade_config import TRADE_OFFER_EXPIRE_SECONDS, TRADE_OFFER_FILE
 from ..json_codec import load
 from .corpse_registry import _atomic_write_json
 

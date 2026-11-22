@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import CommandHandler
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 
 class CafeLookCommand(CommandHandler, names=["look", "look_around", "看", "查"], allowed_states=["cafe"], help_key="cafe_look"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:

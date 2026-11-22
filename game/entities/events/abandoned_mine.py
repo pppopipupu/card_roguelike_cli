@@ -1,10 +1,10 @@
 import random
 from .base import EventOption
-from ...data.event_data import EVENT_CONFIG, EVENT_MIN_HP
+from ...data.world.event_data import EVENT_CONFIG, EVENT_MIN_HP
 from ...core.inventory.deck_service import DeckService
-from ...data.relic_data import RELIC_CONFIG
+from ...data.entities.relic_data import RELIC_CONFIG
 from ..relics import get_relic_name
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 
 class RideCartOption(EventOption, action="ride_cart", text=get_locale_text("i18n_events_a.mine_ride_cart_text")):
     def _run_effect(self, run, engine) -> str:

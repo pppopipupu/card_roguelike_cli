@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional
 
-from ...data.item_lore_data import ITEM_LORE
-from ...data.locale_data import get_locale_text
+from ...data.text.item_lore_data import ITEM_LORE
+from ...data.text.locale_data import get_locale_text
 from ..progress.progressive_unlock import LORE_ITEM_ACHIEVEMENT_RULES, is_lore_rule_unlocked
 from .bag_service import get_item_display_name, get_item_weight, is_item_carryover, resolve_item_query
 

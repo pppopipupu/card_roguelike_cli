@@ -1,5 +1,5 @@
-from ...data.relic_data import RELIC_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.entities.relic_data import RELIC_CONFIG
+from ...data.text.locale_data import get_locale_text
 from .base import RelicImpl
 from .registry import register_relic
 
@@ -12,8 +12,9 @@ class InfiniteHourglassRelic(RelicImpl):
         self.bonus_actions = cfg.get("bonus_actions", 1)
 
     def on_battle_start(self, run, engine):
-        run.node_data["extra_turns_left"] = self.extra_turns
-        run.node_data["time_stop_upgraded"] = False
+        from ...core.battle.extra_turn_service import MODE_TIME_STOP, grant_extra_turn
+        uid = run.uid_for(run.player) or run.user_id
+        grant_extra_turn(run, uid, MODE_TIME_STOP, self.extra_turns, break_on_damage=True, source=self.relic_id)
         engine._log_event(run, get_locale_text("i18n_relics_amulets.mythic.infinite_hourglass.battle_start"))
 
     def on_turn_start(self, event, run, engine):

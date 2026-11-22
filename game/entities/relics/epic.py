@@ -1,7 +1,7 @@
 import re
-from ...data.relic_data import RELIC_CONFIG
-from ...data.locale_data import get_locale_text
-from ...data.damage_type_data import is_spell_card_damage
+from ...data.entities.relic_data import RELIC_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.battle.damage_type_data import is_spell_card_damage
 from .base import RelicImpl
 from .registry import register_relic
 
@@ -63,6 +63,80 @@ class AncientEyeRelic(RelicImpl):
 
     def modify_initial_draw(self, run, draw_count: int, engine) -> int:
         return draw_count + self.draw_bonus
+
+class DeadFengViolinRelic(RelicImpl):
+    blocks_in_turn_draw = True
+
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.draw_bonus = cfg.get("draw_bonus", 3)
+
+    def on_turn_start(self, event, run, engine):
+        if event.is_player:
+            engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.dead_feng_violin.trigger", draw_bonus=self.draw_bonus))
+
+    def on_draw_blocked(self, run, engine):
+        engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.dead_feng_violin.block"))
+
+    def modify_initial_draw(self, run, draw_count: int, engine) -> int:
+        return draw_count + self.draw_bonus
+
+    def modify_turn_draw(self, run, draw_count: int, engine) -> int:
+        return draw_count + self.draw_bonus
+
+class CampingSetRelic(RelicImpl):
+    pass
+
+class RainieFormRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.multiplier = int(cfg.get("enemy_action_multiplier", 2))
+
+    def _ensure_enemy(self, enemy, engine) -> bool:
+        buff = next((b for b in enemy.buffs if b.id == "extreme_rage"), None)
+        if buff is None:
+            engine._add_buff_to(
+                enemy,
+                "extreme_rage",
+                get_locale_text("i18n_rainie.buffs.extreme_rage.name"),
+                get_locale_text("i18n_rainie.buffs.extreme_rage.desc"),
+                1,
+            )
+            buff = next((b for b in enemy.buffs if b.id == "extreme_rage"), None)
+        if buff is None:
+            return False
+        if getattr(enemy, "_rainie_form_doubled", False):
+            buff.stacks2 = 1
+            return False
+        if buff.stacks2:
+            return False
+        enemy.actions *= self.multiplier
+        enemy.bonus_actions *= self.multiplier
+        enemy.max_actions *= self.multiplier
+        enemy.max_bonus_actions *= self.multiplier
+        buff.stacks2 = 1
+        enemy._rainie_form_doubled = True
+        return True
+
+    def on_battle_start(self, run, engine):
+        changed = False
+        for enemy in run.enemies:
+            if enemy.hp > 0:
+                changed = self._ensure_enemy(enemy, engine) or changed
+        if changed:
+            engine._log_event(run, get_locale_text("i18n_rainie.relics.rainie_form.trigger"))
+
+    def on_turn_start(self, event, run, engine):
+        if not event.is_player:
+            return
+        changed = False
+        for enemy in run.enemies:
+            if enemy.hp > 0:
+                changed = self._ensure_enemy(enemy, engine) or changed
+        if changed:
+            engine._log_event(run, get_locale_text("i18n_rainie.relics.rainie_form.trigger"))
 
 class DragonBloodRelic(RelicImpl):
     def __init__(self, relic_id: str):
@@ -145,7 +219,7 @@ class PortalFragmentRelic(RelicImpl):
         if len(p.hand) < max_hand:
             chosen = random.choice(["key_resonance", "gate_guard", "master_key", "void_beacon", "ancient_wisdom"])
             p.hand.append(chosen)
-            from ...data.card_data import CARD_CONFIG
+            from ...data.cards.card_data import CARD_CONFIG
             name = CARD_CONFIG.get(chosen, {}).get("name", chosen)
             engine._log_event(run, get_locale_text("i18n_relics_amulets.epic.portal_fragment.trigger", name=name))
 
@@ -495,7 +569,7 @@ class NailOfHeavenRelic(RelicImpl):
             idx = -1
         if 0 <= idx < len(run.enemies):
             enemy = run.enemies[idx]
-            from ...data.buff_data import BUFF_CONFIG
+            from ...data.entities.buffs.buff_data import BUFF_CONFIG
             conf_cfg = BUFF_CONFIG.get("confusion", {})
             trem_cfg = BUFF_CONFIG.get("tremor", {})
             engine._add_buff_to(enemy, "confusion", conf_cfg.get("name", ""), conf_cfg.get("desc", ""), self.confusion_stacks)
@@ -540,3 +614,19 @@ for name, obj in list(globals().items()):
         if snake.endswith('_relic'):
             relic_id = snake[:-6]
             register_relic(relic_id)(obj)
+
+
+@register_relic("mask_of_void")
+class MaskOfVoidRelic(RelicImpl):
+    def __init__(self, relic_id: str):
+        super().__init__(relic_id)
+        cfg = RELIC_CONFIG.get(relic_id, {})
+        self.draw_bonus = cfg.get("draw_bonus", 1)
+        self.hand_limit = cfg.get("hand_limit", 9)
+
+    def modify_turn_draw(self, run, draw_count: int, engine) -> int:
+        return draw_count + self.draw_bonus
+
+    def on_hand_limit_calculate(self, event, run, engine):
+        event.max_hand = min(event.max_hand, self.hand_limit)
+

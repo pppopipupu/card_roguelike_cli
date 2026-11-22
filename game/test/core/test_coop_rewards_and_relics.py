@@ -7,8 +7,8 @@ from unittest.mock import patch
 from game.entities.events import ALL_EVENTS
 from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command, walk_to_boss_battle
 from game.core.party.session import SessionContextScoper
-from game.data.account_config import RENAME_COST_GP
-from game.data.gem_data import GEM_CONFIG
+from game.data.progression.account_config import RENAME_COST_GP
+from game.data.entities.gem_data import GEM_CONFIG
 from game.entities.cards.base import ALL_CARDS
 from game.models.state import CardState, GameRun, PlayerState
 from game.test.core.coop_base import CoopTestBase
@@ -212,7 +212,7 @@ class TestCoopRewardsAndRelics(CoopTestBase):
     def test_coop_elite_relic_pool_count_and_claim(self):
         uids = ["elite_a", "elite_b", "elite_c"]
         run = self.start_coop(uids)
-        from game.data.reward_config import ELITE_RELIC_MAP
+        from game.data.progression.reward_config import ELITE_RELIC_MAP
         SessionContextScoper.create_session(run, "A1", "reward", uids, node_data={"difficulty": "elite", "elite_name": "暗影影魔"})
         before = {uid: len(run.players[uid].relics) for uid in uids}
         self.plugin.engine.battle_engine.card_player.init_rewards(run, "elite")

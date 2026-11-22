@@ -1,7 +1,7 @@
 from typing import Optional, List
 from ...models.state import Card
-from ...data.card_data import CARD_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.cards.card_data import CARD_CONFIG
+from ...data.text.locale_data import get_locale_text
 from .registry import register_card
 
 @register_card("time_warp")
@@ -91,16 +91,22 @@ class ArchmageWishCard(Card):
 @register_card("time_stop")
 class TimeStopCard(Card):
     def execute(self, run, target, engine) -> str:
+        from ...core.battle.extra_turn_service import MODE_TIME_STOP, grant_extra_turn
         extra_turns = getattr(self, "extra_turns", 4 if self.upgraded else 3)
+        uid = run.uid_for(run.player) or run.user_id
+        grant_extra_turn(
+            run,
+            uid,
+            MODE_TIME_STOP,
+            extra_turns,
+            break_on_damage=True,
+            pause_debuffs=bool(self.upgraded),
+            source=self.id,
+        )
         if self.upgraded:
-            run.node_data["extra_turns_left"] = extra_turns
-            run.node_data["time_stop_upgraded"] = True
             return get_locale_text("i18n_cards_neutral.legendary.time_stop.result_upgraded")
-        else:
-            run.node_data["extra_turns_left"] = extra_turns
-            run.node_data["time_stop_upgraded"] = False
-            cfg = CARD_CONFIG.get(self.id, {})
-            return cfg.get("feedback", get_locale_text("i18n_cards_neutral.legendary.time_stop.result"))
+        cfg = CARD_CONFIG.get(self.id, {})
+        return cfg.get("feedback", get_locale_text("i18n_cards_neutral.legendary.time_stop.result"))
 
 @register_card("break_limits")
 class BreakLimitsCard(Card):
@@ -193,7 +199,7 @@ class GlacierFortressCard(Card):
 @register_card("fus_ro_dah")
 class FusRoDahCard(Card):
     def execute(self, run, target, engine) -> str:
-        from ...data.size_data import get_size_label, is_size_at_most
+        from ...data.entities.size_data import get_size_label, is_size_at_most
         from ...core.text.events import JoinedText, LocaleText
         from ...core.text.pipeline import render_text_node
 

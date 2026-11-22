@@ -2,8 +2,8 @@ from typing import Generator
 from ...base import CommandHandler
 from ...queue_processor import count_queue_commands
 from .....renderer import GameRenderer
-from .....data.balance_config import QUEUE_MAX_COMMANDS
-from .....data.locale_data import get_locale_text
+from .....data.progression.balance_config import QUEUE_MAX_COMMANDS
+from .....data.text.locale_data import get_locale_text
 
 class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_interrupt", "中断队列"], help_key="queue"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:

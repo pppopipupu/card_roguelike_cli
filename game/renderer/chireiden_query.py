@@ -5,7 +5,7 @@ from ..core.progress.progressive_unlock import (
     is_relic_visible_in_query,
     is_world_entry_unlocked,
 )
-from ..data.chireiden_data import (
+from ..data.content.chireiden_data import (
     CHIREIDEN_BIG_ROOM_TEMPLATES,
     CHIREIDEN_ENVIRONMENTS,
     CHIREIDEN_FLOOR_QUERY_ALIASES,
@@ -13,8 +13,8 @@ from ..data.chireiden_data import (
     CHIREIDEN_PROPS,
     CHIREIDEN_TRIGGER_QUERY_IDS,
 )
-from ..data.enemy_data_chireiden import ENEMY_CHIREIDEN_CONFIG
-from ..data.locale_data import get_locale_text
+from ..data.enemies.enemy_data_chireiden import ENEMY_CHIREIDEN_CONFIG
+from ..data.text.locale_data import get_locale_text
 
 
 def should_skip_buff_query(bid: str, stats) -> bool:

@@ -2,7 +2,7 @@ import copy
 import math
 import random
 
-from ...data.balance_config import (
+from ...data.progression.balance_config import (
     LIFE_MERCHANT_ITEM_RATIO,
     LIFE_MERCHANT_LEGENDARY_RATIO,
     LIFE_MERCHANT_MIN_MAX_HP,
@@ -12,13 +12,13 @@ from ...data.balance_config import (
     LIFE_MERCHANT_UPGRADE_COUNT,
     LIFE_MERCHANT_UPGRADE_RATIO,
 )
-from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
-from ...data.gem_data import GEM_CONFIG
-from ...data.locale_data import get_locale_text
-from ...data.potion_data import get_potion_name
+from ...data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
+from ...data.entities.gem_data import GEM_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.entities.potion_data import get_potion_name
 from ..inventory.bag_service import add_bag_item, get_bag_max_weight, get_bag_weight, get_item_weight
-from ...data.relic_data import RELIC_CONFIG
-from ...data.reward_config import (
+from ...data.entities.relic_data import RELIC_CONFIG
+from ...data.progression.reward_config import (
     LIFE_MERCHANT_EXCLUDED_MYTHIC_CARDS,
     LIFE_MERCHANT_EXCLUSIVE_CARDS,
     LIFE_MERCHANT_EXCLUSIVE_RELICS,

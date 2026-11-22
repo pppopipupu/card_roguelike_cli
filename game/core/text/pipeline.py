@@ -1,7 +1,7 @@
 from typing import Callable, Dict, Optional
 
-from ...data.locale_data import get_locale_text
-from ...data.text_layout_data import TEXT_LAYOUTS
+from ...data.text.locale_data import get_locale_text
+from ...data.text.text_layout_data import TEXT_LAYOUTS
 from .events import JoinedText, LocaleText, RenderedText, ScreenText, TextDocument, TextNode, coerce_text_node
 
 ScreenRenderer = Callable[[str, str], str]

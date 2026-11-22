@@ -11,7 +11,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import jwt
 from fastapi.testclient import TestClient
-from game.data.account_config import GITHUB_BIND_REWARD_GP, RENAME_COST_GP
+from game.data.progression.account_config import GITHUB_BIND_REWARD_GP, RENAME_COST_GP
 from game.json_codec import dumps, loads
 from server.accounts import AccountStore
 from server.app import create_app

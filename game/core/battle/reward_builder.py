@@ -1,6 +1,6 @@
 import random
 
-from ...data.balance_config import (
+from ...data.progression.balance_config import (
     ELITE_BATTLE_GOLD_BASE,
     ELITE_BATTLE_GOLD_MAX,
     ELITE_BATTLE_GOLD_MIN,
@@ -11,8 +11,8 @@ from ...data.balance_config import (
     NORMAL_POTION_CHANCE,
     REWARD_CARD_COUNT,
 )
-from ...data.potion_data import roll_potion as _roll_potion
-from ...data.reward_config import ELITE_RELIC_MAP
+from ...data.entities.potion_data import roll_potion as _roll_potion
+from ...data.progression.reward_config import ELITE_RELIC_MAP
 from ..inventory.card_distribution import CardDistributor
 
 
@@ -69,7 +69,7 @@ def build_reward_items(save_manager, run, player, difficulty):
     stats = save_manager.load_stats(run.user_id)
     gold = roll_battle_gold(difficulty)
     if run.node_data.get("is_high_danger"):
-        from ...data.grid_map_config import HIGH_DANGER_CONFIG
+        from ...data.world.grid_map_config import HIGH_DANGER_CONFIG
         gold += random.randint(HIGH_DANGER_CONFIG["bonus_gold_min"], HIGH_DANGER_CONFIG["bonus_gold_max"])
     skip_gold = battle_gold_skipped(run)
     relic_id = ""

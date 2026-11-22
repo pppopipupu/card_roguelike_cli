@@ -1,4 +1,4 @@
-from ...data.minion_data import MINION_CONFIG
+from ...data.entities.minions.minion_data import MINION_CONFIG
 from .minion_base import MinionTemplate
 from .basic_minions import (
     CardsPlayedEntryDamageTemplate,

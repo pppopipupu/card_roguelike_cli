@@ -1,7 +1,7 @@
 from .base import BuffImpl
 from .registry import register_buff
-from ...data.buff_data import BUFF_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.text.locale_data import get_locale_text
 
 def _stat(instance, buff_id, name, default):
     cfg = BUFF_CONFIG.get(buff_id, {})
@@ -10,6 +10,15 @@ def _stat(instance, buff_id, name, default):
 
 @register_buff("coop_aegis")
 class CoopAegisBuff(BuffImpl):
+    def on_enemy_target_select(self, event, buff_state, entity):
+        uid = event.run.uid_for(entity)
+        if uid and uid in event.candidates and uid not in event.taunt_uids:
+            event.taunt_uids.append(uid)
+
+    def on_enemy_turn_end(self, event, buff_state, entity):
+        if buff_state in entity.buffs:
+            entity.buffs.remove(buff_state)
+
     def on_damage_calculate_defend(self, event, buff_state, entity):
         if event.run.node_data.get("coop_damage_aoe"):
             return

@@ -5,14 +5,14 @@ from ....models.state import UserStats, GameRun, PlayerState, EnemyState, BuffSt
 from ....json_codec import load
 from ....entities import ALL_CARDS
 from ....entities.cards.market import MARKET_SHELF_CARDS, is_card_available
-from ....data.locale_data import get_locale_text
-from ....data.starting_deck_config import CLASS_BASE_HP, CLASS_STARTING_CARDS, DEFAULT_BASE_HP, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
+from ....data.text.locale_data import get_locale_text
+from ....data.progression.starting_deck_config import CLASS_BASE_HP, CLASS_STARTING_CARDS, DEFAULT_BASE_HP, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
 from ...inventory.bag_service import get_item_display_name
 
-from ....data.yog_quest_config import YOG_SIGIL_ITEM
-from ....data.world_social_config import WORLD_PLAYER_DIALOG_KEY, WORLD_TOWN
-from ....data.town_map_config import TOWN_ROOM_COORDS
-from ....data.open_world_config import TOWN_CHEST_TAB_KEY
+from ....data.world.yog_quest_config import YOG_SIGIL_ITEM
+from ....data.world.world_social_config import WORLD_PLAYER_DIALOG_KEY, WORLD_TOWN
+from ....data.world.town_map_config import TOWN_ROOM_COORDS
+from ....data.world.open_world_config import TOWN_CHEST_TAB_KEY
 from ..presence import sync_active
 from ..open_world.ghost_service import OpenWorldGhostService
 from ..open_world.loadout_service import OpenWorldLoadoutService
@@ -78,7 +78,7 @@ class TownEngine:
         return list(stats.town_flags.get("visited_rooms", []))
 
     def render_current_room(self, user_id: str, stats: UserStats) -> str:
-        from ....data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
+        from ....data.world.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
         if stats.town_flags.get(OUTER_PLANE_ACTIVE_FLAG):
             return self.outer_plane_engine.render(user_id, stats)
         sync_active(user_id, stats=stats)
@@ -130,7 +130,7 @@ class TownEngine:
         return shelf
 
     def move(self, user_id: str, direction: str) -> str:
-        from ....data.town_map_config import TOWN_ROOM_COORDS
+        from ....data.world.town_map_config import TOWN_ROOM_COORDS
         from ..grid_map_generator import coord_to_xy, xy_to_coord
         stats = self.save_manager.load_stats(user_id)
         dir_map = {"up": "w", "down": "s", "left": "a", "right": "d"}
@@ -175,7 +175,7 @@ class TownEngine:
         return render_town(stats, target_room_data, ghost_names=ghost_names)
 
     def teleport(self, user_id: str, target_query: str) -> str:
-        from ....data.town_map_config import TOWN_ROOM_COORDS
+        from ....data.world.town_map_config import TOWN_ROOM_COORDS
         from ...cli.base import find_entry_by_query
         stats = self.save_manager.load_stats(user_id)
         dirty = self.record_visited_room(stats)
@@ -257,7 +257,7 @@ class TownEngine:
             return None
         zh_cn = self._load_zh_cn()
         entities = zh_cn.get("interactive_entities", {})
-        from ....data.mercenary_data import MERCENARY_CONFIG
+        from ....data.entities.mercenary_data import MERCENARY_CONFIG
         for ent_id in self._visible_entity_ids(stats, room_data):
             ent_data = entities.get(ent_id, {})
             names = [ent_id.lower(), str(ent_data.get("name", "")).lower()]
@@ -347,7 +347,7 @@ class TownEngine:
         target_id = self._resolve_visible_entity(stats, room_data, target_name)
         if not target_id:
             if getattr(self, "world_social", None) is not None:
-                from ....data.town_map_config import TOWN_ROOM_COORDS
+                from ....data.world.town_map_config import TOWN_ROOM_COORDS
                 presence_coord = TOWN_ROOM_COORDS.get(stats.town_pos, stats.town_pos) or stats.town_pos
                 target_entry, _ = self.world_social.resolve_target(
                     WORLD_TOWN, presence_coord, target_name, exclude_uid=user_id
@@ -411,7 +411,7 @@ class TownEngine:
         if stats.town_flags.get(f"taken_{target_id}", 0):
             return get_locale_text("global.take_already_taken", target=item_name)
 
-        from ....data.open_world_config import TOWN_QUEST_TOKEN_IDS
+        from ....data.world.open_world_config import TOWN_QUEST_TOKEN_IDS
         if target_id in TOWN_QUEST_TOKEN_IDS:
             stats.town_inventory.append(target_id)
         else:
@@ -460,7 +460,7 @@ class TownEngine:
         if target_id == "lost_notebook":
             return get_locale_text("global.lost_notebook_use_desc")
 
-        from ....data.outer_plane_config import NECRONOMICON_ITEM
+        from ....data.world.outer_plane_config import NECRONOMICON_ITEM
         if target_id == NECRONOMICON_ITEM:
             return self.outer_plane_engine.enter_wip(user_id, stats)
 

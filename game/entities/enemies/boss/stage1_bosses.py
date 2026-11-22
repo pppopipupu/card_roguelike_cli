@@ -1,8 +1,8 @@
 from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
-from ....data.buff_data import BUFF_CONFIG
-from ....data.enemy_data import ENEMY_CONFIG
-from ....data.locale_data import get_locale_text
+from ....data.entities.buffs.buff_data import BUFF_CONFIG
+from ....data.enemies.enemy_data import ENEMY_CONFIG
+from ....data.text.locale_data import get_locale_text
 
 
 def _intent_entry(enemy_name: str, intent_id: str) -> dict:
@@ -213,6 +213,7 @@ class BossThunderLordTemplate(EnemyTemplate):
             get_locale_text("i18n_enemy_boss.buff_storm_field_desc"),
             1,
         )
+        run.node_data["boss_name"] = enemy.name
         run.node_data["thunder_lord_turn"] = 1
 
     def roll_intents(self, run, engine, enemy) -> List:

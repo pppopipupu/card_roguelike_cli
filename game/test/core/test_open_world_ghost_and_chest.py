@@ -4,10 +4,10 @@ import random
 import tempfile
 import unittest
 
-from game.data.outer_plane_config import NECRONOMICON_ITEM, OUTER_PLANE_ACTIVE_FLAG
-from game.data.starting_deck_config import CLASS_STARTING_CARDS
-from game.data.world_social_config import WORLD_OUTER_PLANE, WORLD_SNOWFIELD, WORLD_TOWN
-from game.data.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
+from game.data.world.outer_plane_config import NECRONOMICON_ITEM, OUTER_PLANE_ACTIVE_FLAG
+from game.data.progression.starting_deck_config import CLASS_STARTING_CARDS
+from game.data.world.world_social_config import WORLD_OUTER_PLANE, WORLD_SNOWFIELD, WORLD_TOWN
+from game.data.world.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
 from game.models.state import CardState
 from game.test.core.base import CorePlugin, floor_of, load_run, run_command
 

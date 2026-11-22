@@ -1,5 +1,5 @@
-from ...data.locale_data import get_locale_text
-from ...data.outer_plane_config import OUTER_PLANE_TRIGGER_FLAG
+from ...data.text.locale_data import get_locale_text
+from ...data.world.outer_plane_config import OUTER_PLANE_TRIGGER_FLAG
 from ...models.state import Card
 from .registry import register_card
 

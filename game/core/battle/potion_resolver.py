@@ -1,7 +1,8 @@
 from typing import Optional
-from ...data.potion_data import POTION_CONFIG, POTION_THROW_DAMAGE, get_potion_name
+from ...data.entities.potion_data import POTION_CONFIG, POTION_THROW_DAMAGE, get_potion_name
 from ...models.state import GameRun
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
+from ...entities.buffs.base import is_debuff
 
 class PotionResolver:
     def __init__(self, engine):
@@ -153,14 +154,14 @@ class PotionResolver:
                 return get_locale_text("i18n_battle_core.poison_potion_throw_log", name=name, target_name=target_name, damage=damage, stacks=stacks)
                 
         elif potion_id == "cleanse_potion":
-            from ...data.buff_data import BUFF_CONFIG
+            from ...data.entities.buffs.buff_data import BUFF_CONFIG
             if target == "p0":
                 to_remove = []
                 for b in p.buffs:
                     cfg = BUFF_CONFIG.get(b.id, {})
                     if getattr(b, "persistent", False) or cfg.get("persistent"):
                         continue
-                    if cfg.get("is_debuff") or b.id in ("bleed", "tactical_focus", "beat_of_death", "void_exhaustion", "mana_leak", "minor_vulnerable", "vulnerable", "weak", "grappled", "discard_next_turn", "drain_ba", "drain_a", "forge_backfire", "void_weakness"):
+                    if is_debuff(b.id):
                         to_remove.append(b)
                 for b in to_remove:
                     p.buffs.remove(b)
@@ -174,7 +175,7 @@ class PotionResolver:
                     cfg = BUFF_CONFIG.get(b.id, {})
                     if getattr(b, "persistent", False) or cfg.get("persistent"):
                         continue
-                    if cfg.get("is_debuff") or b.id in ("bleed", "tactical_focus", "beat_of_death", "void_exhaustion", "mana_leak", "minor_vulnerable", "vulnerable", "weak", "grappled", "discard_next_turn", "drain_ba", "drain_a", "forge_backfire", "void_weakness"):
+                    if is_debuff(b.id):
                         to_remove.append(b)
                 for b in to_remove:
                     target_entity.buffs.remove(b)
@@ -189,7 +190,7 @@ class PotionResolver:
                             cfg = BUFF_CONFIG.get(b.id, {})
                             if getattr(b, "persistent", False) or cfg.get("persistent"):
                                 continue
-                            if cfg.get("is_debuff") or b.id in ("bleed", "tactical_focus", "beat_of_death", "void_exhaustion", "mana_leak", "minor_vulnerable", "vulnerable", "weak", "grappled", "discard_next_turn", "drain_ba", "drain_a", "forge_backfire", "void_weakness"):
+                            if is_debuff(b.id):
                                 to_remove.append(b)
                         for b in to_remove:
                             m.buffs.remove(b)
@@ -200,9 +201,7 @@ class PotionResolver:
                             e = run.enemies[idx]
                             to_remove = []
                             for b in e.buffs:
-                                cfg = BUFF_CONFIG.get(b.id, {})
-                                is_deb = cfg.get("is_debuff", False)
-                                if not is_deb and b.id not in ("stun", "weak", "electrified", "poison", "agony", "bleed", "void_weakness") and "vulnerable" not in b.id:
+                                if not is_debuff(b.id):
                                     to_remove.append(b)
                             for b in to_remove:
                                 e.buffs.remove(b)
@@ -212,7 +211,7 @@ class PotionResolver:
                 return get_locale_text("i18n_battle_core.potion_no_effect", name=name, target_name=target_name)
 
         elif potion_id == "invisibility_potion":
-            from ...data.buff_data import BUFF_CONFIG
+            from ...data.entities.buffs.buff_data import BUFF_CONFIG
             from ..world.persistent_buffs import set_persistent_buff
             stacks = int(potion_cfg.get("buff_stacks", 3))
             bcfg = BUFF_CONFIG["invisibility"]

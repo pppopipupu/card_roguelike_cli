@@ -1,14 +1,14 @@
-from ...data.battle_mode_config import (
+from ...data.battle.battle_mode_config import (
     BATTLE_MODE_FORCED_SOLO,
     BATTLE_MODE_SOLO,
     BATTLE_MODE_TEAM,
     resolve_battle_mode,
     session_battle_mode,
 )
-from ...data.corpse_config import CorpseConfig
-from ...data.event_data import TEAM_EVENT_IDS
-from ...data.team_config import TEAM_TP_SP_COST
-from ...data.grid_map_config import (
+from ...data.entities.corpse_config import CorpseConfig
+from ...data.world.event_data import TEAM_EVENT_IDS
+from ...data.battle.team_config import TEAM_TP_SP_COST
+from ...data.world.grid_map_config import (
     FLOOR_CONFIGS,
     HIGH_DANGER_CONFIG,
     PASSABLE_ROOM_TYPES,
@@ -16,8 +16,8 @@ from ...data.grid_map_config import (
     ROOM_ICONS,
     SP_CONFIG,
 )
-from ...data.locale_data import get_locale_text
-from ...data.balance_config import MAP_GHOST_DEFAULT_MAX_HP
+from ...data.text.locale_data import get_locale_text
+from ...data.progression.balance_config import MAP_GHOST_DEFAULT_MAX_HP
 from .grid_map_generator import compute_effective_stage, coord_to_xy, xy_to_coord
 from .landmark_system import build_landmark_options, ensure_descent_tunnel
 from ..party.coordinator import apply_and_scope, restore_player, swap_player
@@ -181,7 +181,7 @@ class GridMapService:
                 prev_pending = pending_map.get(uid)
                 step = int(prev_pending.get("step", 0)) if (prev_pending and prev_pending.get("coord") == target_coord) else 0
                 if step < 2:
-                    from ...data.room_interact_data import OBSTACLE_STYLES
+                    from ...data.world.room_interact_data import OBSTACLE_STYLES
                     style_key = room.obstacle_style or "collapsed_boulders"
                     scfg = OBSTACLE_STYLES.get(style_key, OBSTACLE_STYLES["collapsed_boulders"])
                     obs_name = get_locale_text(scfg["name_key"])
@@ -221,7 +221,7 @@ class GridMapService:
         return self._enter_room(run, uid, target_coord)
 
     def _update_quest_zone(self, run, room) -> None:
-        from ...data.yog_quest_config import YOG_QUEST_ZONE_KEY
+        from ...data.world.yog_quest_config import YOG_QUEST_ZONE_KEY
         if room.room_type == "boss":
             zone = 2
         elif room.landmark_id == "yog_necronomicon":
@@ -244,7 +244,7 @@ class GridMapService:
         if name_key:
             return get_locale_text(name_key)
         if room.room_type == "landmark" and room.landmark_id:
-            from ...data.grid_map_config import LANDMARK_CONFIGS
+            from ...data.world.grid_map_config import LANDMARK_CONFIGS
             lcfg = LANDMARK_CONFIGS.get(room.landmark_id, {})
             if lcfg.get("name_key"):
                 return get_locale_text(lcfg["name_key"])
@@ -405,7 +405,7 @@ class GridMapService:
 
     def _enter_room_body(self, run, uid: str, coord: str) -> str:
         from ...renderer import GameRenderer
-        from ...data.room_interact_data import ROOM_NPCS
+        from ...data.world.room_interact_data import ROOM_NPCS
         fm = run.floor_map
         room = fm.rooms[coord]
         p = run.player

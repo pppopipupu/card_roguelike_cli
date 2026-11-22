@@ -1,7 +1,7 @@
 import random
-from ...data.buff_data import BUFF_CONFIG
-from ...data.locale_data import get_locale_text
-from ...data.ninja_card_data_basic import NINJA_FOOD_TOKEN_IDS
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.cards.classes.ninja_card_data_basic import NINJA_FOOD_TOKEN_IDS
 from ...models.events import LexKelaChangedEvent
 from ...models.state import Card, CardState, GameRun
 
@@ -53,6 +53,16 @@ def resolve_card_effective_cost_a(card, card_state, player) -> int:
         if any(b.id == "plasma_arrow" and b.stacks > 0 for b in player.buffs):
             return 0
     return eff
+
+
+def resolve_card_effective_cost_ba(card, card_state, player=None) -> int:
+    base_ba = int(getattr(card, "cost_ba", 0) or 0)
+    if base_ba == -1:
+        return -1
+    temp_ba = getattr(card_state, "temp_cost_ba", None) if card_state is not None else None
+    if temp_ba is not None:
+        return max(0, int(temp_ba))
+    return max(0, base_ba)
 
 
 def scramble_hand_costs(player, low: int = 0, high: int = 3) -> list[int]:
@@ -172,9 +182,10 @@ def deal_random_enemy_hits(engine, run: GameRun, card: Card, dmg: int, hits: int
 
 
 def deal_all_enemies(engine, run: GameRun, card: Card, dmg: int, dtype: str = "physical") -> None:
-    for i, e in enumerate(run.enemies, 1):
+    for i in range(len(run.enemies) - 1, -1, -1):
+        e = run.enemies[i]
         if e.hp > 0:
-            engine.combat_resolver.damage_target(run, f"e{i}", dmg, source="p0", damage_type=dtype, card=card, is_attack=True)
+            engine.combat_resolver.damage_target(run, f"e{i + 1}", dmg, source="p0", damage_type=dtype, card=card, is_attack=True)
 
 
 def resolve_enemy_obj(run: GameRun, target: str | None):

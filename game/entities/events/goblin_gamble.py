@@ -1,7 +1,7 @@
 import random
 from .base import EventOption
-from ...data.event_data import EVENT_CONFIG, EVENT_MIN_HP
-from ...data.locale_data import get_locale_text
+from ...data.world.event_data import EVENT_CONFIG, EVENT_MIN_HP
+from ...data.text.locale_data import get_locale_text
 
 class GambleSmallOption(EventOption, action="gamble_small", text=get_locale_text("i18n_events_b.option_gamble_small")):
     def _run_effect(self, run, engine) -> str:

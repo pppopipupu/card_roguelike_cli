@@ -21,8 +21,8 @@ class MercTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
                 yield player_res
                 return
         if run.node_type == "shop":
-            from .....data.room_interact_data import ROOM_NPCS
-            from .....data.locale_data import get_locale_text
+            from .....data.world.room_interact_data import ROOM_NPCS
+            from .....data.text.locale_data import get_locale_text
             from ...base.pinyin_match import find_entry_by_query
             from ....world.rooms.shop_dialog import open_shop_dialog
             cfg = ROOM_NPCS["shop_merchant"]
@@ -32,7 +32,7 @@ class MercTalkCommand(CommandHandler, names=["对话", "交谈", "talk", "talk_t
             if is_merchant:
                 yield open_shop_dialog(router.engine.map_engine.explore_engine, run)
                 return
-        from .....data.locale_data import get_locale_text
+        from .....data.text.locale_data import get_locale_text
         from ....party.mercenary import find_mercenary_uid, list_owned_mercenaries, open_merc_dialog
         merc_uid, err = find_mercenary_uid(run, query, user_id)
         if merc_uid is None:

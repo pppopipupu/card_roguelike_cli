@@ -1,7 +1,7 @@
 import random
 from ...core.inventory.deck_service import DeckService
-from ...data.locale_data import get_locale_text
-from ...data.ninja_card_data_basic import NINJA_CARD_CONFIG_BASIC
+from ...data.text.locale_data import get_locale_text
+from ...data.cards.classes.ninja_card_data_basic import NINJA_CARD_CONFIG_BASIC
 from ...models.state import CardState
 from .ninja_base import (
     NinjaCard,

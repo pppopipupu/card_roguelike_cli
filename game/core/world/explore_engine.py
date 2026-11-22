@@ -2,12 +2,12 @@ import random
 from typing import Optional, List, Dict
 from ...models.state import GameRun, PlayerState
 from ...models.coop_view import strip_shared
-from ...data.battle_mode_config import BATTLE_MODE_FORCED_SOLO, BATTLE_MODE_SOLO, BATTLE_MODE_TEAM
-from ...data.event_data import TEAM_EVENT_IDS
-from ...data.map_config import MapConfig
+from ...data.battle.battle_mode_config import BATTLE_MODE_FORCED_SOLO, BATTLE_MODE_SOLO, BATTLE_MODE_TEAM
+from ...data.world.event_data import TEAM_EVENT_IDS
+from ...data.world.map_config import MapConfig
 from ...entities import ALL_CARDS, get_relic_name
 from ...entities.events import ALL_EVENTS
-from ...data.balance_config import (
+from ...data.progression.balance_config import (
     GOLD_COMPASS_DISCOUNT,
     GREEDY_CONTRACT_DISCOUNT,
     SHOP_CARD_BASE_PRICE,
@@ -18,9 +18,10 @@ from ...data.balance_config import (
     TREASURE_GOLD_MAX,
     TREASURE_GOLD_MIN,
 )
-from ...data.reward_config import TREASURE_RELIC_POOL
-from ...data.locale_data import get_locale_text
+from ...data.progression.reward_config import TREASURE_RELIC_POOL
+from ...data.text.locale_data import get_locale_text
 from ..inventory.card_distribution import CardDistributor
+from ..inventory.relic_service import has_relic_flag
 from .explore_nodes import resolve_node_handler
 from ..party.coordinator import apply_and_scope, begin_party_gem, end_party_gem, finish_player_node, restore_player, swap_player
 
@@ -262,7 +263,7 @@ class ExploreEngine:
             })
             
         available_relics = [rid for rid in ["lucky_coin", "red_bottle", "leather_armor", "whetstone", "ready_pack", "arcane_rune", "pen_nib", "prayer_wheel"] if rid not in run.player.relics]
-        from ...data.relic_data import BACKPACK_RELIC_IDS, RELIC_CONFIG
+        from ...data.entities.relic_data import BACKPACK_RELIC_IDS, RELIC_CONFIG
         if available_relics:
             rid = random.choice(available_relics)
             r_cfg = RELIC_CONFIG[rid]
@@ -283,7 +284,7 @@ class ExploreEngine:
                     "sold": False
                 })
             
-        from ...data.gem_data import GEM_CONFIG
+        from ...data.entities.gem_data import GEM_CONFIG
         gem_pool = list(GEM_CONFIG.keys())
         shop_gems = random.sample(gem_pool, min(2, len(gem_pool)))
         for gid in shop_gems:
@@ -306,7 +307,7 @@ class ExploreEngine:
             "price": int(SHOP_UPGRADE_PRICE * discount),
             "sold": False
         })
-        from ...data.enchantment_data import SHOP_ENCHANT_PRICE
+        from ...data.entities.enchantment_data import SHOP_ENCHANT_PRICE
         items.append({
             "type": "enchant",
             "price": int(SHOP_ENCHANT_PRICE * discount),
@@ -393,7 +394,7 @@ class ExploreEngine:
             stats = self.save_manager.load_stats(run.user_id)
             reward_cards = CardDistributor.roll("treasure", run, p, stats, count=3)
             
-            from ...data.gem_data import GEM_CONFIG
+            from ...data.entities.gem_data import GEM_CONFIG
             gift_gem_id = random.choice(list(GEM_CONFIG.keys()))
             
             items = [
@@ -453,7 +454,7 @@ class ExploreEngine:
         from ..inventory.enchantment_service import has_cant_upgrade_enchantment
         if has_cant_upgrade_enchantment(c_state):
             return get_locale_text("i18n_enchantment.ui.cant_upgrade_err", name=ALL_CARDS[c_state].name)
-        from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
+        from ...data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
         if c_state.id not in CARD_UPGRADE_CONFIG:
             return get_locale_text("err_card_cannot_upgrade")
             
@@ -470,10 +471,17 @@ class ExploreEngine:
         new_card_name = ALL_CARDS[new_state].name
         
         if source == "rest":
+            msg = get_locale_text("msg_upgrade_success_rest", old_card_name=old_card_name, new_card_name=new_card_name)
+            if has_relic_flag(p, "rest_all_options"):
+                for it in run.node_data.get("items", []):
+                    if it.get("type") == "rest_upgrade":
+                        it["taken"] = True
+                self.save_manager.save_save(run.user_id, run)
+                from ...renderer.explore import render_rest
+                return f"{msg}\n\n{render_rest(run)}"
             if "items" in run.node_data:
                 for it in run.node_data["items"]:
                     it["taken"] = True
-            msg = get_locale_text("msg_upgrade_success_rest", old_card_name=old_card_name, new_card_name=new_card_name)
             return self._finish_node(run, msg)
         elif source == "event":
             msg = get_locale_text("msg_upgrade_success_event", old_card_name=old_card_name, new_card_name=new_card_name)
@@ -497,7 +505,7 @@ class ExploreEngine:
             return get_locale_text("msg_upgrade_success_shop", old_card_name=old_card_name, new_card_name=new_card_name)
 
     def start_gem_insert_flow(self, run: GameRun, gem_id: str, next_node_type: str, next_node_data: dict) -> str:
-        from ...data.gem_data import GEM_CONFIG
+        from ...data.entities.gem_data import GEM_CONFIG
         gem_name = GEM_CONFIG[gem_id]["name"]
         gem_desc = GEM_CONFIG[gem_id]["desc"]
         previous = run.node_data
@@ -558,7 +566,7 @@ class ExploreEngine:
             return get_locale_text("i18n_explore_core.err_gem_slots_full", max_slots=max_slots, equipped=len(old_gems))
         gem_data = run.node_data
         gem_id = gem_data["pending_gem"]
-        from ...data.gem_data import GEM_CONFIG
+        from ...data.entities.gem_data import GEM_CONFIG
         gem_name = GEM_CONFIG[gem_id]["name"]
         p.deck.remove(cid)
         import copy

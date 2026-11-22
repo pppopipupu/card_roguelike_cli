@@ -1,8 +1,8 @@
 from typing import List, Optional
 import random
 from ..base import EnemyTemplate, register_enemy
-from ....data.enemy_data import ENEMY_CONFIG
-from ....data.locale_data import get_locale_text
+from ....data.enemies.enemy_data import ENEMY_CONFIG
+from ....data.text.locale_data import get_locale_text
 
 @register_enemy("虚空潜伏者")
 class VoidLurkerEliteTemplate(EnemyTemplate):

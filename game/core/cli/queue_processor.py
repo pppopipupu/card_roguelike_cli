@@ -1,6 +1,6 @@
 from ..cli.base import split_by_comma_with_brackets, CommandHandler
-from ...data.balance_config import QUEUE_MAX_COMMANDS
-from ...data.locale_data import get_locale_text
+from ...data.progression.balance_config import QUEUE_MAX_COMMANDS
+from ...data.text.locale_data import get_locale_text
 
 QUEUE_ALIASES = ("队列", "q", "queue", "qi", "queue_interrupt", "中断队列")
 

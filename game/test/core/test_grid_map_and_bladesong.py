@@ -5,7 +5,7 @@ import unittest
 
 from game.core.world.grid_map_generator import coord_to_xy, xy_to_coord
 from game.core.party.session import SessionContextScoper
-from game.data.grid_map_config import FLOOR_CONFIGS
+from game.data.world.grid_map_config import FLOOR_CONFIGS
 from game.entities import ALL_CARDS
 from game.entities.cards.base import card_matches_color, get_card_color_icon
 from game.models.state import CardState, EnemyState

@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 from ....models.state import UserStats
-from ....data.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_QUEST_ROUTE_KEY, YOG_QUEST_ZONE_KEY
-from ....data.locale_data import get_locale_text
+from ....data.world.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_QUEST_ROUTE_KEY, YOG_QUEST_ZONE_KEY
+from ....data.text.locale_data import get_locale_text
 
 
 def _objective_line(text: str) -> str:

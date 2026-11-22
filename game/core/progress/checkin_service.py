@@ -1,12 +1,12 @@
 from datetime import datetime, timezone
-from ...data.checkin_data import (
+from ...data.progression.checkin_data import (
     CHECKIN_STAMP_REQUIRED_FALLBACK,
     CHECKIN_STAMPS_PER_CLAIM,
     COLLECTION_CARDS,
     COLLECTION_ORDER,
     DAILY_BLESSINGS,
 )
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ..battle.daily_blessing import roll_daily_blessing
 
 

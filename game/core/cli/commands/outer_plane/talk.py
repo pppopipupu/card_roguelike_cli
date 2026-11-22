@@ -1,9 +1,9 @@
 from typing import Generator
 
 from ...base import CommandHandler
-from .....data.locale_data import get_locale_text
-from .....data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG, OUTER_PLANE_ROOM_KEY, OUTER_PLANE_START_ROOM
-from .....data.world_social_config import WORLD_OUTER_PLANE
+from .....data.text.locale_data import get_locale_text
+from .....data.world.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG, OUTER_PLANE_ROOM_KEY, OUTER_PLANE_START_ROOM
+from .....data.world.world_social_config import WORLD_OUTER_PLANE
 from ....text.pipeline import render_text_node
 from ....world.open_world.ghost_service import OpenWorldGhostService
 

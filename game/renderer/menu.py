@@ -3,7 +3,7 @@ from typing import Optional
 from ..models.state import GameRun, UserStats
 from ..entities.cards.base import get_card_color_icon
 from ..cards import ALL_CARDS
-from ..data.locale_data import t
+from ..data.text.locale_data import t
 from .formatters import format_large_int, has_blind_buff, obfuscate_blind_card_name
 
 def render_menu(stats: Optional[UserStats] = None) -> str:
@@ -71,10 +71,10 @@ def get_card_cost_str(card) -> str:
     return cost_str.strip() or t("renderer_menu.free_cost")
 
 def append_card_subtype(type_ch: str, cid: str, ctype: str) -> str:
-    from ..data.card_data import CARD_CONFIG
+    from ..data.cards.card_data import CARD_CONFIG
     base_cid = cid.rstrip("+")
     if ctype == "spell":
-        from ..data.card_subtype_data import ATTACK_SPELL_IDS, SKILL_SPELL_IDS
+        from ..data.cards.card_subtype_data import ATTACK_SPELL_IDS, SKILL_SPELL_IDS
         if base_cid in ATTACK_SPELL_IDS:
             type_ch = t("renderer_menu.card_type_with_subtype", type_ch=type_ch, subtype_ch=t("renderer_menu.subtype_attack"))
         elif base_cid in SKILL_SPELL_IDS:
@@ -148,7 +148,7 @@ def get_rogue_card_library_items(user_id: str | None = None) -> list:
             blue_spells.append(t("renderer_menu.prefix_wizard", info=info))
     return neutrals + blue_spells + red_cards + ninja_cards + merc_cards + curses
 def get_rogue_relic_library_items() -> list:
-    from ..data.relic_data import RELIC_CONFIG
+    from ..data.entities.relic_data import RELIC_CONFIG
     items = []
     rarity_map = {
         "common": t("renderer_menu.rarity_common"),
@@ -275,7 +275,7 @@ def render_card_library() -> str:
     return "\n".join(lines)
 
 def render_relic_library() -> str:
-    from ..data.relic_data import RELIC_CONFIG
+    from ..data.entities.relic_data import RELIC_CONFIG
     lines = [
         t("renderer_menu.separator"),
         t("renderer_menu.relic_library_title"),
@@ -469,7 +469,7 @@ def render_changelog_page(page: int = 1) -> str:
 
 
 def render_shop(stats: UserStats) -> str:
-    from ..data.shop_data import SHOP_ITEMS
+    from ..data.progression.shop_data import SHOP_ITEMS
     import random
     gp = getattr(stats, "gp", 0)
     unlocked = getattr(stats, "unlocked_subclasses", [])

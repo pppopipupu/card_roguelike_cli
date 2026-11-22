@@ -1,6 +1,6 @@
 from typing import Optional
 from ...models.state import Card
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from .registry import register_card
 
 @register_card("curse_dazed")
@@ -10,6 +10,22 @@ from .registry import register_card
 class CurseCard(Card):
     def execute(self, run, target, engine) -> str:
         return get_locale_text("i18n_cards_misc.curse.cannot_play")
+
+@register_card("curse_dimensional_tear")
+class DimensionalTearCurse(Card):
+    def on_turn_end_resolve(self, event, card_state):
+        event.action = "exhaust"
+        event.handled = True
+        event.engine._log_event(
+            event.run,
+            get_locale_text(
+                "i18n_battle_core.dimensional_tear_log",
+                name=self.name,
+                player=event.run.player.name,
+            ),
+        )
+        event.engine.combat_resolver.damage_target(event.run, "p0", 3, source="curse", damage_type="true")
+
 
 @register_card("curse_indigestion")
 class IndigestionCurse(Card):

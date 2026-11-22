@@ -1,9 +1,9 @@
 import random
 from typing import Callable, Dict, List, Optional, Tuple
-from ....data.chaos_expansion_data import CHAOS_NPCS
-from ....data.chireiden_data import CHIREIDEN_RUMOR_GREETING_NPCS
-from ....data.locale_data import get_locale_raw, get_locale_text
-from ....data.room_interact_data import ROOM_NPCS
+from ....data.content.chaos_expansion_data import CHAOS_NPCS
+from ....data.content.chireiden_data import CHIREIDEN_RUMOR_GREETING_NPCS
+from ....data.text.locale_data import get_locale_raw, get_locale_text
+from ....data.world.room_interact_data import ROOM_NPCS
 from ...inventory.bag_service import add_bag_item, get_item_display_name
 from ...progress.achievement_service import record_run_achievement_stat
 from ..persistent_buffs import add_persistent_buff

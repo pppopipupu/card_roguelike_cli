@@ -1,8 +1,8 @@
 from typing import Generator
 from ...base import CommandHandler
-from .....data.locale_data import get_locale_text
-from .....data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG, OUTER_PLANE_ROOM_KEY, OUTER_PLANE_START_ROOM
-from .....data.world_social_config import WORLD_OUTER_PLANE
+from .....data.text.locale_data import get_locale_text
+from .....data.world.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG, OUTER_PLANE_ROOM_KEY, OUTER_PLANE_START_ROOM
+from .....data.world.world_social_config import WORLD_OUTER_PLANE
 from ....world.open_world.death_service import OpenWorldDeathService
 from ....world.open_world.loadout_service import is_open_world_run
 
@@ -31,7 +31,7 @@ class AbandonCommand(CommandHandler, names=["放弃", "abandon"], allowed_states
             yield get_locale_text("i18n_cli_general_b.err_no_active_game")
             return
         if confirm:
-            from .....data.pvp_config import PVP_MATCH_KEY
+            from .....data.world.pvp_config import PVP_MATCH_KEY
             if run.node_data.get(PVP_MATCH_KEY):
                 from ....battle.pvp_service import PvpService
                 match = router.save_manager.pvp.get_match(run.node_data.get(PVP_MATCH_KEY))

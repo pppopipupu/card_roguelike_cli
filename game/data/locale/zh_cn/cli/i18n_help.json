@@ -1,0 +1,555 @@
+{
+  "index_title": "🔮 指令一览",
+  "index_intro": "💡 输入 help <指令> 查看详细用法，例如 help p 或 help 使用。",
+  "index_footer": "💡 指令支持中英文别名与简写，等待选择时也可以直接发送数字。",
+  "index_entry": "· {usage} — {brief}",
+  "section_basic": "🧭 基础",
+  "section_battle": "⚔️ 战斗",
+  "section_town": "🏙️ 主城",
+  "section_cafe": "☕ 咖啡厅",
+  "section_social": "👥 社交与查询",
+  "detail_header": "【{name}】",
+  "usage_label": "📌 用法：{usage}",
+  "alias_label": "🏷️ 别名：{aliases}",
+  "state_label": "🎮 可用场景：{states}",
+  "desc_label": "📖 说明：",
+  "example_label": "✏️ 示例：{example}",
+  "not_found": "❌ 未找到指令「{name}」，输入 help 查看全部指令。",
+  "alias_sep": " / ",
+  "state_sep": "、",
+  "state_menu": "菜单",
+  "state_town": "主城",
+  "state_grid_map": "迷宫地图",
+  "state_explore": "探索",
+  "state_battle": "战斗",
+  "state_dialog": "对话",
+  "state_cafe": "咖啡厅",
+  "state_outer_plane": "外层位面",
+  "commands": {
+    "start": {
+      "name": "开始游戏",
+      "usage": "start [confirm]",
+      "brief": "开始新的一局冒险",
+      "desc": "无存档时直接开启新局；已有存档时需要输入 start confirm 覆盖重开。联机队伍或联机牌局中无法开启单人冒险。",
+      "example": "start confirm"
+    },
+    "help": {
+      "name": "指令帮助",
+      "usage": "help [指令]",
+      "brief": "查看指令一览或单条指令用法",
+      "desc": "不带参数时按分类列出全部指令；带上指令名或任意别名时，显示该指令的用法、别名、可用场景、说明与示例。",
+      "example": "help p"
+    },
+    "tutorial": {
+      "name": "游戏教程",
+      "usage": "tutorial",
+      "brief": "查看完整的游戏机制与流程教程",
+      "desc": "输出长篇教程，覆盖局内流程、牌组循环、战斗机制与联机规则；输入 tutorial play 可进入示例地图体验新手教程。",
+      "example": "tutorial"
+    },
+    "newbie_tutorial": {
+      "name": "新手教程",
+      "usage": "newbie",
+      "brief": "进入示例地图重玩交互式新手教程",
+      "desc": "在向导长老的指引下进入 5×3 示例地图，亲手演练基础移动、卡牌出牌、随从、护符、破障、宝箱、篝火与商店机制。",
+      "example": "新手教程"
+    },
+    "skip_tutorial": {
+      "name": "跳过教程",
+      "usage": "skip_tutorial",
+      "brief": "跳过当前进行中的新手教程",
+      "desc": "在新手试炼回廊中随时跳过并结束新手教程，直接回到主菜单或主城。",
+      "example": "跳过教程"
+    },
+    "changelog": {
+      "name": "更新日志",
+      "usage": "changelog",
+      "brief": "查看近期的游戏更改",
+      "desc": "分页读取仓库根目录的更新日志文档，按时间列出新增内容、机制重做与问题修复；阅读时输入 n 下一页、b 上一页、q 退出。",
+      "example": "cl"
+    },
+    "status": {
+      "name": "当前状态",
+      "usage": "r",
+      "brief": "查看当前界面与属性",
+      "desc": "有存档时显示局内界面，包含地形、手牌、随从与敌人；没有存档时显示主菜单。在任意场景均可使用。",
+      "example": "r"
+    },
+    "choose": {
+      "name": "选择选项",
+      "usage": "c <序号>",
+      "brief": "选择事件、商店、咖啡厅或外层位面选项",
+      "desc": "选择对应序号的条目，等待选择时直接发送数字也能触发。输入 c 取消 可以放弃待处理的移除卡牌、宝石镶嵌、升级或离开外层位面。",
+      "example": "c 1"
+    },
+    "deck": {
+      "name": "牌组",
+      "usage": "deck",
+      "brief": "查看当前牌组与卡牌序号",
+      "desc": "列出牌组内全部卡牌及序号，用于确认构筑与升级状态。",
+      "example": "deck"
+    },
+    "bag": {
+      "name": "行囊背包",
+      "usage": "bag [o|r]",
+      "brief": "查看开放世界或冒险行囊",
+      "desc": "在主城、外层位面或雾隐雪原中查看跨开放世界地图共享的行囊与已装备遗物；在肉鸽地牢中默认显示当前秘境冒险行囊；主城无限储物功能已迁移至中心广场的【储物箱】。",
+      "example": "bag r"
+    },
+    "overview": {
+      "name": "图鉴总览",
+      "usage": "overview [relic]",
+      "brief": "分页浏览卡牌或遗物图鉴",
+      "desc": "默认浏览全部卡牌，overview relic 浏览全部遗物；浏览时输入 n 下一页、b 上一页，输入其他内容关闭图鉴。",
+      "example": "overview relic"
+    },
+    "achievement": {
+      "name": "成就列表",
+      "usage": "achi [页码|稀有度|已解锁|全览 confirm]",
+      "brief": "查看成就进度、隐藏详情全览与领取 GP",
+      "desc": "分页查看普通、稀有、珍奇与传奇成就；支持按稀有度或已解锁状态筛选，也可输入 achi 全览 确认花费 50000 GP 永久揭示全部隐藏成就细节。",
+      "example": "achi 1"
+    },
+    "stats": {
+      "name": "生涯统计",
+      "usage": "stat",
+      "brief": "查看累计伤害、击杀与通关层数",
+      "desc": "统计职业生涯的累计伤害、击杀数量、通关层数与当前职业流派。",
+      "example": "stat"
+    },
+    "checkin": {
+      "name": "每日签到",
+      "usage": "checkin [集换卡]",
+      "brief": "每日签到领取下一局祝福",
+      "desc": "每日 UTC+0 刷新，签到可获得下一局祝福，并可选择一张集换卡盖章。",
+      "example": "checkin"
+    },
+    "class": {
+      "name": "职业与子职业",
+      "usage": "class [选择 子职业]",
+      "brief": "查看并切换职业与子职业",
+      "desc": "不带参数时列出职业、子职业与解锁价格。class 战士 或 class 法师 切换主职业，class 1 到 class 3 选择子职业，class 0 取消子职业。",
+      "example": "class 1"
+    },
+    "mode": {
+      "name": "免前缀模式",
+      "usage": "mode",
+      "brief": "切换免前缀快捷指令模式",
+      "desc": "开启后，只要存在活跃存档，即时通讯端可以直接发送游戏指令而无需前缀；此设置仅对个人生效。",
+      "example": "mode"
+    },
+    "abandon": {
+      "name": "放弃战局",
+      "usage": "abandon [confirm]",
+      "brief": "放弃当前战局并结算",
+      "desc": "需要输入 abandon confirm 确认。联机牌局会先结算全队进度再清除存档。",
+      "example": "abandon confirm"
+    },
+    "use": {
+      "name": "使用卡牌",
+      "usage": "p <序号|拼音首字母> [目标/选择器...]",
+      "brief": "打出或使用指定手牌",
+      "desc": "序号也支持卡牌名称拼音首字母，例如 p ssxs。目标支持敌人 e1/e:拼音、己方 p0、随从 m1/m:拼音/p1、队友 a1/a:拼音、队友随从 a2m1，以及牌堆与墓地选择器 h(手牌)、ex(消耗堆)、dc(弃牌堆)、dr(抽牌堆)、mg(随从墓地)、eg(敌方墓地)、a1mg(队友随从墓地)，均支持冒号后拼音模糊匹配（如 ex:hxxt）；用逗号可以连续出牌，例如 p 1, 2。",
+      "example": "p 1 e1"
+    },
+    "back": {
+      "name": "退回上一轮",
+      "usage": "back",
+      "brief": "在多轮交互选择中退回到上一轮",
+      "desc": "战斗中触发多轮连续选牌或选目标交互时，输入 back（或 bk / 返回）可撤回上一步的选择并返回上一轮；输入 exit 可直接取消退出。",
+      "example": "back"
+    },
+    "potion": {
+      "name": "药水",
+      "usage": "potion <编号> [目标]",
+      "brief": "查看、饮用、投掷或丢弃药水",
+      "desc": "子命令：potion list 查看行囊中的药水与效果；potion drink <编号|名称> 饮用；potion throw <编号|名称> [目标] 投掷，省略目标时默认投向第一个敌人；potion drop <编号|名称> 丢弃。也支持 potion 1 直接饮用、potion 1 e1 直接投掷，以及 drink、throw、t、dp 等简写。",
+      "example": "potion throw 1 e1"
+    },
+    "minion": {
+      "name": "指挥随从",
+      "usage": "m <我方格子> <动作> [目标]",
+      "brief": "指挥随从攻击或使用技能",
+      "desc": "格子支持数字，也支持 all 或 * 表示全部随从；动作支持 a 或 attack 攻击、s 或 skill 技能。目标可以是敌人 e1、队友 a1、己方随从 p2 或队友随从 a2m1，用逗号可以连续指挥。",
+      "example": "m 1 a e1"
+    },
+    "skill": {
+      "name": "战士技能",
+      "usage": "skill as",
+      "brief": "战士专属的动作如潮",
+      "desc": "每场战斗有限次数，每回合最多一次，获得 2 点动作点与 1 点额外动作，仅战士可用。",
+      "example": "skill as"
+    },
+    "special": {
+      "name": "特殊行动",
+      "usage": "sa <手牌序号> [目标]",
+      "brief": "释放手牌的特殊行动",
+      "desc": "处理特殊卡牌的分支行动，用法与出牌一致，需要指定目标时会给出提示。",
+      "example": "sa 1"
+    },
+    "end_turn": {
+      "name": "结束回合",
+      "usage": "e",
+      "brief": "结束本回合",
+      "desc": "结束当前回合并弃掉未保留的手牌。联机时所有存活玩家都结束后敌人才会行动。",
+      "example": "e"
+    },
+    "fold": {
+      "name": "折叠指南",
+      "usage": "f",
+      "brief": "折叠或展开底部操作指南",
+      "desc": "切换战斗界面底部提示的显示状态，方便查看较长的战斗日志。",
+      "example": "f"
+    },
+    "queue": {
+      "name": "指令队列",
+      "usage": "q <[指令1, 指令2]>",
+      "brief": "顺序执行多条指令",
+      "desc": "方括号内用逗号分隔多条指令，最多 50 条，某条失败后仍会继续执行；使用 qi 则在任意一条失败时立即中断。",
+      "example": "q [p 1, e]"
+    },
+    "draw": {
+      "name": "抽牌堆",
+      "usage": "draw",
+      "brief": "查看抽牌堆剩余卡牌",
+      "desc": "以去重排序方式显示抽牌堆剩余卡牌，避免泄露牌堆真实顺序。",
+      "example": "draw"
+    },
+    "discard": {
+      "name": "弃牌堆",
+      "usage": "discard",
+      "brief": "查看弃牌堆卡牌",
+      "desc": "显示弃牌堆中的卡牌，洗牌后按实际顺序排列。",
+      "example": "discard"
+    },
+    "exhaust": {
+      "name": "消耗堆",
+      "usage": "exhaust",
+      "brief": "查看本场被消耗的卡牌",
+      "desc": "显示本场战斗中被消耗、无法再抽到的卡牌。",
+      "example": "exhaust"
+    },
+    "minion_graveyard": {
+      "name": "随从墓地",
+      "usage": "mg",
+      "brief": "查看阵亡的随从",
+      "desc": "显示本场战斗中阵亡的随从，部分效果可以从墓地召回它们。",
+      "example": "mg"
+    },
+    "enemy_graveyard": {
+      "name": "敌方墓地",
+      "usage": "eg",
+      "brief": "查看被击杀的敌人",
+      "desc": "显示本场战斗中被击杀的敌人。",
+      "example": "eg"
+    },
+    "town": {
+      "name": "进入主城",
+      "usage": "town",
+      "brief": "进入先古主城",
+      "desc": "仅在菜单可用；已有进行中的游戏时无法进入主城。",
+      "example": "town"
+    },
+    "town_move": {
+      "name": "主城移动",
+      "usage": "w a s d",
+      "brief": "在主城中移动",
+      "desc": "控制角色向上下左右移动，也支持 up、down、left、right。",
+      "example": "w"
+    },
+    "town_tp": {
+      "name": "主城传送",
+      "usage": "tp [地点|拼音首字母]",
+      "brief": "传送到已到达过的主城地点",
+      "desc": "在先古主城中快速传送至任意已经到达过的地点。支持输入地点中文名或地点名称的拼音首字母（贪婪匹配），不带参数时列出当前可传送的已到达地点。",
+      "example": "tp zcsd"
+    },
+    "town_home": {
+      "name": "回城",
+      "usage": "home",
+      "brief": "传送回主城广场",
+      "desc": "立即回到广场，省去逐格移动。",
+      "example": "home"
+    },
+    "town_exit": {
+      "name": "离开主城",
+      "usage": "exit",
+      "brief": "离开主城回到菜单",
+      "desc": "退出主城界面并返回主菜单。",
+      "example": "exit"
+    },
+    "map_style": {
+      "name": "地图样式",
+      "usage": "map [classic|radar]",
+      "brief": "切换大地图或雷达小地图",
+      "desc": "不带参数时在两种样式之间切换，也可以直接指定 classic 或 radar。",
+      "example": "map radar"
+    },
+    "take": {
+      "name": "拾取物品",
+      "usage": "take <物品>",
+      "brief": "拾取地面上的物品",
+      "desc": "从当前房间的地面拾取指定物品，物品名称可用中文或 ID。",
+      "example": "take 面包"
+    },
+    "town_use": {
+      "name": "使用道具",
+      "usage": "use <物品>",
+      "brief": "使用主城背包中的道具",
+      "desc": "使用背包中已拥有的道具，例如在广场使用钥匙。",
+      "example": "use 钥匙"
+    },
+    "town_talk": {
+      "name": "对话",
+      "usage": "talk <目标> [内容]",
+      "brief": "与主城 NPC、设施或同房间玩家交互",
+      "desc": "指定 NPC 或设施进入选项对话（输入数字选择，leave 结束）；指定同房间玩家可打开交互菜单，或直接通过 talk <玩家名> <内容> 面对面发言。",
+      "example": "对话 商人"
+    },
+    "town_touch": {
+      "name": "触摸调查",
+      "usage": "touch <目标|玩家名>",
+      "brief": "查看主城人物、设施、地面物品或同位置玩家的状态",
+      "desc": "触摸主城中的交互对象并打开其互动菜单；对未拾取的地面物品则显示名称与描述；对同位置玩家使用 touch <玩家名> 可查看其生命、SP、持久状态与资产概况。",
+      "example": "touch 西大门"
+    },
+    "town_attack": {
+      "name": "攻击切磋",
+      "usage": "attack <目标>",
+      "brief": "向主城中的可切磋对象发起战斗",
+      "desc": "对训练假人、NoobSlayer99、精英狙击手或 pppopipupu 发起切磋，进入真实战斗；其他居民不可攻击。",
+      "example": "attack 训练假人"
+    },
+    "cafe_look": {
+      "name": "环顾咖啡厅",
+      "usage": "look",
+      "brief": "查看咖啡厅全景",
+      "desc": "重新显示咖啡厅全景、在场人物与可选项。",
+      "example": "look"
+    },
+    "cafe_talk": {
+      "name": "咖啡厅对话",
+      "usage": "talk <目标> [内容]",
+      "brief": "与咖啡厅的人物或同位置玩家对话",
+      "desc": "与咖啡厅内的 NPC 或雇佣兵对话并输入数字选择选项；也可使用 talk <玩家名> [内容] 与同在咖啡厅的联机玩家交互或发言。",
+      "example": "对话 店长"
+    },
+    "cafe_leave": {
+      "name": "离开咖啡厅",
+      "usage": "leave",
+      "brief": "结束对话或离开咖啡厅",
+      "desc": "正在对话时结束当前对话，否则离开咖啡厅回到房间。",
+      "example": "leave"
+    },
+    "friend": {
+      "name": "好友",
+      "usage": "friend <子命令> [参数]",
+      "brief": "好友列表、搜索、申请与昵称",
+      "desc": "管理好友与好友组队邀请。好友间远程私聊请使用 sendmsg <好友名> <内容>；面对面交谈使用 talk <玩家名> [内容]。",
+      "example": "friend add 小明#2"
+    },
+    "rename": {
+      "name": "改名",
+      "usage": "rename <新昵称>",
+      "brief": "修改玩家名并消耗 1000 GP",
+      "desc": "修改玩家名与公开昵称 ID，消耗 1000 GP；重名时会拒绝改名并保留 GP。别名：改名、昵称。",
+      "example": "rename 冒险者小明"
+    },
+    "team": {
+      "name": "队伍",
+      "usage": "team <子命令> [参数]",
+      "brief": "创建或加入队伍并开启联机牌局",
+      "desc": "子命令：create 创建、invite 邀请、join 凭队伍码加入、ready 准备、start 开局、coordinate/coord/xyz/view 查看全队实时位置、tp 传送到队友位置（消耗 1 SP）、leave 离开、kick 踢出、disband 解散、status 状态、invites 邀请列表。",
+      "example": "team coord"
+    },
+    "logs": {
+      "name": "个人日志",
+      "usage": "logs [条数]",
+      "brief": "查看个人战斗与行动日志",
+      "desc": "默认 20 条，最多 50 条，只包含你自己的战斗与行动记录。",
+      "example": "logs 30"
+    },
+    "logc": {
+      "name": "队伍日志",
+      "usage": "logc [条数]",
+      "brief": "查看全队战斗与行动日志",
+      "desc": "默认 20 条，最多 50 条，包含全队的战斗与行动记录。",
+      "example": "logc 30"
+    },
+    "projection": {
+      "name": "队友投影",
+      "usage": "projection [on|off|status]",
+      "brief": "切换队友操作投影",
+      "desc": "默认开启。开启后私聊与网页会展示队友的操作与战斗记录，群聊始终不显示。",
+      "example": "projection off"
+    },
+    "quest_list": {
+      "name": "任务列表",
+      "usage": "quest",
+      "brief": "查看主城任务与进度",
+      "desc": "列出当前可接取与进行中的任务及其完成进度。",
+      "example": "quest"
+    },
+    "query": {
+      "name": "查询",
+      "usage": "i [名称]",
+      "brief": "查询战斗快照或搜索图鉴",
+      "desc": "不带参数时显示战斗快照;带上名称时模糊搜索卡牌、随从、遗物、护符、Buff、敌人、药水与伤害类型,也支持 i draw、i discard、i exhaust、i mg、i eg 查看对应牌堆与墓地。输入「物理伤害」或「魔法伤害」可查看伤害分类。",
+      "example": "i 力量"
+    },
+    "lock": {
+      "name": "卡牌锁定",
+      "usage": "lock [卡名]",
+      "brief": "开局卡牌锁定构筑管理",
+      "desc": "不带参数时显示锁定列表与规则；lock 卡名 花费 GP 锁定卡牌，unlock 卡名 解除锁定，lock clear 清空全部锁定。",
+      "example": "lock 火球术"
+    },
+    "merc_talk": {
+      "name": "对话交互",
+      "usage": "talk [目标名] [内容]",
+      "brief": "与雇佣兵、行商、卡牌或同格队友面对面交互",
+      "desc": "在探索、商店或战斗中随时与雇佣兵、行商或持有独立意志的神器卡牌交互；当有队友或附近玩家同处一格时，也可通过 talk <玩家名> [内容] 与其交互或面对面发言。",
+      "example": "talk 终极棱镜"
+    },
+    "card_talk": {
+      "name": "卡牌对话",
+      "usage": "ctalk <卡牌名|手牌序号>",
+      "brief": "向指定卡牌发起对话",
+      "desc": "选中一张卡牌并尝试与其交谈；大多数普通卡牌不会有任何反应，只有神器或具备特殊灵性标签的卡牌才会作出回应。",
+      "example": "ctalk 终极棱镜"
+    },
+    "menu_talk": {
+      "name": "主菜单对话",
+      "usage": "talk <卡牌名>",
+      "brief": "在主菜单与持有独立意志的卡牌交谈",
+      "desc": "在主菜单尝试与指定卡牌交谈；只有神器或具备特殊灵性标签的卡牌才会回应。",
+      "example": "talk 终极棱镜"
+    },
+    "grid_move": {
+      "name": "迷宫移动",
+      "usage": "w / a / s / d",
+      "brief": "在网格迷雾地图中向上下左右移动一格",
+      "desc": "向相邻格子移动一格；普通折返与探索不消耗体力，踩入障碍需消耗体力破障。",
+      "example": "d"
+    },
+    "grid_dig": {
+      "name": "直接破障",
+      "usage": "dig <w|a|s|d>",
+      "brief": "无需二次确认直接破除相邻格子的障碍并前进",
+      "desc": "向指定方向直接破除障碍并进入目标格；若体力充足则正常消耗 SP，若体力不足将直接触发体力透支与力竭惩罚。",
+      "example": "dig d"
+    },
+    "grid_tp": {
+      "name": "坐标传送",
+      "usage": "tp <坐标|设施名>",
+      "brief": "零消耗传送至已探索房间",
+      "desc": "输入坐标如 D2 或设施关键词如 咖啡、商店、篝火，直接零体力传送至已探索房间。",
+      "example": "tp 咖啡"
+    },
+    "grid_map": {
+      "name": "查看地图",
+      "usage": "map",
+      "brief": "刷新当前楼层的迷雾地图与图例",
+      "desc": "显示当前网格地图、体力、力竭等级、队友位置与已发现设施列表。",
+      "example": "map"
+    },
+    "grid_talk": {
+      "name": "对话交互",
+      "usage": "talk [. | 目标名] [内容]",
+      "brief": "直接触发当前场景元素（talk .），或与房间人物、雇佣兵、同房间玩家交互",
+      "desc": "输入 talk .（等价于无参数 talk）可直接触发当前格子的地标、荒爆古坟机关与通道、下楼回廊或封印祭坛等场景元素；也可指定房间人物、行商、店长、雇佣兵或同房间玩家名打开交互，或输入 talk <玩家名> <内容> 直接面对面发言。",
+      "example": "talk ."
+    },
+    "grid_attack": {
+      "name": "攻击目标",
+      "usage": "atk <人物名>",
+      "brief": "向房间人物、行商或咖啡厅店主客人发起战斗",
+      "desc": "在迷雾地图、商店或咖啡厅中主动攻击在场 NPC 并进入真实战斗，胜利后可缴获专属战利品。",
+      "example": "atk 行商"
+    },
+    "grid_touch": {
+      "name": "触摸调查",
+      "usage": "touch <物件名|玩家名>",
+      "brief": "触摸或调查当前房间里的可交互物件与同位置玩家",
+      "desc": "调查火盆、雕像、炼金台、留言簿等房间陈设，触发恢复、金币、情报揭示或机关事件；对同位置玩家使用 touch <玩家名> 可查看其生命、SP、持久状态与资产概况，联机战斗中也可用 touch <队友名> 查看队友状态。",
+      "example": "touch 火盆"
+    },
+    "grid_take": {
+      "name": "拿取物品",
+      "usage": "take <物品名>",
+      "brief": "拾取房间地面掉落的物品或药水",
+      "desc": "拾取当前房间中的物品或药水放入冒险行囊（受负重限制）。",
+      "example": "take 咖啡豆"
+    },
+    "grid_use": {
+      "name": "使用背包物品",
+      "usage": "use <物品名>",
+      "brief": "在非战斗状态使用行囊中的道具",
+      "desc": "在迷雾探索、商店或咖啡厅中使用背包里的恢复、破障或侦测道具。",
+      "example": "use 绷带"
+    },
+    "drop_item": {
+      "name": "丢弃背包物品",
+      "usage": "di <物品名>",
+      "brief": "丢弃行囊中的常规物品以释放负重",
+      "desc": "在肉鸽模式或开放世界中丢弃指定背包物品，腾出负重空间拾取更有价值的物品。",
+      "example": "di 矿镐"
+    },
+    "outer_plane_look": {
+      "name": "查看外层位面",
+      "usage": "看 / look / 位面状态",
+      "brief": "重新显示当前房间与剩余意识",
+      "desc": "显示外层位面区域图、当前房间描述、剩余意识值与全部可选行动。",
+      "example": "look"
+    },
+    "butcher_attack": {
+      "name": "攻击",
+      "usage": "攻击 / attack / atk / 打",
+      "brief": "对当前场景的存在直接出手",
+      "desc": "外层位面中，对当前场景的存在直接出手；有战斗选项时直接开打。",
+      "example": "attack"
+    },
+    "inbox": {
+      "name": "消息信箱",
+      "usage": "消息 / 信箱 / inbox",
+      "brief": "查看好友远程私聊与队伍系统消息",
+      "desc": "查看好友通过 sendmsg 发送的远程消息与系统消息并标记已读；与同位置玩家面对面使用 talk 发言时会直接插入对方的战斗或操作日志中，不经过信箱。",
+      "example": "消息"
+    },
+    "world_say": {
+      "name": "面对面发言",
+      "usage": "说 <玩家名> <内容>",
+      "brief": "向同位置的附近玩家面对面发言",
+      "desc": "在主城、外层位面或联机地牢同房间内，通过 说 <玩家名> <内容> 或 对话 <玩家名> <内容> 向在场玩家发送面对面消息，对方会在战斗日志或下次操作画面中看到；不带参数输入 说 可列出当前位置的在场玩家。",
+      "example": "说 小明 你好"
+    },
+    "world_talk": {
+      "name": "外层位面交互",
+      "usage": "talk [玩家名] [内容]",
+      "brief": "查看或与外层位面同房间玩家交互",
+      "desc": "外层位面与其他场景一样将同房间玩家列在在场人物中；使用 talk <玩家名> 打开交互选项菜单，或直接输入 talk <玩家名> <内容> 面对面发言。",
+      "example": "talk 小明 你好"
+    },
+    "world_touch": {
+      "name": "外层位面查看玩家",
+      "usage": "touch <玩家名>",
+      "brief": "查看外层位面同房间玩家的状态",
+      "desc": "对同房间玩家使用 touch <玩家名> 查看其生命、SP、持久状态与资产概况；同一用法在主城与联机地牢同样有效。",
+      "example": "touch 小明"
+    },
+    "sendmsg": {
+      "name": "远程好友消息",
+      "usage": "sendmsg <好友名> <内容>",
+      "brief": "向好友发送可离线保存的远程消息",
+      "desc": "仅能向好友发送。消息会进入对方的消息信箱，对方输入 消息 查看；不在同一地点或对方暂时离线时也可送达。",
+      "example": "sendmsg 小明 晚上一起打牌"
+    },
+    "trade": {
+      "name": "玩家交易",
+      "usage": "trade <玩家> / trade view <玩家> [deck|bag|relic] / trade gift <玩家> <条目> / trade offer <玩家> <条目> for <条目>",
+      "brief": "查看同位置玩家的卡组、背包、遗物与状态，并互相赠送或交换",
+      "desc": "与同一位置的其他玩家交互：trade <玩家> 查看双方可交易资产，trade view <玩家> 查看对方卡组、背包与遗物，trade gift 提出赠送，trade offer 提出交换；赠送与交换都必须双方同意才会完成。条目可写 card:火球术、relic:先古之眼、item:治疗药水，省略前缀时自动识别，多个条目用逗号分隔。使用 trade list 查看提议，trade accept / trade decline 处理，trade cancel 取消自己发出的提议；收到提议时也可直接回复 1 或 2。中文别名：交易。",
+      "example": "trade offer 小明 card:火球术 for relic:先古之眼"
+    }
+  }
+}

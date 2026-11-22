@@ -1,0 +1,118 @@
+{
+  "lyrics_marker": "【歌词】",
+  "lyrics_marker_index": "【歌词·{index}】",
+  "lyrics_marker_alt": "【歌词·{index}/{alt}】",
+  "no_enemy": "没有可作用的目标。",
+  "window_name": "高档防雨落地窗",
+  "window_desc": "敌方回合开始时全体敌人受到 10 点寒冷伤害并获得 1 层【湿透】；敌人攻击你时伤害减少 30% 且吟唱 -1。谢幕曲：对所有敌人造成 24 点穿刺伤害并施加 2 层【湿透】与【电击】。",
+  "idealist_ward_saved": "{name} 的【唯心免死】被触发，生命锁定为 1 点并获得 40 点护盾。",
+  "legacy_applied": "跨战延续：获得 {strength} 层力量与 {shield} 点护盾。",
+  "next_lyric_added": "下一张【歌词】已加入抽牌堆：{name}。",
+  "next_lyric_exists": "下一张【歌词】已在牌堆中：{name}。",
+  "rain_wish_created": "【希望雨能下不停】已加入抽牌堆。",
+  "rain_wish_retrieved": "【希望雨能下不停】从消耗堆回收到手牌。",
+  "rain_wish_switched": "【希望雨能下不停】已切换为【言出法随】。",
+  "memory_copy": "【屋内温暖但要记得你的回忆】复制了 {name}。",
+  "social_boss_stun": "{name} 触发【社会性死亡】，护盾清零并眩晕 1 回合。",
+  "social_flee": "{name} 因【社会性死亡】逃离了战斗。",
+  "buffs": {
+    "extreme_rage": {
+      "name": "极度愤怒",
+      "desc": "本场战斗中，你的物理伤害 +50%。"
+    }
+  },
+  "buff": {
+    "sleep_rain": {
+      "intent": "zzZ……"
+    }
+  },
+  "cards": {
+    "rainbow_name": "彩虹的美丽",
+    "rainie_love": {
+      "result": "将 {amount} 张【听雨的声音】加入抽牌堆。"
+    }
+  },
+  "relics": {
+    "rainie_form": {
+      "trigger": "Rainie 的形态在雨中闪烁。"
+    }
+  },
+  "effects": {
+    "listen": "为所有敌人戴上降噪耳机，施加 {turns} 回合【助眠雨声】。",
+    "eye_drops": "净化自身 {cleaned} 个负面状态，剥除敌人 {stripped} 层抗性/免疫/无实体，滴下 {drops} 滴 {damage} 点寒冷伤害。",
+    "breath": "抽干敌人的呼吸，将 {stolen} 层常规负面状态转移给自己。",
+    "breath_clean": "呼吸渗透：治疗 {heal} 点并获得 {strength} 层力量。",
+    "rain_wish_4": "【希望雨能下不停·暴雨】：下一张非歌词牌附加重放；本回合每再打出 1 张歌词，造成 {damage} 点寒冷伤害。",
+    "rain_wish_11": "【希望雨能下不停·大暴雨】：获得 1A 1BA，本回合手牌保留，并获得 1 个额外回合。",
+    "emo": "深夜 emo 恋爱脑开始发作；所有敌人获得 {stacks} 层【想念前任】。",
+    "transparent": "你变成小透明；{changed} 张手牌的费用变为 0 并带【虚无】。",
+    "courage": "消耗 {shield} 点护盾，对随机敌人造成 {damage} 点伤害，并获得【Rainie 给的勇气】。",
+    "window": "高档防雨落地窗已就位（吟唱 {countdown}）。",
+    "window_broken": "落地窗已碎裂：{effect}",
+    "accumulate": "所有敌人获得 {stacks} 层【滴水穿石】。",
+    "rainy_season": "重度回南天降临，持续 {turns} 回合。",
+    "secret_card": "彩蛋：获得 {name}。",
+    "rainbow_wall": "将 {count} 张费用为 0 的【虹光法墙】加入抽牌堆。",
+    "infinite_refill": "无限续杯：本场战斗正面状态不再衰减。",
+    "rainbow": "彩虹从雨幕中升起。",
+    "draw": "抽 {amount} 张牌。",
+    "ghost_name": "深夜 emo 恋爱脑的幻影"
+  },
+  "prophecy": {
+    "prompt": "选择 Rainie 的预言：",
+    "required": "请选择一项预言。",
+    "option_1": "我看到了彩虹：从任意牌堆取回【彩色的美丽】并赋予【重放 1】。",
+    "option_2": "我看到了敌人暴毙：所有敌人获得 2 回合【我信你会死】。",
+    "option_3": "我看到了奇迹：获得【唯心免死】，下一张牌费用变为 0A 0BA。",
+    "rainbow_found": "你从任意牌堆取回了【{name}】。",
+    "rainbow_created": "你将【{name}】加入了手牌。",
+    "enemy_death": "所有敌人被宣告死亡：{countdown} 回合后受到 {damage} 点真实伤害。",
+    "miracle": "唯心主义奇迹：获得【唯心免死】，下一张牌费用变为 0A 0BA。"
+  },
+  "window": {
+    "turn_start": "落地窗外冷雨敲窗，所有敌人受到 {damage} 点寒冷伤害并湿透。",
+    "requiem": "【{name}】碎裂，谢幕曲响起：{effect}",
+    "shatter": "玻璃碎片与冷雨倾泻：造成 {damage} 点穿刺伤害，施加 {wet} 层【湿透】与 {shock} 层【电击】。"
+  },
+  "log": {
+    "sleep_rain": "{name} 被助眠雨声包围，无法行动。",
+    "sleep_wake": "{name} 被吵醒，获得 {strength} 层力量。",
+    "breath_shield": "呼吸渗透将 {name} 的护盾转移给施法者（{amount}）。",
+    "breath_heal": "呼吸渗透将 {name} 的治疗转移给施法者（{amount}）。",
+    "breath_buff": "呼吸渗透将 {name} 的【{buff}】转移给施法者。",
+    "breath_drain": "呼吸渗透从 {name} 抽取 {amount} 点生命。",
+    "emo_return": "【{name}】从回忆中返回手牌。",
+    "missing_damage": "【想念前任】对 {name} 造成 {damage} 点心灵伤害。",
+    "missing_confuse": "{name} 陷入【混乱】。",
+    "missing_double": "{name} 的【想念前任】翻倍至 {stacks} 层。",
+    "transparent_leak": "{name} 的护盾被透明包装泄漏 {amount} 点。",
+    "transparent_true": "透明包装对 {name} 造成 {damage} 点真实伤害。",
+    "courage_immune": "Rainie 的勇气让你免疫了负面状态。",
+    "courage_block": "Rainie 的勇气驱散了【{name}】。",
+    "drip_hit": "【滴水穿石】对 {name} 造成 {damage} 点寒冷伤害。",
+    "drip_double": "{name} 的【滴水穿石】翻倍至 {stacks} 层。",
+    "rainy_slip": "{name} 在回南天滑倒，受到 {damage} 点钝击伤害。",
+    "social_extra": "【社会性死亡】对 {name} 造成 {damage} 点额外心灵伤害。",
+    "refill_carry": "无限续杯保留了 {a}A {ba}BA。",
+    "replay_pending": "{name} 获得重放 {replay}。",
+    "rain_wish_rain": "冷雨倾盆，对所有敌人造成 {damage} 点寒冷伤害。",
+    "retain_hand": "本回合手牌获得【保留】。",
+    "prophecy_damage": "【我信你会死】对 {name} 造成 {damage} 点真实伤害。",
+    "prophecy_failed": "预言落空，施法者陷入【混乱】。",
+    "free_next": "{name} 的费用变为 0A 0BA。",
+    "rain_wish_amplify": "暴雨在回合结束时增强了 {count} 个状态。"
+  },
+  "taunt": {
+    "1": "「就这？雨都没你眼泪大。」",
+    "2": "「你打人像回南天一样软绵绵。」",
+    "3": "「再用力点，我还没湿透呢。」"
+  },
+  "secrets": {
+    "1": "Rainie 偷偷把一颗薄荷糖塞进你的口袋。",
+    "2": "雨声里混进了一句没听清的“喜欢你”。",
+    "3": "窗外的霓虹把积水染成了彩虹色。",
+    "4": "你发现伞柄上刻着一个小小的笑脸。",
+    "5": "雨停了一秒，又若无其事地下了起来。",
+    "6": "她把空杯子递给你，说这是今天的第二杯。"
+  }
+}

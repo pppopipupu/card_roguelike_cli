@@ -1,11 +1,11 @@
 import random
 from .base import EventOption
-from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
-from ...data.event_data import EVENT_CONFIG, EVENT_MIN_HP, EVENT_MIN_MAX_HP, EVENT_MIN_GOLD, EVENT_TIME_SAND_MIN_MAX_HP
+from ...data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
+from ...data.world.event_data import EVENT_CONFIG, EVENT_MIN_HP, EVENT_MIN_MAX_HP, EVENT_MIN_GOLD, EVENT_TIME_SAND_MIN_MAX_HP
 from ..cards import ALL_CARDS
 from ...core.inventory.deck_service import DeckService
 from ...models.state import ensure_card_state
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 
 class ReadVoidTomeOption(EventOption, action="read_void_tome", text=get_locale_text("i18n_events_a.chaos_read_void_tome_text")):
     def _run_effect(self, run, engine) -> str:
@@ -83,7 +83,7 @@ class BuyBlackmarketRelicOption(EventOption, action="buy_blackmarket_relic", tex
         else:
             p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("buy_hp_penalty", 15))
             cost_msg = get_locale_text("i18n_events_a.chaos_buy_blackmarket_penalty")
-        from ...data.relic_data import RELIC_CONFIG, relic_allowed_for_class
+        from ...data.entities.relic_data import RELIC_CONFIG, relic_allowed_for_class
         pool = [
             rid
             for rid, r in RELIC_CONFIG.items()
@@ -106,7 +106,7 @@ class RobBlackmarketOption(EventOption, action="rob_blackmarket", text=get_local
         cfg = EVENT_CONFIG.get("goblin_blackmarket", {})
         if random.random() < cfg.get("rob_success_chance", 0.7):
             p.gold += cfg.get("rob_gold", 100)
-            from ...data.gem_data import GEM_CONFIG
+            from ...data.entities.gem_data import GEM_CONFIG
             gem_pool = list(GEM_CONFIG.keys())
             gem_id = random.choice(gem_pool)
             engine.enter_next_stage(run)
@@ -190,7 +190,7 @@ class LootWreckageOption(EventOption, action="loot_wreckage", text=get_locale_te
         p.hp = max(EVENT_MIN_HP, p.hp - cfg.get("loot_hp_cost", 12))
         for _ in range(cfg.get("loot_curse_count", 2)):
             DeckService.add_card_to_deck(p, "curse_dazed")
-        from ...data.gem_data import GEM_CONFIG
+        from ...data.entities.gem_data import GEM_CONFIG
         gem_pool = list(GEM_CONFIG.keys())
         gem_id = random.choice(gem_pool)
         engine.enter_next_stage(run)
@@ -212,7 +212,7 @@ class RepairEngineOption(EventOption, action="repair_engine", text=get_locale_te
             p.relics.append(got_relic)
         engine.enter_next_stage(run)
         engine.save_manager.save_save(run.user_id, run)
-        from ...data.relic_data import RELIC_CONFIG
+        from ...data.entities.relic_data import RELIC_CONFIG
         relic_name = RELIC_CONFIG.get(got_relic, {}).get("name", got_relic)
         return get_locale_text("i18n_events_a.chaos_repair_engine_result", relic_name=relic_name)
 
@@ -234,7 +234,7 @@ class DigGraveOption(EventOption, action="dig_grave", text=get_locale_text("i18n
             DeckService.add_card_to_deck(p, "curse_dimensional_tear")
         if "necromancer_skull" not in p.relics:
             p.relics.append("necromancer_skull")
-        from ...data.gem_data import GEM_CONFIG
+        from ...data.entities.gem_data import GEM_CONFIG
         gem_pool = list(GEM_CONFIG.keys())
         gem_id = random.choice(gem_pool)
         engine.enter_next_stage(run)

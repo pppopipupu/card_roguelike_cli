@@ -1,8 +1,8 @@
 from typing import Generator
 
 from ...base import CommandHandler
-from .....data.locale_data import get_locale_text
-from .....data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
+from .....data.text.locale_data import get_locale_text
+from .....data.world.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
 from ....social.player_inspect import PlayerInspectService
 from ....text.pipeline import render_text_node
 

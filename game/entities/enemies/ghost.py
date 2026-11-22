@@ -3,8 +3,8 @@ import random
 from ...models.state import EnemyIntentState, EnemyState, PlayerState, ensure_card_state
 from ...entities.cards.base import ALL_CARDS
 from ...core.inventory.deck_service import DeckService
-from ...data.corpse_config import CorpseConfig
-from ...data.locale_data import get_locale_text
+from ...data.entities.corpse_config import CorpseConfig
+from ...data.text.locale_data import get_locale_text
 from .base import EnemyTemplate
 
 

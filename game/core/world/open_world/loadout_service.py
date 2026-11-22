@@ -1,15 +1,15 @@
 from collections import Counter
 from typing import Optional, TypeGuard
 
-from ....data.grid_map_config import SP_CONFIG
-from ....data.open_world_config import (
+from ....data.world.grid_map_config import SP_CONFIG
+from ....data.world.open_world_config import (
     OPEN_WORLD_COMBAT_FLAG,
     OPEN_WORLD_DEFAULT_BASE_HP,
     OPEN_WORLD_NINJA_BASE_HP,
     OPEN_WORLD_STARTING_GOLD,
     OPEN_WORLD_WARRIOR_BASE_HP,
 )
-from ....data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
+from ....data.world.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 from ....models.state import CardState, GameRun, PlayerState, UserStats, ensure_card_state
 from ...inventory.bag_service import get_item_display_name, resolve_item_query, use_bag_item
 from ...inventory.deck_service import DeckService

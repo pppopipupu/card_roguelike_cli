@@ -1,6 +1,6 @@
 from collections import Counter
 
-from ....data.open_world_config import TOWN_CHEST_NPC_ID, TOWN_CHEST_TAB_KEY
+from ....data.world.open_world_config import TOWN_CHEST_NPC_ID, TOWN_CHEST_TAB_KEY
 from ....entities import get_relic_desc, get_relic_name
 from ....models.state import UserStats
 from ...inventory.bag_service import BAG_DEFAULT_MAX_WEIGHT, calc_bag_items_weight, can_add_bag_item, get_item_display_name, get_item_weight

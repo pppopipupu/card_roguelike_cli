@@ -3,7 +3,7 @@ import random
 import tempfile
 import unittest
 
-from game.data.millika_card_config import MILLIKA_TURN_FLAG_KEY
+from game.data.cards.classes.millika_card_config import MILLIKA_TURN_FLAG_KEY
 from game.models.state import BuffState, CardState, EnemyIntentState, EnemyState, GameRun, MinionState, PlayerState
 from game.test.core.base import CorePlugin, load_run, run_command
 

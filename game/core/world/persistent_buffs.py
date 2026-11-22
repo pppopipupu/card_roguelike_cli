@@ -1,7 +1,7 @@
 from typing import Iterable, Optional
-from ...data.buff_data import BUFF_CONFIG
-from ...data.grid_map_config import EXHAUSTION_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.world.grid_map_config import EXHAUSTION_CONFIG
+from ...data.text.locale_data import get_locale_text
 from ...models.state import BuffState
 
 

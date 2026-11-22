@@ -1,6 +1,6 @@
 import random
-from ...data.locale_data import get_locale_text
-from ...data.anna_card_config import CARD_PILES
+from ...data.text.locale_data import get_locale_text
+from ...data.cards.classes.anna_card_config import CARD_PILES
 from ...models.events import CardVanishEvent
 
 

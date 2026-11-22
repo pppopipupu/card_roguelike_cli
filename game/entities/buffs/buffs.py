@@ -2,9 +2,9 @@ from typing import List, Optional
 import re
 from .base import BuffImpl, is_debuff
 from .registry import register_buff
-from ...data.buff_data import BUFF_CONFIG
-from ...data.locale_data import get_locale_text
-from ...data.damage_type_data import damage_type_matches, is_physical_damage, is_spell_card_damage
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.battle.damage_type_data import damage_type_matches, is_physical_damage, is_spell_card_damage
 
 def _stat(instance, buff_id, name, default):
     cfg = BUFF_CONFIG.get(buff_id, {})
@@ -166,7 +166,8 @@ class StrengthBuff(BuffImpl):
                 event.modified_damage += buff_state.stacks * mult
 
 class FlameBarrierBuff(BuffImpl):
-    def on_damage_take_defend(self, event, buff_state, entity, engine):
+    def on_damage_take_defend(self, event, buff_state, entity, engine=None):
+        engine = event.engine
         if entity == event.run.player and event.target == "p0" and event.source.startswith("e"):
             reflect_damage = buff_state.stacks * _stat(self, "flame_barrier_buff", "reflect_damage", 1)
             engine._damage_target(event.run, event.source, reflect_damage, damage_type="fire")
@@ -449,12 +450,91 @@ class AuroraEmperorBuff(BuffImpl):
             event.engine._log_event(event.run, msg)
 
 class HellRaiderBuff(BuffImpl):
-    pass
+    def on_card_drawn(self, event, buff_state, entity):
+        if event.intercepted or entity != event.run.player:
+            return
+        run = event.run
+        upgraded = buff_state.id == "hell_raider_upgraded"
+        cfg = BUFF_CONFIG.get("hell_raider", {})
+        chain = getattr(run, "_hell_raider_chain", 0)
+        chain_limit = cfg.get("chain_depth", 5)
+        cost_a_limit = 2 if upgraded else 1
+        card = event.card
+        if not card:
+            return
+        if chain >= chain_limit or getattr(card, "cost_a", 0) > cost_a_limit or getattr(card, "cost_ba", 0) != 0:
+            return
+        event.intercepted = True
+        engine = event.engine
+        buff_prefix = get_locale_text("i18n_battle_core.hell_raider_upgraded_name") if upgraded else get_locale_text("i18n_battle_core.hell_raider_name")
+        engine._log_event(run, get_locale_text("i18n_battle_core.hell_raider_auto_play_log", buff_prefix=buff_prefix, cost_a=getattr(card, "cost_a", 0), name=card.name))
+        target = "p0"
+        if card.type == "spell" and getattr(card, "target_type", "enemy") != "self":
+            target = engine._get_first_alive_enemy(run)
+        elif card.type in ("minion", "amulet"):
+            target = engine._get_free_grid(run.player)
+            if not target:
+                target = "p1"
+        run._hell_raider_chain = chain + 1
+        try:
+            res_action = engine._execute_card_effect(run, card, target)
+            res_action, _ = engine.card_player._finalize_card_play(run, run.player, card, event.card_state, target, res_action, source="hell_raider", register=False)
+            engine._log_event(run, get_locale_text("i18n_battle_core.hell_raider_feedback_log", feedback=res_action))
+            if upgraded and event.depth < chain_limit:
+                engine._log_event(run, get_locale_text("i18n_battle_core.hell_raider_extra_draw_log"))
+                engine.card_player.draw_cards(run.player, cfg.get("upgraded_draw_count", 1), run, depth=event.depth + 1)
+        finally:
+            run._hell_raider_chain = chain
+
+class VoidExhaustionBuff(BuffImpl):
+    def on_card_post_play_route(self, event, buff_state, entity):
+        event.destination = "exhaust"
+        event.handled = True
+
+
+class TacticalFocusBuff(BuffImpl):
+    def on_before_card_draw(self, event, buff_state, entity):
+        if event.is_turn_start:
+            return
+        event.cancel()
+        event.engine._log_event(event.run, get_locale_text("i18n_battle_core.cannot_draw_log"))
+
+class BarricadeBuff(BuffImpl):
+    def on_shield_decay_calculate(self, event, buff_state, entity):
+        event.decay_amount = 0
 
 class PrismaticBarrierBuff(BuffImpl):
-    pass
+    def on_damage_take_defend(self, event, buff_state, entity, engine=None):
+        engine = event.engine
+        if event.target != "p0" or event.amount <= 0 or not event.source.startswith("e"):
+            return
+        upgraded = buff_state.id == "prismatic_barrier_upgraded"
+        cfg = BUFF_CONFIG.get("prismatic_barrier", {})
+        total = int(cfg.get("upgraded_reflect_damage" if upgraded else "reflect_damage", 12))
+        per_type = max(1, total // 4)
+        buff_state.stacks -= 1
+        if buff_state.stacks <= 0 and buff_state in entity.buffs:
+            entity.buffs.remove(buff_state)
+        buff_prefix = get_locale_text(
+            "i18n_battle_misc.prismatic_barrier_upgraded_name" if upgraded else "i18n_battle_misc.prismatic_barrier_name"
+        )
+        engine._log_event(event.run, get_locale_text("i18n_battle_misc.prismatic_barrier_reflect", buff_prefix=buff_prefix))
+        for damage_type in ("fire", "cold", "lightning", "poison"):
+            engine._damage_target(event.run, event.source, per_type, source="p0", damage_type=damage_type)
+
+
 
 class AntimagicImmuneBuff(BuffImpl):
+    hook_priorities = {"on_before_damage_apply": -200}
+
+    def on_before_damage_apply(self, event, buff_state, entity, engine=None):
+        engine = event.engine
+        if event.target != "p0":
+            return
+        dtype = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
+        if not is_physical_damage(dtype):
+            event.final_damage = 0
+
     def on_turn_end(self, event, buff_state, entity):
         if buff_state in entity.buffs:
             entity.buffs.remove(buff_state)
@@ -470,41 +550,60 @@ class RitualBuff(BuffImpl):
 
 class GrappledBuff(BuffImpl):
     def on_turn_end(self, event, buff_state, entity):
-        if event.is_player and entity == event.run.player:
+        if event.is_player:
+            return
+        if entity != event.run.player:
+            return
+        stacks = buff_state.stacks
+        if stacks:
             buff_state.stacks -= 1
-            if buff_state.stacks <= 0:
-                if buff_state in entity.buffs:
-                    entity.buffs.remove(buff_state)
+            if buff_state.stacks <= 0 and buff_state in entity.buffs:
+                entity.buffs.remove(buff_state)
 
 
 class AstralSpeedBuff(BuffImpl):
-    pass
+    def on_enemy_roll_intent(self, event, buff_state, entity):
+        event.enemy.actions += buff_state.stacks
+        if buff_state in entity.buffs:
+            entity.buffs.remove(buff_state)
+
+
+class BonusSpeedBuff(BuffImpl):
+    def on_enemy_roll_intent(self, event, buff_state, entity):
+        event.enemy.bonus_actions += buff_state.stacks
+        if buff_state in entity.buffs:
+            entity.buffs.remove(buff_state)
+
 
 class SourceOfCinderBuff(BuffImpl):
     def on_turn_start(self, event, buff_state, entity):
-        if entity == event.run.player and event.is_player:
-            event.run.player.actions += buff_state.stacks
-            event.run.player.bonus_actions += buff_state.stacks
-            event.engine._log_event(event.run, get_locale_text("i18n_buffs.source_of_cinder_log", stacks=buff_state.stacks))
+        if not event.is_player:
+            return
+        if not event.run.player:
+            return
+        if entity != event.run.player:
+            return
+        actions = buff_state.stacks
+        event.run.player.actions += actions
+        event.run.player.bonus_actions += actions
+        event.engine._log_event(event.run, get_locale_text("i18n_buffs.source_of_cinder_log", actions=actions))
 
 
 class UnyieldingBuff(BuffImpl):
     def on_damage_calculate_defend(self, event, buff_state, entity):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
-        if dtype_str == "true" or dtype_str == "TRUE":
+        if dtype_str in ("true", "TRUE"):
             return
         already_taken = getattr(buff_state, "already_taken", 0)
-        limit = buff_state.stacks
-        allowed_remaining = max(0, limit - already_taken)
+        allowed_remaining = max(0, buff_state.stacks - already_taken)
         if event.modified_damage > allowed_remaining:
             event.modified_damage = allowed_remaining
 
-    def on_damage_take_defend(self, event, buff_state, entity, engine):
+    def on_damage_take_defend(self, event, buff_state, entity, engine=None):
         dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
-        if dtype_str == "true" or dtype_str == "TRUE":
+        if dtype_str in ("true", "TRUE"):
             return
-        already_taken = getattr(buff_state, "already_taken", 0)
-        buff_state.already_taken = already_taken + event.amount
+        buff_state.already_taken = getattr(buff_state, "already_taken", 0) + event.amount
 
     def on_turn_end(self, event, buff_state, entity):
         buff_state.already_taken = 0
@@ -512,80 +611,101 @@ class UnyieldingBuff(BuffImpl):
 
 class TimeLordPassiveBuff(BuffImpl):
     def on_turn_start(self, event, buff_state, entity):
-        if not event.is_player:
-            run = event.run
-            if entity == run.player:
-                target = "p0"
-            elif entity in run.enemies:
-                target = f"e{run.enemies.index(entity)+1}"
-            else:
-                target = None
-                for grid, m in run.player.minions.items():
-                    if m == entity:
-                        target = f"p{grid}"
-                        break
-            if target:
-                event.engine._gain_shield(run, target, _stat(self, "time_lord_passive", "shield_gain", 20))
-            to_remove = []
-            for b in entity.buffs:
-                if is_debuff(b.id):
-                    to_remove.append(b)
-            for b in to_remove:
-                entity.buffs.remove(b)
-            event.engine._log_event(event.run, get_locale_text("i18n_buffs.time_lord_log", entity=entity.name))
-            
-            echo_name = get_locale_text("i18n_buffs.echo_enemy_name")
-            active_echoes = [e for e in event.run.enemies if e.name == echo_name and e.hp > 0]
-            if len(active_echoes) < _stat(self, "time_lord_passive", "max_echoes", 1) and len(event.run.enemies) < _stat(self, "time_lord_passive", "max_enemies", 3):
-                import random
-                if random.random() < _stat(self, "time_lord_passive", "summon_chance", 0.5):
-                    from ...models.state import EnemyState
-                    echo_hp = _stat(self, "time_lord_passive", "echo_hp", 15)
-                    echo_enemy = EnemyState(
-                        name=echo_name,
-                        hp=echo_hp,
-                        max_hp=echo_hp,
-                        shield=0,
-                        actions=_stat(self, "time_lord_passive", "echo_actions", 1),
-                        bonus_actions=0,
-                        max_actions=_stat(self, "time_lord_passive", "echo_max_actions", 1),
-                        max_bonus_actions=0
-                    )
-                    event.run.enemies.append(echo_enemy)
-                    event.engine._log_event(event.run, get_locale_text("i18n_buffs.time_lord_summon_log"))
+        if event.is_player:
+            return
+        run = event.run
+        if entity == run.player:
+            target = "p0"
+        elif entity in run.enemies:
+            target = f"e{run.enemies.index(entity) + 1}"
+        else:
+            target = None
+        if target is None:
+            return
+        shield_gain = _stat(self, "time_lord_passive", "shield_gain", 20)
+        event.engine._gain_shield(run, target, shield_gain)
+        for removed in list(entity.buffs):
+            if is_debuff(removed.id) and removed in entity.buffs:
+                entity.buffs.remove(removed)
+        echo_hp = _stat(self, "time_lord_passive", "echo_hp", 15)
+        echo_actions = _stat(self, "time_lord_passive", "echo_actions", 1)
+        echo_max_actions = _stat(self, "time_lord_passive", "echo_max_actions", 1)
+        echo_name = get_locale_text("i18n_buffs.echo_enemy_name")
+        active_echoes = [e for e in run.enemies if e.name == echo_name]
+        max_echoes = _stat(self, "time_lord_passive", "max_echoes", 1)
+        max_enemies = _stat(self, "time_lord_passive", "max_enemies", 3)
+        import random
+        if len(active_echoes) < max_echoes and len(run.enemies) < max_enemies:
+            if random.random() < _stat(self, "time_lord_passive", "summon_chance", 0.5):
+                from ...models.state import EnemyState, BuffState
+                echo = EnemyState(
+                    name=echo_name,
+                    hp=echo_hp,
+                    max_hp=echo_hp,
+                    shield=0,
+                    actions=echo_actions,
+                    bonus_actions=0,
+                    max_actions=echo_max_actions,
+                    max_bonus_actions=0,
+                    buffs=[BuffState(id="echo", name=echo_name, stacks=1, desc=echo_name)],
+                )
+                run.enemies.append(echo)
+                event.engine._log_event(run, get_locale_text("i18n_buffs.time_lord_summon_log", enemy=echo_name))
 
-    def on_damage_calculate_defend(self, event, buff_state, entity):
-        if event.modified_damage > 0:
-            active_echoes = [e for e in event.run.enemies if e.name == get_locale_text("i18n_buffs.echo_enemy_name") and e.hp > 0]
-            if active_echoes:
-                active_echo = active_echoes[0]
-                shared_dmg = event.modified_damage // _stat(self, "time_lord_passive", "damage_share_divisor", 2)
-                if shared_dmg > 0:
-                    event.modified_damage = event.modified_damage - shared_dmg
-                    idx = event.run.enemies.index(active_echo) + 1
-                    event.engine.combat_resolver.damage_target(event.run, f"e{idx}", shared_dmg, source="effect", damage_type="true")
-                    event.engine._log_event(event.run, get_locale_text("i18n_buffs.echo_share_damage_log", damage=shared_dmg))
-            
-            pass
+    def on_damage_calculate(self, event, buff_state, entity):
+        if event.modified_damage <= 0:
+            return
+        run = event.run
+        echo_name = get_locale_text("i18n_buffs.echo_enemy_name")
+        active_echoes = [e for e in run.enemies if e.name == echo_name and e.hp > 0]
+        if not active_echoes:
+            return
+        shared_damage = event.modified_damage // _stat(self, "time_lord_passive", "damage_share_divisor", 2)
+        if shared_damage <= 0:
+            return
+        echo_enemy = active_echoes[0]
+        event.modified_damage -= shared_damage
+        echo_index = run.enemies.index(echo_enemy) + 1
+        event.engine.combat_resolver.damage_target(run, f"e{echo_index}", shared_damage, source="effect", damage_type="true")
+        event.engine._log_event(run, get_locale_text("i18n_buffs.echo_share_damage_log", damage=shared_damage))
 
 
 class PendulumResonanceBuff(BuffImpl):
-    def on_turn_end(self, event, buff_state, entity):
+    def on_turn_start(self, event, buff_state, entity):
+        run = event.run
         if event.is_player:
-            run = event.run
-            p = run.player
-            if p.actions == 0 or p.bonus_actions == 0:
-                played_count = run.node_data.get(run.turn_key("cards_played_this_turn", p), 0)
-                dmg = max(_stat(self, "pendulum_resonance", "min_damage", 4), played_count * _stat(self, "pendulum_resonance", "damage_per_card", 2))
-                event.engine._damage_target(run, "p0", dmg, source=f"buff:{get_locale_text('i18n_buffs.pendulum_resonance_name')}", damage_type="true")
-                event.engine._log_event(run, get_locale_text("i18n_buffs.pendulum_resonance_shake_log", actions=p.actions, bonus_actions=p.bonus_actions, damage=dmg))
-            else:
-                event.engine._log_event(run, get_locale_text("i18n_buffs.pendulum_resonance_stable_log"))
-                run.node_data["draw_penalty_next_turn"] = run.node_data.get("draw_penalty_next_turn", 0) - _stat(self, "pendulum_resonance", "draw_bonus", 2)
+            return
+        p = run.player
+        if p is None or not p.buffs:
+            return
+        played_key = run.turn_key("cards_played_this_turn", p)
+        played = int(run.node_data.get(played_key, 0) or 0)
+        if p.actions <= 0 and p.bonus_actions <= 0:
+            damage = max(_stat(self, "pendulum_resonance", "min_damage", 4), played * _stat(self, "pendulum_resonance", "damage_per_card", 2))
+            event.engine._damage_target(run, "p0", damage, source="effect", damage_type="true")
+            event.engine._log_event(run, get_locale_text(
+                "i18n_buffs.pendulum_resonance_shake_log",
+                actions=p.actions,
+                bonus_actions=p.bonus_actions,
+                damage=damage,
+            ))
+        else:
+            bonus = _stat(self, "pendulum_resonance", "draw_bonus", 2)
+            key = "draw_penalty_next_turn"
+            run.node_data[key] = int(run.node_data.get(key, 0) or 0) - bonus
+            event.engine._log_event(run, get_locale_text("i18n_buffs.pendulum_resonance_stable_log"))
 
 
 class SplitToTenBuff(BuffImpl):
-    pass
+    hook_priorities = {"on_card_play": -100}
+
+    def on_card_play(self, event, buff_state, entity):
+        if event.cancelled or buff_state.stacks <= 0:
+            return
+        buff_state.stacks -= 1
+        if buff_state.stacks <= 0 and buff_state in entity.buffs:
+            entity.buffs.remove(buff_state)
+        event.run.node_data["split_to_ten_active"] = True
 
 
 class PhaseTransitionImmuneBuff(BuffImpl):
@@ -600,13 +720,11 @@ class PhaseTransitionImmuneBuff(BuffImpl):
                     entity.buffs.remove(buff_state)
 
 
-
 class PsychicResistanceBuff(BuffImpl):
     def on_damage_calculate_defend(self, event, buff_state, entity):
         dtype = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
         if dtype.lower() == "psychic":
-            mult = _stat(self, "psychic_resistance", "damage_multiplier", 0.5)
-            event.modified_damage = int(event.modified_damage * mult)
+            event.modified_damage = int(event.modified_damage * _stat(self, "psychic_resistance", "damage_multiplier", 0.5))
 
     def on_turn_end(self, event, buff_state, entity):
         if event.is_player and entity == event.run.player:
@@ -645,7 +763,7 @@ class BladesongBuff(BuffImpl):
         proc_dmg = _stat(self, "bladesong", "proc_dmg", 3) * stacks
         proc_shield = _stat(self, "bladesong", "proc_shield", 3) * stacks
         event.engine._gain_shield(event.run, "p0", proc_shield)
-        living = [f"e{i+1}" for i, e in enumerate(event.run.enemies) if e.hp > 0]
+        living = [f"e{i + 1}" for i, e in enumerate(event.run.enemies) if e.hp > 0]
         if living:
             import random
             target = random.choice(living)
@@ -656,40 +774,60 @@ class BladesongBuff(BuffImpl):
 
 
 class InvisibilityBuff(BuffImpl):
-    def on_damage_calculate_defend(self, event, buff_state, entity):
-        if entity != event.run.player or event.target != "p0" or event.modified_damage <= 0:
-            return
-        source = str(getattr(event, "source", "") or "")
-        enemy_name = ""
-        if source.startswith("enemy:"):
-            enemy_name = source[6:]
-        elif source.startswith("e"):
-            try:
-                idx = int(source[1:]) - 1
-            except ValueError:
-                idx = -1
-            if 0 <= idx < len(event.run.enemies):
-                enemy_name = event.run.enemies[idx].name
-        else:
-            return
-        from ...data.room_interact_data import TRUE_SIGHT_ENEMIES
-        base_name = enemy_name.rsplit(" ", 1)[0] if (" " in enemy_name and len(enemy_name.rsplit(" ", 1)[1]) == 1) else enemy_name
-        pname = getattr(entity, "name", get_locale_text("i18n_buffs.player_display_name"))
-        ename = enemy_name or get_locale_text("i18n_buffs.unknown_display_name")
-        if enemy_name in TRUE_SIGHT_ENEMIES or base_name in TRUE_SIGHT_ENEMIES:
-            event.engine._log_event(event.run, get_locale_text("i18n_buffs.invisibility_true_sight_pierce_log", enemy=ename, name=pname))
-            return
-        import random
-        chance = float(_stat(self, "invisibility", "dodge_chance", 0.70))
-        if random.random() < chance:
-            event.modified_damage = 0
-            event.engine._log_event(event.run, get_locale_text("i18n_buffs.invisibility_dodge_log", name=pname, enemy=ename))
-
     def on_turn_start(self, event, buff_state, entity):
         if event.is_player and entity == event.run.player:
             buff_state.stacks -= 1
             if buff_state.stacks <= 0 and buff_state in entity.buffs:
                 entity.buffs.remove(buff_state)
+
+    def on_damage_calculate_defend(self, event, buff_state, entity):
+        if event.target != "p0" or not event.source.startswith("e"):
+            return
+        enemy_name = ""
+        source = event.source
+        if source[1:].isdigit():
+            idx = int(source[1:]) - 1
+            if 0 <= idx < len(event.run.enemies):
+                enemy_name = event.run.enemies[idx].name
+        if enemy_name:
+            from ...data.world.room_interact_data import TRUE_SIGHT_ENEMIES
+            if enemy_name in TRUE_SIGHT_ENEMIES:
+                event.engine._log_event(event.run, get_locale_text("i18n_buffs.invisibility_true_sight_pierce_log", name=enemy_name))
+                return
+        import random
+        if random.random() < _stat(self, "invisibility", "dodge_chance", 0.75):
+            event.modified_damage = 0
+            event.engine._log_event(event.run, get_locale_text("i18n_buffs.invisibility_dodge_log", name=enemy_name))
+
+
+class StunBuff(BuffImpl):
+    def on_buff_applied(self, event, buff_state, entity):
+        from ...models.state import EnemyState
+        if isinstance(entity, EnemyState):
+            event.engine._sync_enemy_intents(entity)
+
+    def on_enemy_roll_intent(self, event, buff_state, entity):
+        event.cancel()
+
+
+class AllResonanceBuff(BuffImpl):
+    hook_priorities = {"on_damage_calculate": 200}
+
+    def on_damage_calculate(self, event, buff_state, entity):
+        ghost_name = str(event.run.node_data.get("ghost_name", "") or "")
+        if ghost_name and getattr(entity, "name", "") == ghost_name:
+            return
+        source = event.source
+        player_source = (
+            source in ("p0", "player", "effect")
+            or source.startswith("player:")
+            or (len(source) > 1 and source[0] in ("p", "a") and source[1:].isdigit())
+        )
+        if not player_source:
+            return
+        multiplier = _stat(self, "all_resonance", "damage_multiplier", 10)
+        event.modified_damage = event.modified_damage * (multiplier ** max(0, int(buff_state.stacks)))
+
 
 for name, obj in list(globals().items()):
     if isinstance(obj, type) and issubclass(obj, BuffImpl) and obj is not BuffImpl:

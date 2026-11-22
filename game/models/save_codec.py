@@ -5,7 +5,7 @@ import msgspec
 
 from .state import GameRun, PlayerState, EnemyState, MinionState, AmuletState, BuffState, RoomState, BigRoomState, EncounterSession, FloorMapState
 from ..core.text.events import TextNode
-from ..data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
+from ..data.world.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 
 
 class SaveCodecMixin:
@@ -152,6 +152,9 @@ class SaveCodecMixin:
             quest_relics=list(p_data.get("quest_relics", []) or []),
             bag_items=bag_items,
             bag_max_weight=bag_max_weight,
+            rainie_legacy_strength=int(p_data.get("rainie_legacy_strength", 0) or 0),
+            rainie_legacy_shield=int(p_data.get("rainie_legacy_shield", 0) or 0),
+            rainie_cross_battle=bool(p_data.get("rainie_cross_battle", False)),
         )
         legacy_ex = int(p_data.get("exhaustion", 0) or 0)
         if not p_persistent_buffs and legacy_ex > 0:
@@ -339,7 +342,7 @@ class SaveCodecMixin:
             players=players,
             floor_map=floor_map,
         )
-        from ..data.relic_data import migrate_relic_id
+        from ..data.entities.relic_data import migrate_relic_id
         for state in [run.player, run.player2, *run.players.values()]:
             if state is not None:
                 state.relics = [migrate_relic_id(rid) for rid in (state.relics or [])]

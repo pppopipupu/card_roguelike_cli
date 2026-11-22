@@ -1,9 +1,9 @@
 import random
 from .base import EventOption
-from ...data.event_data import EVENT_CONFIG, EVENT_MIN_HP
-from ...data.card_upgrade_data import CARD_UPGRADE_CONFIG
-from ...data.reward_config import TREASURE_RELIC_POOL
-from ...data.locale_data import get_locale_text
+from ...data.world.event_data import EVENT_CONFIG, EVENT_MIN_HP
+from ...data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
+from ...data.progression.reward_config import TREASURE_RELIC_POOL
+from ...data.text.locale_data import get_locale_text
 from ...entities import ALL_CARDS, get_relic_name
 from ...models.state import ensure_card_state
 from ...core.inventory.deck_service import DeckService

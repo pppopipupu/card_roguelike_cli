@@ -1,6 +1,6 @@
 import re
 
-from ...data.checkin_data import DEFAULT_PLAYER_NAME, PLAYER_NAME_MAX_LENGTH
+from ...data.progression.checkin_data import DEFAULT_PLAYER_NAME, PLAYER_NAME_MAX_LENGTH
 
 _CONTROL = re.compile(r"[\x00-\x1f\x7f]")
 _HANDLE_SUFFIX = re.compile(r"#\d+$")

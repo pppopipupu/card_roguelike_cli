@@ -1,8 +1,8 @@
 from typing import Iterable, Set
-from ...data.cafe_data import NPC_SHOW_NAMES
-from ...data.locale_data import get_locale_text
-from ...data.room_interact_data import ROOM_NPCS
-from ...data.unregistered_enemies_data import CAFE_KEY_TO_ENTITY, YOG_BOSS_ENTITY_NAMES
+from ...data.world.cafe_data import NPC_SHOW_NAMES
+from ...data.text.locale_data import get_locale_text
+from ...data.world.room_interact_data import ROOM_NPCS
+from ...data.enemies.unregistered_enemies_data import CAFE_KEY_TO_ENTITY, YOG_BOSS_ENTITY_NAMES
 
 
 def normalize_entity_keys(*candidates: str) -> Set[str]:
@@ -115,7 +115,7 @@ def resolve_entity_intro(
 ) -> str:
     if not has_encountered(stats, run, entity_id, entity_name, *extra_candidates):
         return get_locale_text("i18n_entity_lore.unknown_intro")
-    from ...data.locale_data import get_locale_raw
+    from ...data.text.locale_data import get_locale_raw
 
     intros = get_locale_raw("i18n_entity_lore.intros", {})
     if isinstance(intros, dict):

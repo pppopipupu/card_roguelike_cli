@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import quote
 
-from ...data.audio_config import (
+from ...data.media.audio_config import (
     AUDIO_API_PREFIX,
     AUDIO_ASSET_ROOT,
     AUDIO_MAX_QUEUE_PER_RESPONSE,

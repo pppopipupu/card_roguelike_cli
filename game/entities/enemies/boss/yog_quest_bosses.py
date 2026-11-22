@@ -1,8 +1,8 @@
 from typing import List, Optional
 
 from ..base import EnemyTemplate, register_enemy
-from ....data.yog_quest_config import YOG_BOSS_INTENTS, YOG_BOSS_NAME, YOG_CULTISTS
-from ....data.locale_data import get_locale_text
+from ....data.world.yog_quest_config import YOG_BOSS_INTENTS, YOG_BOSS_NAME, YOG_CULTISTS
+from ....data.text.locale_data import get_locale_text
 
 
 def _intent(itype: str, val: int, desc: str, cost_a: int, cost_ba: int):

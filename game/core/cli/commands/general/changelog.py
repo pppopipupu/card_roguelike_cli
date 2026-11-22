@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import CommandHandler
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 from .....renderer.menu import get_changelog_pages, render_reader_page
 
 class ChangelogCommand(CommandHandler, names=["更新日志", "changelog", "cl", "更新"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe"], help_key="changelog"):

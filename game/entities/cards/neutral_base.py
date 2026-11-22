@@ -1,6 +1,6 @@
 from ...models.state import Card, AmuletState
-from ...data.card_data import CARD_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.cards.card_data import CARD_CONFIG
+from ...data.text.locale_data import get_locale_text
 from .registry import register_card
 
 
@@ -224,7 +224,7 @@ class SummonMinionCard(Card):
 @register_card("arcane_charge")
 class AbilityCard(Card):
     def execute(self, run, target, engine) -> str:
-        from ...data.buff_data import BUFF_CONFIG
+        from ...data.entities.buffs.buff_data import BUFF_CONFIG
         base_id = self.id.split(":replay:")[0].split(":fragile:")[0].rstrip("+")
         if base_id.startswith("duel_"):
             base_id = base_id[5:]

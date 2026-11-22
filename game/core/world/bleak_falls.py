@@ -1,10 +1,10 @@
 import random
 from typing import Any, Optional
 
-from ...data.battle_mode_config import BATTLE_MODE_SOLO
-from ...data.grid_map_config import FLOOR_CONFIGS, PASSABLE_ROOM_TYPES, ROOM_ICONS
-from ...data.locale_data import get_locale_text
-from ...data.map_quest_config import (
+from ...data.battle.battle_mode_config import BATTLE_MODE_SOLO
+from ...data.world.grid_map_config import FLOOR_CONFIGS, PASSABLE_ROOM_TYPES, ROOM_ICONS
+from ...data.text.locale_data import get_locale_text
+from ...data.world.map_quest_config import (
     BLEAK_FALLS_FLOOR_INDEX,
     BLEAK_FALLS_MAP_HEIGHT,
     BLEAK_FALLS_MAP_WIDTH,
@@ -545,7 +545,7 @@ def apply_bleak_falls_encounter(battle_engine, run: GameRun, room: RoomState) ->
     names = room.shared_payload.get("encounter")
     if not names:
         return False
-    from ...data.enemy_data import ENEMY_CONFIG
+    from ...data.enemies.enemy_data import ENEMY_CONFIG
     built = []
     for ename in names:
         cfg = ENEMY_CONFIG.get(ename, {})
@@ -567,7 +567,7 @@ def apply_bleak_falls_encounter(battle_engine, run: GameRun, room: RoomState) ->
     if room.shared_payload.get("elite_name"):
         run.node_data["elite_name"] = room.shared_payload["elite_name"]
     battle_engine.enemy_controller.roll_enemy_intent(run)
-    assign_enemy_targets(run)
+    assign_enemy_targets(run, battle_engine)
     return True
 
 
@@ -587,7 +587,7 @@ def _start_arvel_combat(map_engine, run: GameRun, room: RoomState) -> str:
             return map_engine.grid_map_service._join_battle_session(run, run.user_id, room.coord, existing_sid)
     battle_engine = map_engine.battle_engine
     arvel_name = get_locale_text("i18n_room_interact.npcs.arvel_trapped.enemy_name")
-    from ...data.enemy_data import ENEMY_CONFIG
+    from ...data.enemies.enemy_data import ENEMY_CONFIG
     from ..battle.party_battle import assign_enemy_targets
     cfg = ENEMY_CONFIG.get(arvel_name, {})
     hp_val = int(str(cfg.get("hp", "30")).split()[0])
@@ -608,7 +608,7 @@ def _start_arvel_combat(map_engine, run: GameRun, room: RoomState) -> str:
     battle_engine._init_battle_node(run, "normal")
     run.enemies = [enemy]
     battle_engine.enemy_controller.roll_enemy_intent(run)
-    assign_enemy_targets(run)
+    assign_enemy_targets(run, battle_engine)
     if map_engine.save_manager is not None:
         map_engine.save_manager.save_save(run.user_id, run)
     return f"{_t('arvel.fight_start')}\n\n{GameRenderer.render_game(run)}"

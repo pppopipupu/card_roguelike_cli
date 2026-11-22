@@ -3,7 +3,7 @@ import random
 import tempfile
 import unittest
 
-from game.data.enchantment_data import ENCHANTMENT_CONFIG
+from game.data.entities.enchantment_data import ENCHANTMENT_CONFIG
 from game.entities import ALL_CARDS
 from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command
 

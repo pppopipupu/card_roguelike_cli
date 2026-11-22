@@ -2,12 +2,12 @@ import random
 import string
 from typing import TYPE_CHECKING, Optional, Dict
 
-from ...data.checkin_data import (
+from ...data.progression.checkin_data import (
     LOBBY_ID_LENGTH,
     TEAM_MAX_MEMBERS,
     TEAM_MIN_PLAYERS,
 )
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 
 
 if TYPE_CHECKING:
@@ -392,7 +392,7 @@ class SocialTeamMixin:
         fm = getattr(run, "floor_map", None)
         if fm is None:
             return get_locale_text("i18n_social.team_coordinate.no_floor_map")
-        from ...data.grid_map_config import FLOOR_CONFIGS, get_display_floor
+        from ...data.world.grid_map_config import FLOOR_CONFIGS, get_display_floor
         from ...renderer.world_grid import format_floor_number
         cfg = FLOOR_CONFIGS.get(fm.floor_index, FLOOR_CONFIGS[1])
         floor_name = get_locale_text(cfg["name_key"])

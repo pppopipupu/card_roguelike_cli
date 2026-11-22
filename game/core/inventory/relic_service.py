@@ -1,5 +1,5 @@
-from ...data.relic_data import RELIC_CONFIG
-from ...data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
+from ...data.entities.relic_data import RELIC_CONFIG
+from ...data.world.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 
 
 def init_relic_counter_map(counters: dict, relic_id: str) -> None:
@@ -20,6 +20,11 @@ def init_relic_counter(player, relic_id: str) -> None:
         counters = {}
         player.relic_counters = counters
     init_relic_counter_map(counters, relic_id)
+
+
+def has_relic_flag(player, flag: str) -> bool:
+    relics = getattr(player, "relics", None) or []
+    return any(bool(RELIC_CONFIG.get(relic_id, {}).get(flag)) for relic_id in relics)
 
 
 def grant_relic(player, relic_id: str) -> bool:

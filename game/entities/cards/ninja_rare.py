@@ -1,7 +1,7 @@
 import random
 from ...core.inventory.deck_service import DeckService
 from ...core.inventory.relic_service import grant_relic
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ...entities.buffs import is_debuff
 from .ninja_base import (
     NinjaCard,
@@ -162,9 +162,12 @@ class NinjaOhFuckFlashCard(NinjaCard):
         add_ninja_buff(engine, run.player, "intangible", 1)
         ok, _ = consume_ninjutsu_lex(engine, run, run.player, getattr(self, "ninjutsu_cost", 3), self.id)
         if ok:
+            from ...core.battle.extra_turn_service import MODE_EXTRA, grant_extra_turn
             add_ninja_buff(engine, run.player, "oh_fuck_flash", 1)
-            run.node_data["extra_turns_left"] = int(run.node_data.get("extra_turns_left", 0) or 0) + 1
-            run.node_data["ninja_force_end_turn"] = True
+            uid = run.uid_for(run.player) or run.user_id
+            grant_extra_turn(run, uid, MODE_EXTRA, 1, source=self.id)
+            from ...core.battle.extra_turn_service import request_force_end
+            request_force_end(run, run.player, self.id)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -205,6 +208,13 @@ class NinjaRadiationAnnihilationCard(NinjaCard):
 
 @register_card("ninja_reaper_flame_blade")
 class NinjaReaperFlameBladeCard(NinjaCard):
+    def on_exhaust(self, event, card_state):
+        p = event.run.player
+        for pile in (p.hand, p.draw_pile, p.discard_pile):
+            for st in pile:
+                if getattr(st, "id", "") == "ninja_reaper_flame_blade":
+                    st.battle_cost_delta_a = int(getattr(st, "battle_cost_delta_a", 0) or 0) - 1
+
     def execute(self, run, target, engine) -> str:
         add_ninja_buff(engine, run.player, "intangible", 1)
         add_ninja_buff(engine, run.player, "reaper_flame", 7 if self.upgraded else 5)
@@ -272,9 +282,10 @@ class NinjaTakeYourHeartCard(NinjaCard):
 @register_card("ninja_two_monks")
 class NinjaTwoMonksCard(NinjaCard):
     def execute(self, run, target, engine) -> str:
-        add_ninja_buff(engine, run.player, "two_monks", 1)
-        run.node_data["extra_turns_left"] = int(run.node_data.get("extra_turns_left", 0) or 0) + 1
-        return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
+        from ...core.battle.extra_turn_service import MODE_ARHAT, grant_extra_turn
+        uid = run.uid_for(run.player) or run.user_id
+        grant_extra_turn(run, uid, MODE_ARHAT, 1, source=self.id)
+        return get_locale_text("i18n_cards_ninja.two_monks_result")
 
 
 @register_card("ninja_ubw")

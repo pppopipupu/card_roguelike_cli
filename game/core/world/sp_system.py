@@ -1,5 +1,5 @@
-from ...data.grid_map_config import EXHAUSTION_CONFIG, SP_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.world.grid_map_config import EXHAUSTION_CONFIG, SP_CONFIG
+from ...data.text.locale_data import get_locale_text
 
 
 def effective_max_hp_for_player(player, in_battle: bool = False) -> int:

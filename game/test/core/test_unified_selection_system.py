@@ -2,7 +2,7 @@ import copy
 import tempfile
 import unittest
 
-from game.core.battle.target_selector import SelectionStepSpec
+from game.core.battle.selection import SelectionStepSpec
 from game.entities import ALL_CARDS
 from game.models.state import Card, CardState, EnemyState, GameRun, MinionState, PlayerState
 from game.test.core.base import CorePlugin, load_run, run_command
@@ -183,6 +183,39 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(after.enemies[0].hp, 50)
         self.assertEqual(after.enemies[1].hp, 44)
         self.assertTrue(any(b.id == "demon_form" for b in after.player.buffs))
+        self.assertEqual(len(after.node_data.get("state_stack", [])), 0)
+
+    async def test_rlyeh_astrolabe_standard_choose_one_flow(self):
+        player = PlayerState(
+            hp=80,
+            max_hp=80,
+            shield=0,
+            gold=0,
+            stage=1,
+            actions=5,
+            bonus_actions=0,
+            deck=[CardState(id="special_rlyeh_astrolabe")],
+            hand=[CardState(id="special_rlyeh_astrolabe")],
+        )
+        run = GameRun(
+            user_id=self.uid,
+            player=player,
+            enemies=[EnemyState(name="伟大的克苏鲁", hp=500, max_hp=500, shield=0, intent_desc="待机")],
+            node_type="battle",
+            node_data={"cthulhu_seal_stage": 1},
+        )
+        self.sm.save_save(self.uid, run)
+        prompt = await run_command(self.plugin, "p 1", sender_id=self.uid)
+        self.assertIn("1.", prompt)
+        self.assertIn("2.", prompt)
+        self.assertIn("3.", prompt)
+        mid = load_run(self.plugin, self.uid)
+        self.assertEqual(len(mid.node_data.get("state_stack", [])), 1)
+        result = await run_command(self.plugin, "c 1", sender_id=self.uid)
+        self.assertIn("星轨闭合", result)
+        after = load_run(self.plugin, self.uid)
+        self.assertEqual(after.node_data.get("cthulhu_seal_stage"), 2)
+        self.assertEqual(after.player.shield, 12)
         self.assertEqual(len(after.node_data.get("state_stack", [])), 0)
 
     async def test_draw_pile_shuffling_fairness_and_dr_selector(self):

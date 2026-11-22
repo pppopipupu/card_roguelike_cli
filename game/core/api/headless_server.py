@@ -11,12 +11,12 @@ from ..cli.base.aliases import (
     STATE_STACK_CANCEL_ALIASES, STATE_STACK_BACK_ALIASES, STATE_STACK_DONE_ALIASES,
     has_pending_node_cancel,
 )
-from ..battle.target_selector import TargetSelectorParser
+from ..battle.selection import TargetSelectorParser
 from ...renderer.menu import get_reader_total_pages, render_reader_page
 from ...renderer import GameRenderer, format_output_numbers
 from ...cards import resolve_card_id, ALL_CARDS
-from ...data.locale_data import get_locale_text
-from ...data.world_social_config import WORLD_PLAYER_DIALOG_EXIT_WORDS
+from ...data.text.locale_data import get_locale_text
+from ...data.world.world_social_config import WORLD_PLAYER_DIALOG_EXIT_WORDS
 
 class HeadlessGameServer:
     def __init__(self, data_dir: Optional[str] = None):

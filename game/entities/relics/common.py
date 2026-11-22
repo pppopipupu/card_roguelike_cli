@@ -1,6 +1,6 @@
 import re
-from ...data.relic_data import RELIC_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.entities.relic_data import RELIC_CONFIG
+from ...data.text.locale_data import get_locale_text
 from .base import RelicImpl
 from .registry import register_relic
 
@@ -42,7 +42,7 @@ class PenNibRelic(RelicImpl):
     def on_damage_calculate(self, event, run, engine):
         if event.source != "p0":
             return
-        from ...data.card_subtype_data import is_attack_card
+        from ...data.cards.card_subtype_data import is_attack_card
         if not is_attack_card(getattr(event, "card", None)):
             return
         from ...core.inventory.relic_service import get_relic_counter
@@ -52,7 +52,7 @@ class PenNibRelic(RelicImpl):
     def on_card_played(self, event, run, engine):
         if getattr(event, "is_extra", False):
             return
-        from ...data.card_subtype_data import is_attack_card
+        from ...data.cards.card_subtype_data import is_attack_card
         card = getattr(event, "card", None)
         if card is None or not is_attack_card(card):
             return

@@ -1,7 +1,7 @@
 import tempfile
 import unittest
 
-from game.data.relic_data import BACKPACK_RELIC_IDS, RELIC_CONFIG
+from game.data.entities.relic_data import BACKPACK_RELIC_IDS, RELIC_CONFIG
 from game.models.state import CardState, EnemyState, GameRun, PlayerState
 from game.test.core.base import CorePlugin, load_run, run_command
 

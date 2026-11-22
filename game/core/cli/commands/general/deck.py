@@ -1,7 +1,7 @@
 from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 from .....models.state import GameRun
 from ....world.open_world.loadout_service import OpenWorldLoadoutService
 

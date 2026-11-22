@@ -1,5 +1,5 @@
-from ...data.balance_config import LOG_DEFAULT_ENTRIES, LOG_MAX_ENTRIES
-from ...data.locale_data import get_locale_text
+from ...data.progression.balance_config import LOG_DEFAULT_ENTRIES, LOG_MAX_ENTRIES
+from ...data.text.locale_data import get_locale_text
 
 LOG_COMMANDS = {"logs", "日志", "logc", "团队日志", "队伍日志"}
 LOG_SKIP_COMMANDS = LOG_COMMANDS | {

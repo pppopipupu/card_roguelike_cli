@@ -2,9 +2,9 @@ from typing import List, Optional
 import random
 from ..base import EnemyTemplate, register_enemy
 from ....core.inventory.deck_service import DeckService
-from ....data.buff_data import BUFF_CONFIG
-from ....data.enemy_data import ENEMY_CONFIG
-from ....data.locale_data import get_locale_text
+from ....data.entities.buffs.buff_data import BUFF_CONFIG
+from ....data.enemies.enemy_data import ENEMY_CONFIG
+from ....data.text.locale_data import get_locale_text
 
 CTHULHU_NAME = "伟大的克苏鲁"
 CTHULHU_MIST_NAME = "【迷雾】伟大的克苏鲁"

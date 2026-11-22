@@ -2,10 +2,10 @@ import random
 from .base import EventOption
 from ...core.inventory.deck_service import DeckService
 from ...core.inventory.relic_service import grant_relic
-from ...data.locale_data import get_locale_text
-from ...data.ninja_card_data_rare import NINJA_CARD_CONFIG_RARE
-from ...data.ninja_card_data_uncommon import NINJA_CARD_CONFIG_UNCOMMON
-from ...data.relic_data import RELIC_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.cards.classes.ninja_card_data_rare import NINJA_CARD_CONFIG_RARE
+from ...data.cards.classes.ninja_card_data_uncommon import NINJA_CARD_CONFIG_UNCOMMON
+from ...data.entities.relic_data import RELIC_CONFIG
 from ...models.state import CardState
 from ..cards import ALL_CARDS
 from ..relics import get_relic_name

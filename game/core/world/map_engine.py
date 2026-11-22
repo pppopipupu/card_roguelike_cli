@@ -1,14 +1,14 @@
 import random
 from typing import Optional, TYPE_CHECKING
 from ...models.state import GameRun
-from ...data.balance_config import (
+from ...data.progression.balance_config import (
     MAP_ANCIENT_OPTION_SLOTS,
     MAP_ANCIENT_RELIC_CHOICES,
     MAP_LUCKY_COIN_GOLD,
     MAP_TAX_CONTRACT_GOLD,
 )
-from ...data.grid_map_config import FLOOR_CONFIGS
-from ...data.locale_data import get_locale_text
+from ...data.world.grid_map_config import FLOOR_CONFIGS
+from ...data.text.locale_data import get_locale_text
 from .explore_engine import ExploreEngine
 from .grid_map_generator import generate_floor_map, xy_to_coord
 from .grid_map_service import GridMapService
@@ -236,9 +236,9 @@ class MapEngine:
     def _finalize_next_floor(self, run: GameRun, actor_uid: str, cfg: dict, *, yog_quest: bool = False) -> str:
         from .presence import sync_active
         from .world_social import WorldSocialService
-        from ...data.grid_map_config import get_display_floor
+        from ...data.world.grid_map_config import get_display_floor
         from ...renderer.world_grid import format_floor_number
-        from ...data.yog_quest_config import YOG_QUEST_ZONE_KEY
+        from ...data.world.yog_quest_config import YOG_QUEST_ZONE_KEY
 
         next_floor = run.floor_map.floor_index if run.floor_map is not None else 1
         display_floor = format_floor_number(get_display_floor(next_floor))
@@ -294,7 +294,7 @@ class MapEngine:
         cur_floor = run.floor_map.floor_index if run.floor_map else 1
         if run.floor_map is not None and run.floor_map.floor_flags.get("yog_quest"):
             from .yog_quest.floor import generate_yog_quest_floor
-            from ...data.yog_quest_config import YOG_FLOOR_TEMPLE
+            from ...data.world.yog_quest_config import YOG_FLOOR_TEMPLE
             if cur_floor >= YOG_FLOOR_TEMPLE:
                 return get_locale_text("i18n_yog_quest.gate.no_further")
             next_floor = YOG_FLOOR_TEMPLE

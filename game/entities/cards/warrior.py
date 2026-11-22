@@ -1,9 +1,9 @@
 from typing import Optional
 from ...models.state import Card
-from ...data.card_data import CARD_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.cards.card_data import CARD_CONFIG
+from ...data.text.locale_data import get_locale_text
 from ...core.inventory.deck_service import DeckService
-from ...core.battle.target_selector import SelectionStepSpec, pop_selected_pile_cards
+from ...core.battle.selection import SelectionStepSpec, pop_selected_pile_cards
 from .registry import register_card
 from .warrior_officer import (
     AURORA_ENTRY_SHIELD,
@@ -304,7 +304,7 @@ class DeployWarriorAmuletCard(Card):
 
     def execute(self, run, target, engine) -> str:
         grid = engine._get_free_grid(run.player)
-        from ...data.card_data import CARD_CONFIG
+        from ...data.cards.card_data import CARD_CONFIG
         cfg = CARD_CONFIG.get(self.id, {})
         if grid:
             cd = self.countdown
@@ -334,6 +334,12 @@ class WarriorHellRaiderCard(Card):
 
 @register_card("warrior_shield_bash")
 class WarriorShieldBashCard(Card):
+    def on_exhaust(self, event, card_state):
+        player = event.run.player
+        player.actions += 2
+        player.bonus_actions += 2
+        event.engine._log_event(event.run, get_locale_text("i18n_battle_misc.shield_bash_exhaust_log"))
+
     def execute(self, run, target, engine) -> str:
         shield_val = getattr(self, "shield_amount", 24 if self.upgraded else 16)
         engine._gain_shield(run, "p0", shield_val)
@@ -385,29 +391,19 @@ class WarriorHematopoiesisCard(Card):
 @register_card("discover")
 class DiscoverCard(Card):
     def get_selection_spec(self, run, engine) -> Optional[dict]:
+        from ...core.battle.selection import discover_from_pile_spec
         max_count = getattr(self, "max_count", 2 if self.upgraded else 1)
-        return {
-            "phase": "pre_play",
-            "can_cancel": True,
-            "cancel_key": "i18n_cli_core.err_cancel_discover",
-            "empty_abort_check": True,
-            "steps": [
-                SelectionStepSpec(
-                    step_id="discover_cards",
-                    kind="exhaust",
-                    min_count=1,
-                    max_count=max_count,
-                    required=True,
-                    auto_single=True,
-                    filter_fn=lambda c_state, _card_obj, _run: c_state.id != "discover",
-                    prompt_key="i18n_cards_warrior_wizard.warrior.discover.prompt",
-                    continue_key="i18n_cards_warrior_wizard.warrior.discover.continue",
-                    error_key="i18n_cli_core.err_force_discover_required",
-                    invalid_index_key="i18n_cli_core.err_invalid_exhaust_index",
-                    empty_key="i18n_cards_warrior_wizard.warrior.discover.no_cards",
-                )
-            ],
-        }
+        return discover_from_pile_spec(
+            step_id="discover_cards",
+            source="exhaust",
+            max_count=max_count,
+            filter_fn=lambda c_state, _card_obj, _run: c_state.id != "discover",
+            prompt_key="i18n_cards_warrior_wizard.warrior.discover.prompt",
+            continue_key="i18n_cards_warrior_wizard.warrior.discover.continue",
+            error_key="i18n_cli_core.err_force_discover_required",
+            invalid_index_key="i18n_cli_core.err_invalid_exhaust_index",
+            empty_key="i18n_cards_warrior_wizard.warrior.discover.no_cards",
+        )
 
     def execute_with_selections(self, run, selections: dict, engine) -> str:
         from .base import ALL_CARDS

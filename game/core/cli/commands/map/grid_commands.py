@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import CommandHandler
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 from .....renderer import GameRenderer
 from ....inventory.bag_service import drop_bag_item, use_bag_item
 from ....world.landmark_system import open_room_talk

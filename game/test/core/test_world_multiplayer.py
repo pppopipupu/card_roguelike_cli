@@ -8,9 +8,9 @@ from unittest.mock import patch
 
 from game.core.world.grid_map_generator import coord_to_xy, xy_to_coord
 from game.core.world.presence import WorldPresenceService
-from game.data.outer_plane_config import NECRONOMICON_ITEM
-from game.data.world_social_config import WORLD_PRESENCE_TIMEOUT_SECONDS, WORLD_TOWN
-from game.data.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
+from game.data.world.outer_plane_config import NECRONOMICON_ITEM
+from game.data.world.world_social_config import WORLD_PRESENCE_TIMEOUT_SECONDS, WORLD_TOWN
+from game.data.world.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
 from game.test.core.base import CorePlugin, clear_battle_if_needed, floor_of, load_run, move_to_room, run_command
 
 

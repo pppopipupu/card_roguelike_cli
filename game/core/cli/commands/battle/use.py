@@ -1,7 +1,7 @@
 from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 
 class UseCommand(CommandHandler, names=["使用", "p"], allowed_states=["battle"], help_key="use"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:

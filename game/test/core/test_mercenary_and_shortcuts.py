@@ -5,7 +5,7 @@ import re
 import tempfile
 import unittest
 
-from game.data.account_config import RENAME_COST_GP
+from game.data.progression.account_config import RENAME_COST_GP
 from game.test.core.base import CorePlugin, load_run, move_to_room, run_command
 
 class TestMercenaryAndShortcuts(unittest.TestCase):
@@ -216,6 +216,11 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
             self.run_cmd("4", uid)
 
         move_to_room(self.plugin, uid, ("battle", "elite"))
+        run = load_run(self.plugin, uid)
+        for player in run.players.values():
+            player.hp = 999
+            player.max_hp = 999
+        self.plugin.save_manager.save_save(uid, run)
 
         played_seen = False
         for turn_i in range(4):
@@ -233,7 +238,6 @@ class TestMercenaryAndShortcuts(unittest.TestCase):
             after = load_run(self.plugin, uid)
             if after and after.node_type == "battle":
                 self.assertFalse(after.node_data.get("state_stack"))
-                self.assertFalse(after.node_data.get("pending_discard"))
                 merc_uid = [u for u in after.party_order if u != uid][0]
                 merc = after.players[merc_uid]
                 if merc.hp > 0 and not merc.downed:

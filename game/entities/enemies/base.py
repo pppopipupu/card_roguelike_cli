@@ -1,6 +1,6 @@
 from typing import Tuple, List, Optional
-from ...data.enemy_data_normal import ENEMY_INTENT_SCALING
-from ...data.locale_data import get_locale_text
+from ...data.enemies.enemy_data_normal import ENEMY_INTENT_SCALING
+from ...data.text.locale_data import get_locale_text
 
 class EnemyTemplate:
     def __init__(self, name: str):
@@ -49,7 +49,8 @@ class EnemyTemplate:
         p = run.player
         import random
         final_dmg = dmg
-        target_key = engine.combat_resolver.pick_ward_minion(p)
+        from ...core.battle.handlers.ward_service import pick_ward_minion
+        target_key = pick_ward_minion(p)
         if target_key is not None:
             target = p.minions[target_key]
             m_name = target.name
@@ -91,6 +92,9 @@ class EnemyTemplate:
             logs.append(get_locale_text("i18n_entity_wiring.enemy_base.defend_log", name=enemy.name, val=intent.val))
 
     def on_enemy_before_death(self, run, enemy, event, engine):
+        pass
+
+    def on_enemy_roll_intent(self, event, enemy, engine):
         pass
 
     def on_card_play(self, event, enemy, engine):

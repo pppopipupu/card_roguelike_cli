@@ -5,7 +5,7 @@ from typing import Dict, Optional
 
 from ..json_codec import load
 from .corpse_registry import _atomic_write_json
-from ..data.pvp_config import PVP_INVITE_EXPIRE_SECONDS
+from ..data.world.pvp_config import PVP_INVITE_EXPIRE_SECONDS
 
 
 class PvpRegistry:

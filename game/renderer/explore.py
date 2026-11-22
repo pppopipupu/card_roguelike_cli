@@ -1,6 +1,6 @@
 from ..models.state import GameRun
-from ..data.battle_mode_config import BATTLE_MODE_TEAM
-from ..data.locale_data import get_locale_text
+from ..data.battle.battle_mode_config import BATTLE_MODE_TEAM
+from ..data.text.locale_data import get_locale_text
 from ..entities import get_relic_name, get_relic_desc
 from ..entities.cards.base import get_card_color_icon
 from ..cards import ALL_CARDS
@@ -101,7 +101,7 @@ def render_shop_wares(run: GameRun) -> str:
             rid = item.get("relic_id")
             lines.append(get_locale_text("renderer_explore.shop_relic", idx=idx, name=get_relic_name(rid), price=price, desc=get_relic_desc(rid)))
         elif itype == "gem":
-            from ..data.gem_data import GEM_CONFIG
+            from ..data.entities.gem_data import GEM_CONFIG
             gid = item.get("gem_id")
             g_cfg = GEM_CONFIG.get(gid, {})
             lines.append(get_locale_text("renderer_explore.shop_gem", idx=idx, name=g_cfg.get('name', gid), price=price, desc=g_cfg.get('desc', '')))
@@ -140,6 +140,9 @@ def render_rest(run: GameRun) -> str:
         from ..core.world.rooms.interact import format_room_extras
         lines.extend(format_room_extras(run, include_env=True))
     lines.append(get_locale_text("render_rest_desc"))
+    from ..core.inventory.relic_service import has_relic_flag
+    if has_relic_flag(p, "rest_all_options"):
+        lines.append(get_locale_text("render_rest_camping_hint"))
     items = data.get("items", [])
     available_items = [it for it in items if not it.get("taken")]
     for idx, it in enumerate(available_items, 1):
@@ -238,7 +241,7 @@ def render_reward(run: GameRun) -> str:
             rid = it.get("relic_id") or it.get("id")
             lines.append(get_locale_text("renderer_explore.item_relic", idx=idx, prefix=prefix, name=get_relic_name(rid), desc=get_relic_desc(rid)))
         elif itype == "gem":
-            from ..data.gem_data import GEM_CONFIG
+            from ..data.entities.gem_data import GEM_CONFIG
             gid = it.get("gem_id")
             g_cfg = GEM_CONFIG.get(gid, {})
             lines.append(get_locale_text("renderer_explore.item_gem", idx=idx, prefix=prefix, name=g_cfg.get('name', gid), desc=g_cfg.get('desc', '')))
@@ -246,7 +249,7 @@ def render_reward(run: GameRun) -> str:
             cid = it.get("card_id")
             lines.append(get_locale_text("renderer_explore.reward_quest_card", idx=idx, prefix=prefix, name=ALL_CARDS[cid].name if cid in ALL_CARDS else cid))
         elif itype == "potion":
-            from ..data.potion_data import get_potion_name, get_potion_desc
+            from ..data.entities.potion_data import get_potion_name, get_potion_desc
             pid = it.get("potion_id")
             lines.append(get_locale_text("renderer_explore.reward_potion", idx=idx, prefix=prefix, name=get_potion_name(pid), desc=get_potion_desc(pid)))
     lines.append(get_locale_text("renderer_explore.separator"))
@@ -324,7 +327,7 @@ def render_treasure(run: GameRun) -> str:
                 rid = it.get("relic_id") or it.get("id")
                 lines.append(get_locale_text("renderer_explore.item_relic", idx=idx, prefix=prefix, name=get_relic_name(rid), desc=get_relic_desc(rid)))
             elif itype == "gem":
-                from ..data.gem_data import GEM_CONFIG
+                from ..data.entities.gem_data import GEM_CONFIG
                 gid = it.get("gem_id")
                 g_cfg = GEM_CONFIG.get(gid, {})
                 lines.append(get_locale_text("renderer_explore.item_gem", idx=idx, prefix=prefix, name=g_cfg.get('name', gid), desc=g_cfg.get('desc', '')))
@@ -481,8 +484,8 @@ def render_boss_chest(run: GameRun) -> str:
 def render_life_merchant(run: GameRun) -> str:
     from .party import render_party_status, render_waiting
     from ..core.world.life_merchant import calc_life_merchant_price
-    from ..data.gem_data import GEM_CONFIG
-    from ..data.potion_data import POTION_CONFIG, get_potion_desc, get_potion_name
+    from ..data.entities.gem_data import GEM_CONFIG
+    from ..data.entities.potion_data import POTION_CONFIG, get_potion_desc, get_potion_name
     from ..entities import get_relic_rarity
 
     p = run.player

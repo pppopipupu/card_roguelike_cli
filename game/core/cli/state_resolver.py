@@ -1,4 +1,4 @@
-from ...data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
+from ...data.world.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
 
 def resolve_game_state(run, stats) -> str:
     if run is not None:

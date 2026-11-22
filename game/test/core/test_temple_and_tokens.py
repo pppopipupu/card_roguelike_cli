@@ -105,7 +105,7 @@ class TestTempleAndTokens(unittest.TestCase):
             self._run(".rogue a", uid)
             self._run(".rogue a", uid)
             self._run(".rogue a", uid)
-            from game.data.locale_data import get_locale_text
+            from game.data.text.locale_data import get_locale_text
             stats = self.sm.load_stats(uid)
             guard_room = stats.town_flags.get("pos_Town_Guard", "square")
             guard_room_name = get_locale_text(f"rooms.{guard_room}.name")

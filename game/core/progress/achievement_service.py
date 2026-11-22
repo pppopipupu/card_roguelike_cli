@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional, Tuple
 
-from ...data.achievement_data import (
+from ...data.progression.achievement_data import (
     ACHIEVEMENT_ALL_VIEW_PRICE,
     ACHIEVEMENT_MYSTERY_ITEM_ID,
     ACHIEVEMENT_ORDER,
@@ -11,8 +11,8 @@ from ...data.achievement_data import (
     ACHIEVEMENTS_CONFIG,
     HIDDEN_ACHIEVEMENT_RARITIES,
 )
-from ...data.locale_data import get_locale_text
-from ...data.yog_quest_config import YOG_QUEST_FLAG
+from ...data.text.locale_data import get_locale_text
+from ...data.world.yog_quest_config import YOG_QUEST_FLAG
 
 _PENDING_NOTICES: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
 

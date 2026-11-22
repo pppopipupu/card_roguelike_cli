@@ -1,4 +1,4 @@
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ...models.events import CardPlayedCountEvent
 from ...models.state import ensure_card_state
 

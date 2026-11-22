@@ -1,6 +1,6 @@
 import copy
 from typing import Optional
-from ...data.ultimate_prism_data import (
+from ...data.content.ultimate_prism_data import (
     GLASS_SHARD_ITEM_ID,
     ULTIMATE_PRISM_CARD_ID,
     ULTIMATE_PRISM_CONFIG,
@@ -178,6 +178,8 @@ class UltimatePrismHandler:
                 clean_state = copy.copy(opp_state)
                 clean_state.return_left = 0
                 clean_state.temp_cost_a = None
+                clean_state.temp_cost_ba = None
+                clean_state.temp_ethereal = False
                 p.exhaust_pile.append(clean_state)
                 self.engine._log_event(
                     run,

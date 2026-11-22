@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional
-from ...data.command_data import COMMAND_SECTIONS, COMMAND_SECTION_ORDER
-from ...data.locale_data import get_locale_text
+from ...data.text.command_data import COMMAND_SECTIONS, COMMAND_SECTION_ORDER
+from ...data.text.locale_data import get_locale_text
 from ...renderer.help import render_help_detail, render_help_index
 
 

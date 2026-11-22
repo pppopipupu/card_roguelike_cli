@@ -1,7 +1,7 @@
 from typing import Generator
 from ...base import CommandHandler
 from ....prism.card_talk import try_card_talk
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 
 
 class CardTalkCommand(

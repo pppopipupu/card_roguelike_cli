@@ -1,10 +1,10 @@
 import random
 from typing import Optional
-from ...data.locale_data import get_locale_text
-from ...data.damage_type_data import damage_type_value, is_physical_damage
-from ...models.state import GameRun, PlayerState, EnemyState, MinionState, Card, BuffState, DamageType
+from ...data.text.locale_data import get_locale_text
+from ...data.battle.damage_type_data import damage_type_value
+from ...models.state import GameRun, PlayerState, MinionState, Card, BuffState, DamageType
 from ...models.events import (
-    BeforeDamageApplyEvent, DamageCalculateEvent, DamageTakeEvent, HealEvent, MinionDeathEvent, MinionSummonEvent, ShieldGainEvent, HealCalculateEvent, EnemyBeforeDeathEvent
+    BeforeDamageApplyEvent, DamageCalculateEvent, DamageTakeEvent, HealEvent, MinionDeathEvent, MinionSummonEvent, ShieldGainEvent, HealCalculateEvent, EnemyBeforeDeathEvent, BuffGainEvent, DamageRedirectEvent, BuffAppliedEvent, PlayerBeforeDeathEvent
 )
 
 DAMAGE_TYPE_KEYS = {
@@ -31,10 +31,12 @@ DAMAGE_TYPE_KEYS = {
 }
 
 class CombatResolver:
+    """战斗结算门面，统一伤害、治疗、护盾、Buff 与随从操作。"""
     def __init__(self, engine):
         self.engine = engine
 
     def resolve_ally(self, run: GameRun, target: Optional[str]):
+        """resolve_ally 的公共结算入口，保持引擎与实体层解耦。"""
         if not run or not target:
             return None
         text = str(target).strip().lower()
@@ -81,6 +83,7 @@ class CombatResolver:
         return True
 
     def get_target_name(self, run: GameRun, target: Optional[str]) -> str:
+        """get_target_name 的公共结算入口，保持引擎与实体层解耦。"""
         if not target:
             return get_locale_text("i18n_battle_misc.target_none")
         resolved = self.resolve_ally(run, target)
@@ -110,6 +113,7 @@ class CombatResolver:
         return get_locale_text("i18n_battle_misc.target_unknown")
 
     def get_source_name(self, run: GameRun, source: str) -> str:
+        """get_source_name 的公共结算入口，保持引擎与实体层解耦。"""
         if not source:
             return get_locale_text("i18n_battle_misc.source_unknown")
         if source.startswith("enemy:"):
@@ -137,42 +141,32 @@ class CombatResolver:
         return source
 
     def get_first_alive_enemy(self, run: GameRun) -> str:
+        """get_first_alive_enemy 的公共结算入口，保持引擎与实体层解耦。"""
         for idx, enemy in enumerate(run.enemies, 1):
             if enemy.hp > 0:
                 return f"e{idx}"
         return "e1"
 
     def get_free_grid(self, p: PlayerState) -> Optional[str]:
+        """get_free_grid 的公共结算入口，保持引擎与实体层解耦。"""
         for i in range(1, 7):
             s = str(i)
             if s not in p.minions and s not in p.amulets:
                 return s
         return None
 
-    def _apply_gem_dmg(self, card: Optional[Card], dmg: int) -> int:
-        if card and hasattr(card, "gems") and card.gems:
-            add_val = 0
-            mul_val = 1
-            for g in card.gems:
-                if g == "gem_dmg_add_2":
-                    add_val += 2
-                elif g == "gem_dmg_mul_2":
-                    mul_val *= 2
-                elif g == "gem_dmg_mul_3":
-                    mul_val *= 3
-            return (dmg + add_val) * mul_val
-        return dmg
-
-    def get_modified_spell_damage(self, run: GameRun, card: Card, damage: int) -> int:
-        from .enchantment_runtime import apply_enchantment_dmg
-        damage = self._apply_gem_dmg(card, damage)
-        damage, _ = apply_enchantment_dmg(run, card, "e1", damage)
-        dtype = getattr(card, "damage_type", "spell")
-        calc_evt = DamageCalculateEvent(run, card, "p0", "e1", dtype, damage, damage)
-        self.engine.event_bus.dispatch(calc_evt)
-        return calc_evt.modified_damage
-
     def add_buff_to(self, entity, buff_id: str, buff_name: str, desc: str, count: int = 1, count2: Optional[int] = None, run=None):
+        """add_buff_to 的公共结算入口，保持引擎与实体层解耦。"""
+        target_run = run or getattr(self.engine, "current_run", None)
+        if target_run is not None:
+            gain_evt = BuffGainEvent(target_run, entity, buff_id, buff_name, desc, count, count2)
+            self.engine.event_bus.dispatch(gain_evt)
+            if gain_evt.cancelled:
+                return
+            count = int(gain_evt.count)
+            count2 = gain_evt.count2
+            if count <= 0:
+                return
         for b in entity.buffs:
             if b.id == buff_id:
                 b.stacks += count
@@ -180,46 +174,22 @@ class CombatResolver:
                     if b.stacks2 is None:
                         b.stacks2 = 0
                     b.stacks2 += count2
-                if buff_id == "stun" and isinstance(entity, EnemyState):
-                    self.engine._sync_enemy_intents(entity)
-                self._check_shadow_tentacle(entity, buff_id, run)
+                self._after_buff_applied(target_run, entity, b, buff_id, count, False)
                 return
-        entity.buffs.append(BuffState(buff_id, buff_name, count, count2, desc))
-        if buff_id == "stun" and isinstance(entity, EnemyState):
-            self.engine._sync_enemy_intents(entity)
-        self._check_shadow_tentacle(entity, buff_id, run)
+        buff_state = BuffState(buff_id, buff_name, count, count2, desc)
+        entity.buffs.append(buff_state)
+        self._after_buff_applied(target_run, entity, buff_state, buff_id, count, True)
 
-    def _check_shadow_tentacle(self, entity, buff_id: str, run=None):
-        from ...models.state import EnemyState
+    def _after_buff_applied(self, run, entity, buff_state, buff_id: str, added_stacks: int, is_new: bool) -> None:
         if run is None:
-            run = getattr(self.engine, "current_run", None)
-        if not run:
             return
-        if isinstance(entity, EnemyState):
-            is_negative = buff_id in ("stun", "weak", "electrified", "poison", "agony", "bleed", "void_weakness") or "vulnerable" in buff_id
-            if is_negative and run.player and "shadow_tentacle" in run.player.relics:
-                self.gain_shield(run, "p0", 2)
-                self.engine._log_event(run, get_locale_text("i18n_battle_misc.shadow_tentacle_trigger"))
+        evt = BuffAppliedEvent(run, entity, buff_state, buff_id, added_stacks, is_new)
+        self.engine.event_bus.dispatch(evt)
 
     def gain_shield(self, run: GameRun, target: str, amount: int):
+        """gain_shield 的公共结算入口，保持引擎与实体层解耦。"""
         if self._redirect_ally(run, target, lambda inner: self.gain_shield(run, inner, amount)):
             return
-        if target == "p0":
-            cid = run.node_data.get("current_playing_card_cid")
-            if cid:
-                from ...entities.cards.base import ALL_CARDS
-                card = ALL_CARDS.get(cid)
-                if card and hasattr(card, "gems") and card.gems:
-                    for g in card.gems:
-                        if g == "gem_shield_add_3":
-                            amount += 3
-                        elif g == "gem_shield_add_8":
-                            amount += 8
-                if card and getattr(card, "enchantments", None):
-                    from .enchantment_runtime import apply_enchantment_shield
-                    amount = apply_enchantment_shield(run, card, amount)
-        if run.node_data.get("current_playing_card_cid"):
-            run.node_data["card_played_triggered_shield"] = True
         evt = ShieldGainEvent(run, target, amount, amount)
         self.engine.event_bus.dispatch(evt)
         final_amount = evt.modified_amount
@@ -237,22 +207,9 @@ class CombatResolver:
                 run.enemies[idx].shield += final_amount
 
     def heal_target(self, run: GameRun, target: str, heal: int):
+        """heal_target 的公共结算入口，保持引擎与实体层解耦。"""
         if self._redirect_ally(run, target, lambda inner: self.heal_target(run, inner, heal)):
             return
-        if target == "p0" or target.startswith("p"):
-            cid = run.node_data.get("current_playing_card_cid")
-            if cid:
-                from ...entities.cards.base import ALL_CARDS
-                card = ALL_CARDS.get(cid)
-                if card and hasattr(card, "gems") and card.gems:
-                    for g in card.gems:
-                        if g == "gem_heal_add_2":
-                            heal += 2
-                if card and getattr(card, "enchantments", None):
-                    from .enchantment_runtime import apply_enchantment_heal
-                    heal = apply_enchantment_heal(card, heal)
-        if run.node_data.get("current_playing_card_cid"):
-            run.node_data["card_played_triggered_heal"] = True
         heal_evt = HealEvent(run, target, heal)
         self.engine.event_bus.dispatch(heal_evt)
         if heal_evt.cancelled:
@@ -277,32 +234,11 @@ class CombatResolver:
             if 0 <= idx < len(run.enemies):
                 run.enemies[idx].hp = min(run.enemies[idx].max_hp, run.enemies[idx].hp + heal)
 
-    def recall_dead_minion(self, run: GameRun, hp_limit: int) -> str:
-        p = run.player
-        from ...entities.cards.base import ALL_CARDS
-        eligible = []
-        for cid in p.minion_graveyard:
-            card = ALL_CARDS.get(cid)
-            if card and card.type == "minion":
-                hp_val = getattr(card, "minion_hp", 999)
-                if hp_val < hp_limit:
-                    eligible.append(cid)
-        if not eligible:
-            return get_locale_text("i18n_battle_misc.recall_no_eligible")
-        chosen_cid = random.choice(eligible)
-        p.minion_graveyard.remove(chosen_cid)
-        card = ALL_CARDS[chosen_cid]
-        hp_val = getattr(card, "minion_hp", 10)
-        atk_val = getattr(card, "minion_atk", 1)
-        grid = self.summon_minion(run, chosen_cid, card.name, hp_val, atk_val, 0)
-        if grid:
-            return get_locale_text("i18n_battle_misc.recall_success", name=card.name, grid=grid)
-        return get_locale_text("i18n_battle_misc.recall_battlefield_full")
-
     def summon_minion(self, run: GameRun, minion_id: str, name: str, hp: int, atk: int, ba: int) -> Optional[str]:
+        """summon_minion 的公共结算入口，保持引擎与实体层解耦。"""
         grid = self.get_free_grid(run.player)
         if grid:
-            from ...data.size_data import resolve_minion_size
+            from ...data.entities.size_data import resolve_minion_size
             m = MinionState(minion_id, name, hp, hp, atk, 1, ba, size=resolve_minion_size(minion_id, name))
             run.player.minions[grid] = m
             evt = MinionSummonEvent(run, m, grid)
@@ -310,47 +246,24 @@ class CombatResolver:
             return grid
         return None
 
-    def pick_ward_minion(self, player) -> Optional[str]:
-        if player is None:
-            return None
-        grids = [
-            grid
-            for grid, minion in player.minions.items()
-            if any(buff.id == "ward" for buff in minion.buffs)
-        ]
-        if not grids:
-            return None
-        return random.choice(grids)
-
     def damage_target(self, game_run_context: GameRun, target: str, dmg: int, source: str = "effect", damage_type: str | DamageType = "effect", card: Optional[Card] = None, damage_ready: bool = False, is_attack: bool = False):
-        chaotic_uid = game_run_context.node_data.get("chaotic_attacker_uid")
-        if chaotic_uid and target.startswith("e") and source in ("p0", "player", "effect"):
-            from ..party.mercenary import pick_chaotic_target
-            rerouted = pick_chaotic_target(game_run_context, chaotic_uid)
-            if rerouted:
-                target = rerouted
-                if chaotic_uid in game_run_context.party_order:
-                    source = f"a{game_run_context.party_order.index(chaotic_uid) + 1}"
-                else:
-                    source = "chaotic_merc"
-        if (
-            target == "p0"
-            and source.startswith("enemy:")
-            and game_run_context.node_data.get("enemy_single_target_attack")
-        ):
-            ward_grid = self.pick_ward_minion(game_run_context.player)
-            if ward_grid is not None:
-                minion_name = game_run_context.player.minions[ward_grid].name
-                self.engine._log_event(
-                    game_run_context,
-                    get_locale_text(
-                        "i18n_entity_wiring.enemy_base.ward_redirect",
-                        name=source[6:],
-                        m_name=minion_name,
-                    ),
-                )
-                self.damage_target(game_run_context, f"p{ward_grid}", dmg, source, damage_type, card, damage_ready, is_attack)
-                return
+        """damage_target 的公共结算入口，保持引擎与实体层解耦。"""
+        redirect_evt = DamageRedirectEvent(
+            game_run_context,
+            source,
+            target,
+            damage_type_value(damage_type),
+            dmg,
+            card,
+            is_attack,
+            bool(game_run_context.node_data.get("enemy_single_target_attack")),
+        )
+        self.engine.event_bus.dispatch(redirect_evt)
+        if redirect_evt.cancelled:
+            return
+        target = redirect_evt.target
+        source = redirect_evt.source
+        dmg = redirect_evt.amount
         if self._redirect_ally(
             game_run_context,
             target,
@@ -364,14 +277,6 @@ class CombatResolver:
             if cid:
                 from ...entities.cards.base import ALL_CARDS
                 card = ALL_CARDS.get(cid)
-        if game_run_context.node_data.get("current_playing_card_cid"):
-            game_run_context.node_data["card_played_triggered_dmg"] = True
-        enchant_pierce = False
-        if not damage_ready and source in ("p0", "player", "effect"):
-            dmg = self._apply_gem_dmg(card, dmg)
-            if card and getattr(card, "enchantments", None):
-                from .enchantment_runtime import apply_enchantment_dmg
-                dmg, enchant_pierce = apply_enchantment_dmg(game_run_context, card, target, dmg)
         acting_enemy_idx = game_run_context.node_data.get("current_acting_enemy_idx")
         if acting_enemy_idx is not None and (source.startswith("enemy:") or source in ("effect", "yog_sothoth_passive")):
             source = f"e{acting_enemy_idx+1}"
@@ -388,21 +293,11 @@ class CombatResolver:
             self.engine.event_bus.dispatch(calc_evt)
             final_dmg = max(0, calc_evt.modified_damage)
         p = game_run_context.player
-        if source in ("p0", "player", "effect"):
-            resonance_buff = next((b for b in p.buffs if b.id == "all_resonance"), None)
-            if resonance_buff:
-                stacks = resonance_buff.stacks
-                final_dmg = final_dmg * (10 ** stacks)
-        if target == "p0" and any(b.id == "antimagic_immune" for b in p.buffs):
-            if not is_physical_damage(damage_type_str):
-                final_dmg = 0
         before_apply_evt = BeforeDamageApplyEvent(game_run_context, card, source, target, damage_type_str, final_dmg)
         self.engine.event_bus.dispatch(before_apply_evt)
         final_dmg = max(0, before_apply_evt.final_damage)
         is_fatal = False
-        is_true = False
-        if damage_type_str in ("true", "TRUE") or enchant_pierce:
-            is_true = True
+        is_true = damage_type_str in ("true", "TRUE") or before_apply_evt.pierce_shield
         if target == "p0" and final_dmg > 0:
             source_name = self.get_source_name(game_run_context, source)
             game_run_context.node_data["last_damage_source"] = source_name
@@ -460,30 +355,18 @@ class CombatResolver:
                     p.hp -= hp_dmg
                     p.shield = 0
             if p.hp <= 0:
-                is_fatal = True
-                if was_alive:
-                    killer = self.get_source_name(game_run_context, source)
-                    if killer == get_locale_text("i18n_battle_misc.source_self"):
-                        game_run_context.node_data["death_cause"] = get_locale_text("i18n_battle_misc.death_cause_self")
-                    else:
-                        game_run_context.node_data["death_cause"] = get_locale_text("i18n_battle_misc.death_cause_enemy", killer=killer)
-                from .party_battle import mark_downed
-                mark_downed(self.engine, game_run_context, p)
-                barrier_buff = next((b for b in p.buffs if b.id in ("prismatic_barrier", "prismatic_barrier_upgraded")), None)
-                if barrier_buff:
-                    barrier_buff.stacks -= 1
-                    is_upg = (barrier_buff.id == "prismatic_barrier_upgraded")
-                    if barrier_buff.stacks <= 0:
-                        p.buffs.remove(barrier_buff)
-                    if source.startswith("e"):
-                        ref_dmg = 5 if is_upg else 3
-                        barrier_key = "i18n_battle_misc.prismatic_barrier_upgraded_name" if is_upg else "i18n_battle_misc.prismatic_barrier_name"
-                        buff_prefix = get_locale_text(barrier_key)
-                        self.engine._log_event(game_run_context, get_locale_text("i18n_battle_misc.prismatic_barrier_reflect", buff_prefix=buff_prefix))
-                        self.damage_target(game_run_context, source, ref_dmg, source="p0", damage_type="fire")
-                        self.damage_target(game_run_context, source, ref_dmg, source="p0", damage_type="cold")
-                        self.damage_target(game_run_context, source, ref_dmg, source="p0", damage_type="lightning")
-                        self.damage_target(game_run_context, source, ref_dmg, source="p0", damage_type="poison")
+                death_evt = PlayerBeforeDeathEvent(game_run_context, p, source, damage_type_str, final_dmg)
+                self.engine.event_bus.dispatch(death_evt)
+                if not death_evt.cancelled:
+                    is_fatal = True
+                    if was_alive:
+                        killer = self.get_source_name(game_run_context, source)
+                        if killer == get_locale_text("i18n_battle_misc.source_self"):
+                            game_run_context.node_data["death_cause"] = get_locale_text("i18n_battle_misc.death_cause_self")
+                        else:
+                            game_run_context.node_data["death_cause"] = get_locale_text("i18n_battle_misc.death_cause_enemy", killer=killer)
+                    from .party_battle import mark_downed
+                    mark_downed(self.engine, game_run_context, p)
             take_evt = DamageTakeEvent(game_run_context, source, target, final_dmg, is_fatal, damage_type_str)
             self.engine.event_bus.dispatch(take_evt)
         elif target.startswith("p"):

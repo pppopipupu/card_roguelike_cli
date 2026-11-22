@@ -1,10 +1,10 @@
 import random
 from typing import List, Optional, Tuple
-from ...data.grid_map_config import PERMANENT_ICON_TYPES
+from ...data.world.grid_map_config import PERMANENT_ICON_TYPES
 from ..world.grid_map_generator import coord_to_xy, xy_to_coord
-from ...data.locale_data import get_locale_text
-from ...data.potion_data import POTION_CONFIG, get_potion_desc, get_potion_name, get_potion_rarity, get_potion_weight
-from ...data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT, ROGUE_ITEMS
+from ...data.text.locale_data import get_locale_text
+from ...data.entities.potion_data import POTION_CONFIG, get_potion_desc, get_potion_name, get_potion_rarity, get_potion_weight
+from ...data.world.room_interact_data import BAG_DEFAULT_MAX_WEIGHT, ROGUE_ITEMS
 from ..i18n.locale_manager import LocaleManager
 from ..world.sp_system import reduce_exhaustion, restore_sp
 

@@ -1,7 +1,7 @@
 from .base import EventOption
 from ...core.world.enchant_flow import apply_forced_event_enchant
-from ...data.event_data import EVENT_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.world.event_data import EVENT_CONFIG
+from ...data.text.locale_data import get_locale_text
 
 
 class EnchantAltarEchoOption(EventOption, action="enchant_altar_echo", text=get_locale_text("i18n_enchantment.events.enchant_altar_opt_echo")):

@@ -1,41 +1,27 @@
 import copy
 from math import ceil
 
-from ...data.balance_config import (
+from ...data.progression.balance_config import (
     COOP_DIFFICULTY_MAX_PLAYERS,
     COOP_HP_MULTIPLIER_DEFAULT,
     COOP_HP_MULTIPLIERS,
 )
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
+from ...data.enemies.enemy_data import AOE_INTENT_TYPES
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...models.events import EnemyTargetSelectEvent
 from .reward_builder import base_enemy_name
 
 
-AOE_INTENT_TYPES = {
-    "attack_all",
-    "aoe_attack",
-    "all_attack",
-    "aoe_damage",
-    "hellfire",
-    "electrodynamics",
-    "soul_daggers",
-    "focus_bloom",
-    "sunken_tsunami",
-    "mist_condense_1",
-    "tail_sweep",
-    "inferno_breath",
-    "drone_he3_drop",
-    "rin_corpse_ash_nova",
-    "utsuho_tokamak_flare",
-    "portal_xen_bombard",
-    "xen_houndeye_sonic",
-}
 
 
 def party_players(run):
+    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
     return [run.players[uid] for uid in run.party_order if uid in run.players]
 
 
 def party_slots(run, alive_only=False):
+    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
     slots = []
     for slot, uid in enumerate(run.party_order, 1):
         player = run.players.get(uid)
@@ -48,6 +34,7 @@ def party_slots(run, alive_only=False):
 
 
 def party_target_ref(run, uid, grid=None):
+    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
     if uid in run.party_order:
         slot = run.party_order.index(uid) + 1
         return f"a{slot}" if grid is None else f"a{slot}m{grid}"
@@ -55,9 +42,11 @@ def party_target_ref(run, uid, grid=None):
 
 
 def alive_uids(run):
+    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
     return [uid for _, uid, _ in party_slots(run, alive_only=True)]
 
 def is_all_downed(run):
+    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
     human_uids = run.all_human_uids() if hasattr(run, "all_human_uids") else list(run.players.keys())
     players = [run.players[uid] for uid in human_uids if uid in run.players]
     if not players:
@@ -65,6 +54,7 @@ def is_all_downed(run):
     return bool(players) and all(player.downed or player.hp <= 0 for player in players)
 
 def enemy_hp_multiplier(count):
+    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
     capped = min(count, COOP_DIFFICULTY_MAX_PLAYERS)
     if capped <= 2:
         return COOP_HP_MULTIPLIERS[2]
@@ -72,11 +62,12 @@ def enemy_hp_multiplier(count):
 
 
 def scale_party_enemies(run):
+    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
     count = len(run.party_order)
     originals = list(run.enemies)
     if count < 2 or not originals:
         return
-    from ...data.enemy_data import ENEMY_CONFIG
+    from ...data.enemies.enemy_data import ENEMY_CONFIG
     multiplier = enemy_hp_multiplier(count)
     expanded = []
     sequence = 0
@@ -97,13 +88,14 @@ def scale_party_enemies(run):
         enemy.hp = max(1, ceil(enemy.hp * multiplier))
         enemy.shield = max(0, ceil(enemy.shield * multiplier))
         for buff in enemy.buffs:
-            if buff.id in ("unyielding", "strength"):
+            if BUFF_CONFIG.get(buff.id, {}).get("coop_scale"):
                 buff.stacks = max(1, ceil(buff.stacks * multiplier))
     run.enemies = expanded
     run.node_data["coop_hp_mult"] = multiplier
 
 
-def assign_enemy_targets(run):
+def assign_enemy_targets(run, engine=None):
+    """为每个存活敌人分配攻击目标，联机时通过事件应用嘲讽与隐匿规则。"""
     alive = alive_uids(run)
     targets = {}
     cursor = int(run.node_data.get("coop_aggro_cursor", 0))
@@ -111,19 +103,24 @@ def assign_enemy_targets(run):
         if enemy.hp <= 0:
             continue
         intents = list(getattr(enemy, "intents", []) or [])
-        is_aoe = any(intent.type in AOE_INTENT_TYPES for intent in intents)
+        is_aoe = any(getattr(intent, "is_aoe", False) or intent.type in AOE_INTENT_TYPES for intent in intents)
         if is_aoe:
             targets[str(index)] = "ALL"
             continue
         if not alive:
             targets[str(index)] = ""
             continue
-        taunt_uids = [
-            uid
-            for uid in alive
-            if any(buff.id == "coop_aegis" for buff in run.players[uid].buffs)
-        ]
-        pool = taunt_uids or alive
+        taunt_uids = []
+        excluded_uids = []
+        if engine is not None:
+            select_evt = EnemyTargetSelectEvent(run, enemy, index, list(alive), taunt_uids, excluded_uids)
+            engine.event_bus.dispatch(select_evt)
+            taunt_uids = list(select_evt.taunt_uids)
+            excluded_uids = list(select_evt.excluded_uids)
+        pool = taunt_uids or list(alive)
+        filtered = [uid for uid in pool if uid not in excluded_uids]
+        if filtered:
+            pool = filtered
         chosen = pool[cursor % len(pool)]
         cursor += 1
         targets[str(index)] = chosen
@@ -132,6 +129,7 @@ def assign_enemy_targets(run):
 
 
 def pick_enemy_target(run, enemy_index, intent, fallback):
+    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
     targets = run.node_data.get("enemy_targets", {})
     marked = targets.get(str(enemy_index))
     if intent.type in AOE_INTENT_TYPES:
@@ -145,6 +143,7 @@ def pick_enemy_target(run, enemy_index, intent, fallback):
 
 
 def mark_downed(battle_engine, run, player):
+    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
     if not run:
         return
     humans = run.all_human_uids() if hasattr(run, "all_human_uids") else list(run.players.keys())
@@ -168,6 +167,7 @@ def mark_downed(battle_engine, run, player):
 
 
 def revive_downed_players(run):
+    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
     revived = {}
     for player in party_players(run):
         if player.downed or player.hp <= 0:
@@ -179,6 +179,7 @@ def revive_downed_players(run):
 
 
 def revive_downed_ally(save_manager, target_uid: str, run=None) -> str:
+    """多人战斗公共辅助：处理玩家集合、目标与同步状态。"""
     target_run = run
     if target_run is None or target_uid not in getattr(target_run, "players", {}):
         target_run = save_manager.load_save(target_uid)

@@ -1,6 +1,6 @@
 from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
-from ....data.locale_data import get_locale_text
+from ....data.text.locale_data import get_locale_text
 
 @register_enemy("亚弗戈蒙")
 class BossAforgomonTemplate(EnemyTemplate):

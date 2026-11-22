@@ -4,9 +4,9 @@ import tempfile
 import unittest
 
 from game.models.state import CardState
-from game.data.balance_config import COOP_MAX_PLAYERS
-from game.data.cafe_data import CAFE_GUESTS, CAFE_NORMALS, CAFE_NPCS_PER_EXTRA_PLAYER, CAFE_TOTAL_NPCS, NPC_SHOW_NAMES
-from game.data.map_config import MapConfig
+from game.data.progression.balance_config import COOP_MAX_PLAYERS
+from game.data.world.cafe_data import CAFE_GUESTS, CAFE_NORMALS, CAFE_NPCS_PER_EXTRA_PLAYER, CAFE_TOTAL_NPCS, NPC_SHOW_NAMES
+from game.data.world.map_config import MapConfig
 from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command, walk_to_boss_battle
 
 

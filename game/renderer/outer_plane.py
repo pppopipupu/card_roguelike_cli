@@ -1,5 +1,5 @@
-from ..data.locale_data import get_locale_text
-from ..data.outer_plane_config import (
+from ..data.text.locale_data import get_locale_text
+from ..data.world.outer_plane_config import (
     OUTER_PLANE_FLOOR,
     OUTER_PLANE_ROOMS,
     OUTER_PLANE_VISITED_KEY,

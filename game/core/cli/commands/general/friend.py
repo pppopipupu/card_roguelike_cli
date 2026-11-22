@@ -1,7 +1,7 @@
 from typing import Generator
 
 from ...base import CommandHandler
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 
 
 class FriendCommand(CommandHandler, names=["friend", "好友", "fr"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe", "outer_plane"], help_key="friend"):

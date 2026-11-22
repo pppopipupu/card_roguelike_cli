@@ -4,17 +4,17 @@ from typing import Any, Callable, Dict, List, Optional
 from ....models.state import UserStats
 from ....cards import ALL_CARDS
 from ....entities.cards.market import get_market_price
-from ....data.locale_data import get_locale_text
-from ....data.starting_deck_config import LOCK_PRICE_GP, LOCK_SLOT_LIMIT
-from ....data.yog_quest_config import (
+from ....data.text.locale_data import get_locale_text
+from ....data.progression.starting_deck_config import LOCK_PRICE_GP, LOCK_SLOT_LIMIT
+from ....data.world.yog_quest_config import (
     FOUNTAIN_GP_TOSSED_FLAG,
     FOUNTAIN_OUTER_PLANE_COST_GP,
     YOG_INFO_FLAG,
     YOG_QUEST_FLAG,
     YOG_SIGIL_ITEM,
 )
-from ....data.open_world_config import TOWN_CHEST_NPC_ID
-from ....data.town_card_shop_data import TOWN_CARD_MERCHANT_NPC_ID
+from ....data.world.open_world_config import TOWN_CHEST_NPC_ID
+from ....data.world.town_card_shop_data import TOWN_CARD_MERCHANT_NPC_ID
 from .chest_dialog import build_chest_menu, process_chest_choice
 from .card_shop_dialog import build_town_card_shop_menu, process_town_card_shop_choice
 
@@ -116,7 +116,7 @@ def _normal_specs(npc_id: str) -> List[Dict[str, Any]]:
         specs.append(_option("quest_hammer_return_fake", _npc_label("option_return_hammer_fake"), condition=lambda s: s.town_flags.get("quest_hammer_state", "unstarted") == "started" and "fake_hammer" in s.town_inventory))
         specs.append(_option("quest_hammer_clue", _npc_label("option_quest_hammer_clue"), condition=lambda s: s.town_flags.get("quest_hammer_state", "unstarted") == "started"))
     elif npc_id == "Market_Merchant":
-        from ....data.ultimate_prism_data import ULTIMATE_PRISM_CONFIG
+        from ....data.content.ultimate_prism_data import ULTIMATE_PRISM_CONFIG
         from ...prism.market_service import can_buy_ultimate_prism, can_relock_ultimate_prism
         specs.append(_option("buy_shelf", _npc_label("option_buy_shelf")))
         specs.append(_option("lock_card", _npc_label("option_lock_card")))
@@ -240,7 +240,7 @@ def _market_buy_specs(town_engine, stats: UserStats) -> List[Dict[str, Any]]:
 
 
 def _shop_items(stats: UserStats) -> List[Dict[str, Any]]:
-    from ....data.shop_data import SHOP_ITEMS
+    from ....data.progression.shop_data import SHOP_ITEMS
     unlocked = getattr(stats, "unlocked_subclasses", [])
     has_gatekey = getattr(stats, "unlocked_gatekey", False)
     items = [
@@ -493,7 +493,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
                 break
         if not target_cid:
             return get_locale_text("global.card_lock_failed_not_found", name=choice)
-        from ....data.ultimate_prism_data import ULTIMATE_PRISM_CARD_ID, ULTIMATE_PRISM_CONFIG
+        from ....data.content.ultimate_prism_data import ULTIMATE_PRISM_CARD_ID, ULTIMATE_PRISM_CONFIG
         from ...prism.market_service import (
             is_ultimate_prism_departed,
             is_ultimate_prism_unlocked,
@@ -786,7 +786,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         return get_locale_text("global.sell_dew_success") + "\n\n" + rerender()
 
     if action == "hire_harry":
-        from ....data.mercenary_data import MERCENARY_HARRY_HIRE_COST
+        from ....data.entities.mercenary_data import MERCENARY_HARRY_HIRE_COST
         hired = list(getattr(stats, "hired_mercenaries", []) or [])
         if "harry_du_bois" in hired:
             return get_locale_text("i18n_mercenary.already_hired") + "\n\n" + rerender()
@@ -802,7 +802,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         return msg + "\n\n" + rerender()
 
     if action == "bleak_return_dragonstone":
-        from ....data.map_quest_config import (
+        from ....data.world.map_quest_config import (
             BLEAK_FALLS_REWARDS,
             CARD_FUS_RO_DAH,
             ITEM_DRAGONSTONE,
@@ -854,7 +854,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         return get_locale_text("i18n_bleak_falls.tavern.return_success") + "\n\n" + rerender()
 
     if action == "bleak_deceive_keep":
-        from ....data.map_quest_config import (
+        from ....data.world.map_quest_config import (
             ITEM_DRAGONSTONE,
             ITEM_GOLDEN_CLAW,
             QUEST_BLEAK_FALLS,

@@ -1,7 +1,7 @@
 import random
 from typing import Callable, Dict, List
-from ....data.chaos_expansion_data import FORCED_TRIGGER_CONFIGS
-from ....data.locale_data import get_locale_text
+from ....data.content.chaos_expansion_data import FORCED_TRIGGER_CONFIGS
+from ....data.text.locale_data import get_locale_text
 from ..persistent_buffs import add_persistent_buff
 from ..sp_system import consume_sp, restore_sp
 from .big_room import get_big_room
@@ -55,7 +55,7 @@ def attach_room_triggers(fm, coord: str, triggers: List[dict]) -> None:
 def seed_floor_forced_triggers(fm, floor_index: int) -> None:
     if fm is None:
         return
-    from ....data.big_room_config import BIG_ROOM_TEMPLATES
+    from ....data.world.big_room_config import BIG_ROOM_TEMPLATES
 
     for br in (getattr(fm, "big_rooms", None) or {}).values():
         tpl = BIG_ROOM_TEMPLATES.get(br.template_id, {})

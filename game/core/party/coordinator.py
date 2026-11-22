@@ -1,4 +1,4 @@
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ...models.coop_view import SHARED_PERSIST_KEYS, apply_view, scope_view
 
 

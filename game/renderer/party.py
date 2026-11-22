@@ -1,4 +1,4 @@
-from ..data.locale_data import t
+from ..data.text.locale_data import t
 from ..models.state import GameRun
 from .formatters import format_relic_bar
 

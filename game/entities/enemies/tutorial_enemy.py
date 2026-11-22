@@ -1,7 +1,7 @@
 from typing import List, Optional
 from .base import EnemyTemplate, register_enemy
-from ...data.locale_data import get_locale_text
-from ...data.tutorial_data import TUTORIAL_ENEMY
+from ...data.text.locale_data import get_locale_text
+from ...data.world.tutorial_data import TUTORIAL_ENEMY
 
 
 @register_enemy("新手训练木偶")

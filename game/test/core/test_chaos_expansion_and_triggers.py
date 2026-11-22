@@ -190,14 +190,14 @@ class TestChaosExpansionAndTriggers(unittest.TestCase):
         self.assertTrue(all(r.room_type != "" for r in fm_gen.rooms.values()))
 
     def test_unregistered_enemies_and_cafe_npcs_registered_with_unique_intents(self):
-        from game.data.cafe_data import CAFE_GUESTS, CAFE_NORMALS
-        from game.data.enemy_data import ENEMY_CONFIG
-        from game.data.room_interact_data import ROOM_NPCS
+        from game.data.world.cafe_data import CAFE_GUESTS, CAFE_NORMALS
+        from game.data.enemies.enemy_data import ENEMY_CONFIG
+        from game.data.world.room_interact_data import ROOM_NPCS
         from game.entities.enemies.base import ALL_ENEMIES, get_enemy_template
 
         for nid, cfg in ROOM_NPCS.items():
             ek = str(cfg.get("enemy_name_key") or cfg.get("name_key") or "")
-            from game.data.locale_data import get_locale_text
+            from game.data.text.locale_data import get_locale_text
 
             ename = get_locale_text(ek)
             self.assertIn(ename, ENEMY_CONFIG, f"{nid} ({ename}) missing in ENEMY_CONFIG")

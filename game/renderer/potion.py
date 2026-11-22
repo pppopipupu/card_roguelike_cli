@@ -1,6 +1,6 @@
 from ..models.state import GameRun
-from ..data.locale_data import get_locale_text
-from ..data.potion_data import get_potion_drink_text, get_potion_name, get_potion_throw_text, get_potion_weight
+from ..data.text.locale_data import get_locale_text
+from ..data.entities.potion_data import get_potion_drink_text, get_potion_name, get_potion_throw_text, get_potion_weight
 from ..core.inventory.bag_service import format_weight, get_bag_max_weight, get_bag_weight, get_item_rarity_label, get_player_potions
 
 

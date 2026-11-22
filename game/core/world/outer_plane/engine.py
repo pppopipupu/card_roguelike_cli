@@ -1,8 +1,8 @@
 import random
 from typing import Any, Dict, List, Optional, Tuple
 
-from ....data.locale_data import get_locale_raw, get_locale_text
-from ....data.outer_plane_config import (
+from ....data.text.locale_data import get_locale_raw, get_locale_text
+from ....data.world.outer_plane_config import (
     NECRONOMICON_ITEM,
     OUTER_PLANE_ACTIVE_FLAG,
     OUTER_PLANE_COMBAT_COST,
@@ -25,7 +25,7 @@ from ....data.outer_plane_config import (
     PHASE_QUEST,
     PHASE_WIP,
 )
-from ....data.open_world_config import (
+from ....data.world.open_world_config import (
     OPEN_WORLD_COMBAT_FLAG,
     OPEN_WORLD_COORD_KEY,
     OPEN_WORLD_ORIGIN_KEY,
@@ -33,7 +33,7 @@ from ....data.open_world_config import (
 )
 from ....models.state import EnemyState, GameRun, ensure_card_state
 from ....renderer.outer_plane import render_outer_plane
-from ....data.world_social_config import WORLD_OUTER_PLANE
+from ....data.world.world_social_config import WORLD_OUTER_PLANE
 from ..presence import render_players, sync_active
 from ..open_world.death_service import OpenWorldDeathService
 from ..open_world.ghost_service import OpenWorldGhostService
@@ -466,7 +466,7 @@ class OuterPlaneEngine:
         stats.town_flags[OUTER_PLANE_PHASE_KEY] = ""
         stats.town_flags[OUTER_PLANE_ROOM_KEY] = ""
         stats.town_flags.pop(OUTER_PLANE_PENDING_KEY, None)
-        from ....data.yog_quest_config import YOG_QUEST_FLAG, YOG_QUEST_ROUTE_KEY
+        from ....data.world.yog_quest_config import YOG_QUEST_FLAG, YOG_QUEST_ROUTE_KEY
         stats.town_flags[YOG_QUEST_FLAG] = "completed"
         if NECRONOMICON_ITEM not in stats.town_inventory:
             stats.town_inventory.append(NECRONOMICON_ITEM)

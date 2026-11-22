@@ -2,9 +2,9 @@ import random
 from typing import Optional
 from ....models.state import GameRun
 from ....entities import get_relic_name
-from ....data.relic_data import RELIC_CONFIG, relic_allowed_for_any_class
-from ....data.gem_data import GEM_CONFIG
-from ....data.cafe_data import (
+from ....data.entities.relic_data import RELIC_CONFIG, relic_allowed_for_any_class
+from ....data.entities.gem_data import GEM_CONFIG
+from ....data.world.cafe_data import (
     CAFE_CARD_MASTER_STOCK,
     CAFE_GEMCUTTER_STOCK,
     CAFE_GUEST_COUNT_MAX,
@@ -16,7 +16,7 @@ from ....data.cafe_data import (
     NPC_ALIASES,
     NPC_SHOW_NAMES,
 )
-from ....data.locale_data import get_locale_text
+from ....data.text.locale_data import get_locale_text
 from .dialog import CafeDialogMixin
 from ...inventory.card_distribution import CardDistributor
 class CafeEngine(CafeDialogMixin):
@@ -378,7 +378,7 @@ class CafeEngine(CafeDialogMixin):
 
         if active_npc is None:
             if getattr(run, "floor_map", None) is not None and idx == 1:
-                from ....data.grid_map_config import SP_CONFIG
+                from ....data.world.grid_map_config import SP_CONFIG
                 from ..sp_system import reduce_exhaustion, restore_sp
                 p = run.player
                 price = SP_CONFIG["cafe_drink_price"]

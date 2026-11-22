@@ -1,13 +1,13 @@
-from ..data.relic_data import RELIC_CONFIG
-from ..data.buff_data import BUFF_CONFIG
-from ..data.minion_data import MINION_CONFIG
-from ..data.card_data import CARD_CONFIG
-from ..data.enemy_data import ENEMY_CONFIG
-from ..data.keyword_data import KEYWORD_CONFIG
-from ..data.gem_data import GEM_CONFIG
-from ..data.amulet_data import AMULET_CONFIG
-from ..data.potion_data import POTION_CONFIG
-from ..data.size_data import (
+from ..data.entities.relic_data import RELIC_CONFIG
+from ..data.entities.buffs.buff_data import BUFF_CONFIG
+from ..data.entities.minions.minion_data import MINION_CONFIG
+from ..data.cards.card_data import CARD_CONFIG
+from ..data.enemies.enemy_data import ENEMY_CONFIG
+from ..data.text.keyword_data import KEYWORD_CONFIG
+from ..data.entities.gem_data import GEM_CONFIG
+from ..data.entities.amulet_data import AMULET_CONFIG
+from ..data.entities.potion_data import POTION_CONFIG
+from ..data.entities.size_data import (
     NON_CONFIG_ENEMY_SIZES,
     get_size_label,
     resolve_enemy_size,
@@ -15,7 +15,7 @@ from ..data.size_data import (
 )
 from .menu import get_card_cost_str, append_card_subtype
 from ..core.progress.progressive_unlock import is_card_detail_revealed
-from ..data.locale_data import get_locale_text
+from ..data.text.locale_data import get_locale_text
 from .chireiden_query import (
     append_chireiden_world_queries,
     append_utsuho_ally_lore_if_unlocked,
@@ -133,7 +133,7 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
         lines.append("")
 
     if not tier_filter:
-        from ..data.damage_type_data import DAMAGE_TYPE_QUERY_ENTRIES
+        from ..data.battle.damage_type_data import DAMAGE_TYPE_QUERY_ENTRIES
         for dtype, dtype_cfg in DAMAGE_TYPE_QUERY_ENTRIES.items():
             dtype_name = get_locale_text(dtype_cfg["name_key"])
             aliases = dtype_cfg.get("aliases", ())
@@ -284,7 +284,7 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
                 lines.append(get_locale_text("renderer_menu.card_lore_line", lore=card_lore))
             lines.append("")
             
-            from ..data.card_upgrade_data import CARD_UPGRADE_CONFIG
+            from ..data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
             if cid in CARD_UPGRADE_CONFIG:
                 up_card = ALL_CARDS.get(cid + "+")
                 if up_card:
@@ -315,8 +315,8 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
             lines.append("")
 
     from ..core.world.encounter_lore import resolve_entity_intro
-    from ..data.room_interact_data import ROOM_NPCS
-    from ..data.unregistered_enemies_data import CAFE_KEY_TO_ENTITY
+    from ..data.world.room_interact_data import ROOM_NPCS
+    from ..data.enemies.unregistered_enemies_data import CAFE_KEY_TO_ENTITY
 
     enemy_to_room_npc: dict[str, tuple[str, dict]] = {}
     for _nid, _rcfg in ROOM_NPCS.items():

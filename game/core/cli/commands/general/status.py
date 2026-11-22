@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import CommandHandler
-from .....data.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
+from .....data.world.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
 from .....renderer import GameRenderer
 
 class StatusCommand(CommandHandler, names=["状态", "status", "r"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe", "outer_plane"], help_key="status"):

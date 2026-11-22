@@ -1,7 +1,7 @@
 from typing import Generator
 
 from ...base import CommandHandler
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 
 
 class ProjectionCommand(CommandHandler, names=["projection", "投影", "pj"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe"], help_key="projection"):

@@ -2,16 +2,16 @@ import random
 from typing import List, Optional
 
 from .base import EnemyTemplate, register_enemy
-from ...data.buff_data import BUFF_CONFIG
-from ...data.enemy_data import ENEMY_CONFIG
-from ...data.enemy_data_chireiden import (
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.enemies.enemy_data import ENEMY_CONFIG
+from ...data.enemies.enemy_data_chireiden import (
     ENEMY_CHIREIDEN_CONFIG,
     SUPER_PORTAL_MAX_XEN_ALIVE,
     SUPER_PORTAL_PHASES,
     SUPER_PORTAL_PHASE_BY_NAME,
     UTSUHO_INTENT_CYCLE,
 )
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ...models.state import BuffState, EnemyIntentState
 
 

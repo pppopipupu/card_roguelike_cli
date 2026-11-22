@@ -1,9 +1,9 @@
 from typing import Tuple
 from .base import ActionHandler, find_hand_index_by_initials, normalize_initial_query
 from ...entities import ALL_CARDS
-from ...data.locale_data import get_locale_text
-from ...data.open_world_config import OPEN_WORLD_SETTLED_MSG_KEY
-from ...data.pvp_config import PVP_MATCH_KEY
+from ...data.text.locale_data import get_locale_text
+from ...data.world.open_world_config import OPEN_WORLD_SETTLED_MSG_KEY
+from ...data.world.pvp_config import PVP_MATCH_KEY
 from ..battle.pvp_service import PvpService, is_pvp_run
 from ..world.open_world.loadout_service import is_open_world_run
 
@@ -64,7 +64,7 @@ def finalize_victory(
 
 def check_battle_outcome(router, user_id, run, res, success):
     if is_pvp_run(run):
-        from ...data.pvp_config import PVP_ESCAPE_KEY
+        from ...data.world.pvp_config import PVP_ESCAPE_KEY
         if run.node_data.pop(PVP_ESCAPE_KEY, False):
             match = router.save_manager.pvp.get_match(run.node_data.get(PVP_MATCH_KEY))
             parts = [res.strip()] if res and res.strip() else []
@@ -135,10 +135,6 @@ def check_battle_outcome(router, user_id, run, res, success):
             return merged, True, success
         return res, False, success
     if run.player.hp <= 0:
-        from ..battle.ninja_runtime import try_sarira_revive
-        if try_sarira_revive(router.engine.battle_engine, run, run.player):
-            router.save_manager.save_save(user_id, run)
-            return router.engine.battle_engine._append_logs_to_res(run, res), False, success
         return finalize_defeat(router.save_manager, user_id, run, res, success)
     if router.engine.is_battle_won(run):
         return finalize_victory(router.save_manager, router.engine, user_id, run, res, success)

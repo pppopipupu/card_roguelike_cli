@@ -1,6 +1,6 @@
 import random
-from ...data.buff_data import BUFF_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.text.locale_data import get_locale_text
 from ...models.state import CardState
 from ..cards.ninja_base import add_lan_blade_to_hand, add_ninja_buff, change_lex_kela, has_ninja_tag, scramble_hand_costs
 from .base import BuffImpl
@@ -76,12 +76,22 @@ class HeavenCrossBuff(BuffImpl):
 
 @register_buff("mummy_power")
 class MummyPowerBuff(BuffImpl):
-    pass
+    def on_lex_kela_changed(self, event, buff_state, entity):
+        if event.delta >= 0 or event.player is None or entity is not event.player:
+            return
+        spent = -int(event.delta)
+        gain = buff_state.stacks * spent
+        event.engine.combat_resolver.gain_shield(event.run, "p0", gain)
+        event.engine._log_event(event.run, get_locale_text("i18n_cards_ninja.mummy_shield", shield=gain))
 
 
 @register_buff("i_represent_shinobi")
 class IRepresentShinobiBuff(BuffImpl):
-    pass
+    def on_lex_kela_changed(self, event, buff_state, entity):
+        if event.delta >= 0 or event.player is None or entity is not event.player:
+            return
+        entity.actions += buff_state.stacks
+        event.engine._log_event(event.run, get_locale_text("i18n_cards_ninja.shinobi_action"))
 
 
 @register_buff("free_ninjutsu")
@@ -127,7 +137,15 @@ class TurbineBuff(BuffImpl):
 
 @register_buff("science_double")
 class ScienceDoubleBuff(BuffImpl):
-    pass
+    def on_card_played(self, event, buff_state, entity):
+        if entity is not event.run.player or buff_state.stacks <= 0:
+            return
+        if not getattr(event.card, "science", False):
+            return
+        buff_state.stacks -= 1
+        if buff_state.stacks <= 0 and buff_state in entity.buffs:
+            entity.buffs.remove(buff_state)
+        event.engine._execute_card_effect(event.run, event.card, event.target)
 
 
 @register_buff("blade_power_up")
@@ -163,7 +181,8 @@ class BladeDefenceBuff(BuffImpl):
         if event.card is not None and getattr(event.card, "type", "") == "attack":
             engine.combat_resolver.gain_shield(event.run, "p0", buff.stacks)
 
-    def on_damage_take_defend(self, event, buff_state, entity, engine):
+    def on_damage_take_defend(self, event, buff_state, entity, engine=None):
+        engine = event.engine
         buff = buff_state
         if entity is event.run.player and buff.stacks > 0 and event.target == "p0" and event.amount == 0:
             change_lex_kela(engine, event.run, entity, 1, reason="blade_defence")

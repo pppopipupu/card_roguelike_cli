@@ -1,8 +1,8 @@
 import random
 from typing import List, Optional
-from ....data.locale_data import get_locale_text
-from ....data.potion_data import get_potion_name, roll_potion
-from ....data.room_interact_data import ROOM_NPCS, ROOM_PROPS
+from ....data.text.locale_data import get_locale_text
+from ....data.entities.potion_data import get_potion_name, roll_potion
+from ....data.world.room_interact_data import ROOM_NPCS, ROOM_PROPS
 from ...inventory.bag_service import add_bag_item, get_item_display_name, resolve_item_query
 from ..persistent_buffs import break_map_invisibility
 from ..sp_system import reduce_exhaustion, restore_sp
@@ -249,7 +249,7 @@ def _touch_dusty_bookshelf(run, room, cfg, p, fm, coord):
 
 @register_prop_handler("nordic_urn")
 def _touch_nordic_urn(run, room, cfg, p, fm, coord):
-    from ....data.map_quest_config import BLEAK_FALLS_REWARDS
+    from ....data.world.map_quest_config import BLEAK_FALLS_REWARDS
     gold = BLEAK_FALLS_REWARDS["urn_gold"]
     p.gold += gold
     return get_locale_text("i18n_bleak_falls.props.nordic_urn_res", gold=gold)
@@ -262,7 +262,7 @@ def _touch_bleak_clue_tablet(run, room, cfg, p, fm, coord):
 
 @register_prop_handler("nordic_brazier")
 def _touch_nordic_brazier(run, room, cfg, p, fm, coord):
-    from ....data.map_quest_config import BLEAK_FALLS_REWARDS
+    from ....data.world.map_quest_config import BLEAK_FALLS_REWARDS
     from ..map_quest_service import record_brazier_lit
     heal = BLEAK_FALLS_REWARDS["brazier_heal"]
     p.hp = min(p.max_hp, p.hp + heal)
@@ -310,9 +310,9 @@ def touch_in_room(save_manager, run, query: str, map_engine=None) -> str:
         ensure_descent_tunnel(room)
     prop_id = resolve_prop_in_room(room, q, fm=fm)
     if not prop_id:
-        from ....data.open_world_config import WORLD_YOG_TEMPLE
-        from ....data.world_social_config import WORLD_SNOWFIELD
-        from ....data.yog_quest_config import YOG_FLOOR_TEMPLE
+        from ....data.world.open_world_config import WORLD_YOG_TEMPLE
+        from ....data.world.world_social_config import WORLD_SNOWFIELD
+        from ....data.world.yog_quest_config import YOG_FLOOR_TEMPLE
         from ..open_world.ghost_service import OpenWorldGhostService
         from ..open_world.loadout_service import is_open_world_run
 
@@ -361,7 +361,7 @@ def touch_in_room(save_manager, run, query: str, map_engine=None) -> str:
     from .forced_triggers import run_forced_triggers
 
     trigger_logs = run_forced_triggers(run, fm, room, "on_interact")
-    from ....data.chireiden_data import CHIREIDEN_PROPS
+    from ....data.content.chireiden_data import CHIREIDEN_PROPS
 
     if prop_id in CHIREIDEN_PROPS:
         from ...progress.achievement_service import record_run_achievement_stat

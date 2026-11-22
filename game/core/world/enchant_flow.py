@@ -1,11 +1,11 @@
 import random
-from ...data.enchantment_data import (
+from ...data.entities.enchantment_data import (
     ENCHANTMENT_CONFIG,
     FORCED_EVENT_ENCHANT_POOL,
     REST_ENCHANT_OFFER_COUNT,
     SHOP_ENCHANT_OFFER_COUNT,
 )
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ...entities import ALL_CARDS
 from ...models.coop_view import strip_shared
 from ...models.state import GameRun, ensure_card_state
@@ -18,6 +18,7 @@ from ..inventory.enchantment_service import (
     preview_enchant_card,
     roll_enchantments,
 )
+from ..inventory.relic_service import has_relic_flag
 from ..party.coordinator import begin_party_gem, end_party_gem, finish_player_node
 
 
@@ -162,14 +163,21 @@ def enchant_choose(explore_engine, run: GameRun, option_idx: int) -> str:
             )
 
         end_party_gem(run, data, next_type, next_data)
-        for it in run.node_data.get("items", []):
-            it["taken"] = True
         msg = get_locale_text(
             "i18n_enchantment.ui.enchant_success",
             before_name=before_name,
             enchant_name=enchant_name,
             after_name=after_name,
         )
+        if has_relic_flag(p, "rest_all_options"):
+            for it in run.node_data.get("items", []):
+                if it.get("type") == "rest_enchant":
+                    it["taken"] = True
+            explore_engine.save_manager.save_save(run.user_id, run)
+            from ...renderer.explore import render_rest
+            return f"{msg}\n\n{render_rest(run)}"
+        for it in run.node_data.get("items", []):
+            it["taken"] = True
         return finish_player_node(explore_engine.save_manager, explore_engine.map_engine, run, run.user_id, msg)
 
     return get_locale_text("err_invalid_option_idx")

@@ -1,7 +1,7 @@
 from typing import Optional
 
 from ..models.state import GameRun, UserStats
-from ..data.locale_data import get_locale_text
+from ..data.text.locale_data import get_locale_text
 from .menu import render_menu, render_card_library, render_relic_library, render_deck, render_stats, render_tutorial, render_changelog_page
 from .help import render_help_index, render_help_detail
 from .potion import render_potion_list

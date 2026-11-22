@@ -1,6 +1,6 @@
 from typing import List, Tuple
-from ....data.locale_data import get_locale_text
-from ....data.room_interact_data import CAFE_BARISTA_CONFIG, ROOM_NPCS
+from ....data.text.locale_data import get_locale_text
+from ....data.world.room_interact_data import CAFE_BARISTA_CONFIG, ROOM_NPCS
 from ....entities import ALL_CARDS
 from ...inventory.bag_service import get_item_display_name
 from ...cli.base.pinyin_match import find_entry_by_query
@@ -80,7 +80,7 @@ def execute_barista_dialog_choice(cafe_engine, run, idx: int) -> str:
         cafe_engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_room_interact.cafe.chamomile_ok", heal=p.hp - before, cure=max(0, old_ex - new_ex))
     if idx == 5:
-        from ....data.card_upgrade_data import CARD_UPGRADE_CONFIG
+        from ....data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
         unupgraded = [c for c in p.deck if not c.upgraded and c.id in CARD_UPGRADE_CONFIG]
         if not unupgraded:
             return get_locale_text("i18n_room_interact.cafe.grinder_no_card")
@@ -118,7 +118,7 @@ def render_cafe_room_extras(run) -> List[str]:
     room, _ = get_current_room(run)
     if room is None:
         return []
-    from ....data.room_interact_data import ROOM_PROPS
+    from ....data.world.room_interact_data import ROOM_PROPS
     extras = []
     if room.shared_payload.get("barista_defeated"):
         extras.append(get_locale_text("i18n_room_interact.cafe.barista_dead_line"))

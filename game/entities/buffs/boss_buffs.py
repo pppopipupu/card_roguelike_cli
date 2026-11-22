@@ -1,8 +1,8 @@
 from .base import BuffImpl, is_debuff
 from .registry import register_buff
-from ...data.buff_data import BUFF_CONFIG
-from ...data.locale_data import get_locale_text
-from ...data.damage_type_data import PHYSICAL_DAMAGE_TYPES
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.battle.damage_type_data import PHYSICAL_DAMAGE_TYPES
 
 
 def _stat(instance, buff_id, name, default):
@@ -91,7 +91,8 @@ class DragonScalesPassiveBuff(BuffImpl):
             get_locale_text("i18n_buffs.dragon_scales_shield_log", entity=entity.name, shield=shield),
         )
 
-    def on_damage_take_defend(self, event, buff_state, entity, engine):
+    def on_damage_take_defend(self, event, buff_state, entity, engine=None):
+        engine = event.engine
         if entity.shield <= 0:
             return
         if _damage_type_str(event) not in PHYSICAL_DAMAGE_TYPES:
@@ -202,7 +203,8 @@ class PureVesselBodyPassiveBuff(BuffImpl):
 
 @register_buff("pure_parry_stance")
 class PureParryStanceBuff(BuffImpl):
-    def on_damage_take_defend(self, event, buff_state, entity, engine):
+    def on_damage_take_defend(self, event, buff_state, entity, engine=None):
+        engine = event.engine
         run = event.run
         if entity.shield <= 0:
             if buff_state in entity.buffs:
@@ -288,7 +290,8 @@ class CthulhuMistImmuneBuff(BuffImpl):
 
 @register_buff("doom_furnace_passive")
 class DoomFurnacePassiveBuff(BuffImpl):
-    def on_damage_take_defend(self, event, buff_state, entity, engine):
+    def on_damage_take_defend(self, event, buff_state, entity, engine=None):
+        engine = event.engine
         if event.amount <= 0:
             return
         _add_strength(engine, entity, 1)
@@ -375,6 +378,35 @@ class BaguwenRestrictionBuff(BuffImpl):
                 return True
         return False
 
+    def on_turn_start_after_draw(self, event, buff_state, entity):
+        import random
+        from ...models.state import ensure_card_state
+        from ..cards.base import ALL_CARDS
+        p = entity
+        required_key = event.run.turn_key("baguwen_required_card", p)
+        checked_key = event.run.turn_key("baguwen_checked", p)
+        candidates = []
+        for hand_state in p.hand:
+            state = ensure_card_state(hand_state)
+            card = ALL_CARDS.get(state)
+            if card is None:
+                continue
+            if getattr(card, "unplayable", False):
+                continue
+            if getattr(card, "type", "") == "curse":
+                continue
+            candidates.append((state, card))
+        if candidates:
+            state, card = random.choice(candidates)
+            event.run.node_data[required_key] = {"id": state.id, "upgraded": bool(state.upgraded)}
+            event.engine._log_event(event.run, get_locale_text(
+                "i18n_buffs.baguwen_required_log",
+                card_name=card.name,
+            ))
+        else:
+            event.run.node_data.pop(required_key, None)
+        event.run.node_data[checked_key] = False
+
     def on_card_play(self, event, buff_state, entity):
         run = event.run
         if event.cancelled or entity is not run.player:
@@ -448,5 +480,5 @@ class ShroudTimeWarpBuff(BuffImpl):
                     stacks=strength,
                 ),
             )
-        run.node_data["force_end_turn"] = True
-        run.node_data["force_end_turn_uid"] = run.user_id
+        from ...core.battle.extra_turn_service import request_force_end
+        request_force_end(run, run.player, "shroud_time_warp")

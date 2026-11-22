@@ -1,7 +1,7 @@
 from typing import Generator
 from ...base import CommandHandler, split_by_comma_with_brackets
 from .....renderer import GameRenderer
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 
 class MinionCommand(CommandHandler, names=["随从", "m"], allowed_states=["battle"], help_key="minion"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:

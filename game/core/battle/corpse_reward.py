@@ -1,7 +1,7 @@
 import random
 
-from ...data.corpse_config import CorpseConfig
-from ...data.locale_data import get_locale_text
+from ...data.entities.corpse_config import CorpseConfig
+from ...data.text.locale_data import get_locale_text
 from ...models.state import GameRun
 
 

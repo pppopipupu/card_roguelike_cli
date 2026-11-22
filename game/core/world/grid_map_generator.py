@@ -1,8 +1,8 @@
 import random
 from collections import deque
-from ...data.balance_config import LIFE_MERCHANT_MAX_PER_RUN, LIFE_MERCHANT_STAGE_CONFIG
-from ...data.big_room_config import BIG_ROOM_FLOOR_RULES, BIG_ROOM_SHAPES, BIG_ROOM_TEMPLATES
-from ...data.grid_map_config import (
+from ...data.progression.balance_config import LIFE_MERCHANT_MAX_PER_RUN, LIFE_MERCHANT_STAGE_CONFIG
+from ...data.world.big_room_config import BIG_ROOM_FLOOR_RULES, BIG_ROOM_SHAPES, BIG_ROOM_TEMPLATES
+from ...data.world.grid_map_config import (
     FLOOR_CONFIGS,
     MAP_EVENT_IDS,
     PASSABLE_ROOM_TYPES,
@@ -390,8 +390,8 @@ def generate_floor_map(run, floor_index: int, save_manager=None) -> FloorMapStat
 
 
 def _populate_room_details(rooms: dict) -> None:
-    from ...data.potion_data import POTION_CONFIG
-    from ...data.room_interact_data import (
+    from ...data.entities.potion_data import POTION_CONFIG
+    from ...data.world.room_interact_data import (
         DUNGEON_NPC_POOL,
         DUNGEON_PROP_POOL,
         OBSTACLE_STYLES,

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from ..data.locale_data import get_locale_text
+from ..data.text.locale_data import get_locale_text
 
 class Effect:
     def apply(self, run, source: str, target: str, engine) -> str:

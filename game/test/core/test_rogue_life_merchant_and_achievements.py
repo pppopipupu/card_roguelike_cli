@@ -7,8 +7,8 @@ import unittest
 from game.core.progress.achievement_service import AchievementService
 from game.core.battle.engine import BattleEngine
 from game.core.world.life_merchant import calc_life_merchant_price
-from game.data.achievement_data import ACHIEVEMENT_ALL_VIEW_PRICE, ACHIEVEMENTS_CONFIG
-from game.data.map_config import MapConfig
+from game.data.progression.achievement_data import ACHIEVEMENT_ALL_VIEW_PRICE, ACHIEVEMENTS_CONFIG
+from game.data.world.map_config import MapConfig
 from game.models.state import EnemyIntentState, EnemyState, GameRun, PlayerState, UserStats, ensure_card_state
 from game.core.world.grid_map_generator import generate_floor_map
 from game.core.party.session import SessionContextScoper

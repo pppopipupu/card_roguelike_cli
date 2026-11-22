@@ -1,9 +1,9 @@
 from typing import Optional
-from ...data.map_config import MapConfig
+from ...data.world.map_config import MapConfig
 from .base import EventOption, EventTemplate
 from .registry import EVENT_OPTIONS_REGISTRY
-from ...data.event_data import EVENT_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.world.event_data import EVENT_CONFIG
+from ...data.text.locale_data import get_locale_text
 
 from .fountain import *
 from .knight import *

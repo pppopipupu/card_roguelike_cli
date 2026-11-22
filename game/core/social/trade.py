@@ -1,7 +1,7 @@
 import re
 from typing import Optional
 
-from ...data.trade_config import (
+from ...data.progression.trade_config import (
     TRADE_KIND_RELIC,
     TRADE_MAX_ENTRIES_PER_SIDE,
     TRADE_MAX_OUTGOING,

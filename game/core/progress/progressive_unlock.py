@@ -1,12 +1,12 @@
 from typing import Iterable
 
-from ...data.chireiden_data import (
+from ...data.content.chireiden_data import (
     CHIREIDEN_BUFF_CONFIG,
     CHIREIDEN_CARD_CONFIG,
     CHIREIDEN_RELIC_CONFIG,
 )
-from ...data.enemy_data_chireiden import ENEMY_CHIREIDEN_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.enemies.enemy_data_chireiden import ENEMY_CHIREIDEN_CONFIG
+from ...data.text.locale_data import get_locale_text
 
 CARD_VISIBILITY_ACHIEVEMENTS: dict[str, tuple[str, ...]] = {
     "neutral_button_magic": ("boss_yog_sothoth",),

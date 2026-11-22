@@ -132,6 +132,16 @@ def is_identifier_string(node, parents):
     return False
 
 
+def collect_docstrings(tree):
+    docstrings = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            body = getattr(node, "body", [])
+            if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+                docstrings.add(id(body[0].value))
+    return docstrings
+
+
 def scan_files():
     problems = []
     total_chinese = 0
@@ -160,8 +170,9 @@ def scan_files():
             if is_runtime(path):
                 found = 0
                 parents = parents_map(tree)
+                docstrings = collect_docstrings(tree)
                 for node in ast.walk(tree):
-                    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                    if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in docstrings:
                         if CHINESE.search(node.value) and not is_identifier_string(node, parents):
                             problems.append(f"{relative(path)}:{node.lineno}: chinese literal")
                             found += 1
@@ -194,7 +205,7 @@ def scan_locale_keys():
                         break
                 if not found:
                     missing.append(f"{relative(path)}: {key}")
-    from game.data.grid_map_config import (
+    from game.data.world.grid_map_config import (
         DIRECT_REVEAL_ADJACENT_TYPES,
         LANDMARK_CONFIGS,
         PASSABLE_ROOM_TYPES,
@@ -203,7 +214,7 @@ def scan_locale_keys():
         ROOM_ICONS,
         SECRET_RITUAL_PROTOCOLS,
     )
-    from game.data.room_interact_data import OBSTACLE_STYLES, ROGUE_ITEMS, ROOM_ENVIRONMENTS, ROOM_NPCS, ROOM_PROPS
+    from game.data.world.room_interact_data import OBSTACLE_STYLES, ROGUE_ITEMS, ROOM_ENVIRONMENTS, ROOM_NPCS, ROOM_PROPS
     from game.core.cli import command_router
     from game.core.cli.base import CommandHandler
 
@@ -256,7 +267,7 @@ def scan_locale_keys():
             if not _has_key(icfg[fld]):
                 missing.append(f"dynamic_config: {icfg[fld]}")
 
-    from game.data.item_lore_data import ITEM_LORE
+    from game.data.text.item_lore_data import ITEM_LORE
     from game.core.inventory.item_lore import REVEAL_RULES
     for ilore in ITEM_LORE.values():
         if not _has_key(ilore["intro_key"]):
@@ -270,8 +281,8 @@ def scan_locale_keys():
             if rule and rule not in REVEAL_RULES:
                 missing.append(f"dynamic_config: reveal rule {rule}")
 
-    from game.data.yog_quest_config import YOG_ENDING_BRANCH_FLAGS, YOG_LANDMARKS, YOG_MAPS
-    from game.data.grid_map_config import FLOOR_CONFIGS
+    from game.data.world.yog_quest_config import YOG_ENDING_BRANCH_FLAGS, YOG_LANDMARKS, YOG_MAPS
+    from game.data.world.grid_map_config import FLOOR_CONFIGS
     for floor_index in (5, 6):
         cfg = FLOOR_CONFIGS[floor_index]
         if not _has_key(cfg["name_key"]):
@@ -331,8 +342,108 @@ def scan_locale_keys():
     return missing
 
 
+def scan_structure():
+    problems = []
+    data_root = os.path.join(ROOT, "game", "data")
+    allowed_dirs = {"battle", "cards", "content", "enemies", "entities", "locale", "media", "progression", "text", "town", "world"}
+    for entry in os.scandir(data_root):
+        if entry.is_file() and entry.name.endswith(".py") and entry.name != "__init__.py":
+            problems.append(f"game/data 根目录只允许 __init__.py，发现 {entry.name}")
+        if entry.is_dir() and entry.name not in allowed_dirs and entry.name != "__pycache__":
+            problems.append(f"game/data 出现未登记领域目录 {entry.name}")
+    for path, dirs, files in os.walk(data_root):
+        dirs[:] = [d for d in dirs if d not in {"__pycache__", "locale", "town"}]
+        rel_dir = os.path.relpath(path, data_root)
+        if files and any(name.endswith(".py") for name in files) and "__init__.py" not in files:
+            problems.append(f"game/data 包目录缺少 __init__.py: {rel_dir}")
+        for name in files:
+            if not name.endswith(".py"):
+                continue
+            rel = os.path.relpath(os.path.join(path, name), data_root)
+            if len(rel.split(os.sep)) > 3:
+                problems.append(f"game/data Python 文件超过 3 层: {rel}")
+    entities_root = os.path.join(ROOT, "game", "entities")
+    for path, _dirs, files in os.walk(entities_root):
+        for name in files:
+            if not name.endswith(".py"):
+                continue
+            full = os.path.join(path, name)
+            text = open(full, encoding="utf-8", errors="replace").read()
+            if "state_stack" in text:
+                problems.append(f"实体层禁止直接操作 state_stack: {relative(full)}")
+    selection_root = os.path.join(ROOT, "game", "core", "battle", "selection")
+    for name in os.listdir(selection_root):
+        if not name.endswith(".py"):
+            continue
+        full = os.path.join(selection_root, name)
+        with open(full, encoding="utf-8") as fh:
+            count = sum(1 for _ in fh)
+        if count > 350:
+            problems.append(f"选择子模块超过 350 行 ({count}): {relative(full)}")
+    locale_root = os.path.join(data_root, "locale", "zh_cn")
+    allowed_locale_dirs = {"_root", "battle", "cards", "cli", "common", "content", "enemies", "entities", "progression", "renderer", "server", "social", "world"}
+    stems = {}
+    npcs_files = []
+    for entry in os.scandir(locale_root):
+        if entry.is_file() and entry.name.endswith(".json"):
+            problems.append(f"zh_cn 根目录禁止直接放置 JSON: {entry.name}")
+        if entry.is_dir() and entry.name not in allowed_locale_dirs:
+            problems.append(f"zh_cn 出现未登记目录 {entry.name}")
+    for path, _dirs, files in os.walk(locale_root):
+        for name in files:
+            if not name.endswith(".json"):
+                continue
+            full = os.path.join(path, name)
+            rel = os.path.relpath(full, locale_root)
+            if len(rel.split(os.sep)) > 2:
+                problems.append(f"本地化 JSON 超过 2 层: {rel}")
+            if os.path.getsize(full) < 5:
+                problems.append(f"空本地化文件 {relative(full)}")
+            stem = name[:-5]
+            if stem in stems:
+                problems.append(f"本地化 JSON stem 重复 {stem}: {relative(stems[stem])} / {relative(full)}")
+            else:
+                stems[stem] = full
+            if name == "npcs.json":
+                npcs_files.append(full)
+    root_dir = os.path.join(locale_root, "_root")
+    root_json = {name for name in os.listdir(root_dir) if name.endswith(".json")} if os.path.isdir(root_dir) else set()
+    if root_json != {"explore.json", "global.json"}:
+        problems.append(f"_root 只允许 explore.json/global.json，实际 {sorted(root_json)}")
+    if len(npcs_files) != 1:
+        problems.append(f"npcs.json 必须全树恰好一个，实际 {len(npcs_files)}")
+    return problems
+
+
+def scan_architecture():
+    problems = []
+    core_files = [
+        "game/core/battle/card_player_turn.py",
+        "game/core/battle/card_player.py",
+        "game/core/battle/party_battle.py",
+        "game/core/battle/combat_resolver.py",
+        "game/core/battle/enemy_controller.py",
+    ]
+    patterns = [
+        (re.compile(r"\.id\s*==\s*[\"']"), "实体 ID 等值比较"),
+        (re.compile(r"in\s+\w+\.relics\b"), "遗物 ID 集合判断"),
+    ]
+    for rel in core_files:
+        full = os.path.join(ROOT, rel)
+        if not os.path.exists(full):
+            continue
+        with open(full, encoding="utf-8", errors="replace") as fh:
+            for lineno, line in enumerate(fh, 1):
+                for pattern, desc in patterns:
+                    if pattern.search(line):
+                        problems.append(f"{rel}:{lineno}: 核心战斗文件禁止{desc}")
+    return problems
+
+
 def main():
     problems, files, lines = scan_files()
+    problems.extend(scan_structure())
+    problems.extend(scan_architecture())
     missing = scan_locale_keys()
     for item in problems[:200]:
         print(item)

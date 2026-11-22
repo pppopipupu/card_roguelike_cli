@@ -1,9 +1,9 @@
 import re
-from ..data.checkin_data import DAILY_BLESSINGS
-from ..data.minion_data import MINION_CONFIG
-from ..data.locale_data import get_locale_text
-from ..data.buff_data import BUFF_CONFIG
-from ..data.damage_type_data import is_physical_damage
+from ..data.progression.checkin_data import DAILY_BLESSINGS
+from ..data.entities.minions.minion_data import MINION_CONFIG
+from ..data.text.locale_data import get_locale_text
+from ..data.entities.buffs.buff_data import BUFF_CONFIG
+from ..data.battle.damage_type_data import is_physical_damage
 from ..entities.cards.base import get_gem_numeric_modifiers, replace_structured_number
 
 

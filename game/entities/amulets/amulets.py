@@ -1,11 +1,14 @@
 from typing import Optional
-from ...data.amulet_data import AMULET_CONFIG
-from ...data.locale_data import get_locale_text
-from ...data.damage_type_data import is_physical_damage
+from ...data.entities.amulet_data import AMULET_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.battle.damage_type_data import is_physical_damage
 from ...core.inventory.deck_service import DeckService, UPGRADE_SUFFIX
 
 class AmuletTemplate:
     def on_end_turn(self, run, grid: str, engine) -> str:
+        return ""
+
+    def on_enemy_turn_start(self, run, grid: str, engine) -> str:
         return ""
 
     def on_take_damage(self, run, grid: str, source: str, amount: int, engine) -> str:
@@ -379,3 +382,65 @@ ALL_AMULETS = {
     "grand_coronation": GrandCoronationAmulet(),
     "blade_regiment_banner": BladeRegimentBannerAmulet(),
 }
+
+
+class RainieWindowAmulet(AmuletTemplate):
+    def __init__(self):
+        cfg = AMULET_CONFIG.get("rainie_window", {})
+        self.cold_damage = cfg.get("cold_damage", 10)
+        self.absorb = cfg.get("absorb", 0.3)
+        self.death_damage = cfg.get("death_damage", 24)
+        self.wet_stacks = cfg.get("wet_stacks", 2)
+        self.shock_stacks = cfg.get("shock_stacks", 2)
+
+    def on_enemy_turn_start(self, run, grid, engine):
+        for idx in range(len(run.enemies) - 1, -1, -1):
+            if idx < len(run.enemies) and run.enemies[idx].hp > 0:
+                enemy = run.enemies[idx]
+                engine._damage_target(run, f"e{idx + 1}", self.cold_damage, source="p0", damage_type="cold")
+                if enemy in run.enemies and enemy.hp > 0:
+                    _add_window_buff(engine, enemy, "wet", 1)
+        return get_locale_text("i18n_rainie.window.turn_start", damage=self.cold_damage)
+
+    def on_damage_calculate(self, run, grid, event, engine):
+        if event.target != "p0":
+            return
+        if not (event.source.startswith("e") or event.source.startswith("enemy:")):
+            return
+        av = run.player.amulets.get(grid)
+        if av is None:
+            return
+        event.modified_damage = int(event.modified_damage * (1.0 - self.absorb))
+        av.countdown -= 1
+        if av.countdown > 0:
+            return
+        run.player.amulets.pop(grid, None)
+        run.player.minion_graveyard.append(av.id)
+        msg = self.on_death(run, grid, av.id.endswith(UPGRADE_SUFFIX), engine)
+        engine._log_event(run, get_locale_text("i18n_rainie.window.requiem", name=av.name, effect=msg))
+
+    def on_death(self, run, grid, is_upgraded, engine):
+        return rainie_window_swan_song(run, engine)
+
+
+def _add_window_buff(engine, enemy, buff_id: str, stacks: int) -> None:
+    from ...data.entities.buffs.buff_data import BUFF_CONFIG
+    cfg = BUFF_CONFIG.get(buff_id, {})
+    engine._add_buff_to(enemy, buff_id, cfg.get("name", buff_id), cfg.get("desc", ""), stacks)
+
+
+def rainie_window_swan_song(run, engine) -> str:
+    cfg = AMULET_CONFIG.get("rainie_window", {})
+    damage = cfg.get("death_damage", 24)
+    wet = cfg.get("wet_stacks", 2)
+    shock = cfg.get("shock_stacks", 2)
+    for idx in range(len(run.enemies) - 1, -1, -1):
+        if idx < len(run.enemies) and run.enemies[idx].hp > 0:
+            enemy = run.enemies[idx]
+            engine._damage_target(run, f"e{idx + 1}", damage, source="p0", damage_type="piercing")
+            if enemy in run.enemies and enemy.hp > 0:
+                _add_window_buff(engine, enemy, "wet", wet)
+                _add_window_buff(engine, enemy, "shock", shock)
+    return get_locale_text("i18n_rainie.window.shatter", damage=damage, wet=wet, shock=shock)
+
+ALL_AMULETS["rainie_window"] = RainieWindowAmulet()

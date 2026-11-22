@@ -1,5 +1,5 @@
 import random
-from ...data.enchantment_data import (
+from ...data.entities.enchantment_data import (
     ENCHANTMENT_CONFIG,
     ENCHANTMENT_RARITY_WEIGHTS,
     START_ENCHANT_CHANCE,
@@ -7,7 +7,7 @@ from ...data.enchantment_data import (
     START_ENCHANT_MIN_CARDS,
     START_ENCHANT_POOL,
 )
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ...models.state import CardState, ensure_card_state
 
 

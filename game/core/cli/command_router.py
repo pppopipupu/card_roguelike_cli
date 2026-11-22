@@ -1,6 +1,6 @@
 from typing import Generator
 from ..cli.base import CommandHandler
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 
 class CommandRouter:
     def __init__(self, save_manager, engine):

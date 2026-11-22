@@ -2,9 +2,9 @@ from typing import List, Optional
 import re
 from .base import BuffImpl
 from .registry import register_buff
-from ...data.buff_data import BUFF_CONFIG
-from ...data.locale_data import get_locale_text
-from ...data.damage_type_data import damage_type_matches, is_spell_card_damage
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.battle.damage_type_data import damage_type_matches, is_spell_card_damage
 
 def _stat(instance, buff_id, name, default):
     cfg = BUFF_CONFIG.get(buff_id, {})
@@ -63,7 +63,9 @@ class BeatOfDeathBuff(BuffImpl):
         self.damage_value = stacks
 
     def on_card_played(self, event, buff_state, entity):
-        if event.run.node_data.get("extra_turns_left", 0) > 0 and event.run.node_data.get("time_stop_upgraded"):
+        from ...core.battle.extra_turn_service import should_pause_debuffs
+        actor_uid = event.run.uid_for(event.run.player) or event.run.user_id
+        if should_pause_debuffs(event.run, actor_uid):
             return
         p = event.run.player
         engine = event.engine
@@ -340,7 +342,8 @@ class ConfusionBuff(BuffImpl):
             mult = _stat(self, "confusion", "damage_multiplier", 0.7)
             event.modified_damage = int(event.modified_damage * mult)
 
-    def on_damage_take_attack(self, event, buff_state, entity, engine):
+    def on_damage_take_attack(self, event, buff_state, entity, engine=None):
+        engine = event.engine
         run = event.run
         if event.amount <= 0 or event.source == event.target:
             return
@@ -387,7 +390,8 @@ class TremorBuff(BuffImpl):
             mult = _stat(self, "tremor", "shield_multiplier", 0.5)
             event.modified_amount = int(event.modified_amount * mult)
 
-    def on_damage_take_defend(self, event, buff_state, entity, engine):
+    def on_damage_take_defend(self, event, buff_state, entity, engine=None):
+        engine = event.engine
         run = event.run
         if event.source not in ("p0", "player", "effect") or event.amount <= 0 or entity.hp <= 0:
             return

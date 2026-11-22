@@ -5,9 +5,9 @@ import unittest
 
 from game.core.world.bleak_falls import enter_bleak_floor
 from game.core.world.chireiden import enter_chireiden_elevator
-from game.data.ancient_node_config import ANCIENT_DEITIES
-from game.data.balance_config import MAP_ANCIENT_OPTION_SLOTS
-from game.data.map_quest_config import BLEAK_FALLS_FLOOR_INDEX, BLEAK_SANCTUARY_FLOOR_INDEX
+from game.data.world.ancient_node_config import ANCIENT_DEITIES
+from game.data.progression.balance_config import MAP_ANCIENT_OPTION_SLOTS
+from game.data.world.map_quest_config import BLEAK_FALLS_FLOOR_INDEX, BLEAK_SANCTUARY_FLOOR_INDEX
 from game.entities import ALL_CARDS
 from game.models.state import CardState
 from game.test.core.base import CorePlugin, floor_of, load_run, run_command

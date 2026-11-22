@@ -11,7 +11,7 @@ from ..core.world.rooms.big_room import (
     is_big_room_direct_adjacent,
 )
 from ..core.world.rooms.hostile_npc import ensure_room_hostile_npcs, ensure_treasure_chest_prop
-from ..data.grid_map_config import (
+from ..data.world.grid_map_config import (
     DIRECT_REVEAL_ADJACENT_TYPES,
     FLOOR_CONFIGS,
     PERMANENT_ICON_TYPES,
@@ -19,9 +19,9 @@ from ..data.grid_map_config import (
     ROOM_ICONS,
     get_display_floor,
 )
-from ..data.locale_data import get_locale_text
+from ..data.text.locale_data import get_locale_text
 from ..core.world.bleak_falls import BLEAK_LANDMARK_TYPES
-from ..data.map_quest_config import ROOM_BLEAK_ENTRANCE
+from ..data.world.map_quest_config import ROOM_BLEAK_ENTRANCE
 from ..models.state import GameRun
 from .formatters import format_npcs_and_players_line, format_persistent_buff_bar, format_relic_bar
 from .world_grid import render_grid_header, render_grid_view
@@ -281,7 +281,7 @@ def render_downstairs(run: GameRun) -> str:
 
 
 def _describe_neighbor(fm, x: int, y: int, viewer_big_room_id: str = "") -> str:
-    from ..data.room_interact_data import OBSTACLE_STYLES
+    from ..data.world.room_interact_data import OBSTACLE_STYLES
     if not (0 <= x < fm.width and 0 <= y < fm.height):
         return get_locale_text("i18n_room_interact.dir.void_edge")
     coord = xy_to_coord(x, y)
@@ -320,7 +320,7 @@ def _describe_neighbor(fm, x: int, y: int, viewer_big_room_id: str = "") -> str:
 def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players: list[dict] | None = None) -> list[str]:
     from ..core.inventory.bag_service import format_weight, get_bag_max_weight, get_bag_weight, get_item_display_name
     from ..core.world.rooms.interact import format_room_env_with_props
-    from ..data.room_interact_data import ROOM_NPCS
+    from ..data.world.room_interact_data import ROOM_NPCS
     ensure_room_hostile_npcs(fm, cur_room)
     ensure_treasure_chest_prop(cur_room)
     shared = getattr(cur_room, "shared_payload", None) or {}
@@ -360,9 +360,9 @@ def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players:
     ghost_names: list[str] = []
     if fm is not None and fm.floor_flags.get("yog_quest"):
         from ..core.world.open_world.ghost_service import OpenWorldGhostService
-        from ..data.open_world_config import WORLD_YOG_TEMPLE
-        from ..data.world_social_config import WORLD_SNOWFIELD
-        from ..data.yog_quest_config import YOG_FLOOR_TEMPLE
+        from ..data.world.open_world_config import WORLD_YOG_TEMPLE
+        from ..data.world.world_social_config import WORLD_SNOWFIELD
+        from ..data.world.yog_quest_config import YOG_FLOOR_TEMPLE
         from ..models.manager import SaveManager
 
         world = WORLD_YOG_TEMPLE if fm.floor_index == YOG_FLOOR_TEMPLE else WORLD_SNOWFIELD

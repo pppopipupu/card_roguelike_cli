@@ -1,5 +1,5 @@
-from ...data.starting_deck_config import LOCK_SLOT_LIMIT
-from ...data.ultimate_prism_data import (
+from ...data.progression.starting_deck_config import LOCK_SLOT_LIMIT
+from ...data.content.ultimate_prism_data import (
     CHIREIDEN_QUEST_COMPLETED_FLAG,
     ULTIMATE_PRISM_CARD_ID,
     ULTIMATE_PRISM_CONFIG,

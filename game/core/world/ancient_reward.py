@@ -1,6 +1,6 @@
 import random
 
-from ...data.ancient_node_config import (
+from ...data.world.ancient_node_config import (
     ANCIENT_BLESSING_POOLS,
     ANCIENT_CLASS_LEGENDS,
     ANCIENT_ICERAINBOWW_LEGEND,
@@ -9,8 +9,8 @@ from ...data.ancient_node_config import (
     ANCIENT_START_POOLS,
     ANCIENT_STYLE_CHOICES,
 )
-from ...data.balance_config import MAP_ANCIENT_OPTION_SLOTS, MAP_ANCIENT_RELIC_CHOICES
-from ...data.locale_data import get_locale_text
+from ...data.progression.balance_config import MAP_ANCIENT_OPTION_SLOTS, MAP_ANCIENT_RELIC_CHOICES
+from ...data.text.locale_data import get_locale_text
 from ...entities import ALL_CARDS, get_relic_name
 from ...models.state import check_and_replace_fireball, ensure_card_state
 from ..inventory.relic_service import grant_relic
@@ -30,7 +30,7 @@ def _build_legend_candidates(base_legends: list[str], pool_key: str, stats, icer
     if getattr(stats, "killed_icerainboww", False) and icerainboww_enabled:
         combined.append(ANCIENT_ICERAINBOWW_LEGEND)
     from ...entities.cards.market import is_card_available
-    from ...data.map_quest_config import CARD_FUS_RO_DAH
+    from ...data.world.map_quest_config import CARD_FUS_RO_DAH
     if is_card_available(CARD_FUS_RO_DAH, stats):
         combined.append(CARD_FUS_RO_DAH)
     for cid in combined:
@@ -108,6 +108,11 @@ def apply_ancient_relic_side_effects(p, rid: str) -> None:
     elif rid == "glacier_armor":
         p.max_hp = max(5, p.max_hp - 5)
         p.hp = min(p.hp, p.max_hp)
+    elif rid == "rainie_form":
+        from ...data.entities.relic_data import RELIC_CONFIG
+        grant_card = str(RELIC_CONFIG.get(rid, {}).get("grant_card", "rainie_love"))
+        if grant_card and not any(ensure_card_state(card).id == grant_card for card in p.deck):
+            p.deck.append(ensure_card_state(grant_card))
 
 
 def grant_ancient_blessing(run, chosen, player=None) -> str:

@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
-from ...data.locale_data import get_locale_text
-from ...data.tutorial_data import (
+from ...data.text.locale_data import get_locale_text
+from ...data.world.tutorial_data import (
     TUTORIAL_DECK,
     TUTORIAL_ENEMY,
     TUTORIAL_FLOOR_INDEX,

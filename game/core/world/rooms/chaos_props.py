@@ -1,6 +1,6 @@
 import random
-from ....data.chaos_expansion_data import CHAOS_GROUND_ITEMS
-from ....data.locale_data import get_locale_text
+from ....data.content.chaos_expansion_data import CHAOS_GROUND_ITEMS
+from ....data.text.locale_data import get_locale_text
 from ...inventory.bag_service import add_bag_item, get_item_display_name
 from ..persistent_buffs import add_persistent_buff
 from ..sp_system import reduce_exhaustion, restore_sp

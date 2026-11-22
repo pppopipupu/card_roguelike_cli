@@ -1,11 +1,11 @@
-from ...data.anna_card_config import (
+from ...data.cards.classes.anna_card_config import (
     ANNE_CARD_ID,
     ANNE_FANFARE_CONFIG,
     ANNE_SPIRIT_CONFIG,
     ANNE_SPIRIT_ID,
 )
-from ...data.locale_data import get_locale_text
-from ...data.minion_data import MINION_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.entities.minions.minion_data import MINION_CONFIG
 from ...models.events import MinionDeathEvent, MinionSummonEvent, TurnStartEvent
 from ..inventory.deck_service import DeckService
 from .vanish import count_cards_in_piles, vanish_cards

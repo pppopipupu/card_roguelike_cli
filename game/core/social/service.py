@@ -1,14 +1,14 @@
 from datetime import datetime
 
-from ...data.account_config import RENAME_COST_GP
-from ...data.checkin_data import (
+from ...data.progression.account_config import RENAME_COST_GP
+from ...data.progression.checkin_data import (
     DEFAULT_CLASS_NAME,
     DEFAULT_PLAYER_NAME,
     FRIEND_SEARCH_LIMIT,
     IM_ACCOUNT_MAX_LENGTH,
     PLAYER_NAME_MAX_LENGTH,
 )
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ...models.records import PlayerProfile
 from .player_names import PlayerNameError, parse_player_name, unique_handle
 from .team import SocialTeamMixin

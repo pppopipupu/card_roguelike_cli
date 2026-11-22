@@ -1,9 +1,9 @@
 from dataclasses import asdict
 from typing import Callable, Optional
 
-from ...data.relic_data import RELIC_CONFIG
-from ...data.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
-from ...data.trade_config import (
+from ...data.entities.relic_data import RELIC_CONFIG
+from ...data.world.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
+from ...data.progression.trade_config import (
     TRADE_KINDS,
     TRADE_KIND_CARD,
     TRADE_KIND_ITEM,

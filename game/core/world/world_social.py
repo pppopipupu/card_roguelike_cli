@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from ...data.balance_config import LOG_MAX_ENTRIES
-from ...data.locale_data import get_locale_text
-from ...data.world_social_config import (
+from ...data.progression.balance_config import LOG_MAX_ENTRIES
+from ...data.text.locale_data import get_locale_text
+from ...data.world.world_social_config import (
     WORLD_MAILBOX_LIMIT,
     WORLD_MESSAGE_MAX_LENGTH,
     WORLD_PENDING_LOG_LIMIT,

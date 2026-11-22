@@ -3,7 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from ...data.card_distribution_config import (
+from ...data.cards.card_distribution_config import (
     BATTLE_DIFFICULTY_CHANNEL_MAP,
     CHANNEL_POLICIES,
     CLASS_TO_CARD_COLOR,

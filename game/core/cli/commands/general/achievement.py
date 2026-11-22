@@ -1,7 +1,7 @@
 from typing import Generator
 
 from ....progress.achievement_service import AchievementService
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 from .....renderer.menu import render_reader_page
 from ...base import CommandHandler
 

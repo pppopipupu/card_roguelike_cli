@@ -1,6 +1,6 @@
-from ...data.buff_data import BUFF_CONFIG
-from ...data.locale_data import get_locale_text
-from ...data.relic_data import RELIC_CONFIG
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...data.entities.relic_data import RELIC_CONFIG
 from .base import RelicImpl
 from .registry import register_relic
 

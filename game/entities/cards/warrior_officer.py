@@ -1,8 +1,8 @@
 from typing import Optional
 from ...models.state import Card
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ...core.inventory.deck_service import DeckService
-from ...core.battle.target_selector import SelectionStepSpec, pop_selected_pile_cards
+from ...core.battle.selection import SelectionStepSpec, pop_selected_pile_cards
 from .registry import register_card
 
 AURORA_ENTRY_SHIELD = 12
@@ -165,28 +165,20 @@ class OfficerSquadSkirmisherCard(Card):
 @register_card("commander_valiant_herald")
 class CommanderValiantHeraldCard(Card):
     def get_selection_spec(self, run, engine) -> Optional[dict]:
-        return {
-            "phase": "pre_play",
-            "can_cancel": True,
-            "steps": [
-                SelectionStepSpec(
-                    step_id="recruit_card",
-                    kind="draw",
-                    min_count=1,
-                    max_count=1,
-                    required=True,
-                    auto_single=True,
-                    filter_fn=lambda _cs, card_obj, _run: bool(
-                        card_obj
-                        and card_obj.type == "minion"
-                        and (card_obj.id.startswith("officer_") or card_obj.id.startswith("commander_"))
-                    ),
-                    prompt_key="i18n_cards_warrior_wizard.warrior.valiant_herald.prompt",
-                    error_key="i18n_cli_core.select_required_default",
-                    invalid_index_key="i18n_cards_warrior_wizard.warrior.valiant_herald.invalid",
-                )
-            ],
-        }
+        from ...core.battle.selection import discover_from_pile_spec
+        return discover_from_pile_spec(
+            step_id="recruit_card",
+            source="draw",
+            max_count=1,
+            filter_fn=lambda _cs, card_obj, _run: bool(
+                card_obj
+                and card_obj.type == "minion"
+                and (card_obj.id.startswith("officer_") or card_obj.id.startswith("commander_"))
+            ),
+            prompt_key="i18n_cards_warrior_wizard.warrior.valiant_herald.prompt",
+            error_key="i18n_cli_core.select_required_default",
+            invalid_index_key="i18n_cards_warrior_wizard.warrior.valiant_herald.invalid",
+        )
 
     def execute_with_selections(self, run, selections: dict, engine) -> str:
         selected = selections.get("recruit_card", [])

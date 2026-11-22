@@ -1,8 +1,8 @@
 import random
 from ...core.inventory.deck_service import DeckService
-from ...data.locale_data import get_locale_text
-from ...data.ninja_card_data_basic import NINJA_CARD_CONFIG_BASIC
-from ...data.ninja_card_data_uncommon import NINJA_CARD_CONFIG_UNCOMMON
+from ...data.text.locale_data import get_locale_text
+from ...data.cards.classes.ninja_card_data_basic import NINJA_CARD_CONFIG_BASIC
+from ...data.cards.classes.ninja_card_data_uncommon import NINJA_CARD_CONFIG_UNCOMMON
 from ...models.state import CardState
 from .ninja_base import (
     NinjaCard,
@@ -226,12 +226,16 @@ class NinjaGoodNightCard(NinjaCard):
         change_lex_kela(engine, run, run.player, 5 if self.upgraded else 3, reason="card", source_card_id=self.id)
         engine.combat_resolver.heal_target(run, "p0", 12 if self.upgraded else 8)
         add_ninja_buff(engine, run.player, "good_night", 1)
-        run.node_data["ninja_force_end_turn"] = True
+        from ...core.battle.extra_turn_service import request_force_end
+        request_force_end(run, run.player, self.id)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
 @register_card("ninja_hamood_kick")
 class NinjaHamoodKickCard(NinjaCard):
+    def on_draw(self, event, card_state):
+        card_state.battle_cost_delta_a = int(getattr(card_state, "battle_cost_delta_a", 0) or 0) + 1
+
     def execute(self, run, target, engine) -> str:
         deal_all_enemies(engine, run, self, int(getattr(self, "base_dmg", 13) or 13), "bludgeoning")
         ok, _ = consume_ninjutsu_lex(engine, run, run.player, 1, self.id)
@@ -256,7 +260,8 @@ class NinjaHeBullyMeCard(NinjaCard):
             uid = run.uid_for(pl) or run.user_id
             store = run.node_data.setdefault("enchant_temp_strength", {})
             store[uid] = int(store.get(uid, 0)) + str_gain
-        run.node_data["ninja_force_end_turn"] = True
+        from ...core.battle.extra_turn_service import request_force_end
+        request_force_end(run, run.player, self.id)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 
@@ -311,6 +316,20 @@ class NinjaManTooWeakCard(NinjaCard):
 
 @register_card("ninja_mobius_loop_snake")
 class NinjaMobiusLoopSnakeCard(NinjaCard):
+    def on_turn_start_in_exhaust(self, event, card_state):
+        run = event.run
+        engine = event.engine
+        prev_id = str(run.node_data.get("ninja_last_played_card_id", "") or "")
+        if not prev_id or prev_id == self.id:
+            return
+        from .base import ALL_CARDS
+        prev_card = ALL_CARDS.get(prev_id)
+        if prev_card is None:
+            return
+        target = engine._get_first_alive_enemy(run)
+        engine._execute_card_effect(run, prev_card, target)
+        engine._log_event(run, get_locale_text("i18n_cards_ninja.mobius_exhaust_replay", name=prev_card.name))
+
     def execute(self, run, target, engine) -> str:
         from .base import ALL_CARDS
         prev_id = str(run.node_data.get("ninja_last_played_card_id", "") or "")
@@ -375,7 +394,6 @@ class NinjaShadowBladeCard(NinjaCard):
                 engine._execute_card_effect(run, picked_card, target)
             run.player.exhaust_pile.append(picked)
             engine.event_bus.dispatch(CardExhaustEvent(run, picked, "ninja_shadow_blade"))
-            run.node_data["ninja_blades_played"] = int(run.node_data.get("ninja_blades_played", 0) or 0) + 1
             for b in list(run.player.buffs):
                 if b.id == "lan_blade_cutting" and b.stacks > 0:
                     for _ in range(b.stacks):
@@ -460,6 +478,9 @@ class NinjaWePeaceCard(NinjaCard):
 
 @register_card("ninja_wild_snake_god")
 class NinjaWildSnakeGodCard(NinjaCard):
+    def on_turn_start_in_hand(self, event, card_state):
+        card_state.temp_cost_a = random.randint(0, 3)
+
     def execute(self, run, target, engine) -> str:
         add_ninja_buff(engine, run.player, "wild_snake_god", 1)
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)

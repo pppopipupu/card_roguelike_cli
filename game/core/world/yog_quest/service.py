@@ -1,10 +1,10 @@
 import uuid
 from typing import Optional
 
-from ....data.locale_data import get_locale_text
-from ....data.outer_plane_config import NECRONOMICON_ITEM, OUTER_PLANE_ACTIVE_FLAG
-from ....data.grid_map_config import FLOOR_CONFIGS
-from ....data.yog_quest_config import (
+from ....data.text.locale_data import get_locale_text
+from ....data.world.outer_plane_config import NECRONOMICON_ITEM, OUTER_PLANE_ACTIVE_FLAG
+from ....data.world.grid_map_config import FLOOR_CONFIGS
+from ....data.world.yog_quest_config import (
     YOG_FLOOR_WILDS,
     YOG_INFO_FLAG,
     YOG_QUEST_FLAG,
@@ -13,7 +13,7 @@ from ....data.yog_quest_config import (
     YOG_SIGIL_ITEM,
 )
 from ....models.state import GameRun
-from ....data.balance_config import COOP_MAX_PLAYERS
+from ....data.progression.balance_config import COOP_MAX_PLAYERS
 from ..presence import sync_active
 from ..world_social import WorldSocialService
 from ..open_world.loadout_service import OpenWorldLoadoutService

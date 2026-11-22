@@ -1,7 +1,7 @@
 from ...models.state import GameRun, EnemyState
 from ...models.events import TurnStartEvent, TurnEndEvent
 from ...entities import get_enemy_template
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from ..text.events import JoinedText, LocaleText, RenderedText, TextDocument, locale_text
 from ..text.pipeline import render_text
 
@@ -48,27 +48,23 @@ class EnemyTurnController:
         evt = EnemySyncIntentsEvent(enemy)
         self.engine.event_bus.dispatch(evt)
 
-        has_stun = any(b.id == "stun" and b.stacks > 0 for b in getattr(enemy, "buffs", []))
-        if has_stun:
-            pass
-        else:
-            temp_a = enemy.actions
-            temp_ba = enemy.bonus_actions
-            for it in enemy.intents:
-                it.cancelled = False
-                it.cancelled_desc = ""
-                if it.cost_a > 0:
-                    if temp_a >= it.cost_a:
-                        temp_a -= it.cost_a
-                    else:
-                        it.cancelled = True
-                        it.cancelled_desc = get_locale_text("i18n_battle_core.cancelled_desc")
-                if it.cost_ba > 0:
-                    if temp_ba >= it.cost_ba:
-                        temp_ba -= it.cost_ba
-                    else:
-                        it.cancelled = True
-                        it.cancelled_desc = get_locale_text("i18n_battle_core.cancelled_desc")
+        temp_a = enemy.actions
+        temp_ba = enemy.bonus_actions
+        for it in enemy.intents:
+            it.cancelled = False
+            it.cancelled_desc = ""
+            if it.cost_a > 0:
+                if temp_a >= it.cost_a:
+                    temp_a -= it.cost_a
+                else:
+                    it.cancelled = True
+                    it.cancelled_desc = get_locale_text("i18n_battle_core.cancelled_desc")
+            if it.cost_ba > 0:
+                if temp_ba >= it.cost_ba:
+                    temp_ba -= it.cost_ba
+                else:
+                    it.cancelled = True
+                    it.cancelled_desc = get_locale_text("i18n_battle_core.cancelled_desc")
         enemy.intent_a_type = ""
         enemy.intent_a_val = 0
         enemy.intent_a_desc = ""
@@ -124,14 +120,13 @@ class EnemyTurnController:
             if hasattr(template, "on_battle_start") and not getattr(enemy, "_battle_init_done", False):
                 enemy._battle_init_done = True
                 template.on_battle_start(run, enemy, self.engine)
-            for buff in list(getattr(enemy, "buffs", [])):
-                if buff.id == "astral_speed":
-                    enemy.actions += buff.stacks
-                    enemy.buffs.remove(buff)
-                elif buff.id == "bonus_speed":
-                    enemy.bonus_actions += buff.stacks
-                    enemy.buffs.remove(buff)
-            enemy.intents = template.roll_intents(run, self.engine, enemy)
+            from ...models.events import EnemyRollIntentEvent
+            roll_evt = EnemyRollIntentEvent(run, enemy)
+            self.engine.event_bus.dispatch(roll_evt)
+            if roll_evt.cancelled:
+                enemy.intents = []
+            else:
+                enemy.intents = template.roll_intents(run, self.engine, enemy)
             self.sync_enemy_intents(enemy)
 
     def enemy_turn(self, run: GameRun) -> str:
@@ -242,8 +237,6 @@ class EnemyTurnController:
         self.engine.event_bus.dispatch(TurnEndEvent(run, is_player=False))
         run.node_data.pop("coop_damage_aoe", None)
         run.node_data.pop("coop_damage_target_uid", None)
-        for player in run.players.values():
-            player.buffs[:] = [buff for buff in player.buffs if buff.id != "coop_aegis"]
         for enemy in run.enemies:
             enemy.actions = enemy.max_actions
             enemy.bonus_actions = enemy.max_bonus_actions

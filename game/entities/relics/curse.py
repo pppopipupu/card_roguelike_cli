@@ -1,5 +1,5 @@
 import re
-from ...data.locale_data import get_locale_text
+from ...data.text.locale_data import get_locale_text
 from .base import RelicImpl
 from .registry import register_relic
 

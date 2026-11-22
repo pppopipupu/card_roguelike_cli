@@ -1,6 +1,6 @@
 from typing import Generator
 from ...base import CommandHandler
-from .....data.locale_data import get_locale_text
+from .....data.text.locale_data import get_locale_text
 
 class TownTakeCommand(CommandHandler, names=["拿取", "捡起", "take", "pick"], allowed_states=["town", "dialog"], help_key="take"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:

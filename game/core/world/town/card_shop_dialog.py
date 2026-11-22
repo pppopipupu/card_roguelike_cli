@@ -1,5 +1,5 @@
-from ....data.locale_data import get_locale_text
-from ....data.town_card_shop_data import TOWN_CARD_MERCHANT_NPC_ID, TOWN_CARD_SHOP_CATALOG
+from ....data.text.locale_data import get_locale_text
+from ....data.world.town_card_shop_data import TOWN_CARD_MERCHANT_NPC_ID, TOWN_CARD_SHOP_CATALOG
 from ....entities import ALL_CARDS
 from ....models.state import UserStats, ensure_card_state
 from ...text.events import LocaleText

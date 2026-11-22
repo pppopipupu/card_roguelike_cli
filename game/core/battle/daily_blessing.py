@@ -1,6 +1,6 @@
 import random
-from ...data.checkin_data import DAILY_BLESSINGS
-from ...data.locale_data import get_locale_text
+from ...data.progression.checkin_data import DAILY_BLESSINGS
+from ...data.text.locale_data import get_locale_text
 from ...models.state import CardState
 from ...models.events import BattleStartEvent, DamageCalculateEvent, CardPlayedEvent
 from ...entities.cards.market import is_card_available, is_coop_only

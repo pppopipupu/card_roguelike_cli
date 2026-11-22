@@ -1,8 +1,8 @@
 from typing import Optional, List
 from ...models.state import Card
-from ...data.card_data import CARD_CONFIG
-from ...data.locale_data import get_locale_text
-from ...core.battle.target_selector import SelectionStepSpec, pop_selected_pile_cards
+from ...data.cards.card_data import CARD_CONFIG
+from ...data.text.locale_data import get_locale_text
+from ...core.battle.selection import SelectionResult, pile_card_step, target_step
 from .registry import register_card
 
 THUNDERWAVE_ACTION_LOSS = 1
@@ -139,7 +139,7 @@ class ArcaneSparkCard(Card):
 @register_card("echo_form")
 class EchoFormCard(Card):
     def execute(self, run, target, engine) -> str:
-        from ...data.buff_data import BUFF_CONFIG
+        from ...data.entities.buffs.buff_data import BUFF_CONFIG
         buff_info = BUFF_CONFIG.get("echo_form", {})
         buff_name = buff_info.get("name", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.echo_form.name"))
         buff_desc = buff_info.get("desc", "")
@@ -201,22 +201,10 @@ class FleetingSparkCard(Card):
             "phase": "post_play",
             "can_cancel": False,
             "steps": [
-                SelectionStepSpec(
-                    step_id="target",
-                    kind="enemy",
-                    min_count=1,
-                    max_count=1,
-                    required=True,
-                    auto_single=True,
-                    allow_simple_auto=True,
-                ),
-                SelectionStepSpec(
-                    step_id="discard_card",
-                    kind="hand",
-                    min_count=1,
-                    max_count=1,
-                    required=True,
-                    auto_single=True,
+                target_step("target", "enemy", allow_simple_auto=True),
+                pile_card_step(
+                    "discard_card",
+                    "hand",
                     prompt_key="i18n_cli_core.select_prompt_default",
                     error_key="i18n_cli_core.err_force_discard_required",
                     invalid_index_key="i18n_cli_core.err_invalid_hand_index",
@@ -238,14 +226,15 @@ class FleetingSparkCard(Card):
 
     def execute_post_selections(self, run, selections: dict, engine) -> str:
         p = run.player
-        selected = selections.get("discard_card", [])
-        if not selected or not p.hand:
+        result = SelectionResult.from_raw(selections)
+        if not p.hand:
             return ""
-        popped = pop_selected_pile_cards(p.hand, selected)
+        popped = result.pop_cards(p.hand, "discard_card")
         if not popped:
             return ""
         effect_msg = engine._discard_card(run, popped[0])
-        res = get_locale_text("i18n_cli_core.discard_result", card_name=selected[0]["label"])
+        labels = result.labels("discard_card")
+        res = get_locale_text("i18n_cli_core.discard_result", card_name=labels[0] if labels else "")
         if effect_msg:
             res += f"\n{effect_msg}"
         return res
@@ -350,7 +339,7 @@ class ArcaneTorrentCard(Card):
                 if enemy in run.enemies:
                     curr_idx = run.enemies.index(enemy)
                     engine._damage_target(run, f"e{curr_idx+1}", force_dmg, damage_type="force", card=self, damage_ready=True)
-        from ...data.card_data import CARD_CONFIG
+        from ...data.cards.card_data import CARD_CONFIG
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
@@ -366,14 +355,14 @@ class ArcaneBarrierCard(Card):
         engine._gain_shield(run, "p0", shield_val)
         bonus_msg = ""
         if X > getattr(self, "threshold", 1):
-            from ...data.buff_data import BUFF_CONFIG
+            from ...data.entities.buffs.buff_data import BUFF_CONFIG
             buff_info = BUFF_CONFIG.get("buffer", {})
             buff_name = buff_info.get("name", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.buffer.name"))
             buff_desc = buff_info.get("desc", "")
             buff_stacks = getattr(self, "buff_stacks", 1)
             engine._add_buff_to(run.player, "buffer", buff_name, buff_desc, buff_stacks)
             bonus_msg = get_locale_text("i18n_cards_warrior_wizard.wizard.arcane_barrier.bonus", buff_stacks=buff_stacks, buff_name=buff_name)
-        from ...data.card_data import CARD_CONFIG
+        from ...data.cards.card_data import CARD_CONFIG
         cfg = CARD_CONFIG.get(self.id.replace("+", ""), {})
         feedback_tmpl = cfg.get("feedback")
         if feedback_tmpl:
@@ -437,7 +426,7 @@ class WizardTimeRavageCard(Card):
 class WizardSplitToTenCard(Card):
     def execute(self, run, target, engine) -> str:
         stacks = getattr(self, "buff_stacks", 2 if self.upgraded else 1)
-        from ...data.buff_data import BUFF_CONFIG
+        from ...data.entities.buffs.buff_data import BUFF_CONFIG
         buff_info = BUFF_CONFIG.get("split_to_ten", {})
         engine._add_buff_to(run.player, "split_to_ten", buff_info.get("name", get_locale_text("i18n_cards_warrior_wizard.wizard.buffs.split_to_ten.name")), buff_info.get("desc", ""), stacks)
         return get_locale_text("i18n_cards_warrior_wizard.wizard.split_to_ten.result", name=self.name, stacks=stacks)

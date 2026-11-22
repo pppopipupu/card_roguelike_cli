@@ -4,13 +4,13 @@ import random
 import tempfile
 import unittest
 
-from game.data.ninja_card_data import (
+from game.data.cards.classes.ninja_card_data import (
     NINJA_BUFF_CONFIG,
     NINJA_CARD_CONFIG,
     NINJA_RELIC_CONFIG,
     NINJA_UPGRADE_CONFIG,
 )
-from game.data.starting_deck_config import CLASS_BASE_HP, DEFAULT_BASE_HP
+from game.data.progression.starting_deck_config import CLASS_BASE_HP, DEFAULT_BASE_HP
 from game.entities import ALL_CARDS
 from game.entities.cards.base import get_card_color_icon
 from game.entities.events import ALL_EVENTS

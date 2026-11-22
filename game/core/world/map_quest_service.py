@@ -2,9 +2,9 @@ import random
 from collections import deque
 from typing import Any, Optional
 
-from ...data.grid_map_config import PASSABLE_ROOM_TYPES
-from ...data.locale_data import get_locale_text
-from ...data.map_quest_config import (
+from ...data.world.grid_map_config import PASSABLE_ROOM_TYPES
+from ...data.text.locale_data import get_locale_text
+from ...data.world.map_quest_config import (
     ITEM_SURVEY_CHART,
     NPC_BRAZIER_KEEPER,
     NPC_MAP_SURVEYOR,

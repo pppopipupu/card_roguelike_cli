@@ -1,8 +1,8 @@
 from typing import List, Optional
 from ..base import EnemyTemplate, register_enemy
 from ....core.inventory.deck_service import DeckService
-from ....data.enemy_data import ENEMY_CONFIG
-from ....data.locale_data import get_locale_text
+from ....data.enemies.enemy_data import ENEMY_CONFIG
+from ....data.text.locale_data import get_locale_text
 
 
 def _make_intent(intent_id: str, val: int, desc: str, cost_a: int, cost_ba: int):

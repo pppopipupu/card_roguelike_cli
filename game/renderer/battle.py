@@ -2,9 +2,9 @@ from ..models.state import GameRun
 from ..cards import ALL_CARDS, MINION_SKILLS
 from ..entities.cards.base import get_card_color_icon
 from ..entities import get_relic_name, get_relic_desc
-from ..data.buff_data import BUFF_CONFIG
-from ..data.minion_data import MINION_CONFIG
-from ..data.locale_data import t
+from ..data.entities.buffs.buff_data import BUFF_CONFIG
+from ..data.entities.minions.minion_data import MINION_CONFIG
+from ..data.text.locale_data import t
 from .menu import get_card_cost_str
 from .card_preview import render_card_description, replace_structured_number
 from .formatters import (
@@ -106,7 +106,7 @@ def render_battle(run: GameRun) -> str:
     potions = [pid for _, pid in get_player_potions(p)]
     potions_str = ""
     if potions:
-        from ..data.potion_data import get_potion_name
+        from ..data.entities.potion_data import get_potion_name
         potions_str = t("renderer.battle.potions_label") + " ".join([t("i18n_card_runtime.battle.potion_item", idx=idx, name=get_potion_name(r)) for idx, r in enumerate(potions, 1)])
     turn_count = run.node_data.get("turn_count", 1)
     lines = [
@@ -123,7 +123,7 @@ def render_battle(run: GameRun) -> str:
         lines.append(t("renderer.battle.buff_line", name=run.player.name) + format_buff_list(p.buffs))
     if run.node_data.get("pvp_match_id"):
         import time
-        from ..data.pvp_config import PVP_ROPE_WARNING_SECONDS, PVP_TURN_TIMEOUT_SECONDS
+        from ..data.world.pvp_config import PVP_ROPE_WARNING_SECONDS, PVP_TURN_TIMEOUT_SECONDS
         turn_uid = str(run.node_data.get("pvp_turn_uid", ""))
         started_at = float(run.node_data.get("pvp_turn_started_at", time.time()))
         rem = max(0, int(PVP_TURN_TIMEOUT_SECONDS - (time.time() - started_at)))
@@ -234,18 +234,19 @@ def render_battle(run: GameRun) -> str:
                     c_desc = void_corrupt_text(c_desc)
                     cost_str = "?A ?BA"
                 else:
-                    from ..entities.cards.ninja_base import resolve_card_effective_cost_a
+                    from ..entities.cards.ninja_base import resolve_card_effective_cost_a, resolve_card_effective_cost_ba
                     eff_a = resolve_card_effective_cost_a(card, cid, p)
-                    if eff_a != card.cost_a:
+                    eff_ba = resolve_card_effective_cost_ba(card, cid, p)
+                    if eff_a != card.cost_a or eff_ba != card.cost_ba:
                         parts_c = []
                         if eff_a == -1:
                             parts_c.append("X A")
                         elif eff_a > 0:
                             parts_c.append(f"{eff_a}A")
-                        if card.cost_ba == -1:
+                        if eff_ba == -1:
                             parts_c.append("X BA")
-                        elif card.cost_ba > 0:
-                            parts_c.append(f"{card.cost_ba}BA")
+                        elif eff_ba > 0:
+                            parts_c.append(f"{eff_ba}BA")
                         cost_str = " ".join(parts_c) or t("renderer_menu.free_cost")
                     else:
                         cost_str = get_card_cost_str(card)
@@ -254,11 +255,7 @@ def render_battle(run: GameRun) -> str:
                 else:
                     lines.append(t("renderer.battle.hand_card", idx=valid_idx, color=color_ch, name=c_name, rarity=rname, cost=cost_str, desc=c_desc))
                 valid_idx += 1
-    if run.node_data.get("pending_discard"):
-        lines.append(t("renderer.battle.pending_discard"))
-        lines.append(t("renderer.battle.separator"))
-    else:
-        lines.append(t("renderer.battle.separator"))
+    lines.append(t("renderer.battle.separator"))
     if p.fold_guide:
         lines.append(t("renderer.battle.guide_folded"))
     else:
@@ -279,7 +276,7 @@ def render_detailed_battle(run: GameRun) -> str:
     potions = [pid for _, pid in get_player_potions(p)]
     detailed_potions = t("renderer.battle.none")
     if potions:
-        from ..data.potion_data import get_potion_name, get_potion_desc
+        from ..data.entities.potion_data import get_potion_name, get_potion_desc
         detailed_potions = " ".join([t("i18n_card_runtime.battle.detailed_potion_item", idx=idx, name=get_potion_name(r), desc=get_potion_desc(r)) for idx, r in enumerate(potions, 1)])
     lines = [
         t("renderer.battle.separator"),

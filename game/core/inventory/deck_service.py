@@ -1,8 +1,8 @@
 import random
 from dataclasses import asdict, replace
 from ...models.state import CardState, ensure_card_state
-from ...data.reward_config import EPIC_CARD_RARITY, NORMAL_CARD_RARITIES
-from ...data.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
+from ...data.progression.reward_config import EPIC_CARD_RARITY, NORMAL_CARD_RARITIES
+from ...data.progression.starting_deck_config import CLASS_STARTING_CARDS, LOCK_SLOT_LIMIT, STARTING_ROLL_COUNTS
 from .card_distribution import CardDistributor, CardFilterSpec, CardPoolResolver
 
 UPGRADE_SUFFIX = "+"

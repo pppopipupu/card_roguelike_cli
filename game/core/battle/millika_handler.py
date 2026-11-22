@@ -1,5 +1,5 @@
-from ...data.locale_data import get_locale_text
-from ...data.millika_card_config import (
+from ...data.text.locale_data import get_locale_text
+from ...data.cards.classes.millika_card_config import (
     MILLIKA_CARD_ID,
     MILLIKA_FANFARE_CONFIG,
     MILLIKA_MINION_CONFIG,

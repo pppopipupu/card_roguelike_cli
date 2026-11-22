@@ -3,9 +3,9 @@ from typing import List, Optional
 
 from ..base import EnemyTemplate, register_enemy
 from ....core.inventory.deck_service import DeckService
-from ....data.buff_data import BUFF_CONFIG
-from ....data.enemy_data import ENEMY_CONFIG
-from ....data.locale_data import get_locale_text
+from ....data.entities.buffs.buff_data import BUFF_CONFIG
+from ....data.enemies.enemy_data import ENEMY_CONFIG
+from ....data.text.locale_data import get_locale_text
 from ...cards.base import ALL_CARDS
 
 DEEPSEEK_CONFIG_NAME = "DeepSeek V4.1 Flash"

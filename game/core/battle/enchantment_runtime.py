@@ -1,7 +1,7 @@
 import random
-from ...data.buff_data import BUFF_CONFIG
-from ...data.enchantment_data import ENCHANTMENT_CONFIG
-from ...data.locale_data import get_locale_text
+from ...data.entities.buffs.buff_data import BUFF_CONFIG
+from ...data.entities.enchantment_data import ENCHANTMENT_CONFIG
+from ...data.text.locale_data import get_locale_text
 from ...entities.buffs import is_debuff
 from ..inventory.deck_service import DeckService
 from ..inventory.enchantment_service import fold_enchantments
@@ -108,6 +108,15 @@ def apply_enchantment_heal(card, heal: int) -> int:
     if heal > 0 and heal_pct != 0:
         heal = max(1, int(round(heal * max(0.1, 1.0 + heal_pct / 100.0))))
     return heal
+
+
+def enchantment_pierces(card) -> bool:
+    """判断卡牌上的附魔是否带有穿透护盾效果。"""
+    folded = fold_enchantments(getattr(card, "enchantments", None))
+    for eid, _ in folded:
+        if ENCHANTMENT_CONFIG[eid].get("pierce_shield"):
+            return True
+    return False
 
 
 def apply_enchantment_post_play(engine, run, p, card, c_state, target: str, prev_alive_enemies: int) -> None:

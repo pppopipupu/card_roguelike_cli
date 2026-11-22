@@ -5,9 +5,9 @@ import time
 import unittest
 from unittest.mock import patch
 
-from game.data.pvp_config import PVP_TURN_TIMEOUT_SECONDS, PVP_WIN_GP_REWARD
-from game.data.town_card_shop_data import TOWN_CARD_SHOP_CATALOG
-from game.data.world_social_config import WORLD_TOWN
+from game.data.world.pvp_config import PVP_TURN_TIMEOUT_SECONDS, PVP_WIN_GP_REWARD
+from game.data.world.town_card_shop_data import TOWN_CARD_SHOP_CATALOG
+from game.data.world.world_social_config import WORLD_TOWN
 from game.models.state import CardState
 from game.test.core.base import CorePlugin, require_run, run_command
 

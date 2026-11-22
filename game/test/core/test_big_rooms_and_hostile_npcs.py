@@ -6,7 +6,7 @@ import unittest
 from game.core.world.grid_map_generator import coord_to_xy, xy_to_coord
 from game.core.world.persistent_buffs import add_persistent_buff
 from game.core.world.rooms.big_room import create_big_room_instance, get_big_room
-from game.data.big_room_config import build_rect_offsets
+from game.data.world.big_room_config import build_rect_offsets
 from game.models.state import FloorMapState, RoomState
 from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, require_run, run_command
 

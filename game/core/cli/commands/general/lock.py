@@ -2,8 +2,8 @@ from typing import Generator
 from ...base import CommandHandler
 from .....renderer import GameRenderer
 from .....entities import ALL_CARDS
-from .....data.locale_data import get_locale_text
-from .....data.starting_deck_config import LOCK_PRICE_GP, LOCK_SLOT_LIMIT
+from .....data.text.locale_data import get_locale_text
+from .....data.progression.starting_deck_config import LOCK_PRICE_GP, LOCK_SLOT_LIMIT
 
 class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解锁", "unlock"], help_key="lock"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
@@ -114,7 +114,7 @@ class LockCommand(CommandHandler, names=["锁定", "lock", "锁定管理", "解�
             target_cid = target_cid[:-1]
 
         c_obj = ALL_CARDS[target_cid]
-        from .....data.ultimate_prism_data import ULTIMATE_PRISM_CARD_ID, ULTIMATE_PRISM_CONFIG
+        from .....data.content.ultimate_prism_data import ULTIMATE_PRISM_CARD_ID, ULTIMATE_PRISM_CONFIG
         from ....prism.market_service import is_ultimate_prism_departed, is_ultimate_prism_unlocked
         if target_cid == ULTIMATE_PRISM_CARD_ID:
             if not is_ultimate_prism_unlocked(stats):
