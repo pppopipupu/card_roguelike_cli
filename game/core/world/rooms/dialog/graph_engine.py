@@ -7,7 +7,7 @@ from ....text.pipeline import render_text_node
 from .checks import DiceCheckEngine
 from .conditions import eval_condition
 from .effects import apply_effects
-from .quest_hooks import get_quest_entry, has_active_quest_for_npc
+from .quest_hooks import get_quest_entry, get_quest_recap_key, has_active_quest_for_npc
 from .registry import NpcDialogProvider, register_npc_provider
 from .renderer import get_npc_display_name, serialize_outcome_nodes
 from .state import NpcMemoryStore
@@ -152,7 +152,7 @@ class CrpgDialogEngine:
                         "effects": [
                             {
                                 "type": "message",
-                                "key": str(cfg.get("recap_key", "i18n_npc_crpg_core.recap.quest_progress")),
+                                "key": get_quest_recap_key(cfg, qentry),
                                 "params": {
                                     "progress": int(qentry.get("progress", 0)),
                                     "target": int(qentry.get("target", cfg.get("target", 1))),

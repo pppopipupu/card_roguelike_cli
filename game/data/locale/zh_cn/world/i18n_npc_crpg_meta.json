@@ -1,16 +1,14 @@
 {
   "quests": {
-    "cycle_meta": {
-      "title": "循环之外的垂钓者",
-      "stage_accepted": "受地城垂钓客 pppopipupu 之托，在一次次先古循环的裂缝间见证重逢、交手与真相。",
-      "stage_ready": "三次循环见证已记录在鱼篓账本里，可随时找地城里的 pppopipupu 闲聊收官。",
-      "stage_completed": "听完了 pppopipupu 关于先古循环与这套项目幕后的全部吐槽。",
-      "obj_accepted": "跨局完成 3 次循环见证（{progress}/{target}）",
-      "obj_ready": "在地城中再次遇到 pppopipupu 交付见证。",
-      "accepted_msg": "🐟 pppopipupu 一边单手点音游判定一边摆手：『行，那你多转几局，问问其他知情者、跟我切磋一把或者再见几面，回头咱好好唠唠幕后底细。』",
-      "ready_notice": "🐟 《循环之外的垂钓者》见证已齐备，下次在地城遇到 pppopipupu 即可交付！",
-      "recap": "🐟 pppopipupu 等你跨局凑齐 {target} 次循环见证，当前进度 {progress}/{target}。",
-      "completed_msg": "🐟 pppopipupu 收起鱼竿大笑拍掌：『稳！收歌了！』你获得 {gp} GP、{gold} 金币、【{item}】与 1 层【奥术澄明】！"
+    "ancient_cycle": {
+      "stage_3": "【第三段 · 循环之外的垂钓者】沿着边界与因果的余波，在一次次先古循环的裂缝间见证重逢、交手与真相。",
+      "ready_3": "【第三段就绪】三次循环见证已记录在鱼篓账本里，可随时找地城里的 pppopipupu 交付收官。",
+      "completed": "【全线完成】已完成《先古循环》全部三段见证，取得通往第五层的信物【先古循环之钥】。",
+      "obj_stage_3": "第三段：跨局通过多种途径完成 3 次循环见证（{progress}/{target}）",
+      "obj_ready_3": "第三段：在地城中再次遇到 pppopipupu 交付，完成《先古循环》并取得第五层钥匙。",
+      "ready_3_notice": "🐟 《先古循环》第三段【循环之外的垂钓者】见证已齐备，下次在地城遇到 pppopipupu 即可交付收官！",
+      "recap_3": "🐟 《先古循环》第三段：需跨局凑齐 {target} 次循环见证，当前进度 {progress}/{target}。",
+      "done_3_msg": "🐟 pppopipupu 收起鱼竿大笑拍掌：『稳！三段循环全收歌了！』你获得 {gp} GP、{gold} 金币、【{item}】、1 层【奥术澄明】，并取得通往第五层的钥匙信物【先古循环之钥】！"
     }
   },
   "pppo": {

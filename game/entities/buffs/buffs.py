@@ -138,29 +138,16 @@ class StrengthBuff(BuffImpl):
     def on_damage_calculate(self, event, buff_state, entity):
         if not is_damage_event_from_entity(event, entity):
             return
-        dtype_str = event.damage_type.value if hasattr(event.damage_type, "value") else str(event.damage_type)
-        if entity in event.run.enemies:
-            if dtype_str.lower() != "true":
-                event.modified_damage = max(0, event.modified_damage + buff_state.stacks)
-            return
-        is_astral_strike = False
+        mult = _stat(self, "strength", "default_multiplier", 1)
         if entity == event.run.player and event.card:
             card_id = event.card.id
             if card_id.startswith("duel_"):
                 card_id = card_id[5:]
-            if card_id == "neutral_astral_strike":
-                is_astral_strike = True
-        if is_physical_damage(dtype_str) or is_astral_strike:
-            mult = _stat(self, "strength", "default_multiplier", 1)
-            if entity == event.run.player and event.card:
-                card_id = event.card.id
-                if card_id.startswith("duel_"):
-                    card_id = card_id[5:]
-                if card_id.startswith("heavy_blade"):
-                    mult = _stat(self, "strength", "heavy_blade_upgraded_multiplier", 5) if event.card.upgraded else _stat(self, "strength", "heavy_blade_multiplier", 3)
-                elif card_id == "neutral_astral_strike":
-                    mult = _stat(self, "strength", "astral_strike_upgraded_multiplier", 5) if event.card.upgraded else _stat(self, "strength", "astral_strike_multiplier", 4)
-            event.modified_damage = max(0, event.modified_damage + buff_state.stacks * mult)
+            if card_id.startswith("heavy_blade"):
+                mult = _stat(self, "strength", "heavy_blade_upgraded_multiplier", 5) if event.card.upgraded else _stat(self, "strength", "heavy_blade_multiplier", 3)
+            elif card_id == "neutral_astral_strike":
+                mult = _stat(self, "strength", "astral_strike_upgraded_multiplier", 5) if event.card.upgraded else _stat(self, "strength", "astral_strike_multiplier", 4)
+        event.modified_damage = max(0, event.modified_damage + buff_state.stacks * mult)
 
 class FlameBarrierBuff(BuffImpl):
     def on_damage_take_defend(self, event, buff_state, entity, engine=None):

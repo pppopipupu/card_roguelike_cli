@@ -330,6 +330,7 @@ class ArcaneTorrentCard(Card):
         else:
             count = X * factor
         true_dmg = engine.get_modified_spell_damage(run, self, true_dmg)
+        force_dmg = engine.get_modified_spell_damage(run, self, force_dmg, damage_type="force")
         for enemy in list(run.enemies):
             for _ in range(count):
                 if enemy in run.enemies:

@@ -187,7 +187,7 @@ def _cond_quest_status(val, ctx: dict) -> bool:
 def _cond_quest_ready(val, ctx: dict) -> bool:
     from .quest_hooks import is_quest_ready_to_turn_in
 
-    return is_quest_ready_to_turn_in(ctx.get("run"), ctx.get("stats"), str(val))
+    return is_quest_ready_to_turn_in(ctx.get("run"), ctx.get("stats"), str(val), npc_id=ctx.get("npc_id"))
 
 
 @register_dialog_condition("can_accept_npc_quest")

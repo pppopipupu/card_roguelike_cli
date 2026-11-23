@@ -116,7 +116,7 @@ class PaleCrossingCard(Card):
     def execute(self, run, target, engine) -> str:
         hp_cost = getattr(self, "self_hp_cost", 3)
         if hp_cost > 0:
-            engine._damage_target(run, "p0", hp_cost, source="p0", damage_type="true", card=self)
+            engine._damage_target(run, "p0", hp_cost, source="self", damage_type="true", card=self)
         if run.player.hp <= 0:
             return _feedback("pale_crossing")
         engine._gain_shield(run, "p0", getattr(self, "shield_amount", 10))
@@ -232,7 +232,7 @@ class ThoughtAdvancedRaceTheoryCard(Card):
     def execute(self, run, target, engine) -> str:
         hp_cost = getattr(self, "self_hp_cost", 2)
         if hp_cost > 0:
-            engine._damage_target(run, "p0", hp_cost, source="p0", damage_type="true", card=self)
+            engine._damage_target(run, "p0", hp_cost, source="self", damage_type="true", card=self)
         idx = _enemy_index_from_target(run, target)
         if idx is not None:
             enemy = run.enemies[idx]
@@ -264,7 +264,7 @@ class ThoughtApricotChewingGumCard(Card):
     def execute(self, run, target, engine) -> str:
         hp_cost = getattr(self, "self_hp_cost", 3)
         if hp_cost > 0:
-            engine._damage_target(run, "p0", hp_cost, source="p0", damage_type="true", card=self)
+            engine._damage_target(run, "p0", hp_cost, source="self", damage_type="true", card=self)
         if run.player.hp <= 0:
             return _feedback("thought_apricot_chewing_gum")
         run.player.actions += getattr(self, "action_gain", 1)
@@ -303,7 +303,7 @@ class ThoughtBankruptcySequenceCard(Card):
             p.gold -= gold_cost
             extra = get_locale_text("i18n_mercenary.bankruptcy_paid_gold", gold=gold_cost)
         else:
-            engine._damage_target(run, "p0", hp_cost, source="p0", damage_type="true", card=self)
+            engine._damage_target(run, "p0", hp_cost, source="self", damage_type="true", card=self)
             extra = get_locale_text("i18n_mercenary.bankruptcy_paid_hp", hp=hp_cost)
         if p.hp > 0:
             p.actions += getattr(self, "action_gain", 1)
@@ -421,7 +421,7 @@ class ThoughtCopOfTheApocalypseCard(Card):
     def execute(self, run, target, engine) -> str:
         hp_cost = getattr(self, "self_hp_cost", 4)
         if hp_cost > 0:
-            engine._damage_target(run, "p0", hp_cost, source="p0", damage_type="true", card=self)
+            engine._damage_target(run, "p0", hp_cost, source="self", damage_type="true", card=self)
         if run.player.hp <= 0:
             return _feedback("thought_cop_of_the_apocalypse")
         dmg = getattr(self, "base_dmg", 14)

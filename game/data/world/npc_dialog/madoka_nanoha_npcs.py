@@ -13,7 +13,7 @@ MADOKA_NANOHA_NPC_GRAPHS = {
         "spar_lost_key": "i18n_npc_crpg_crossover.kyubey.spar_lost",
         "spar_execute_key": "i18n_npc_crpg_crossover.kyubey.spar_execute",
         "entry_rules": [
-            {"when": {"all": [{"quest_ready": "quest_cycle_madoka"}, {"cycle_flag": "madoka_kyubey_ally"}]}, "node": "cycle_quest_turnin"},
+            {"when": {"all": [{"quest_ready": "quest_ancient_cycle"}, {"cycle_flag": "madoka_kyubey_ally"}]}, "node": "cycle_quest_turnin"},
             {"when": {"killed_before": True}, "node": "cycle_revived_root"},
         ],
         "nodes": {
@@ -58,7 +58,7 @@ MADOKA_NANOHA_NPC_GRAPHS = {
             "cycle_quest_turnin": {
                 "text_key": "i18n_npc_crpg_crossover.kyubey.cycle_turnin_text",
                 "options": [
-                    {"id": "kyubey_turnin_cycle", "category": "quest", "text_key": "i18n_npc_crpg_crossover.kyubey.opt_turnin_cycle", "effects": [{"type": "complete_quest", "quest_id": "quest_cycle_madoka"}], "next_node": "root"},
+                    {"id": "kyubey_turnin_cycle", "category": "quest", "text_key": "i18n_npc_crpg_crossover.kyubey.opt_turnin_cycle", "effects": [{"type": "complete_quest", "quest_id": "quest_ancient_cycle"}], "next_node": "root"},
                 ],
             },
             "exhausted_root": {"text_key": "i18n_npc_crpg_crossover.kyubey.exhausted_text", "options": []},
@@ -121,7 +121,7 @@ MADOKA_NANOHA_NPC_GRAPHS = {
         "spar_lost_key": "i18n_npc_crpg_crossover.homura.spar_lost",
         "spar_execute_key": "i18n_npc_crpg_crossover.homura.spar_execute",
         "entry_rules": [
-            {"when": {"quest_ready": "quest_cycle_madoka"}, "node": "cycle_quest_turnin"},
+            {"when": {"quest_ready": "quest_ancient_cycle"}, "node": "cycle_quest_turnin"},
             {"when": {"killed_before": True}, "node": "cycle_revived_root"},
         ],
         "nodes": {
@@ -133,7 +133,6 @@ MADOKA_NANOHA_NPC_GRAPHS = {
                     {"id": "homura_supply", "category": "service", "visible_if": {"all": [{"service_available": "supply"}, {"affinity_gte": 1}]}, "service_key": "supply", "text_key": "i18n_npc_crpg_crossover.homura.opt_supply", "effects": [{"type": "give_item", "item_id": "grief_seed", "key": "i18n_npc_crpg_crossover.homura.res_supply"}], "next_node": "root"},
                     {"id": "homura_scout", "category": "service", "visible_if": {"all": [{"service_available": "scout"}, {"affinity_gte": 1}]}, "service_key": "scout", "text_key": "i18n_npc_crpg_crossover.homura.opt_scout", "effects": [{"type": "reveal_rooms", "count": 2, "recap_id": "homura_rooms", "key": "i18n_npc_crpg_crossover.homura.res_scout", "empty_key": "i18n_npc_crpg_crossover.homura.res_scout_empty"}], "next_node": "root"},
                     {"id": "homura_time_branch", "category": "topic", "once_per_encounter": True, "text_key": "i18n_npc_crpg_crossover.homura.opt_time_branch", "next_node": "time_branch"},
-                    {"id": "homura_cycle_quest", "category": "quest", "visible_if": {"can_accept_npc_quest": "quest_cycle_madoka"}, "text_key": "i18n_npc_crpg_crossover.homura.opt_cycle_quest", "effects": [{"type": "accept_quest", "quest_id": "quest_cycle_madoka"}], "next_node": "root"},
                     {"id": "homura_leave", "category": "leave", "text_key": "i18n_npc_crpg_core.common.opt_leave", "tag_key": "i18n_npc_crpg_core.tags.leave", "effects": [{"type": "close_dialog"}]},
                 ],
             },
@@ -147,7 +146,7 @@ MADOKA_NANOHA_NPC_GRAPHS = {
             "cycle_quest_turnin": {
                 "text_key": "i18n_npc_crpg_crossover.homura.cycle_turnin_text",
                 "options": [
-                    {"id": "homura_turnin_cycle", "category": "quest", "text_key": "i18n_npc_crpg_crossover.homura.opt_turnin_cycle", "effects": [{"type": "complete_quest", "quest_id": "quest_cycle_madoka"}, {"type": "affinity", "delta": 4}], "next_node": "root"},
+                    {"id": "homura_turnin_cycle", "category": "quest", "text_key": "i18n_npc_crpg_crossover.homura.opt_turnin_cycle", "effects": [{"type": "complete_quest", "quest_id": "quest_ancient_cycle"}, {"type": "affinity", "delta": 4}], "next_node": "root"},
                 ],
             },
             "time_branch": {

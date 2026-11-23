@@ -122,12 +122,13 @@ class CardState:
     temp_cost_ba: Optional[int] = None
     battle_cost_delta_a: int = 0
     lyric_form: int = 0
+    custom_spec: str = ""
     temp_ethereal: bool = False
     temp_exhaust: bool = False
     temp_retain: bool = False
 
     def __hash__(self):
-        return hash((self.id, self.upgraded, tuple(self.gems), tuple(self.enchantments), self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used, self.lyric_form, self.temp_ethereal, self.temp_exhaust, self.temp_retain))
+        return hash((self.id, self.upgraded, tuple(self.gems), tuple(self.enchantments), self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used, self.lyric_form, self.custom_spec, self.temp_ethereal, self.temp_exhaust, self.temp_retain))
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -145,6 +146,7 @@ class CardState:
                         self.exhaust_used == getattr(temp_state, "exhaust_used", 0) and
                         self.fleeting_used == getattr(temp_state, "fleeting_used", 0) and
                         self.lyric_form == getattr(temp_state, "lyric_form", 0) and
+                        self.custom_spec == getattr(temp_state, "custom_spec", "") and
                         self.temp_ethereal == getattr(temp_state, "temp_ethereal", False) and
                         self.temp_exhaust == getattr(temp_state, "temp_exhaust", False) and
                         self.temp_retain == getattr(temp_state, "temp_retain", False))
@@ -164,6 +166,7 @@ class CardState:
                 self.exhaust_used == other.exhaust_used and
                 self.fleeting_used == other.fleeting_used and
                 self.lyric_form == other.lyric_form and
+                self.custom_spec == other.custom_spec and
                 self.temp_ethereal == other.temp_ethereal and
                 self.temp_exhaust == other.temp_exhaust and
                 self.temp_retain == other.temp_retain)
@@ -185,7 +188,7 @@ class CardState:
             return tuple(self.gems) < tuple(other.gems)
         if self.enchantments != other.enchantments:
             return tuple(self.enchantments) < tuple(other.enchantments)
-        return (self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used, self.lyric_form, self.temp_ethereal, self.temp_exhaust, self.temp_retain) < (other.return_left, other.replay, other.fragile, other.no_copy, other.power_penalty, other.exhaust_used, other.fleeting_used, other.lyric_form, other.temp_ethereal, other.temp_exhaust, other.temp_retain)
+        return (self.return_left, self.replay, self.fragile, self.no_copy, self.power_penalty, self.exhaust_used, self.fleeting_used, self.lyric_form, self.custom_spec, self.temp_ethereal, self.temp_exhaust, self.temp_retain) < (other.return_left, other.replay, other.fragile, other.no_copy, other.power_penalty, other.exhaust_used, other.fleeting_used, other.lyric_form, other.custom_spec, other.temp_ethereal, other.temp_exhaust, other.temp_retain)
 
 def ensure_card_state(c) -> CardState:
     if isinstance(c, CardState):
@@ -209,6 +212,7 @@ def ensure_card_state(c) -> CardState:
             temp_cost_ba=c.get("temp_cost_ba", None),
             battle_cost_delta_a=c.get("battle_cost_delta_a", 0),
             lyric_form=c.get("lyric_form", 0),
+            custom_spec=str(c.get("custom_spec", "") or ""),
             temp_ethereal=c.get("temp_ethereal", False),
             temp_exhaust=c.get("temp_exhaust", False),
             temp_retain=c.get("temp_retain", False),

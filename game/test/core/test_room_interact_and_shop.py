@@ -423,6 +423,9 @@ class TestRoomInteractAndShop(unittest.TestCase):
                         last_res = self.run_cmd(dcmd, uid)
                     cur_run = load_run(self.plugin, uid)
                 if step_idx < len(path) - 1:
+                    if cur_run.node_type == "ally_summon_select":
+                        self.run_cmd("c 1", uid)
+                        cur_run = load_run(self.plugin, uid)
                     if cur_run.node_type == "battle":
                         self._finish_battle_in_test(uid)
                         interrupted = True
@@ -503,6 +506,9 @@ class TestRoomInteractAndShop(unittest.TestCase):
         hd_targets = {c for c, r in fm.rooms.items() if r.room_type == "high_danger"}
         self._walk_to_targets(uid1, hd_targets)
         run_hd_coop = load_run(self.plugin, uid1)
+        if run_hd_coop.node_type == "ally_summon_select":
+            self.run_cmd("c 1", uid1)
+            run_hd_coop = load_run(self.plugin, uid1)
         self.assertEqual(run_hd_coop.node_type, "battle")
         self.assertTrue(any(b.id == "weak" for b in run_hd_coop.player.buffs))
         self.assertFalse(any(b.id == "abyss_chill" for b in run_hd_coop.player.persistent_buffs))

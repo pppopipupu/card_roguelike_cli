@@ -52,15 +52,39 @@ def get_quest_status(run: Optional[GameRun], stats: Optional[UserStats], qid: st
     return str(entry.get("status", "active"))
 
 
-def is_quest_ready_to_turn_in(run: Optional[GameRun], stats: Optional[UserStats], qid: str) -> bool:
+def _active_stage_cfg(cfg: dict, entry: Optional[dict]) -> dict:
+    stages = cfg.get("stages")
+    if isinstance(stages, list) and stages:
+        idx = int((entry or {}).get("stage_index", 0) or 0)
+        idx = max(0, min(idx, len(stages) - 1))
+        return stages[idx]
+    return cfg
+
+
+def get_quest_recap_key(cfg: dict, entry: Optional[dict]) -> str:
+    stage_cfg = _active_stage_cfg(cfg, entry)
+    return str(stage_cfg.get("recap_key") or cfg.get("recap_key") or "i18n_npc_crpg_core.recap.quest_progress")
+
+
+def is_quest_ready_to_turn_in(
+    run: Optional[GameRun],
+    stats: Optional[UserStats],
+    qid: str,
+    npc_id: Optional[str] = None,
+) -> bool:
     cfg = NPC_QUEST_CONFIG.get(qid)
     entry = get_quest_entry(run, stats, qid)
     if not cfg or not entry or entry.get("status") != "active":
         return False
-    if cfg.get("objective_type") == "collect_item" and run is not None:
-        item_id = str(cfg.get("target_item", ""))
+    stage_cfg = _active_stage_cfg(cfg, entry)
+    if npc_id is not None and cfg.get("stages"):
+        allowed_npcs = stage_cfg.get("turnin_npcs") or ()
+        if allowed_npcs and npc_id not in allowed_npcs:
+            return False
+    if stage_cfg.get("objective_type") == "collect_item" and run is not None:
+        item_id = str(stage_cfg.get("target_item", ""))
         return item_id in (getattr(run.player, "bag_items", None) or ())
-    return int(entry.get("progress", 0)) >= int(entry.get("target", cfg.get("target", 1)))
+    return int(entry.get("progress", 0)) >= int(entry.get("target", stage_cfg.get("target", 1)))
 
 
 def active_single_npc_quest_count(run: Optional[GameRun]) -> int:
@@ -96,15 +120,30 @@ def accept_npc_quest(run: GameRun, stats: Optional[UserStats], save_manager, uid
     cfg = NPC_QUEST_CONFIG.get(qid)
     if cfg is None or not can_accept_quest(run, stats, qid):
         return None
-    entry = {
-        "kind": str(cfg.get("kind", "single")),
-        "status": "active",
-        "stage": "accepted",
-        "history": ["accepted"],
-        "progress": 0,
-        "target": int(cfg.get("target", 1)),
-        "seen_tokens": [],
-    }
+    stages = cfg.get("stages")
+    if isinstance(stages, list) and stages:
+        first_stage = stages[0]
+        first_key = str(first_stage.get("stage_key", "accepted"))
+        entry = {
+            "kind": str(cfg.get("kind", "single")),
+            "status": "active",
+            "stage_index": 0,
+            "stage": first_key,
+            "history": [first_key],
+            "progress": 0,
+            "target": int(first_stage.get("target", 1)),
+            "seen_tokens": [],
+        }
+    else:
+        entry = {
+            "kind": str(cfg.get("kind", "single")),
+            "status": "active",
+            "stage": "accepted",
+            "history": ["accepted"],
+            "progress": 0,
+            "target": int(cfg.get("target", 1)),
+            "seen_tokens": [],
+        }
     _run_quests(run)[qid] = dict(entry)
     if cfg.get("kind") == "multi" and stats is not None:
         _multi_quests(stats)[qid] = dict(entry)
@@ -180,6 +219,14 @@ def _apply_quest_rewards(run: GameRun, stats: Optional[UserStats], rewards: dict
         else:
             p.gold += 35
             params["gold"] = int(params.get("gold", 0)) + 35
+    town_key_item = str(rewards.get("town_key_item") or "")
+    if town_key_item and stats is not None:
+        inv = getattr(stats, "town_inventory", None)
+        if not isinstance(inv, list):
+            inv = []
+            stats.town_inventory = inv
+        if town_key_item not in inv:
+            inv.append(town_key_item)
     return params
 
 
@@ -188,23 +235,58 @@ def complete_npc_quest(run: GameRun, stats: Optional[UserStats], save_manager, u
     entry = get_quest_entry(run, stats, qid)
     if cfg is None or entry is None:
         return None
-    if cfg.get("objective_type") == "collect_item" and cfg.get("consume_item"):
-        item_id = str(cfg.get("target_item", ""))
+    stages = cfg.get("stages")
+    stage_cfg = _active_stage_cfg(cfg, entry)
+    if stage_cfg.get("objective_type") == "collect_item" and stage_cfg.get("consume_item"):
+        item_id = str(stage_cfg.get("target_item", ""))
         if item_id in getattr(run.player, "bag_items", ()):
             run.player.bag_items.remove(item_id)
-    entry["status"] = "completed"
-    entry["stage"] = "completed"
-    hist = entry.setdefault("history", ["accepted"])
-    if "completed" not in hist:
-        hist.append("completed")
+    hist = entry.setdefault("history", [str(entry.get("stage", "accepted"))])
+    rewards = stage_cfg.get("rewards") or {}
+    params = _apply_quest_rewards(run, stats, rewards)
+    completed_key = str(stage_cfg.get("completed_key") or cfg.get("completed_key") or "i18n_npc_crpg_core.quests.completed")
+
+    if isinstance(stages, list) and stages:
+        cur_idx = int(entry.get("stage_index", 0) or 0)
+        done_key = str(stage_cfg.get("done_stage_key", "completed"))
+        if done_key not in hist:
+            hist.append(done_key)
+        if cur_idx + 1 < len(stages):
+            next_stage = stages[cur_idx + 1]
+            next_key = str(next_stage.get("stage_key", "accepted"))
+            entry["stage_index"] = cur_idx + 1
+            entry["status"] = "active"
+            entry["stage"] = next_key
+            entry["progress"] = 0
+            entry["target"] = int(next_stage.get("target", 1))
+            entry["seen_tokens"] = []
+            if next_key not in hist:
+                hist.append(next_key)
+        else:
+            entry["status"] = "completed"
+            entry["stage"] = "completed"
+            if "completed" not in hist:
+                hist.append("completed")
+    else:
+        entry["status"] = "completed"
+        entry["stage"] = "completed"
+        if "completed" not in hist:
+            hist.append("completed")
+
     _run_quests(run)[qid] = dict(entry)
     if cfg.get("kind") == "multi" and stats is not None:
         _multi_quests(stats)[qid] = dict(entry)
-    rewards = cfg.get("rewards") or {}
-    params = _apply_quest_rewards(run, stats, rewards)
     if stats is not None:
         NpcMemoryStore.save_stats(save_manager, uid, stats)
-    return locale_text(str(cfg.get("completed_key", "i18n_npc_crpg_core.quests.completed")), params=params)
+        if entry.get("status") == "completed" and save_manager is not None:
+            from ....progress.achievement_service import AchievementService
+
+            ach_svc = AchievementService(save_manager)
+            unlock_ach = str(rewards.get("unlock_achievement") or "")
+            if unlock_ach:
+                ach_svc.unlock(uid, unlock_ach, stats=stats, save=True, run=run)
+            ach_svc.reconcile(uid, stats=stats, save=True, run=run)
+    return locale_text(completed_key, params=params)
 
 
 def _matches_event(cfg: dict, event_type: str, payload: dict) -> bool:
@@ -252,7 +334,8 @@ def record_npc_quest_event(
         entry = multi.get(qid) if cfg.get("kind") == "multi" and isinstance(multi.get(qid), dict) else run_q.get(qid)
         if not isinstance(entry, dict) or entry.get("status") != "active":
             continue
-        if not _matches_event(cfg, event_type, info):
+        stage_cfg = _active_stage_cfg(cfg, entry)
+        if not _matches_event(stage_cfg, event_type, info):
             continue
         token = info.get("unique_token")
         seen = entry.setdefault("seen_tokens", [])
@@ -260,17 +343,18 @@ def record_npc_quest_event(
             if token in seen:
                 continue
             seen.append(token)
-        target = int(entry.get("target", cfg.get("target", 1)))
+        target = int(entry.get("target", stage_cfg.get("target", 1)))
         prog = int(entry.get("progress", 0))
         if prog >= target:
             continue
         entry["progress"] = prog + 1
         if entry["progress"] >= target:
-            entry["stage"] = "ready"
-            hist = entry.setdefault("history", ["accepted"])
-            if "ready" not in hist:
-                hist.append("ready")
-            ready_key = cfg.get("ready_notice_key")
+            ready_stage = str(stage_cfg.get("ready_stage_key", "ready"))
+            entry["stage"] = ready_stage
+            hist = entry.setdefault("history", [str(entry.get("stage", "accepted"))])
+            if ready_stage not in hist:
+                hist.append(ready_stage)
+            ready_key = stage_cfg.get("ready_notice_key") or cfg.get("ready_notice_key")
             if ready_key:
                 notes.append(locale_text(str(ready_key)))
         run_q[qid] = dict(entry)

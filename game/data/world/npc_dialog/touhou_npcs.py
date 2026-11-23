@@ -13,7 +13,7 @@ TOUHOU_NPC_GRAPHS = {
         "spar_lost_key": "i18n_npc_crpg_touhou.reimu.spar_lost",
         "spar_execute_key": "i18n_npc_crpg_touhou.reimu.spar_execute",
         "entry_rules": [
-            {"when": {"quest_ready": "quest_cycle_touhou"}, "node": "cycle_quest_turnin"},
+            {"when": {"quest_ready": "quest_ancient_cycle"}, "node": "cycle_quest_turnin"},
             {"when": {"killed_before": True}, "node": "cycle_revived_root"},
         ],
         "nodes": {
@@ -23,7 +23,7 @@ TOUHOU_NPC_GRAPHS = {
                     {"id": "reimu_donate", "category": "service", "visible_if": {"service_available": "donate"}, "cost": {"gold": 10}, "service_key": "donate", "text_key": "i18n_npc_crpg_touhou.reimu.opt_donate", "effects": [{"type": "set_local_flag", "flag": "reimu_donated"}, {"type": "affinity", "delta": 2}, {"type": "add_buff", "buff_id": "ancient_ward", "stacks": 1}, {"type": "sp", "amount": 2, "key": "i18n_chaos_expansion.npcs.hakurei_reimu.res_donate"}], "next_node": "root"},
                     {"id": "reimu_beg", "category": "topic", "visible_if": {"check_not_tried": "reimu_beg_check"}, "text_key": "i18n_npc_crpg_touhou.reimu.opt_beg", "check": {"check_id": "reimu_beg_check", "kind": "persuade", "dc": 13, "modifiers": [{"cond": {"local_flag": "reimu_donated"}, "bonus": 3, "reason_key": "i18n_npc_crpg_touhou.reimu.mod_donated"}], "auto_pass_cond": {"affinity_gte": 6}, "auto_pass_reason_key": "i18n_npc_crpg_touhou.reimu.auto_trusted", "on_success": {"next_node": "root", "effects": [{"type": "give_item", "item_id": "yin_yang_orb", "key": "i18n_chaos_expansion.npcs.hakurei_reimu.res_beg"}]}, "on_fail": {"next_node": "root", "effects": [{"type": "hp", "amount": -2, "min_hp": 1}, {"type": "sp", "amount": 2, "key": "i18n_npc_crpg_touhou.reimu.res_beg_kick"}]}}},
                     {"id": "reimu_rumor", "category": "topic", "visible_if": {"service_available": "chireiden_rumor"}, "service_key": "chireiden_rumor", "text_key": "i18n_npc_crpg_touhou.reimu.opt_rumor", "effects": [{"type": "record_achievement", "stat": "chireiden_rumors_heard", "delta": 1}, {"type": "advance_quest", "event_type": "cycle_event", "payload": {"token": "touhou_chireiden_rumor", "unique_token": "touhou_chireiden_rumor"}}, {"type": "message", "key": "i18n_chireiden.rumors.reimu_hint"}], "next_node": "root"},
-                    {"id": "reimu_cycle_quest_ask", "category": "quest", "visible_if": {"can_accept_npc_quest": "quest_cycle_touhou"}, "text_key": "i18n_npc_crpg_touhou.reimu.opt_cycle_quest", "effects": [{"type": "accept_quest", "quest_id": "quest_cycle_touhou"}], "next_node": "root"},
+                    {"id": "reimu_cycle_quest_ask", "category": "quest", "visible_if": {"can_accept_npc_quest": "quest_ancient_cycle"}, "text_key": "i18n_npc_crpg_touhou.reimu.opt_cycle_quest", "effects": [{"type": "accept_quest", "quest_id": "quest_ancient_cycle"}], "next_node": "root"},
                     {"id": "reimu_exorcise", "category": "service", "visible_if": {"all": [{"service_available": "exorcise"}, {"has_curse_card": True}]}, "cost": {"gold": 15}, "service_key": "exorcise", "text_key": "i18n_npc_crpg_touhou.reimu.opt_exorcise", "effects": [{"type": "affinity", "delta": 1}, {"type": "remove_random_curse", "key": "i18n_npc_crpg_touhou.reimu.res_exorcise", "fallback_key": "i18n_npc_crpg_touhou.reimu.res_exorcise_none"}], "next_node": "root"},
                     {"id": "reimu_shrine_chat", "category": "topic", "once_per_encounter": True, "text_key": "i18n_npc_crpg_touhou.reimu.opt_shrine_chat", "next_node": "shrine_chat"},
                     {"id": "reimu_marisa_clue", "category": "topic", "once_per_run": True, "visible_if": {"world_flag": "marisa_helped_cover"}, "text_key": "i18n_npc_crpg_touhou.reimu.opt_marisa_clue", "effects": [{"type": "affinity", "delta": 1}, {"type": "message", "key": "i18n_npc_crpg_touhou.reimu.res_marisa_clue"}], "next_node": "root"},
@@ -41,7 +41,7 @@ TOUHOU_NPC_GRAPHS = {
             "cycle_quest_turnin": {
                 "text_key": "i18n_npc_crpg_touhou.reimu.cycle_turnin_text",
                 "options": [
-                    {"id": "reimu_turnin_cycle", "category": "quest", "text_key": "i18n_npc_crpg_touhou.reimu.opt_turnin_cycle", "effects": [{"type": "complete_quest", "quest_id": "quest_cycle_touhou"}, {"type": "affinity", "delta": 4}], "next_node": "root"},
+                    {"id": "reimu_turnin_cycle", "category": "quest", "text_key": "i18n_npc_crpg_touhou.reimu.opt_turnin_cycle", "effects": [{"type": "complete_quest", "quest_id": "quest_ancient_cycle"}, {"type": "affinity", "delta": 4}], "next_node": "root"},
                 ],
             },
             "shrine_chat": {
@@ -131,7 +131,7 @@ TOUHOU_NPC_GRAPHS = {
         "spar_yield_key": "i18n_npc_crpg_touhou.patchouli.spar_yield",
         "spar_lost_key": "i18n_npc_crpg_touhou.patchouli.spar_lost",
         "entry_rules": [
-            {"when": {"quest_ready": "quest_cycle_touhou"}, "node": "cycle_quest_turnin"},
+            {"when": {"quest_ready": "quest_ancient_cycle"}, "node": "cycle_quest_turnin"},
             {"when": {"killed_before": True}, "node": "cycle_revived_root"},
         ],
         "nodes": {
@@ -145,7 +145,7 @@ TOUHOU_NPC_GRAPHS = {
                     {"id": "patch_enchant_lore", "category": "topic", "visible_if": {"all": [{"service_available": "enchant_lore"}, {"has_enchanted_card": True}]}, "service_key": "enchant_lore", "text_key": "i18n_npc_crpg_touhou.patchouli.opt_ask_enchant_lore", "effects": [{"type": "affinity", "delta": 1}, {"type": "add_buff", "buff_id": "arcane_clarity", "stacks": 1, "key": "i18n_npc_crpg_touhou.patchouli.res_ask_enchant_lore"}], "next_node": "root"},
                     {"id": "patch_report_marisa_enchant", "category": "topic", "once_per_run": True, "visible_if": {"all": [{"world_flag": "marisa_enchant_secret"}, {"service_available": "marisa_enchant_tip"}]}, "service_key": "marisa_enchant_tip", "text_key": "i18n_npc_crpg_touhou.patchouli.opt_report_marisa_enchant", "effects": [{"type": "affinity", "delta": 2}, {"type": "enchant_random_card", "pool": ["echo", "dramatic", "mk2", "fused", "piercing", "heavy", "swivel", "searing"], "key": "i18n_npc_crpg_touhou.patchouli.res_report_marisa_enchant"}], "next_node": "root"},
                     {"id": "patch_report_marisa", "category": "topic", "once_per_run": True, "visible_if": {"world_flag": "marisa_scolded"}, "text_key": "i18n_npc_crpg_touhou.patchouli.opt_report_marisa", "effects": [{"type": "affinity", "delta": 2}, {"type": "set_world_flag", "flag": "patch_helped"}, {"type": "gold", "amount": 25}, {"type": "message", "key": "i18n_npc_crpg_touhou.patchouli.res_report_marisa"}], "next_node": "root"},
-                    {"id": "patch_cycle_quest_ask", "category": "quest", "visible_if": {"can_accept_npc_quest": "quest_cycle_touhou"}, "text_key": "i18n_npc_crpg_touhou.patchouli.opt_cycle_quest", "effects": [{"type": "accept_quest", "quest_id": "quest_cycle_touhou"}], "next_node": "root"},
+                    {"id": "patch_cycle_quest_ask", "category": "quest", "visible_if": {"can_accept_npc_quest": "quest_ancient_cycle"}, "text_key": "i18n_npc_crpg_touhou.patchouli.opt_cycle_quest", "effects": [{"type": "accept_quest", "quest_id": "quest_ancient_cycle"}], "next_node": "root"},
                     {"id": "patch_provoke", "category": "challenge", "text_key": "i18n_npc_crpg_touhou.patchouli.opt_provoke", "effects": [{"type": "affinity", "delta": -3}, {"type": "start_combat", "non_lethal": True, "intro_key": "i18n_chaos_expansion.npcs.patchouli_knowledge.res_provoke"}]},
                     {"id": "patch_leave", "category": "leave", "text_key": "i18n_npc_crpg_core.common.opt_leave", "tag_key": "i18n_npc_crpg_core.tags.leave", "effects": [{"type": "close_dialog"}]},
                 ],
@@ -160,7 +160,7 @@ TOUHOU_NPC_GRAPHS = {
             "cycle_quest_turnin": {
                 "text_key": "i18n_npc_crpg_touhou.patchouli.cycle_turnin_text",
                 "options": [
-                    {"id": "patch_turnin_cycle", "category": "quest", "text_key": "i18n_npc_crpg_touhou.patchouli.opt_turnin_cycle", "effects": [{"type": "complete_quest", "quest_id": "quest_cycle_touhou"}, {"type": "affinity", "delta": 4}], "next_node": "root"},
+                    {"id": "patch_turnin_cycle", "category": "quest", "text_key": "i18n_npc_crpg_touhou.patchouli.opt_turnin_cycle", "effects": [{"type": "complete_quest", "quest_id": "quest_ancient_cycle"}, {"type": "affinity", "delta": 4}], "next_node": "root"},
                 ],
             },
             "exhausted_root": {"text_key": "i18n_npc_crpg_touhou.patchouli.exhausted_text", "options": []},

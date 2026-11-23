@@ -4,10 +4,10 @@ GLASS_SHARD_ITEM_ID = "glass_shard"
 BLIND_BUFF_ID = "blind"
 ULTIMATE_PRISM_ACHIEVEMENT_ID = "ultimate_prism_awakened"
 
-ULTIMATE_PRISM_FLAG_UNLOCKED = "ultimate_prism_unlocked"
+ULTIMATE_PRISM_UNLOCKED_ACHIEVEMENT_ID = "ultimate_prism_unlocked"
+CHIREIDEN_COMPLETED_ACHIEVEMENT_ID = "chireiden_penning_sealer"
 ULTIMATE_PRISM_FLAG_DEPARTED = "ultimate_prism_departed"
 ULTIMATE_PRISM_FLAG_IDLE_BATTLES = "ultimate_prism_idle_battles"
-CHIREIDEN_QUEST_COMPLETED_FLAG = "chireiden_quest_completed"
 
 ULTIMATE_PRISM_CONFIG = {
     "cost_a": 999,

@@ -289,6 +289,30 @@ class MapEngine:
             SessionContextScoper.create_session(run, spawn_coord, "ancient", humans)
         self.enter_ancient_node(run)
 
+    def speed_descend_to_floor(self, run: GameRun, target_floor: int, ancient_picks: int) -> str:
+        actor_uid = run.user_id
+        floor_num = max(2, min(3, int(target_floor)))
+        cfg = FLOOR_CONFIGS[floor_num]
+        run.floor_map = generate_floor_map(run, floor_num, save_manager=self.save_manager)
+        stats = self.save_manager.load_stats(actor_uid) if self.save_manager is not None else None
+        from .map_quest_service import populate_floor_quests
+        populate_floor_quests(run, run.floor_map, stats)
+        self._finalize_next_floor(run, actor_uid, cfg, yog_quest=False)
+        total_picks = max(1, int(ancient_picks))
+        picks_left = max(0, total_picks - 1)
+        views = run.node_data.get("player_views")
+        if isinstance(views, dict):
+            for v in views.values():
+                vdata = v.get("data") if isinstance(v, dict) else None
+                if isinstance(vdata, dict) and not vdata.get("coop_done"):
+                    vdata["speed_descent_picks_left"] = picks_left
+                    vdata["speed_descent_picks_total"] = total_picks
+                    vdata["speed_descent_pick_index"] = 1
+        run.node_data["speed_descent_picks_left"] = picks_left
+        run.node_data["speed_descent_picks_total"] = total_picks
+        run.node_data["speed_descent_pick_index"] = 1
+        return get_locale_text(cfg["name_key"])
+
     def advance_to_next_floor(self, run: GameRun) -> str:
         actor_uid = run.user_id
         cur_floor = run.floor_map.floor_index if run.floor_map else 1

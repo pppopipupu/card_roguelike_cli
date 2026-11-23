@@ -540,6 +540,8 @@ class CardRegistryDict(dict):
             attach_ninja_card_tags(card)
             attach_lyrics_tag(card)
 
+        if hasattr(card, "apply_card_state"):
+            card.apply_card_state(card_state)
         card.gems = list(card_state.gems)
         if card.gems:
             modifiers = get_gem_numeric_modifiers(card.gems)

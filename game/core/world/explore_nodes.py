@@ -197,13 +197,49 @@ def _resolve_coop_event(engine, run, option_idx):
 
 
 def handle_start_ancient(engine, run, option_idx, target=None) -> str | None:
+    from ...data.world.ancient_node_config import SPEED_DESCENT_TIERS
+    from ...renderer import GameRenderer
+
     p = run.player
     if run.node_data.get("coop_done"):
         return get_locale_text("i18n_coop_explore.coop_done_waiting")
+    if run.node_data.get("speed_descent_menu"):
+        back_idx = len(SPEED_DESCENT_TIERS) + 1
+        if option_idx in (0, back_idx):
+            run.node_data["speed_descent_menu"] = False
+            engine.save_manager.save_save(run.user_id, run)
+            return GameRenderer.render_game(run)
+        if option_idx < 1 or option_idx > len(SPEED_DESCENT_TIERS):
+            return get_locale_text("err_invalid_option_idx")
+        tier = SPEED_DESCENT_TIERS[option_idx - 1]
+        gp_cost = int(tier["gp_cost"])
+        target_floor = int(tier["floor"])
+        ancient_picks = int(tier["ancient_picks"])
+        stats = engine.save_manager.load_stats(run.user_id)
+        cur_gp = int(getattr(stats, "gp", 0) or 0)
+        if cur_gp < gp_cost:
+            return get_locale_text("i18n_renderer_extra.map.speed_descent_no_gp", floor=target_floor, gp_cost=gp_cost, gp=cur_gp)
+        stats.gp = cur_gp - gp_cost
+        engine.save_manager.save_stats(run.user_id, stats)
+        floor_name = engine.map_engine.speed_descend_to_floor(run, target_floor, ancient_picks)
+        engine.save_manager.save_save(run.user_id, run)
+        banner = get_locale_text(
+            "i18n_renderer_extra.map.speed_descent_arrived",
+            gp_cost=gp_cost,
+            floor=target_floor,
+            name=floor_name,
+            picks=ancient_picks,
+        )
+        return f"{banner}\n\n{GameRenderer.render_game(run)}"
+
     options = run.node_data.get("options", [])
     if option_idx < 1 or option_idx > len(options):
         return get_locale_text("err_invalid_option_idx")
     chosen = options[option_idx - 1]
+    if chosen.get("type") == "speed_descent":
+        run.node_data["speed_descent_menu"] = True
+        engine.save_manager.save_save(run.user_id, run)
+        return GameRenderer.render_game(run)
     rid = chosen["relic"]
     from ..inventory.relic_service import grant_relic
     grant_relic(p, rid)
@@ -225,8 +261,19 @@ def handle_ancient(engine, run, option_idx, target=None) -> str | None:
     options = run.node_data.get("options", [])
     if option_idx < 1 or option_idx > len(options):
         return get_locale_text("err_invalid_option_idx")
-    from .ancient_reward import grant_ancient_blessing
+    from .ancient_reward import build_ancient_options, grant_ancient_blessing
     msg = grant_ancient_blessing(run, options[option_idx - 1])
+    picks_left = int(run.node_data.get("speed_descent_picks_left", 0) or 0)
+    if picks_left > 0:
+        from ...renderer import GameRenderer
+        nxt = build_ancient_options(run, engine.save_manager)
+        run.node_data["options"] = nxt["options"]
+        run.node_data["style"] = nxt["style"]
+        run.node_data["deity"] = nxt["deity"]
+        run.node_data["speed_descent_picks_left"] = picks_left - 1
+        run.node_data["speed_descent_pick_index"] = int(run.node_data.get("speed_descent_pick_index", 1) or 1) + 1
+        engine.save_manager.save_save(run.user_id, run)
+        return f"{msg}\n\n{GameRenderer.render_game(run)}"
     return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
 
 def handle_treasure(engine, run, option_idx, target=None) -> str | None:

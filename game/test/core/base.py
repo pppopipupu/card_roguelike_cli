@@ -269,7 +269,7 @@ def clear_battle_if_needed(plugin, uids: list[str], max_loops: int = 40) -> None
                     if "必须先领取" in res or "❌" in res:
                         await run_command(plugin, "c 1", uid)
                     progressed = True
-                elif run.node_type in ("card_select", "gem_insert") and not run.node_data.get("coop_done"):
+                elif run.node_type in ("card_select", "gem_insert", "ally_summon_select", "ally_summon_confirm") and not run.node_data.get("coop_done"):
                     await run_command(plugin, "c 1", uid)
                     progressed = True
                 elif run.node_type == "event" and not run.node_data.get("coop_done"):

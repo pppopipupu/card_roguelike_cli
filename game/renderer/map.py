@@ -1,5 +1,5 @@
 from ..models.state import GameRun
-from ..data.world.ancient_node_config import ANCIENT_DEITIES
+from ..data.world.ancient_node_config import ANCIENT_DEITIES, SPEED_DESCENT_TIERS
 from ..entities import get_relic_name, get_relic_desc
 from ..cards import ALL_CARDS
 from ..data.text.locale_data import get_locale_text
@@ -27,6 +27,37 @@ def render_start_ancient(run: GameRun) -> str:
     p = run.player
     if run.node_data.get("coop_done"):
         return render_waiting(run)
+    if run.node_data.get("speed_descent_menu"):
+        from ..models.manager import SaveManager
+        stats = SaveManager().load_stats(run.user_id)
+        gp = int(getattr(stats, "gp", 0) or 0)
+        lines = [
+            get_locale_text("i18n_renderer_extra.map.separator"),
+            get_locale_text("i18n_renderer_extra.map.speed_descent_menu_title"),
+            get_locale_text("i18n_renderer_extra.map.speed_descent_gp_line", gp=gp),
+            "",
+        ]
+        for idx, tier in enumerate(SPEED_DESCENT_TIERS, 1):
+            lines.append(
+                get_locale_text(
+                    "i18n_renderer_extra.map.speed_descent_tier_option",
+                    idx=idx,
+                    floor=tier["floor"],
+                    gp_cost=tier["gp_cost"],
+                    picks=tier["ancient_picks"],
+                )
+            )
+        lines.append(
+            get_locale_text(
+                "i18n_renderer_extra.map.speed_descent_back_option",
+                idx=len(SPEED_DESCENT_TIERS) + 1,
+            )
+        )
+        lines.append("")
+        lines.append(get_locale_text("i18n_renderer_extra.map.separator"))
+        lines.append(get_locale_text("i18n_renderer_extra.map.speed_descent_cmd"))
+        lines.append(get_locale_text("i18n_renderer_extra.map.separator"))
+        return "\n".join(lines)
     options = run.node_data.get("options", [])
     style = run.node_data.get("deity") or run.node_data.get("style", "default")
     name_str, deity_name, deity_title, deity_desc = _resolve_deity_info(style)
@@ -45,6 +76,9 @@ def render_start_ancient(run: GameRun) -> str:
         "",
     ])
     for idx, opt in enumerate(options, 1):
+        if opt.get("type") == "speed_descent":
+            lines.append(get_locale_text("i18n_renderer_extra.map.speed_descent_option", idx=idx))
+            continue
         rid = opt["relic"]
         rname = get_relic_name(rid)
         rdesc = get_relic_desc(rid)
@@ -67,6 +101,37 @@ def render_ancient(run: GameRun) -> str:
     p = run.player
     if run.node_data.get("coop_done"):
         return render_waiting(run)
+    if run.node_data.get("speed_descent_menu"):
+        from ..models.manager import SaveManager
+        stats = SaveManager().load_stats(run.user_id)
+        gp = int(getattr(stats, "gp", 0) or 0)
+        lines = [
+            get_locale_text("i18n_renderer_extra.map.separator"),
+            get_locale_text("i18n_renderer_extra.map.speed_descent_menu_title"),
+            get_locale_text("i18n_renderer_extra.map.speed_descent_gp_line", gp=gp),
+            "",
+        ]
+        for idx, tier in enumerate(SPEED_DESCENT_TIERS, 1):
+            lines.append(
+                get_locale_text(
+                    "i18n_renderer_extra.map.speed_descent_tier_option",
+                    idx=idx,
+                    floor=tier["floor"],
+                    gp_cost=tier["gp_cost"],
+                    picks=tier["ancient_picks"],
+                )
+            )
+        lines.append(
+            get_locale_text(
+                "i18n_renderer_extra.map.speed_descent_back_option",
+                idx=len(SPEED_DESCENT_TIERS) + 1,
+            )
+        )
+        lines.append("")
+        lines.append(get_locale_text("i18n_renderer_extra.map.separator"))
+        lines.append(get_locale_text("i18n_renderer_extra.map.speed_descent_cmd"))
+        lines.append(get_locale_text("i18n_renderer_extra.map.separator"))
+        return "\n".join(lines)
     options = run.node_data.get("options", [])
     style = run.node_data.get("deity") or run.node_data.get("style", "default")
     name_str, deity_name, deity_title, deity_desc = _resolve_deity_info(style)
@@ -82,9 +147,16 @@ def render_ancient(run: GameRun) -> str:
         "",
         get_locale_text("i18n_renderer_extra.map.deity_banner", deity=deity_name, title=deity_title, desc=deity_desc),
         get_locale_text("i18n_renderer_extra.map.bless_intro", style=name_str, deity=deity_name),
-        "",
     ])
+    sd_total = int(run.node_data.get("speed_descent_picks_total", 0) or 0)
+    if sd_total > 0:
+        sd_cur = int(run.node_data.get("speed_descent_pick_index", 1) or 1)
+        lines.append(get_locale_text("i18n_renderer_extra.map.speed_descent_progress", current=sd_cur, total=sd_total))
+    lines.append("")
     for idx, opt in enumerate(options, 1):
+        if opt.get("type") == "speed_descent":
+            lines.append(get_locale_text("i18n_renderer_extra.map.speed_descent_option", idx=idx))
+            continue
         rid = opt["relic"]
         rname = get_relic_name(rid)
         rdesc = get_relic_desc(rid)

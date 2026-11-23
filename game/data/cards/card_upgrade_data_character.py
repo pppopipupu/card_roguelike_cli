@@ -254,6 +254,10 @@ CARD_UPGRADE_CONFIG_CHARACTER = {
         "base_dmg": 32,
         "desc": "造成 32 点力场伤害。力量对该牌伤害的加成效果乘以 5。消耗。",
     },
+    "science_device": {
+        "base_dmg": 11,
+        "desc": "河童技师定制的强化科学装置，所有模块数值均得到提升。"
+    },
     "neutral_hero_anthem": {
         "shield_amount": 10,
         "draw_count": 1,

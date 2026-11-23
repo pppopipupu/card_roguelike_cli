@@ -21,6 +21,7 @@ from .leave import *
 from .portal_chamber import *
 from .chaos_events import *
 from .map_events import *
+from .kappa_pancake import *
 
 
 ALL_EVENTS = [
@@ -298,6 +299,29 @@ ALL_EVENTS = [
         [
             BladesongLearnOption(get_locale_text("i18n_grid_map.event.bladesinger_echo.opt_learn"), "bladesong_learn"),
             BladesongMeditateOption(get_locale_text("i18n_grid_map.event.bladesinger_echo.opt_meditate"), "bladesong_meditate")
+        ],
+        min_stage=2,
+        max_stage=32
+    ),
+    EventTemplate(
+        "kappa_invention",
+        get_locale_text("i18n_kappa_pancake.kappa.desc"),
+        [
+            KappaCoreArcOption(get_locale_text("i18n_kappa_pancake.kappa.opt_core_arc"), "kappa_core_arc"),
+            KappaCoreShieldOption(get_locale_text("i18n_kappa_pancake.kappa.opt_core_shield"), "kappa_core_shield"),
+            KappaCorePrismOption(get_locale_text("i18n_kappa_pancake.kappa.opt_core_prism"), "kappa_core_prism"),
+            KappaLeaveOption(get_locale_text("i18n_kappa_pancake.kappa.opt_leave"), "kappa_leave"),
+        ],
+        min_stage=2,
+        max_stage=32
+    ),
+    EventTemplate(
+        "pancake_stack_event",
+        get_locale_text("i18n_kappa_pancake.pancake.desc"),
+        [
+            PancakePayGoldOption(get_locale_text("i18n_kappa_pancake.pancake.opt_pay_gold"), "pancake_pay_gold"),
+            PancakePayHpOption(get_locale_text("i18n_kappa_pancake.pancake.opt_pay_hp"), "pancake_pay_hp"),
+            PancakeLeaveOption(get_locale_text("i18n_kappa_pancake.pancake.opt_leave"), "pancake_leave"),
         ],
         min_stage=2,
         max_stage=32

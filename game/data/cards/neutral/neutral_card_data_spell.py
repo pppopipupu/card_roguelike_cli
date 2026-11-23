@@ -442,6 +442,18 @@ NEUTRAL_CARD_SPELLS = {
         "exhaust": True,
         "feedback": "引导漫天星辰砸落，对【{target}】使用【星界坠击】！"
     },
+    "science_device": {
+        "name": "科学装置",
+        "color": "neutral",
+        "type": "spell",
+        "cost_a": 1,
+        "cost_ba": 0,
+        "desc": "河童技师定制的科学装置，效果依据组装模块决定。",
+        "rarity": "rare",
+        "base_dmg": 8,
+        "damage_type": "lightning",
+        "feedback": "启动了定制【科学装置】！"
+    },
     "neutral_hero_anthem": {
         "name": "英雄赞歌",
         "color": "neutral",

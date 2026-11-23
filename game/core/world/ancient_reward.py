@@ -8,6 +8,7 @@ from ...data.world.ancient_node_config import (
     ANCIENT_REWARD_OPTION_TYPE,
     ANCIENT_START_POOLS,
     ANCIENT_STYLE_CHOICES,
+    SPEED_DESCENT_REQUIRED_ACHIEVEMENT,
 )
 from ...data.progression.balance_config import MAP_ANCIENT_OPTION_SLOTS, MAP_ANCIENT_RELIC_CHOICES
 from ...data.text.locale_data import get_locale_text
@@ -40,6 +41,13 @@ def _build_legend_candidates(base_legends: list[str], pool_key: str, stats, icer
     return pool
 
 
+def has_speed_descent_unlocked(stats) -> bool:
+    if stats is None:
+        return False
+    unlocked = getattr(stats, "unlocked_achievements", None) or ()
+    return SPEED_DESCENT_REQUIRED_ACHIEVEMENT in unlocked
+
+
 def build_start_ancient_options(run, save_manager, icerainboww_enabled: bool = True) -> dict:
     stats = save_manager.load_stats(run.user_id) if hasattr(save_manager, "load_stats") else None
     p_class = getattr(stats, "selected_class", "法师")
@@ -64,6 +72,8 @@ def build_start_ancient_options(run, save_manager, icerainboww_enabled: bool = T
 
     options = selected_relics + selected_cards
     random.shuffle(options)
+    if has_speed_descent_unlocked(stats):
+        options.append({"type": "speed_descent"})
     return {"options": options, "style": style, "deity": style}
 
 

@@ -1,3 +1,10 @@
+SPEED_DESCENT_REQUIRED_ACHIEVEMENT = "boss_yog_sothoth"
+
+SPEED_DESCENT_TIERS: tuple[dict, ...] = (
+    {"floor": 2, "gp_cost": 100, "ancient_picks": 3},
+    {"floor": 3, "gp_cost": 300, "ancient_picks": 4},
+)
+
 ANCIENT_DEITIES = {
     "default": {
         "style_key": "i18n_renderer_extra.map.style_default",

@@ -1,5 +1,5 @@
 from ....models.events import (
-    BattleStartEvent, BattleWinEvent, TurnStartEvent, CardPlayedEvent,
+    BattleStartEvent, BattleWinEvent, TurnStartEvent, CardPlayEvent, CardPlayedEvent,
     DamageCalculateEvent, BeforeDamageApplyEvent, MinionSummonEvent,
     ShieldGainEvent, HealEvent, DamageTakeEvent, ShieldDecayEvent,
     TurnEndEvent, MinionDeathEvent, RewardGenerateEvent, CardSelectInitEvent,
@@ -17,6 +17,7 @@ class RelicTriggerHandler:
         event_bus.subscribe(BattleStartEvent, self.on_battle_start)
         event_bus.subscribe(BattleWinEvent, self.on_battle_win)
         event_bus.subscribe(TurnStartEvent, self.on_turn_start)
+        event_bus.subscribe(CardPlayEvent, self.on_card_play)
         event_bus.subscribe(CardPlayedEvent, self.on_card_played)
         event_bus.subscribe(DamageCalculateEvent, self.on_damage_calculate)
         event_bus.subscribe(BeforeDamageApplyEvent, self.on_before_damage_apply)
@@ -62,6 +63,11 @@ class RelicTriggerHandler:
             for impl in self._impls(event.run):
                 if hasattr(impl, "on_turn_start"):
                     impl.on_turn_start(event, event.run, self.engine)
+
+    def on_card_play(self, event):
+        for impl in self._impls(event.run):
+            if hasattr(impl, "on_card_play"):
+                impl.on_card_play(event, event.run, self.engine)
 
     def on_card_played(self, event):
         for impl in self._impls(event.run):

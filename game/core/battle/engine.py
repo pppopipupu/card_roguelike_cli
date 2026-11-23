@@ -193,10 +193,11 @@ class BattleEngine(BattleSetupMixin):
         self.event_bus.dispatch(CardEffectResolvedEvent(run, card, target, res))
         return res
 
-    def get_modified_spell_damage(self, run: GameRun, card: Card, damage: int) -> int:
+    def get_modified_spell_damage(self, run: GameRun, card: Card, damage: int, damage_type: Optional[str] = None) -> int:
         """派发伤害计算事件并返回修改后的法术伤害。"""
-        dtype = getattr(card, "damage_type", "spell")
-        calc_evt = DamageCalculateEvent(run, card, "p0", "e1", dtype, damage, damage)
+        dtype = damage_type if damage_type is not None else getattr(card, "damage_type", "spell")
+        dtype_value = getattr(dtype, "value", dtype)
+        calc_evt = DamageCalculateEvent(run, card, "p0", "e1", str(dtype_value), damage, damage)
         self.event_bus.dispatch(calc_evt)
         return max(0, calc_evt.modified_damage)
 

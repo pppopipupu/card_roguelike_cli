@@ -57,7 +57,20 @@
     "deity_fortune_name": "十连双金之神·欧皇尊者",
     "deity_fortune_title": "命运财宝 · 歪池克星",
     "deity_fortune_desc": "专治非酋保底吃满的神秘欧皇，手握打折券、重放奇迹与一整座垃圾山，赌狗狂喜",
-    "deity_banner": "🏛️ 降临神明：【{deity}】（{title}）—— {desc}"
+    "deity_banner": "🏛️ 降临神明：【{deity}】（{title}）—— {desc}",
+    "speed_descent_option": " [{idx}] ⚡ 【速降！！】\n     效果：花费 100 GP 直入第 2 层并连续选取 3 个先古奖励，或花费 300 GP 直入第 3 层并连续选取 4 个先古奖励",
+    "speed_descent_menu_title": "⚡ 【速降！！ · 直入深渊】",
+    "speed_descent_gp_line": "当前可用 GP：{gp} GP",
+    "speed_descent_tier_option": " [{idx}] ⚡ 速降至第 {floor} 层 — 花费 {gp_cost} GP，直接进入第 {floor} 层并连续选取 {picks} 个先古奖励",
+    "speed_descent_back_option": " [{idx}] ↩️ 返回先古契约列表",
+    "speed_descent_cmd": "💬 c <序号> 选择速降目标或返回",
+    "speed_descent_no_gp": "❌ GP 不足！速降至第 {floor} 层需要 {gp_cost} GP（当前仅有 {gp} GP）。",
+    "speed_descent_arrived": "⚡ 速降启动！已消耗 {gp_cost} GP，直接跃迁至第 {floor} 层【{name}】！接下来你将连续选取 {picks} 次先古赐福。",
+    "speed_descent_progress": "⚡ 速降先古连选进度：第 {current}/{total} 次先古赐福",
+    "speed_descent_snap_label": "⚡ 速降！！",
+    "speed_descent_snap_desc": "花费 100 GP 直入第 2 层连选 3 个先古奖励，或花费 300 GP 直入第 3 层连选 4 个先古奖励",
+    "speed_descent_snap_tier": "⚡ 速降至第 {floor} 层（{gp_cost} GP，连选 {picks} 次先古奖励）",
+    "speed_descent_snap_back": "返回先古契约列表"
   },
   "event": {
     "votes_line": "🗳️ 当前投票：{votes}",

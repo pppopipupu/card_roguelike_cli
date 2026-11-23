@@ -12,9 +12,20 @@ from ...data.progression.achievement_data import (
     HIDDEN_ACHIEVEMENT_RARITIES,
 )
 from ...data.text.locale_data import get_locale_text
-from ...data.world.yog_quest_config import YOG_QUEST_FLAG
+from ...data.world.map_quest_config import (
+    BLEAK_FALLS_COMPLETED_ACHIEVEMENT_ID,
+    BLEAK_FALLS_FUS_RO_DAH_ACHIEVEMENT_ID,
+    TOWN_FLAG_MULTI_QUESTS,
+)
+from ...data.world.yog_quest_config import YOG_INFO_ACHIEVEMENT_ID, YOG_QUEST_FLAG
 
 _PENDING_NOTICES: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+
+
+def has_achievement(stats, achievement_id: str) -> bool:
+    if stats is None or not achievement_id:
+        return False
+    return achievement_id in (getattr(stats, "unlocked_achievements", None) or ())
 
 
 def _stat_int(stats, key: str, default: int = 0) -> int:
@@ -187,6 +198,28 @@ def _check_ultimate_prism_awakened(stats) -> bool:
     return _stat_int(stats, "ultimate_prism_played") >= 1
 
 
+def _check_ancient_cycle_breaker(stats) -> bool:
+    multi = (getattr(stats, "town_flags", None) or {}).get(TOWN_FLAG_MULTI_QUESTS) or {}
+    entry = multi.get("quest_ancient_cycle") if isinstance(multi, dict) else None
+    return isinstance(entry, dict) and entry.get("status") == "completed"
+
+
+def _check_bleak_falls_fus_ro_dah(stats) -> bool:
+    return has_achievement(stats, BLEAK_FALLS_FUS_RO_DAH_ACHIEVEMENT_ID)
+
+
+def _check_bleak_falls_completed(stats) -> bool:
+    return has_achievement(stats, BLEAK_FALLS_COMPLETED_ACHIEVEMENT_ID)
+
+
+def _check_ultimate_prism_unlocked(stats) -> bool:
+    return has_achievement(stats, "ultimate_prism_unlocked")
+
+
+def _check_yog_quest_info_unlocked(stats) -> bool:
+    return has_achievement(stats, YOG_INFO_ACHIEVEMENT_ID)
+
+
 ACHIEVEMENT_EVALUATORS = {
     "first_step": _check_first_step,
     "battle_rookie": _check_battle_rookie,
@@ -226,6 +259,11 @@ ACHIEVEMENT_EVALUATORS = {
     "chireiden_penning_sealer": _check_chireiden_penning_sealer,
     "chireiden_overcharge_master": _check_chireiden_overcharge_master,
     "ultimate_prism_awakened": _check_ultimate_prism_awakened,
+    "ancient_cycle_breaker": _check_ancient_cycle_breaker,
+    "bleak_falls_fus_ro_dah": _check_bleak_falls_fus_ro_dah,
+    "bleak_falls_completed": _check_bleak_falls_completed,
+    "ultimate_prism_unlocked": _check_ultimate_prism_unlocked,
+    "yog_quest_info_unlocked": _check_yog_quest_info_unlocked,
 }
 
 

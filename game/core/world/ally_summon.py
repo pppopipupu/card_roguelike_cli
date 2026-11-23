@@ -23,7 +23,7 @@ def get_summonable_teammates(run, caller_uid: str) -> list[str]:
         sid = fm.player_session_map.get(uid)
         if sid and sid in fm.active_sessions:
             nt = fm.active_sessions[sid].node_type
-            if nt in ("battle", "ally_summon_confirm"):
+            if nt in ("battle", "ally_summon_select", "ally_summon_confirm"):
                 continue
         result.append(uid)
     return result
@@ -236,7 +236,7 @@ def handle_summon_select_choose(grid_map_service, run, option_idx: int) -> str:
     target_in_battle = bool(
         target_sid
         and target_sid in fm.active_sessions
-        and fm.active_sessions[target_sid].node_type in ("battle", "ally_summon_confirm")
+        and fm.active_sessions[target_sid].node_type in ("battle", "ally_summon_select", "ally_summon_confirm")
     )
     if target_player is None or target_player.downed or target_player.hp <= 0 or target_in_battle:
         tname = target_player.name if target_player is not None else target_uid

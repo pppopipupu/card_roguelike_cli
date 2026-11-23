@@ -194,6 +194,49 @@ class TestBuffHooksAndModifiers(unittest.TestCase):
         run = load_run(self.plugin, uid)
         self.assertEqual(run.player.hp, 100 - 4 - 2)
 
+    def test_strength_and_weak_apply_to_true_and_force_damage(self):
+        uid = "all_type_mod_user"
+        self._build_battle(
+            uid,
+            hand=[CardState(id="arcane_torrent")],
+            actions=2,
+            bonus_actions=0,
+            buffs=[BuffState(id="strength", name="力量", stacks=3, desc="造成的伤害增加")],
+        )
+        out = self.run_cmd("p 1", uid)
+        run = load_run(self.plugin, uid)
+        self.assertEqual(run.enemies[0].hp, 500 - 36)
+        self.assertIn("4 点真实伤害", out)
+        self.assertIn("5 点力场伤害", out)
+
+        self._build_battle(
+            uid,
+            hand=[CardState(id="arcane_torrent")],
+            actions=2,
+            bonus_actions=0,
+            buffs=[
+                BuffState(id="strength", name="力量", stacks=2, desc="造成的伤害增加"),
+                BuffState(id="weak", name="虚弱", stacks=1, desc="造成的伤害减少 25%"),
+            ],
+        )
+        out = self.run_cmd("p 1", uid)
+        run = load_run(self.plugin, uid)
+        self.assertEqual(run.enemies[0].hp, 500 - 20)
+        self.assertIn("2 点真实伤害", out)
+        self.assertIn("3 点力场伤害", out)
+
+        self._build_battle(
+            uid,
+            hand=[CardState(id="arcane_torrent")],
+            actions=2,
+            bonus_actions=0,
+            buffs=[BuffState(id="strength", name="力量", stacks=-1, desc="造成的伤害增加")],
+        )
+        out = self.run_cmd("p 1", uid)
+        run = load_run(self.plugin, uid)
+        self.assertEqual(run.enemies[0].hp, 500 - 4)
+        self.assertIn("1 点力场伤害", out)
+
     def test_weak_and_severe_weak_multipliers_and_turn_decay(self):
         uid = "weak_mod_user"
         self._build_battle(

@@ -3,7 +3,6 @@ from ..data.progression.checkin_data import DAILY_BLESSINGS
 from ..data.entities.minions.minion_data import MINION_CONFIG
 from ..data.text.locale_data import get_locale_text
 from ..data.entities.buffs.buff_data import BUFF_CONFIG
-from ..data.battle.damage_type_data import is_physical_damage
 from ..entities.cards.base import annotate_number_modifier, get_gem_numeric_modifiers
 
 
@@ -64,30 +63,23 @@ def _int_value(card, *names) -> int:
 def _card_damage_bonus(card, run) -> int:
     bonus = 0
     damage_type = getattr(card, "damage_type", "effect")
-    physical = is_physical_damage(damage_type)
     card_id = getattr(card, "id", "")
     for marker in (":replay:", ":fragile:"):
         card_id = card_id.split(marker)[0]
     card_id = card_id.rstrip("+")
     if card_id.startswith("duel_"):
         card_id = card_id[5:]
-    if physical:
-        strength_cfg = BUFF_CONFIG.get("strength", {})
-        if card_id.startswith("heavy_blade"):
-            key = "heavy_blade_upgraded_multiplier" if getattr(card, "upgraded", False) else "heavy_blade_multiplier"
-            multiplier = strength_cfg.get(key, strength_cfg.get("default_multiplier", 1))
-        else:
-            multiplier = strength_cfg.get("default_multiplier", 1)
-        for buff in run.player.buffs:
-            if buff.id == "strength":
-                bonus += buff.stacks * multiplier
+    strength_cfg = BUFF_CONFIG.get("strength", {})
+    multiplier = strength_cfg.get("default_multiplier", 1)
+    if card_id.startswith("heavy_blade"):
+        key = "heavy_blade_upgraded_multiplier" if getattr(card, "upgraded", False) else "heavy_blade_multiplier"
+        multiplier = strength_cfg.get(key, multiplier)
     elif card_id == "neutral_astral_strike":
-        strength_cfg = BUFF_CONFIG.get("strength", {})
         key = "astral_strike_upgraded_multiplier" if getattr(card, "upgraded", False) else "astral_strike_multiplier"
-        multiplier = strength_cfg.get(key, strength_cfg.get("default_multiplier", 1))
-        for buff in run.player.buffs:
-            if buff.id == "strength":
-                bonus += buff.stacks * multiplier
+        multiplier = strength_cfg.get(key, multiplier)
+    for buff in run.player.buffs:
+        if buff.id == "strength":
+            bonus += buff.stacks * multiplier
     if getattr(card, "type", "") == "spell":
         for buff in run.player.buffs:
             if buff.id == "arcane_charge":

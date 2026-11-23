@@ -36,6 +36,12 @@ RELIC_CONFIG = {
         "grant_card": "rainie_love",
         "price": 0
     },
+    "pancake_stack": {
+        "name": "煎饼叠高高",
+        "rarity": "epic",
+        "desc": "当你在战斗中按卡牌主动作耗能 A 从小到大严格递增连续打出卡牌时，叠加【煎饼叠高高】连击状态，每打出一张牌使下一张符合递增耗能的卡牌获得重放 X（X 为当前连击层数）；打出耗能未递增的卡牌会打断连击并重置。",
+        "price": 120
+    },
     "gold_compass": {
         "name": "黄金罗盘",
         "rarity": "epic",

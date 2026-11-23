@@ -537,6 +537,8 @@ class TestBleakFallsAndSize(unittest.TestCase):
             tx, ty = coord_to_xy(step)
             cmd = {(0, -1): "w", (0, 1): "s", (-1, 0): "a", (1, 0): "d"}[(tx - sx, ty - sy)]
             last = self.run_cmd(cmd, actor)
+            if load_run(self.plugin, actor).node_type == "ally_summon_select":
+                last = self.run_cmd("c 1", actor)
             if load_run(self.plugin, actor).node_type == "battle":
                 if stop_on_battle and floor_of(load_run(self.plugin, actor)).player_coords.get(actor) == target_coord:
                     return last

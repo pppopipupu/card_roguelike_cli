@@ -278,6 +278,9 @@ class WorldMultiplayerTest(unittest.TestCase):
         battle_coord = ""
         for _ in range(6):
             _, run_b_battle = move_to_room(self.plugin, self.b, ("battle", "elite"))
+            if run_b_battle and run_b_battle.node_type == "ally_summon_select":
+                self.cmd("c 1", self.b)
+                run_b_battle = load_run(self.plugin, self.b)
             if run_b_battle and run_b_battle.node_type == "battle" and run_b_battle.node_data.get("battle_mode") == "solo":
                 coord = floor_of(run_b_battle).player_coords.get(self.b, "")
                 room = floor_of(run_b_battle).rooms.get(coord)

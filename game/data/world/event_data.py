@@ -509,6 +509,25 @@ EVENT_CONFIG = {
             }
         ]
     },
+    "kappa_invention": {
+        "description": "地下暗河边传出一阵清脆的敲打声。一位戴着铜框护目镜的河童技师正围着一桌发光齿轮忙碌，见你路过，她兴奋地招手邀请你亲手定制一台专属的【科学装置】。",
+        "options": [
+            {"text": "装入高压电弧核心（对单个目标造成 8 点闪电伤害）", "action": "kappa_core_arc"},
+            {"text": "装入液压护盾核心（获得 9 点护盾）", "action": "kappa_core_shield"},
+            {"text": "装入光学过载核心（对全体敌人造成 5 点光耀伤害并抽 1 张牌）", "action": "kappa_core_prism"},
+            {"text": "婉拒她的好意，继续前行", "action": "kappa_leave"}
+        ]
+    },
+    "pancake_stack_event": {
+        "gold_cost": 65,
+        "hp_cost": 10,
+        "description": "走廊拐角飘来一阵浓郁的黄油与枫糖香气。一张矮木桌上堆着一座摇摇欲坠的金色煎饼塔，牌子上写着：『按从小到大的节奏层层叠起，越叠越香——想端走它，就得留下点代价。』",
+        "options": [
+            {"text": "支付 65 金币买下整座煎饼塔（获得遗物【煎饼叠高高】）", "action": "pancake_pay_gold"},
+            {"text": "咬牙趁热抢下煎饼塔（失去 10 点生命值，获得遗物【煎饼叠高高】）", "action": "pancake_pay_hp"},
+            {"text": "忍住馋意转身离开", "action": "pancake_leave"}
+        ]
+    },
     "ghostification": {
         "intangible_count": 2,
         "description": "迷雾深处漂浮着一具半透明的古代幽魂残骸，它向你伸出冷冽而虚无的双手，低声询问你是否愿以血肉凡躯换取跨越生死的虚体权能。",

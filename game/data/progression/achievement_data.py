@@ -244,6 +244,36 @@ ACHIEVEMENTS_CONFIG = {
         "desc": "在战斗中首次成功打出神器卡牌【终极棱镜】，唤醒其独立意志并开放雇佣兵同行邀约。",
         "gp_reward": 3000,
     },
+    "ancient_cycle_breaker": {
+        "name": "先古循环见证者",
+        "rarity": "legendary",
+        "desc": "跨局完成连续三段【先古循环】任务线，集齐边界、因果与循环之外的见证，取得通往第五层的钥匙。",
+        "gp_reward": 2500,
+    },
+    "bleak_falls_fus_ro_dah": {
+        "name": "龙吼初鸣",
+        "rarity": "epic",
+        "desc": "将龙石交还法仁加并习得龙吼【不卸之力】，将其解锁纳入牌池。",
+        "gp_reward": 500,
+    },
+    "bleak_falls_completed": {
+        "name": "荒爆古坟行者",
+        "rarity": "epic",
+        "desc": "走完荒爆古坟与圣所深处并作出龙石的最终抉择。",
+        "gp_reward": 400,
+    },
+    "ultimate_prism_unlocked": {
+        "name": "折射之契",
+        "rarity": "epic",
+        "desc": "在卡牌大卖场购入并解锁神器卡牌【终极棱镜】。",
+        "gp_reward": 500,
+    },
+    "yog_quest_info_unlocked": {
+        "name": "星辉密谕",
+        "rarity": "epic",
+        "desc": "自先古主城向导长老处听闻星辉神殿的秘辛并接过【星辉符印】。",
+        "gp_reward": 300,
+    },
 }
 
 ACHIEVEMENT_ORDER = list(ACHIEVEMENTS_CONFIG.keys())
