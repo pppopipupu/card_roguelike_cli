@@ -200,6 +200,9 @@ async def async_move_to_room(plugin, uid: str, target_types, rally: bool = False
             if opts:
                 await run_command(plugin, str(len(opts)), uid)
     final_run = load_run(plugin, uid)
+    if rally and final_run is not None and final_run.node_type == "ally_summon_select":
+        last_res = await run_command(plugin, "c 1", uid)
+        final_run = load_run(plugin, uid)
     if rally and final_run is not None and final_run.node_type == "battle":
         await _rally_teammates(plugin, uid, final_run)
         final_run = load_run(plugin, uid)

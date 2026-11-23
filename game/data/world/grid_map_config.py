@@ -1,5 +1,7 @@
 from typing import Any
 
+ALLY_SUMMON_SP_COST = 1
+
 FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     0: {
         "width": 5,

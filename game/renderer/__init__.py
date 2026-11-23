@@ -108,6 +108,12 @@ class GameRenderer:
         elif nt == "enchant_card":
             from ..core.world.enchant_flow import render_enchant_card
             return render_enchant_card(run)
+        elif nt == "ally_summon_select":
+            from ..core.world.ally_summon import render_ally_summon_select
+            return render_ally_summon_select(run)
+        elif nt == "ally_summon_confirm":
+            from ..core.world.ally_summon import render_ally_summon_confirm
+            return render_ally_summon_confirm(run)
         elif nt == "cafe":
             from ..core.world.cafe.engine import CafeEngine
             return CafeEngine(None, None).render_cafe(run)

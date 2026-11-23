@@ -1,4 +1,5 @@
 import asyncio
+import random
 import re
 import tempfile
 import unittest
@@ -9,10 +10,13 @@ from game.test.core.base import CorePlugin, floor_of, load_run, require_run, run
 
 class TestDungeonNpcCrpgDialog(unittest.TestCase):
     def setUp(self):
+        self.random_state = random.getstate()
+        random.seed(20261123)
         self.tmp = tempfile.TemporaryDirectory()
         self.plugin = CorePlugin(data_dir=self.tmp.name)
 
     def tearDown(self):
+        random.setstate(self.random_state)
         self.tmp.cleanup()
 
     def run_cmd(self, cmd: str, uid: str = "crpg_test_user") -> str:

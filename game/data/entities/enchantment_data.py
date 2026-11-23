@@ -11,6 +11,16 @@ ENCHANTMENT_RARITY_WEIGHTS = {
     "epic": 13,
 }
 
+ENCHANTMENT_QUERY_OVERVIEW_ALIASES: tuple[str, ...] = (
+    "enchant",
+    "enchants",
+    "enchantment",
+    "enchantments",
+    "附魔",
+    "附魔一览",
+    "附魔词条",
+)
+
 START_ENCHANT_POOL = (
     "echo",
     "lucky_draw",
@@ -393,3 +403,7 @@ ENCHANTMENT_CONFIG: dict[str, dict] = {
         "grave": True,
     },
 }
+
+from .enchantment_data_cardaugments import CARDAUGMENTS_ENCHANTMENT_CONFIG
+
+ENCHANTMENT_CONFIG.update(CARDAUGMENTS_ENCHANTMENT_CONFIG)

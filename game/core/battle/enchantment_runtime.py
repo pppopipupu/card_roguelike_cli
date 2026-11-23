@@ -5,6 +5,16 @@ from ...data.text.locale_data import get_locale_text
 from ...entities.buffs import is_debuff
 from ..inventory.deck_service import DeckService
 from ..inventory.enchantment_service import fold_enchantments
+from .enchantment_runtime_extra import (
+    apply_enchantment_post_play_extra,
+    apply_enchantment_turn_end_extra,
+    apply_enchantment_turn_start_extra,
+)
+from .enchantment_runtime_hooks import (
+    apply_enchantment_dmg_extra,
+    apply_enchantment_shield_extra,
+    check_enchantment_playable_extra,
+)
 
 
 def _is_attack_card(card) -> bool:
@@ -16,6 +26,9 @@ def _is_attack_card(card) -> bool:
 
 
 def check_enchantment_playable(run, card) -> str:
+    extra_err = check_enchantment_playable_extra(run, card)
+    if extra_err:
+        return extra_err
     folded = fold_enchantments(getattr(card, "enchantments", None))
     if not folded:
         return ""
@@ -36,7 +49,7 @@ def check_enchantment_playable(run, card) -> str:
     return ""
 
 
-def apply_enchantment_dmg(run, card, target: str, dmg: int) -> tuple[int, bool]:
+def apply_enchantment_dmg(run, card, target: str, dmg: int, damage_type: str = "") -> tuple[int, bool]:
     folded = fold_enchantments(getattr(card, "enchantments", None))
     if not folded:
         return dmg, False
@@ -72,6 +85,7 @@ def apply_enchantment_dmg(run, card, target: str, dmg: int) -> tuple[int, bool]:
         dmg = max(1, int(round((dmg + dmg_add) * max(0.1, 1.0 + dmg_pct / 100.0))))
     elif dmg == 0 and dmg_add > 0:
         dmg = dmg_add
+    dmg = apply_enchantment_dmg_extra(run, card, target, enemy, dmg, damage_type)
     return dmg, pierce
 
 
@@ -94,6 +108,7 @@ def apply_enchantment_shield(run, card, amount: int) -> int:
         amount = max(1, int(round(amount * max(0.1, 1.0 + shield_pct / 100.0)))) + shield_add
     elif amount == 0 and shield_add > 0:
         amount = shield_add
+    amount = apply_enchantment_shield_extra(run, card, amount)
     return amount
 
 
@@ -120,6 +135,7 @@ def enchantment_pierces(card) -> bool:
 
 
 def apply_enchantment_post_play(engine, run, p, card, c_state, target: str, prev_alive_enemies: int) -> None:
+    apply_enchantment_post_play_extra(engine, run, p, card, c_state, target, prev_alive_enemies)
     folded = fold_enchantments(getattr(card, "enchantments", None))
     if not folded:
         return
@@ -307,9 +323,10 @@ def apply_enchantment_turn_start(engine, run, p) -> None:
         bonus_d = int(store_d.pop(uid, 0) or 0)
         if bonus_d > 0:
             engine.card_player.draw_cards(p, bonus_d, run)
+    apply_enchantment_turn_start_extra(engine, run, p)
 
 
-def apply_enchantment_turn_end(run, p) -> None:
+def apply_enchantment_turn_end(run, p, engine=None) -> None:
     uid = run.uid_for(p) or run.user_id
     store_ts = run.node_data.get("enchant_temp_strength")
     if isinstance(store_ts, dict):
@@ -321,3 +338,5 @@ def apply_enchantment_turn_end(run, p) -> None:
                     if b.stacks == 0:
                         p.buffs.remove(b)
                     break
+    if engine is not None:
+        apply_enchantment_turn_end_extra(engine, run, p)

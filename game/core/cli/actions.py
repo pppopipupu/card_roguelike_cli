@@ -244,6 +244,14 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
                 if run.node_type == "enchant_card":
                     res = router.engine.enchant_cancel(run)
                     return res, False, "❌" not in res
+                if run.node_type == "ally_summon_select":
+                    from ..world.ally_summon import handle_summon_select_choose
+                    res = handle_summon_select_choose(router.engine.map_engine.grid_map_service, run, 0)
+                    return res, False, "❌" not in res
+                if run.node_type == "ally_summon_confirm":
+                    from ..world.ally_summon import handle_summon_confirm_choose
+                    res = handle_summon_confirm_choose(router.engine.map_engine.grid_map_service, run, 0)
+                    return res, False, "❌" not in res
                 if run.node_type == "shop" and (
                     run.node_data.get("shop_mode") == "dialog"
                     or (run.node_data.get("shop_mode") == "wares" and run.node_data.get("entered_via_lobby"))
@@ -299,6 +307,14 @@ class ChooseAction(ActionHandler, actions=["选择", "c"]):
             return res, run.node_type == "room_dialog", "❌" not in res
         if run.node_type == "enchant_card":
             res = router.engine.enchant_choose(run, idx)
+            return res, False, "❌" not in res
+        if run.node_type == "ally_summon_select":
+            from ..world.ally_summon import handle_summon_select_choose
+            res = handle_summon_select_choose(router.engine.map_engine.grid_map_service, run, idx)
+            return res, False, "❌" not in res
+        if run.node_type == "ally_summon_confirm":
+            from ..world.ally_summon import handle_summon_confirm_choose
+            res = handle_summon_confirm_choose(router.engine.map_engine.grid_map_service, run, idx)
             return res, False, "❌" not in res
         if run.node_data.get("pending_upgrade"):
             res = router.engine.upgrade_card_in_deck(run, idx)

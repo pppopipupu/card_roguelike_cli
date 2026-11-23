@@ -189,7 +189,11 @@ def render_battle(run: GameRun) -> str:
                 intent_parts.append(f"A: {' + '.join(a_parts)}")
             if ba_parts:
                 intent_parts.append(f"BA: {' + '.join(ba_parts)}")
-            intent_str = f"({', '.join(intent_parts)})" if intent_parts else t("renderer.battle.no_intent")
+            uid_runic = run.uid_for(p) or run.user_id
+            if int((run.node_data.get("enchant_runic_turns") or {}).get(uid_runic, 0) or 0) > 0:
+                intent_str = t("i18n_enchantment.ui.runic_obscured_intent")
+            else:
+                intent_str = f"({', '.join(intent_parts)})" if intent_parts else t("renderer.battle.no_intent")
             shield_str = t("renderer.battle.shield_suffix", shield=enemy.shield) if enemy.shield > 0 else ""
             buff_desc = ""
             if getattr(enemy, "buffs", None):
@@ -386,7 +390,11 @@ def render_detailed_battle(run: GameRun) -> str:
                 intent_parts.append(t("renderer.battle.detailed_intent_a", descs=' + '.join(a_parts)))
             if ba_parts:
                 intent_parts.append(t("renderer.battle.detailed_intent_ba", descs=' + '.join(ba_parts)))
-            intent_str = " | ".join(intent_parts) if intent_parts else t("renderer.battle.no_intent")
+            uid_runic = run.uid_for(p) or run.user_id
+            if int((run.node_data.get("enchant_runic_turns") or {}).get(uid_runic, 0) or 0) > 0:
+                intent_str = t("i18n_enchantment.ui.runic_obscured_intent")
+            else:
+                intent_str = " | ".join(intent_parts) if intent_parts else t("renderer.battle.no_intent")
             if e_name == "【万物归一】虚空之门·尤格-索托斯" or enemy.max_hp == 2147483647:
                 hp_text = f"0x{enemy.hp:X}/0x{enemy.max_hp:X}"
             else:

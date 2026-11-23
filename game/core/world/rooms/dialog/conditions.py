@@ -236,3 +236,32 @@ def _cond_not_hostile(val, ctx: dict) -> bool:
 @register_dialog_condition("encounter_turns_gte")
 def _cond_turns_gte(val, ctx: dict) -> bool:
     return int((ctx.get("p_enc") or {}).get("talk_turns", 0)) >= int(val)
+
+
+@register_dialog_condition("has_enchanted_card")
+def _cond_has_enchanted_card(val, ctx: dict) -> bool:
+    p = ctx.get("player")
+    if p is None:
+        return False
+    has_any = any(bool(getattr(c, "enchantments", None)) for c in (getattr(p, "deck", None) or ()))
+    return has_any if bool(val) else not has_any
+
+
+@register_dialog_condition("enchanted_count_gte")
+def _cond_enchanted_count_gte(val, ctx: dict) -> bool:
+    p = ctx.get("player")
+    if p is None:
+        return False
+    cnt = sum(1 for c in (getattr(p, "deck", None) or ()) if getattr(c, "enchantments", None))
+    return cnt >= int(val)
+
+
+@register_dialog_condition("has_curse_card")
+def _cond_has_curse_card(val, ctx: dict) -> bool:
+    p = ctx.get("player")
+    if p is None:
+        return False
+    from .....entities import ALL_CARDS
+
+    has_any = any(getattr(ALL_CARDS.get(c), "color", "") == "curse" for c in (getattr(p, "deck", None) or ()))
+    return has_any if bool(val) else not has_any

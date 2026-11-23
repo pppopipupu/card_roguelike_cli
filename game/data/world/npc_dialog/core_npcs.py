@@ -3,7 +3,7 @@ CORE_NPC_GRAPHS = {
         "initial_affinity": 0,
         "cross_run_memory": False,
         "cycle_aware": False,
-        "service_quotas": {"forge": 1, "gem": 1, "pickaxe": 1, "bellows": 1, "bow_part": 1},
+        "service_quotas": {"forge": 1, "gem": 1, "enchant": 1, "pickaxe": 1, "bellows": 1, "bow_part": 1},
         "greetings": [
             "i18n_npc_crpg_core.smith.greet_1",
             "i18n_npc_crpg_core.smith.greet_2",
@@ -24,6 +24,7 @@ CORE_NPC_GRAPHS = {
                 "text_key": "",
                 "options": [
                     {"id": "smith_talk_craft", "category": "topic", "once_per_encounter": True, "text_key": "i18n_npc_crpg_core.smith.opt_talk_craft", "next_node": "craft_talk"},
+                    {"id": "smith_show_enchant", "category": "topic", "once_per_encounter": True, "visible_if": {"has_enchanted_card": True}, "text_key": "i18n_npc_crpg_core.smith.opt_show_enchant", "effects": [{"type": "set_local_flag", "flag": "smith_saw_enchant"}, {"type": "affinity", "delta": 2}, {"type": "message", "key": "i18n_npc_crpg_core.smith.res_show_enchant"}], "next_node": "root"},
                     {"id": "smith_open_services", "category": "service", "submenu_only": True, "text_key": "i18n_npc_crpg_core.smith.opt_services", "next_node": "services"},
                     {"id": "smith_quest_ask", "category": "quest", "visible_if": {"can_accept_npc_quest": "quest_smith_temper"}, "text_key": "i18n_npc_crpg_core.smith.opt_quest_ask", "next_node": "quest_offer"},
                     {"id": "smith_scout_bow", "category": "quest", "once_per_run": True, "visible_if": {"all": [{"world_flag": "scout_needs_bow_part"}, {"service_available": "bow_part"}]}, "text_key": "i18n_npc_crpg_core.smith.opt_scout_bow", "cost": {"gold": 10}, "effects": [{"type": "consume_service", "service": "bow_part"}, {"type": "set_world_flag", "flag": "smith_forged_bow_part"}, {"type": "affinity", "delta": 2}, {"type": "message", "key": "i18n_npc_crpg_core.smith.res_bow_part"}], "next_node": "root"},
@@ -77,6 +78,8 @@ CORE_NPC_GRAPHS = {
                     {"id": "smith_forge_std", "category": "service", "visible_if": {"all": [{"service_available": "forge"}, {"not": {"local_flag": "smith_discount"}}, {"not": {"local_flag": "smith_surcharge"}}]}, "text_key": "i18n_npc_crpg_core.smith.opt_forge", "cost": {"gold": 25, "need_unupgraded_card": True}, "defer_cost": True, "defer_service": True, "service_key": "forge", "effects": [{"type": "start_upgrade", "cost": 25, "service": "forge", "return_node": "after_forge"}]},
                     {"id": "smith_gem_disc", "category": "service", "visible_if": {"all": [{"service_available": "gem"}, {"local_flag": "smith_discount"}]}, "text_key": "i18n_npc_crpg_core.smith.opt_gem", "cost": {"gold": 25}, "defer_cost": True, "defer_service": True, "service_key": "gem", "effects": [{"type": "start_gem", "cost": 25, "service": "gem", "return_node": "after_forge"}]},
                     {"id": "smith_gem_std", "category": "service", "visible_if": {"all": [{"service_available": "gem"}, {"not": {"local_flag": "smith_discount"}}]}, "text_key": "i18n_npc_crpg_core.smith.opt_gem", "cost": {"gold": 35}, "defer_cost": True, "defer_service": True, "service_key": "gem", "effects": [{"type": "start_gem", "cost": 35, "service": "gem", "return_node": "after_forge"}]},
+                    {"id": "smith_enchant_disc", "category": "service", "visible_if": {"all": [{"service_available": "enchant"}, {"local_flag": "smith_discount"}]}, "text_key": "i18n_npc_crpg_core.smith.opt_rune_temper", "cost": {"gold": 35}, "service_key": "enchant", "effects": [{"type": "enchant_random_card", "key": "i18n_npc_crpg_core.smith.res_rune_temper", "fallback_key": "i18n_npc_crpg_core.smith.res_rune_temper_none"}], "next_node": "services"},
+                    {"id": "smith_enchant_std", "category": "service", "visible_if": {"all": [{"service_available": "enchant"}, {"not": {"local_flag": "smith_discount"}}]}, "text_key": "i18n_npc_crpg_core.smith.opt_rune_temper", "cost": {"gold": 50}, "service_key": "enchant", "effects": [{"type": "enchant_random_card", "key": "i18n_npc_crpg_core.smith.res_rune_temper", "fallback_key": "i18n_npc_crpg_core.smith.res_rune_temper_none"}], "next_node": "services"},
                     {"id": "smith_pickaxe", "category": "service", "visible_if": {"service_available": "pickaxe"}, "text_key": "i18n_npc_crpg_core.smith.opt_pickaxe", "cost": {"gold": 30}, "service_key": "pickaxe", "effects": [{"type": "give_item", "item_id": "rusty_pickaxe", "key": "i18n_npc_crpg_core.smith.res_pickaxe"}], "next_node": "services"},
                     {"id": "smith_bellows", "category": "service", "visible_if": {"service_available": "bellows"}, "text_key": "i18n_npc_crpg_core.smith.opt_bellows", "service_key": "bellows", "effects": [{"type": "sp", "amount": 2, "key": "i18n_npc_crpg_core.smith.res_bellows"}], "next_node": "services"},
                     {
@@ -92,6 +95,7 @@ CORE_NPC_GRAPHS = {
                                 {"cond": {"local_flag": "praised_craft"}, "bonus": 3, "reason_key": "i18n_npc_crpg_core.smith.mod_craft"},
                                 {"cond": {"player_class": "战士"}, "bonus": 2, "reason_key": "i18n_npc_crpg_core.smith.mod_warrior"},
                                 {"cond": {"has_item": "rusty_pickaxe"}, "bonus": 2, "reason_key": "i18n_npc_crpg_core.smith.mod_pickaxe"},
+                                {"cond": {"local_flag": "smith_saw_enchant"}, "bonus": 2, "reason_key": "i18n_npc_crpg_core.smith.mod_enchant"},
                             ],
                             "auto_pass_cond": {"affinity_gte": 6},
                             "auto_pass_reason_key": "i18n_npc_crpg_core.smith.auto_trusted",

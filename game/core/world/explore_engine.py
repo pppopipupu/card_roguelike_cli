@@ -448,10 +448,11 @@ class ExploreEngine:
             return get_locale_text("err_invalid_card_idx")
         
         c_state = sorted_items[deck_idx - 1][0]
-        if c_state.upgraded:
+        from ..inventory.enchantment_service import has_cant_upgrade_enchantment, has_multi_upgrade_enchantment
+        multi_up = has_multi_upgrade_enchantment(c_state)
+        if c_state.upgraded and not multi_up:
             return get_locale_text("err_card_already_upgraded")
             
-        from ..inventory.enchantment_service import has_cant_upgrade_enchantment
         if has_cant_upgrade_enchantment(c_state):
             return get_locale_text("i18n_enchantment.ui.cant_upgrade_err", name=ALL_CARDS[c_state].name)
         from ...data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
@@ -460,7 +461,10 @@ class ExploreEngine:
             
         import copy
         new_state = copy.copy(c_state)
-        new_state.upgraded = True
+        if c_state.upgraded and multi_up:
+            new_state.enchantments = list(c_state.enchantments or []) + ["searing"]
+        else:
+            new_state.upgraded = True
         p.deck.remove(c_state)
         p.deck.append(new_state)
         

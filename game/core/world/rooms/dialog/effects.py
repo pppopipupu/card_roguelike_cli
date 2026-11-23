@@ -537,3 +537,6 @@ def _eff_gamble(eff: dict, ctx: dict, outcomes: List[TextNode]):
 @register_dialog_effect("close_dialog")
 def _eff_close_dialog(eff: dict, ctx: dict, outcomes: List[TextNode]):
     return {"halt": True, "flow": "CLOSE_FLOW"}
+
+
+from . import effects_extra as _effects_extra

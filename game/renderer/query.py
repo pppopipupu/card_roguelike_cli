@@ -16,6 +16,7 @@ from ..data.entities.size_data import (
 from .menu import get_card_cost_str, append_card_subtype
 from ..core.progress.progressive_unlock import is_card_detail_revealed
 from ..data.text.locale_data import get_locale_text
+from .enchantment_query import append_enchantment_queries
 from .chireiden_query import (
     append_chireiden_world_queries,
     append_utsuho_ally_lore_if_unlocked,
@@ -53,6 +54,9 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
             return val
         for k, v in rarity_map.items():
             if val == v:
+                return k
+        for k in ("common", "rare", "epic"):
+            if val == get_locale_text(f"i18n_enchantment.rarities.{k}").lower():
                 return k
         return None
 
@@ -208,6 +212,9 @@ def render_query_info(query_str: str, user_id: str | None = None, run=None) -> s
             lines.append(get_locale_text("renderer_menu.effect_line", desc=desc))
             lines.append(get_locale_text("renderer_menu.price_line", price=price))
             lines.append("")
+
+    if append_enchantment_queries(lines, q_search, tier_filter, query_str_lower):
+        found = True
             
     for mid, cfg in MINION_CONFIG.items():
         if tier_filter:

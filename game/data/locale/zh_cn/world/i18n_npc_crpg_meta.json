@@ -42,6 +42,10 @@
     "opt_revive_talk": "「所以刚才那一下对你来说也只是重新上线？」",
     "res_revive_talk": "🐟 pppopipupu 耸耸肩：『是啊，真打到一血再点确认处决，最多逼我切个形态陪你玩玩，下局清蒸大黄花鱼照吃不误。』",
     "cycle_turnin_text": "🐟 pppopipupu 翻了翻小本本啪地一拍平板：『稳！三次循环见证全都记齐了，这回算你正式毕业。』",
-    "opt_turnin_cycle": "「把三次先古循环的见证账本递给你。」"
+    "opt_turnin_cycle": "「把三次先古循环的见证账本递给你。」",
+    "opt_meta_enchants": "「怎么感觉地城里的附魔词条一夜之间涨到了上百种？」",
+    "res_meta_enchants": "🐟 pppopipupu 摘下墨镜竖起大拇指：『那可不！直接把隔壁尖塔的整套词条库全搬过来了，还顺手塞进了 i 附魔 图鉴里，生怕你看着一长串前缀后缀抓瞎。』",
+    "opt_meta_show_enchant": "把牌组里刚刻好附魔的卡牌亮给他看一眼。",
+    "res_meta_show_enchant": "🐟 pppopipupu 凑过来瞄了一眼乐了：『哟，已经用上新刻刀了？只要别手滑给自己刻个渎神下回合原地去世就行——来，我也顺手给你整点活！』你的【{before}】被刻上了【{enchant}】附魔，变成了【{after}】！"
   }
 }

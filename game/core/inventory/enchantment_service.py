@@ -45,6 +45,27 @@ _FLAG_EFFECT_KEYS: tuple[str, ...] = (
     "reshuffle_to_draw",
     "pierce_shield",
     "grave",
+    "extra_hits_per_enemy",
+    "mantra_by_cost",
+    "double_dmg_lowest_hp",
+    "must_play_first",
+    "duplicate_on_draw",
+    "enter_wrath",
+    "discard_first_draw",
+    "randomize_cost_on_draw",
+    "next_attack_free",
+    "exhaust_on_hp_loss",
+    "block_equal_unblocked_dmg",
+    "die_next_turn",
+    "infinite_copy_each_turn",
+    "invert_dmg_shield",
+    "jank_swap_nums",
+    "poison_equal_unblocked_dmg",
+    "multi_upgrade",
+    "only_attack_in_hand",
+    "x_cost_repeat",
+    "autoplay_on_draw",
+    "make_playable",
 )
 
 _COUNT_EFFECT_KEYS: tuple[str, ...] = (
@@ -71,6 +92,36 @@ _COUNT_EFFECT_KEYS: tuple[str, ...] = (
     "low_hp_dmg_pct",
     "enemy_debuff_dmg",
     "self_debuff_shield",
+    "channel_lightning",
+    "gain_a_if_prev_attack",
+    "channel_frost",
+    "exhaust_random_hand",
+    "grant_miracle_a",
+    "scry_before_draw",
+    "next_turn_shield",
+    "self_frail",
+    "play_cost_reduce",
+    "upgrade_random_hand",
+    "ramp_shield",
+    "claw_scale",
+    "curse_deck_dmg",
+    "random_extra_hit",
+    "channel_dark",
+    "bonus_vs_attacking_dmg",
+    "strength_mult",
+    "apply_lock_on",
+    "on_exhaust_draw",
+    "ramp_dmg",
+    "add_base_copies_hand",
+    "delayed_burst_turns",
+    "return_zero_cost_from_discard",
+    "channel_plasma",
+    "kill_perm_dmg",
+    "obscure_intents_turns",
+    "draw_if_prev_skill",
+    "gain_intangible",
+    "draw_gain_a",
+    "draw_lose_a",
 )
 
 _FLAG_ATTR_KEYS: tuple[str, ...] = ("exhaust", "ethereal", "innate", "retain", "cant_upgrade")
@@ -87,6 +138,12 @@ def _compose_enchantment_effect_desc(card, folded: list[tuple[str, int]], before
         total = sum(int(ENCHANTMENT_CONFIG[eid].get(key, 0)) * cnt for eid, cnt in folded)
         if total > 0:
             parts.append(get_locale_text(f"i18n_enchantment.dyn.{key}", n=total))
+    if any(ENCHANTMENT_CONFIG[eid].get("add_card_hand") for eid, _ in folded):
+        parts.append(get_locale_text("i18n_enchantment.dyn.add_card_hand"))
+    for eid, _ in folded:
+        nxt = ENCHANTMENT_CONFIG[eid].get("shuffle_transformed_enchant")
+        if nxt in ("beta", "omega"):
+            parts.append(get_locale_text(f"i18n_enchantment.dyn.shuffle_transformed_enchant_{nxt}"))
     for key in _FLAG_ATTR_KEYS:
         if getattr(card, key, False) and not before[key]:
             parts.append(get_locale_text(f"i18n_enchantment.dyn.{key}"))
@@ -119,8 +176,19 @@ def has_cant_upgrade_enchantment(card_state) -> bool:
     return False
 
 
+def has_multi_upgrade_enchantment(card_state) -> bool:
+    st = ensure_card_state(card_state)
+    for eid in st.enchantments or ():
+        if ENCHANTMENT_CONFIG.get(eid, {}).get("multi_upgrade"):
+            return True
+    return False
+
+
 def roll_enchantments(count: int, pool: tuple[str, ...] | None = None) -> list[str]:
-    candidates = [eid for eid in (pool if pool is not None else tuple(ENCHANTMENT_CONFIG.keys())) if eid in ENCHANTMENT_CONFIG]
+    if pool is not None:
+        candidates = [eid for eid in pool if eid in ENCHANTMENT_CONFIG]
+    else:
+        candidates = [eid for eid, cfg in ENCHANTMENT_CONFIG.items() if not cfg.get("pool_exclude")]
     if not candidates or count <= 0:
         return []
     picked: list[str] = []
@@ -202,7 +270,36 @@ def apply_enchantments_to_card(card, card_state: CardState) -> int:
         if cfg.get("cant_upgrade"):
             card.cant_upgrade = True
 
-    if cost_a_delta != 0:
+    set_cost_a = None
+    for eid, _ in folded:
+        cfg = ENCHANTMENT_CONFIG[eid]
+        if "set_cost_a" in cfg:
+            set_cost_a = int(cfg["set_cost_a"])
+        if cfg.get("make_playable"):
+            card.unplayable = False
+        if cfg.get("invert_dmg_shield"):
+            d0 = int(getattr(card, "base_dmg", 0) or 0)
+            s0 = int(getattr(card, "shield_amount", 0) or 0)
+            if d0 > 0 or s0 > 0:
+                card.base_dmg = s0
+                card.shield_amount = d0
+        if cfg.get("jank_swap_nums"):
+            d0 = int(getattr(card, "base_dmg", 0) or 0)
+            s0 = int(getattr(card, "shield_amount", 0) or 0)
+            h0 = int(getattr(card, "heal_amount", 0) or 0)
+            vals = [v for v in (d0, s0, h0) if v > 0]
+            if len(vals) >= 2:
+                rot = vals[1:] + vals[:1]
+                it = iter(rot)
+                if d0 > 0:
+                    card.base_dmg = next(it)
+                if s0 > 0:
+                    card.shield_amount = next(it)
+                if h0 > 0:
+                    card.heal_amount = next(it)
+    if set_cost_a is not None:
+        card.cost_a = set_cost_a
+    elif cost_a_delta != 0:
         card.cost_a = max(0, int(card.cost_a) + cost_a_delta)
     if cost_ba_delta != 0:
         card.cost_ba = max(0, int(card.cost_ba) + cost_ba_delta)

@@ -46,6 +46,10 @@ class SessionContextScoper:
         if not sid or sid not in fm.active_sessions:
             if sid:
                 fm.player_session_map.pop(caller_uid, None)
+            from ..world.ally_summon import open_pending_summon_if_any
+            if open_pending_summon_if_any(run, caller_uid):
+                sid = fm.player_session_map.get(caller_uid)
+        if not sid or sid not in fm.active_sessions:
             run.node_type = "grid_map"
             run.enemies = []
             run.node_data = {}

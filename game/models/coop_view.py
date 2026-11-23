@@ -67,6 +67,8 @@ VIEW_NODES = {
     "boss_chest",
     "gem_insert",
     "enchant_card",
+    "ally_summon_select",
+    "ally_summon_confirm",
     "cafe",
 }
 

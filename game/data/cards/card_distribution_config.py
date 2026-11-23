@@ -124,7 +124,7 @@ CHANNEL_POLICIES: dict[str, dict] = {
         "early_rarities": ("common", "rare"),
         "late_rarities": ("common", "rare"),
         "color_mode": "fixed",
-        "colors": ("wizard", "warrior", "neutral"),
+        "colors": ("wizard", "warrior", "ninja", "neutral"),
         "count": REWARD_CARD_COUNT,
         "weighted": True,
     },

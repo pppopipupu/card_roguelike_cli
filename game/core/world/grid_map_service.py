@@ -643,6 +643,22 @@ class GridMapService:
         if existing_sid:
             return self._join_battle_session(run, uid, coord, existing_sid)
 
+        if mode == BATTLE_MODE_SOLO:
+            from .ally_summon import maybe_open_summon_select
+            prompt = maybe_open_summon_select(
+                self,
+                run,
+                uid,
+                coord,
+                room,
+                difficulty,
+                corpse,
+                hostile_npc_id,
+                mode,
+            )
+            if prompt is not None:
+                return prompt
+
         participants = [uid]
         if mode == BATTLE_MODE_TEAM:
             participants = self._team_participants(run, uid)

@@ -3,7 +3,7 @@ META_NPC_GRAPHS = {
         "initial_affinity": 1,
         "cross_run_memory": True,
         "cycle_aware": True,
-        "service_quotas": {"supply": 1, "meta_story": 1},
+        "service_quotas": {"supply": 1, "meta_story": 1, "meta_enchant": 1},
         "greetings": [
             "i18n_npc_crpg_meta.pppo.greet_1",
             "i18n_npc_crpg_meta.pppo.greet_2",
@@ -33,6 +33,8 @@ META_NPC_GRAPHS = {
                     {"id": "pppo_meta_npc_rework", "category": "topic", "text_key": "i18n_npc_crpg_meta.pppo.opt_meta_rework", "effects": [{"type": "message", "key": "i18n_npc_crpg_meta.pppo.res_meta_rework"}], "next_node": "root"},
                     {"id": "pppo_meta_vibe", "category": "topic", "text_key": "i18n_npc_crpg_meta.pppo.opt_meta_vibe", "effects": [{"type": "message", "key": "i18n_npc_crpg_meta.pppo.res_meta_vibe"}], "next_node": "root"},
                     {"id": "pppo_meta_json", "category": "topic", "text_key": "i18n_npc_crpg_meta.pppo.opt_meta_json", "effects": [{"type": "message", "key": "i18n_npc_crpg_meta.pppo.res_meta_json"}], "next_node": "root"},
+                    {"id": "pppo_meta_enchants", "category": "topic", "text_key": "i18n_npc_crpg_meta.pppo.opt_meta_enchants", "effects": [{"type": "message", "key": "i18n_npc_crpg_meta.pppo.res_meta_enchants"}], "next_node": "root"},
+                    {"id": "pppo_meta_show_enchant", "category": "service", "visible_if": {"all": [{"has_enchanted_card": True}, {"service_available": "meta_enchant"}]}, "service_key": "meta_enchant", "text_key": "i18n_npc_crpg_meta.pppo.opt_meta_show_enchant", "effects": [{"type": "affinity", "delta": 1}, {"type": "enchant_random_card", "key": "i18n_npc_crpg_meta.pppo.res_meta_show_enchant"}], "next_node": "root"},
                 ],
             },
             "cycle_revived_root": {

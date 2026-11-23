@@ -126,6 +126,9 @@ class TestCoopLobbyAndBattle(CoopTestBase):
         uids = ["solo_wait_a", "solo_wait_b"]
         self.start_coop(uids)
         _, run = move_to_room(self.plugin, uids[0], ("battle", "elite"))
+        if run.node_type == "ally_summon_select":
+            self.run_cmd("c 1", uids[0])
+            run = load_run(self.plugin, uids[0])
         self.assertEqual(run.node_type, "battle")
         self.assertEqual(run.node_data.get("battle_mode"), "solo")
         self.assertEqual(run.party_order, [uids[0]])
@@ -167,6 +170,9 @@ class TestCoopLobbyAndBattle(CoopTestBase):
         uids = ["vote_a", "vote_b"]
         self.start_coop(uids)
         _, run = move_to_room(self.plugin, uids[0], ("battle", "elite"))
+        if run.node_type == "ally_summon_select":
+            self.run_cmd("c 1", uids[0])
+            run = load_run(self.plugin, uids[0])
         self.assertEqual(run.node_type, "battle")
         blocked = self.run_cmd("start confirm", uids[0])
         self.assertIn("联机", blocked)
