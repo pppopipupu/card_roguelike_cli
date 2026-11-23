@@ -217,7 +217,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
     def save_stats(self, user_id: str, stats: UserStats) -> bool:
         path = self.get_stats_path(user_id)
         try:
-            d = asdict(stats)
+            d = dict(stats.__dict__)
             d["total_damage"] = str(int(stats.total_damage))
             _atomic_write_json(path, d)
             return True

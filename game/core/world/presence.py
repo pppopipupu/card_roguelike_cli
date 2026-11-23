@@ -100,29 +100,83 @@ class WorldPresenceService:
                 return dict(entries)
             return {uid: entry for uid, entry in entries.items() if entry.get("world") == world}
 
-    def touch(self, uid: str, world: str, coord: str) -> None:
+    def _build_entry(self, uid: str, world: str, coord: str, stats, previous: dict, now: float) -> tuple[dict, bool]:
+        pending = previous.get("pending_messages")
+        if not isinstance(pending, list):
+            pending = []
+        name = getattr(stats, "player_name", "") or get_locale_text("i18n_world_social.default_player_name")
+        player_id = getattr(stats, "player_handle", "") or getattr(stats, "player_name", "")
+        class_text = _class_text(stats)
+        coord_str = str(coord or "")
+        prev_ts = float(previous.get("last_active_ts", 0) or 0)
+        unchanged = (
+            previous.get("world") == world
+            and previous.get("coord") == coord_str
+            and previous.get("name") == name
+            and previous.get("player_id") == player_id
+            and previous.get("class_text") == class_text
+            and prev_ts > 0
+            and (now - prev_ts) < 15.0
+        )
+        entry = {
+            "user_id": uid,
+            "name": name,
+            "player_id": player_id,
+            "class_text": class_text,
+            "world": world,
+            "coord": coord_str,
+            "last_active": _now_text(),
+            "last_active_ts": now,
+            "pending_messages": pending[-WORLD_LIVE_MESSAGE_LIMIT:],
+        }
+        return entry, not unchanged
+
+    def touch(self, uid: str, world: str, coord: str, stats=None) -> None:
         if not uid or not _is_valid_world(world):
             return
-        stats = self.save_manager.load_stats(uid)
+        if stats is None:
+            stats = self.save_manager.load_stats(uid)
+        now = time.time()
         with _REGISTRY_LOCK:
-            entries, _ = self._load()
+            entries, changed = self._load()
             previous = entries.get(uid) or {}
-            pending = previous.get("pending_messages")
-            if not isinstance(pending, list):
-                pending = []
-            entry = {
-                "user_id": uid,
-                "name": getattr(stats, "player_name", "") or get_locale_text("i18n_world_social.default_player_name"),
-                "player_id": getattr(stats, "player_handle", "") or getattr(stats, "player_name", ""),
-                "class_text": _class_text(stats),
-                "world": world,
-                "coord": str(coord or ""),
-                "last_active": _now_text(),
-                "last_active_ts": time.time(),
-                "pending_messages": pending[-WORLD_LIVE_MESSAGE_LIMIT:],
-            }
-            entries[uid] = entry
-            self._write(entries)
+            entry, dirty = self._build_entry(uid, world, coord, stats, previous, now)
+            if dirty or changed:
+                entries[uid] = entry
+                self._write(entries)
+
+    def sync_many(self, uids, *, stats_by_uid: dict | None = None, run=None) -> None:
+        if not uids:
+            return
+        stats_map = stats_by_uid if isinstance(stats_by_uid, dict) else {}
+        now = time.time()
+        updates = []
+        leaves = []
+        for uid in uids:
+            if not uid:
+                continue
+            st = stats_map.get(uid)
+            if st is None:
+                st = self.save_manager.load_stats(uid)
+            loc = self.resolve_location(uid, stats=st, run=run)
+            if loc is None:
+                leaves.append(uid)
+            elif _is_valid_world(loc[0]):
+                updates.append((uid, loc[0], loc[1], st))
+        with _REGISTRY_LOCK:
+            entries, changed = self._load()
+            for uid in leaves:
+                if uid in entries:
+                    del entries[uid]
+                    changed = True
+            for uid, world, coord, st in updates:
+                previous = entries.get(uid) or {}
+                entry, dirty = self._build_entry(uid, world, coord, st, previous, now)
+                if dirty:
+                    entries[uid] = entry
+                    changed = True
+            if changed:
+                self._write(entries)
 
     def send_live(self, target_uid: str, from_uid: str, from_name: str, text: str) -> bool:
         if not target_uid or not text:
@@ -233,11 +287,13 @@ class WorldPresenceService:
         return WORLD_TOWN, TOWN_ROOM_COORDS.get(stats.town_pos, "C2")
 
     def sync(self, uid: str, stats=None, run=None) -> tuple[str, str] | None:
+        if stats is None:
+            stats = self.save_manager.load_stats(uid)
         location = self.resolve_location(uid, stats=stats, run=run)
         if location is None:
             self.leave(uid)
             return None
-        self.touch(uid, location[0], location[1])
+        self.touch(uid, location[0], location[1], stats=stats)
         return location
 
 
@@ -255,6 +311,13 @@ def sync_active(uid: str, stats=None, run=None) -> tuple[str, str] | None:
     if service is None:
         return None
     return service.sync(uid, stats=stats, run=run)
+
+
+def sync_active_many(uids, *, stats_by_uid: dict | None = None, run=None) -> None:
+    service = _ACTIVE_SERVICE
+    if service is None:
+        return
+    service.sync_many(uids, stats_by_uid=stats_by_uid, run=run)
 
 
 def render_players(world: str, coord: str | None = None, exclude_uid: str = "") -> list[dict]:

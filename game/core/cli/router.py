@@ -207,16 +207,15 @@ class CLIRouter:
             self.world_social,
             user_id,
         )
-        self.world_social.refresh(user_id)
+        before_run = self.save_manager.load_save(user_id)
+        self.world_social.refresh(user_id, run=before_run)
         status_refresh = not parts or str(parts[0]).strip().lower() in ("状态", "status", "r", "rogue", "肉鸽")
         if status_refresh:
             invite_popup = PvpService.render_invite_popup(self.save_manager, user_id)
             if invite_popup:
-                status_run = self.save_manager.load_save(user_id)
-                if status_run is None or status_run.node_type != "battle":
+                if before_run is None or before_run.node_type != "battle":
                     yield invite_popup
                     return
-        before_run = self.save_manager.load_save(user_id) if command else None
         kind = "battle" if before_run is not None and before_run.node_type == "battle" else "action"
         actor_name = before_run.player.name if before_run is not None and before_run.player else ""
         raw_outputs = [
@@ -255,7 +254,7 @@ class CLIRouter:
                     trade_text = render_text_node(trade_popup)
                     results.append(trade_text)
                     yield trade_text
-        self.world_social.refresh(user_id)
+        self.world_social.refresh(user_id, run=after_run)
         if command:
             from ..progress.achievement_service import AchievementService
             ach = AchievementService(self.save_manager)
@@ -276,10 +275,32 @@ class CLIRouter:
         if not publish and not record:
             return
         result = self._projection_result(user_id, "\n".join(results))
+        stats_cache = {}
+        dirty_proj: set[str] = set()
         if publish:
-            self.projection_service.publish(user_id, command, result)
+            dirty_proj = self.projection_service.publish(
+                user_id,
+                command,
+                result,
+                run=after_run,
+                stats_cache=stats_cache,
+                defer_save=bool(record),
+            )
+        saved_log: set[str] = set()
         if record:
-            self.log_service.record(user_id, command, result, kind, before_run, actor_name)
+            saved_log = self.log_service.record(
+                user_id,
+                command,
+                result,
+                kind,
+                before_run,
+                actor_name,
+                stats_cache=stats_cache,
+            )
+        if record:
+            for uid in dirty_proj - saved_log:
+                if uid in stats_cache:
+                    self.save_manager.save_stats(uid, stats_cache[uid])
 
     def _get_current_state(self, user_id: str, run) -> str:
         stats = None

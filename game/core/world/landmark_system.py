@@ -474,7 +474,9 @@ def execute_downstairs_option(save_manager, map_engine, run, idx: int) -> str:
             if not all(ready_map.get(pid) for pid in alive_humans):
                 run.node_data["coop_done"] = True
                 run.node_data["waiting_descend"] = True
-                run.node_data["options"] = []
+                run.node_data["options"] = [
+                    {"action": "downstairs_leave", "text": get_locale_text("i18n_grid_map.opt_leave")},
+                ]
                 SessionContextScoper.sync_from_run(run, uid)
                 save_manager.save_save(uid, run)
                 wait_msg = get_locale_text("i18n_grid_map.downstairs.confirm_wait_msg")
@@ -484,3 +486,5 @@ def execute_downstairs_option(save_manager, map_engine, run, idx: int) -> str:
     advance_msg = map_engine.advance_to_next_floor(run)
     save_manager.save_save(uid, run)
     return f"{reward_msg}\n{advance_msg}" if reward_msg else advance_msg
+
+

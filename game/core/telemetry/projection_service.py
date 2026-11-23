@@ -27,21 +27,33 @@ class ProjectionService:
         parts = _command_parts(command)
         return bool(parts) and parts[0].lower() not in PROJECTION_SKIP_COMMANDS
 
-    def publish(self, actor_id: str, command: str, result: str, enabled: bool = True) -> None:
+    def publish(
+        self,
+        actor_id: str,
+        command: str,
+        result: str,
+        enabled: bool = True,
+        *,
+        run=None,
+        stats_cache: dict | None = None,
+        defer_save: bool = False,
+    ) -> set[str]:
+        dirty: set[str] = set()
         command = str(command or "").strip()
         result = str(result or "").strip()
         if not enabled or not command or not result:
-            return
+            return dirty
         if not self.should_publish(command):
-            return
-        run = self.save_manager.load_save(actor_id)
+            return dirty
+        if run is None:
+            run = self.save_manager.load_save(actor_id)
         if run is None or len(run.human_uids() if hasattr(run, "human_uids") else run.party_order) <= 1:
-            return
+            return dirty
         if actor_id not in getattr(run, "party_order", []):
-            return
+            return dirty
         actor = run.players.get(actor_id) or run.player
         if actor is None:
-            return
+            return dirty
         text = get_locale_text(
             "i18n_projection.message",
             player=actor.name,
@@ -51,7 +63,11 @@ class ProjectionService:
         for uid in (run.human_uids() if hasattr(run, "human_uids") else run.party_order):
             if uid == actor_id or uid not in run.players:
                 continue
-            stats = self.save_manager.load_stats(uid)
+            stats = stats_cache.get(uid) if isinstance(stats_cache, dict) else None
+            if stats is None:
+                stats = self.save_manager.load_stats(uid)
+                if isinstance(stats_cache, dict):
+                    stats_cache[uid] = stats
             if not getattr(stats, "projection_enabled", True):
                 continue
             if run.coop_id and getattr(stats, "active_coop_id", "") != run.coop_id:
@@ -65,7 +81,10 @@ class ProjectionService:
                 "text": text,
             })
             stats.projection_feed = feed[-PROJECTION_MAX_ENTRIES:]
-            self.save_manager.save_stats(uid, stats)
+            dirty.add(uid)
+            if not defer_save:
+                self.save_manager.save_stats(uid, stats)
+        return dirty
 
     def consume(self, user_id: str) -> list:
         stats = self.save_manager.load_stats(user_id)

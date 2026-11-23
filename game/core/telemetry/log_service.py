@@ -76,12 +76,27 @@ class LogService:
         history.append(entry)
         setattr(stats, field, history[-LOG_MAX_ENTRIES:])
 
-    def record(self, user_id: str, command: str, result: str, kind: str = "action", run=None, actor_name: str = "") -> None:
+    def record(
+        self,
+        user_id: str,
+        command: str,
+        result: str,
+        kind: str = "action",
+        run=None,
+        actor_name: str = "",
+        *,
+        stats_cache: dict | None = None,
+    ) -> set[str]:
+        saved: set[str] = set()
         command = str(command or "").strip()
         parts = _command_parts(command)
-        stats = self._load_stats(user_id)
+        stats = stats_cache.get(user_id) if isinstance(stats_cache, dict) else None
+        if stats is None:
+            stats = self._load_stats(user_id)
+            if isinstance(stats_cache, dict) and stats is not None:
+                stats_cache[user_id] = stats
         if stats is None or not self._should_record_parts(parts, run, stats):
-            return
+            return saved
         name = actor_name or getattr(stats, "player_name", "")
         entry = {
             "kind": "battle" if kind == "battle" else "action",
@@ -97,13 +112,20 @@ class LogService:
                 if uid == user_id:
                     member = stats
                 else:
-                    member = self._load_stats(uid)
+                    member = stats_cache.get(uid) if isinstance(stats_cache, dict) else None
+                    if member is None:
+                        member = self._load_stats(uid)
+                        if isinstance(stats_cache, dict) and member is not None:
+                            stats_cache[uid] = member
                 if member is None:
                     continue
                 self._append(member, "team_log_history", entry)
                 if member is not stats:
                     self._save_stats(uid, member)
+                    saved.add(uid)
         self._save_stats(user_id, stats)
+        saved.add(user_id)
+        return saved
 
     def render(self, user_id: str, limit: int, team: bool = False) -> str:
         stats = self._load_stats(user_id)

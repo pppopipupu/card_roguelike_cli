@@ -193,11 +193,11 @@ class WorldSocialService:
         self.save_manager.save_stats(uid, stats)
         return get_locale_text("i18n_world_social.dialog.closed")
 
-    def push_log(self, target_uid: str, line: str, *, command: str = "", player_name: str = "", record_history: bool = True, coop_id: str = "") -> bool:
+    def push_log(self, target_uid: str, line: str, *, command: str = "", player_name: str = "", record_history: bool = True, coop_id: str = "", stats=None) -> bool:
         clean_line = str(line or "").strip()
         if not target_uid or not clean_line:
             return False
-        target_stats = self.save_manager.load_stats(target_uid)
+        target_stats = stats if stats is not None else self.save_manager.load_stats(target_uid)
         pending = getattr(target_stats, "pending_logs", None)
         if not isinstance(pending, list):
             pending = []

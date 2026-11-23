@@ -234,7 +234,7 @@ class MapEngine:
         apply_and_scope(run, caller)
 
     def _finalize_next_floor(self, run: GameRun, actor_uid: str, cfg: dict, *, yog_quest: bool = False) -> str:
-        from .presence import sync_active
+        from .presence import sync_active_many
         from .world_social import WorldSocialService
         from ...data.world.grid_map_config import get_display_floor
         from ...renderer.world_grid import format_floor_number
@@ -263,31 +263,35 @@ class MapEngine:
             if social is not None
             else ""
         )
+        stats_by_uid = {uid: self.save_manager.load_stats(uid) for uid in humans}
+        sync_active_many(humans, stats_by_uid=stats_by_uid, run=run)
+        coop_id_str = str(getattr(run, "coop_id", "") or "")
         for uid in humans:
-            stats = self.save_manager.load_stats(uid)
+            stats = stats_by_uid[uid]
             if yog_quest:
                 stats.town_flags[YOG_QUEST_ZONE_KEY] = 1
-                self.save_manager.save_stats(uid, stats)
-            sync_active(uid, stats=stats, run=run)
             if social is not None and uid != actor_uid:
                 social.push_log(
                     uid,
                     notice,
                     command="downstairs",
                     player_name=actor_name,
-                    coop_id=str(getattr(run, "coop_id", "") or ""),
+                    coop_id=coop_id_str,
+                    stats=stats,
                 )
-        self.open_floor_arrival_ancient(run)
+            elif yog_quest:
+                self.save_manager.save_stats(uid, stats)
+        self.open_floor_arrival_ancient(run, persist=False)
         msg_key = "i18n_yog_quest.gate.arrived" if yog_quest else "i18n_grid_map.downstairs.arrived_floor"
         return get_locale_text(msg_key, floor=display_floor, name=floor_name)
 
-    def open_floor_arrival_ancient(self, run: GameRun) -> None:
+    def open_floor_arrival_ancient(self, run: GameRun, *, persist: bool = True) -> None:
         fm = getattr(run, "floor_map", None)
         humans = list(run.all_human_uids())
         if fm is not None and humans:
             spawn_coord = fm.player_coords.get(run.user_id) or next(iter(fm.player_coords.values()), "A1")
             SessionContextScoper.create_session(run, spawn_coord, "ancient", humans)
-        self.enter_ancient_node(run)
+        self.enter_ancient_node(run, persist=persist)
 
     def speed_descend_to_floor(self, run: GameRun, target_floor: int, ancient_picks: int) -> str:
         actor_uid = run.user_id
@@ -333,7 +337,7 @@ class MapEngine:
         populate_floor_quests(run, run.floor_map, stats)
         return self._finalize_next_floor(run, actor_uid, cfg, yog_quest=False)
 
-    def enter_ancient_node(self, run: GameRun):
+    def enter_ancient_node(self, run: GameRun, *, persist: bool = True):
         from ..party.coordinator import apply_and_scope, attach_notices, collect_notices, restore_player, swap_player
         caller = run.user_id
         carried = collect_notices(run)
@@ -367,7 +371,8 @@ class MapEngine:
         }
         attach_notices(run, carried, caller)
         apply_and_scope(run, caller)
-        self.save_manager.save_save(caller, run)
+        if persist:
+            self.save_manager.save_save(caller, run)
 
     def move(self, run: GameRun, direction: str) -> str:
         return self.grid_map_service.move_player(run, direction)
