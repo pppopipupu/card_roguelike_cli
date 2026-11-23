@@ -283,6 +283,9 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
         items.append({"type": "sacrifice", "taken": False})
         run.node_data["items"] = items
     state = run.node_data.get("state", "pending_remove")
+    finished = engine.try_finish_loot_node(run)
+    if finished is not None:
+        return finished
     if state == "pending_remove":
         if option_idx > 1:
             from ...models.state import ensure_card_state
@@ -377,6 +380,9 @@ def handle_treasure(engine, run, option_idx, target=None) -> str | None:
 
 def handle_boss_chest(engine, run, option_idx, target=None) -> str | None:
     items = run.node_data.setdefault("items", [])
+    finished = engine.try_finish_loot_node(run)
+    if finished is not None:
+        return finished
     available_items = [it for it in items if not it.get("taken")]
     if option_idx < 1 or option_idx > len(available_items):
         return get_locale_text("err_invalid_option_idx")
@@ -474,6 +480,9 @@ def handle_reward(engine, run, option_idx, target=None) -> str | None:
         return get_locale_text("i18n_coop_explore.coop_done_waiting")
     if run.node_data.get("no_reward"):
         return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, get_locale_text("msg_escape_battle_win"))
+    finished = engine.try_finish_loot_node(run)
+    if finished is not None:
+        return finished
     pool = run.node_data.get("coop_relic_pool") or []
     if 1 <= option_idx <= len(pool):
         return _claim_coop_relic(engine, run, option_idx - 1)

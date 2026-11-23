@@ -7,6 +7,10 @@ class StatusCommand(CommandHandler, names=["状态", "status", "r"], allowed_sta
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         run = router.save_manager.load_save(user_id)
         if run:
+            finished = router.engine.map_engine.explore_engine.try_finish_loot_node(run)
+            if finished is not None:
+                yield finished
+                return
             yield GameRenderer.render_game(run)
             return
         stats = router.save_manager.load_stats(user_id)

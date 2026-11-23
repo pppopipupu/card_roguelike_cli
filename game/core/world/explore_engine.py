@@ -33,6 +33,27 @@ class ExploreEngine:
     def _finish_node(self, run: GameRun, prefix: str) -> str:
         return finish_player_node(self.save_manager, self.map_engine, run, run.user_id, prefix)
 
+    def try_finish_loot_node(self, run: GameRun, prefix: str = "") -> str | None:
+        if run.node_type not in ("treasure", "reward", "boss_chest"):
+            return None
+        if len(run.human_uids()) > 1:
+            return None
+        data = run.node_data or {}
+        if data.get("coop_done"):
+            return None
+        if run.node_type == "treasure" and data.get("state", "pending_remove") == "pending_remove":
+            return None
+        items = data.get("items") or []
+        if not items or any(not it.get("taken") for it in items):
+            return None
+        pool = data.get("coop_relic_pool") or []
+        if any(not entry.get("claimed_by") for entry in pool):
+            return None
+        key = "msg_boss_chest_finished" if run.node_type == "boss_chest" else "msg_rewards_claimed_finished"
+        done_text = get_locale_text(key)
+        text = f"{prefix}\n{done_text}".strip() if prefix else done_text
+        return finish_player_node(self.save_manager, self.map_engine, run, run.user_id, text)
+
     def _init_rest_node(self, run: GameRun):
         multi = run.player_count() > 1
         base_items = [
@@ -544,6 +565,9 @@ class ExploreEngine:
         if next_type == "room_dialog":
             from .rooms.npc_dialog import resume_room_dialog_after_flow
             return resume_room_dialog_after_flow(self.save_manager, run, get_locale_text("i18n_explore_core.gem_insert_cancelled"), committed=False)
+        finished = self.try_finish_loot_node(run, get_locale_text("i18n_explore_core.gem_insert_cancelled"))
+        if finished is not None:
+            return finished
         self.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_explore_core.gem_insert_cancelled")
 
@@ -586,5 +610,8 @@ class ExploreEngine:
         if next_type == "room_dialog":
             from .rooms.npc_dialog import resume_room_dialog_after_flow
             return resume_room_dialog_after_flow(self.save_manager, run, msg, committed=True)
+        finished = self.try_finish_loot_node(run, msg)
+        if finished is not None:
+            return finished
         self.save_manager.save_save(run.user_id, run)
         return msg
