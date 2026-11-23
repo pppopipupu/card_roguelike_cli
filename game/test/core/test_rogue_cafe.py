@@ -110,3 +110,36 @@ class TestRogueCafe(unittest.TestCase):
         asyncio.run(go())
         plugin.save_manager.delete_save(user_id)
 
+    def test_queue_command_works_in_cafe(self):
+        plugin = MyPlugin(DummyContext())
+        user_id = "test_user_cafe_queue"
+        plugin.save_manager.delete_save(user_id)
+        stats = plugin.save_manager.load_stats(user_id)
+        stats.rogue_mode = True
+        plugin.save_manager.save_stats(user_id, stats)
+        player = PlayerState(
+            hp=30, max_hp=30, shield=0, gold=100, stage=13,
+            deck=[CardState(id="fire_bolt")], hand=[], draw_pile=[], discard_pile=[],
+            exhaust_pile=[], graveyard=[], relics=[]
+        )
+        run = GameRun(user_id=user_id, node_type="cafe", player=player, enemies=[], node_data={})
+        run.node_data["cafe_data"] = {
+            "npcs": ["Blacksmith_Ironclad", "杰斯"],
+            "active_npc": None,
+            "dialog_state": None,
+            "talked_npcs": [],
+            "card_master_stock": [],
+            "gemcutter_stock": [],
+            "hunter_stock": None,
+        }
+        plugin.save_manager.save_save(user_id, run)
+
+        async def go():
+            res = await run_command(plugin, "q [look]", user_id)
+            self.assertNotIn("不可用", res)
+            self.assertIn("咖啡厅", res)
+
+        asyncio.run(go())
+        plugin.save_manager.delete_save(user_id)
+
+

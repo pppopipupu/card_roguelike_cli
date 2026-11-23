@@ -1,4 +1,5 @@
 from ..cli.base import split_by_comma_with_brackets, CommandHandler
+from .state_resolver import resolve_game_state
 from ...data.progression.balance_config import QUEUE_MAX_COMMANDS
 from ...data.text.locale_data import get_locale_text
 
@@ -56,7 +57,11 @@ class QueueProcessor:
                     if term:
                         return True
                 else:
-                    curr_state = run.node_type if run else "menu"
+                    latest_run = self.save_manager.load_save(user_id)
+                    curr_state = resolve_game_state(
+                        latest_run,
+                        self.save_manager.load_stats(user_id) if latest_run is None else None,
+                    )
                     cmd_handler, exists = CommandHandler.resolve(first_sub, curr_state)
                     term = False
                     if cmd_handler:

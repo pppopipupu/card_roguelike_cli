@@ -1,11 +1,12 @@
 from typing import Generator
 from ...base import CommandHandler
 from ...queue_processor import count_queue_commands
+from ...state_resolver import resolve_game_state
 from .....renderer import GameRenderer
 from .....data.progression.balance_config import QUEUE_MAX_COMMANDS
 from .....data.text.locale_data import get_locale_text
 
-class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_interrupt", "中断队列"], help_key="queue"):
+class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_interrupt", "中断队列"], allowed_states=["menu", "town", "grid_map", "explore", "battle", "dialog", "cafe", "outer_plane"], help_key="queue"):
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         if len(parts) < 2:
             yield get_locale_text("i18n_cli_commands.battle_queue_missing_arg")
@@ -38,25 +39,22 @@ class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_i
                 if not parts_sub:
                     continue
                 first_sub = parts_sub[0].lower()
-                cmd_handler = router._command_handlers.get(first_sub)
+                stats = router.save_manager.load_stats(user_id)
+                curr_state = resolve_game_state(None, stats)
+                cmd_handler, exists = CommandHandler.resolve(first_sub, curr_state)
                 if cmd_handler:
-                    curr_state = "menu"
-                    stats = router.save_manager.load_stats(user_id)
-                    if stats and stats.in_town:
-                        curr_state = "town"
-                    if curr_state in getattr(cmd_handler, "allowed_states", []):
-                        gen = cmd_handler.execute(router, user_id, parts_sub)
-                        res_list = []
-                        success = True
-                        try:
-                            while True:
-                                res_list.append(next(gen))
-                        except StopIteration as e:
-                            success = e.value if e.value is not None else True
-                        res = "\n".join(res_list)
-                    else:
-                        res = get_locale_text("i18n_cli_commands.err_command_unavailable", sub=first_sub)
-                        success = False
+                    gen = cmd_handler.execute(router, user_id, parts_sub)
+                    res_list = []
+                    success = True
+                    try:
+                        while True:
+                            res_list.append(next(gen))
+                    except StopIteration as e:
+                        success = e.value if e.value is not None else True
+                    res = "\n".join(res_list)
+                elif exists:
+                    res = get_locale_text("i18n_cli_commands.err_command_unavailable", sub=first_sub)
+                    success = False
                 else:
                     res = get_locale_text("i18n_cli_commands.err_unknown_command", sub=first_sub)
                     success = False
