@@ -14,7 +14,7 @@
   "battle_skill_success": "🔥 战士发动了【动作如潮】！获得了额外的 2A 1BA 动作点！(本场战斗还可使用 {uses} 次)\n当前行动点: {actions}A, {bonus_actions}BA",
   "battle_minion_missing_arg": "❌ 请提供随从指令，例如：/rogue 随从 1 攻击 e1",
   "battle_use_missing_arg": "❌ 请提供手牌序号或卡牌名称拼音首字母，例如：/rogue 使用 1 或 /rogue 使用 ssxs",
-  "battle_queue_missing_arg": "❌ 请提供队列操作，例如：/rogue 队列 [使用 1, 随从 1 技能 2, 结束]",
+  "battle_queue_missing_arg": "❌ 请提供队列操作，例如：/rogue 队列 [使用 1, 随从 1 技能 2] 或 队列 使用 1; 随从 1 技能 2",
   "battle_queue_no_valid": "💬 队列未执行任何有效指令。",
   "battle_queue_limit": "❌ 队列最多支持 {limit} 条命令。",
   "cafe_talk_missing_target": "❌ 请指定对话的目标，例如：对话 向导长老",

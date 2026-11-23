@@ -1,4 +1,4 @@
-from ..cli.base import split_by_comma_with_brackets, CommandHandler
+from ..cli.base import CommandHandler
 from .state_resolver import resolve_game_state
 from ...data.progression.balance_config import QUEUE_MAX_COMMANDS
 from ...data.text.locale_data import get_locale_text
@@ -6,16 +6,38 @@ from ...data.text.locale_data import get_locale_text
 QUEUE_ALIASES = ("队列", "q", "queue", "qi", "queue_interrupt", "中断队列")
 
 
-def _queue_items(content: str) -> list[str]:
+def split_queue_items(content: str) -> list[str]:
     content = content.strip()
-    if content.startswith("[") and content.endswith("]"):
+    bracketed = content.startswith("[") and content.endswith("]")
+    if bracketed:
         content = content[1:-1].strip()
-    return split_by_comma_with_brackets(content)
+    separators = {",", "，", ";", "；", "\n"} if bracketed else {";", "；", "\n"}
+    items: list[str] = []
+    current: list[str] = []
+    depth = 0
+    for char in content:
+        if char == "[":
+            depth += 1
+            current.append(char)
+        elif char == "]":
+            depth = max(0, depth - 1)
+            current.append(char)
+        elif char in separators and depth == 0:
+            item = "".join(current).strip()
+            if item:
+                items.append(item)
+            current = []
+        else:
+            current.append(char)
+    item = "".join(current).strip()
+    if item:
+        items.append(item)
+    return items
 
 
 def count_queue_commands(content: str) -> int:
     total = 0
-    for item in _queue_items(content):
+    for item in split_queue_items(content):
         parts = item.split()
         if not parts:
             continue
@@ -40,10 +62,7 @@ class QueueProcessor:
             run.node_data["in_queue"] = True
             self.save_manager.save_save(user_id, run)
         try:
-            content = queue_content.strip()
-            if content.startswith("[") and content.endswith("]"):
-                content = content[1:-1].strip()
-            items = split_by_comma_with_brackets(content)
+            items = split_queue_items(queue_content)
             for item in items:
                 if not item:
                     continue

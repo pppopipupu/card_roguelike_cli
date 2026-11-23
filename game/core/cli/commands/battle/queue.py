@@ -27,10 +27,8 @@ class QueueCommand(CommandHandler, names=["队列", "q", "queue", "qi", "queue_i
                 yield get_locale_text("i18n_cli_commands.battle_queue_limit", limit=QUEUE_MAX_COMMANDS)
                 return
             content = full_arg
-            if content.startswith("[") and content.endswith("]"):
-                content = content[1:-1].strip()
-            from ...base import split_by_comma_with_brackets
-            items = split_by_comma_with_brackets(content)
+            from ...queue_processor import split_queue_items
+            items = split_queue_items(content)
             results = []
             for item in items:
                 if not item:

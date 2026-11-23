@@ -35,7 +35,7 @@
     "guide_title": "💬 战斗指令：",
     "guide_play": "• p <序号|首字母> [目标] 出牌",
     "guide_target": "• 目标：e1-eN 敌方 | p0-p6 我方(p0 自己)",
-    "guide_queue": "• q [p 1, p 2:e1, p 3] 队列出牌",
+    "guide_queue": "• q [p 1, p 2] / q p 1; p 2 队列出牌",
     "guide_minion": "• m <格子> a/s <目标/技能> [目标] | r 详情 | f 折叠",
     "guide_end": "• e 结束回合",
     "detailed_title": "📊 【实时战斗详细情报 (第 {turn} 回合)】",

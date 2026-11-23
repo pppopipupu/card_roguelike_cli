@@ -267,6 +267,20 @@ class TestRogueBasic(unittest.TestCase):
             res = await run_command(plugin, "q [p ssxs, p lmb]")
             self.assertEqual([c.id for c in run.player.hand], ["adrenaline"])
 
+            plugin, mgr = build()
+            run = mgr.saved_run
+            assert run is not None, "run must exist"
+            res = await run_command(plugin, "q p ssxs; p lmb")
+            self.assertNotIn("❌", res)
+            self.assertEqual([c.id for c in run.player.hand], ["adrenaline"])
+
+            plugin, mgr = build()
+            run = mgr.saved_run
+            assert run is not None, "run must exist"
+            res = await run_command(plugin, "q p 1,1")
+            self.assertNotIn("❌", res)
+            self.assertEqual(len(run.player.hand), 1)
+
         asyncio.run(go())
 
 
