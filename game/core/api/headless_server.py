@@ -1,4 +1,5 @@
 import asyncio
+import re
 from typing import Optional, List, Dict
 from ...models.manager import SaveManager
 from ...models.state import set_user_id
@@ -17,6 +18,15 @@ from ...renderer import GameRenderer, format_output_numbers
 from ...cards import resolve_card_id, ALL_CARDS
 from ...data.text.locale_data import get_locale_text
 from ...data.world.world_social_config import WORLD_PLAYER_DIALOG_EXIT_WORDS
+
+_COMPACT_COMMAND_RE = re.compile(r"^([pPcCqQ])(\d.*)$")
+
+def _normalize_compact_command(message: str) -> str:
+    stripped = message.strip()
+    match = _COMPACT_COMMAND_RE.match(stripped)
+    if match:
+        return f"{match.group(1)} {match.group(2)}"
+    return stripped
 
 class HeadlessGameServer:
     def __init__(self, data_dir: Optional[str] = None):
@@ -70,6 +80,7 @@ class HeadlessGameServer:
         return parts[0].lower().lstrip("/") in CommandHandler.registry_all
 
     async def handle_rogue_message(self, user_id: str, sender_name: str, message: str, shortcut_prefix: list[str] | None = None, enable_shortcut: bool = True, force_execute: bool = False, projection: bool = True) -> Optional[str]:
+        message = _normalize_compact_command(message)
         set_user_id(user_id)
         if shortcut_prefix is None:
             shortcut_prefix = [".rogue"]
