@@ -9,7 +9,7 @@ from ....data.progression.starting_deck_config import LOCK_PRICE_GP, LOCK_SLOT_L
 from ....data.world.yog_quest_config import (
     FOUNTAIN_GP_TOSSED_FLAG,
     FOUNTAIN_OUTER_PLANE_COST_GP,
-    YOG_INFO_FLAG,
+    YOG_INFO_ACHIEVEMENT_ID,
     YOG_QUEST_FLAG,
     YOG_SIGIL_ITEM,
 )
@@ -99,8 +99,9 @@ def _normal_specs(npc_id: str) -> List[Dict[str, Any]]:
         specs.append(_option("quest_accept", _npc_label("option_quest_accept"), condition=lambda s: s.town_flags.get("quest_town_tour_state", "unstarted") == "unstarted"))
         specs.append(_option("quest_status", _npc_label("option_quest_status"), condition=lambda s: s.town_flags.get("quest_town_tour_state", "unstarted") == "started" and len(s.town_flags.get("quest_town_tour_visited", [])) < 11))
         specs.append(_option("quest_complete", _npc_label("option_quest_complete"), condition=lambda s: s.town_flags.get("quest_town_tour_state", "unstarted") == "started" and len(s.town_flags.get("quest_town_tour_visited", [])) >= 11))
-        specs.append(_option("yog_info", _text_label(get_locale_text("i18n_yog_quest.npc.elder_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and not s.town_flags.get(YOG_INFO_FLAG)))
-        specs.append(_option("yog_hint", _text_label(get_locale_text("i18n_yog_quest.npc.elder_hint_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and bool(s.town_flags.get(YOG_INFO_FLAG)) and s.town_flags.get(YOG_QUEST_FLAG) != "completed"))
+        from ...progress.achievement_service import has_achievement
+        specs.append(_option("yog_info", _text_label(get_locale_text("i18n_yog_quest.npc.elder_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and not has_achievement(s, YOG_INFO_ACHIEVEMENT_ID)))
+        specs.append(_option("yog_hint", _text_label(get_locale_text("i18n_yog_quest.npc.elder_hint_option")), condition=lambda s: int(getattr(s, "yog_sothoth_kill_count", 0) or 0) > 0 and has_achievement(s, YOG_INFO_ACHIEVEMENT_ID) and not has_achievement(s, "temple_awakening")))
         specs.append(_option("replay_tutorial", _npc_label("option_replay_tutorial")))
     elif npc_id == "Bartender_Jack":
         specs.append(_option("gift_glass", _npc_label("option_gift_glass"), condition=lambda s: "wine_glass" in s.town_inventory and not s.town_flags.get("jack_gift_given", 0)))
@@ -358,7 +359,8 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
 
     if action == "yog_info":
         from ..yog_quest.service import ensure_sigil
-        stats.town_flags[YOG_INFO_FLAG] = True
+        from ...progress.achievement_service import AchievementService
+        AchievementService(town_engine.save_manager).unlock(user_id, YOG_INFO_ACHIEVEMENT_ID, stats=stats, save=False)
         ensure_sigil(stats)
         save()
         return get_locale_text("i18n_yog_quest.npc.elder_reply") + "\n\n" + get_locale_text("i18n_yog_quest.ui.quest_notice") + "\n\n" + rerender()
@@ -470,7 +472,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
 
     if action == "buy_ultimate_prism":
         from ...prism.market_service import buy_ultimate_prism
-        ok, msg = buy_ultimate_prism(stats)
+        ok, msg = buy_ultimate_prism(stats, save_manager=town_engine.save_manager, user_id=user_id)
         if ok:
             save()
         return msg + "\n\n" + rerender()
@@ -811,8 +813,9 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
             TOWN_FLAG_BLEAK_OUTCOME,
             TOWN_FLAG_BLEAK_STAGE,
             TOWN_FLAG_BLEAK_STATE,
+            BLEAK_FALLS_COMPLETED_ACHIEVEMENT_ID,
+            BLEAK_FALLS_FUS_RO_DAH_ACHIEVEMENT_ID,
             TOWN_FLAG_BLEAK_TAVERN_READY,
-            TOWN_FLAG_FUS_RO_DAH_UNLOCKED,
             TOWN_FLAG_MULTI_QUESTS,
         )
         flags = stats.town_flags if isinstance(stats.town_flags, dict) else {}
@@ -837,7 +840,10 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         flags[TOWN_FLAG_BLEAK_OUTCOME] = "returned"
         flags[TOWN_FLAG_BLEAK_STAGE] = "done_returned"
         flags[TOWN_FLAG_BLEAK_TAVERN_READY] = False
-        flags[TOWN_FLAG_FUS_RO_DAH_UNLOCKED] = True
+        from ...progress.achievement_service import AchievementService
+        ach_svc = AchievementService(town_engine.save_manager)
+        ach_svc.unlock(user_id, BLEAK_FALLS_FUS_RO_DAH_ACHIEVEMENT_ID, stats=stats, save=False)
+        ach_svc.unlock(user_id, BLEAK_FALLS_COMPLETED_ACHIEVEMENT_ID, stats=stats, save=False)
         if CARD_FUS_RO_DAH not in stats.unlocked_new_cards:
             stats.unlocked_new_cards.append(CARD_FUS_RO_DAH)
         stats.gp += BLEAK_FALLS_REWARDS["tavern_gp_reward"]
@@ -874,6 +880,9 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         flags[TOWN_FLAG_BLEAK_OUTCOME] = "kept"
         flags[TOWN_FLAG_BLEAK_STAGE] = "done_kept"
         flags[TOWN_FLAG_BLEAK_TAVERN_READY] = False
+        from ....data.world.map_quest_config import BLEAK_FALLS_COMPLETED_ACHIEVEMENT_ID
+        from ...progress.achievement_service import AchievementService
+        AchievementService(town_engine.save_manager).unlock(user_id, BLEAK_FALLS_COMPLETED_ACHIEVEMENT_ID, stats=stats, save=False)
         multi = flags.setdefault(TOWN_FLAG_MULTI_QUESTS, {})
         entry = dict(multi.get(QUEST_BLEAK_FALLS) or {"kind": "multi", "history": []})
         entry["status"] = "completed"

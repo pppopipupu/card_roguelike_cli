@@ -57,8 +57,8 @@ def is_coop_only(cid: str) -> bool:
     return bool(getattr(card, "coop_only", False))
 
 
-QUEST_UNLOCK_FLAG_CARDS = {
-    "fus_ro_dah": "fus_ro_dah_unlocked",
+QUEST_UNLOCK_ACHIEVEMENT_CARDS = {
+    "fus_ro_dah": "bleak_falls_fus_ro_dah",
 }
 
 
@@ -68,13 +68,14 @@ def is_card_available(cid: str, stats) -> bool:
     clean_cid = cid.split(":replay:")[0].split(":fragile:")[0]
     if clean_cid.endswith("+"):
         clean_cid = clean_cid[:-1]
-    if clean_cid in QUEST_UNLOCK_FLAG_CARDS:
+    if clean_cid in QUEST_UNLOCK_ACHIEVEMENT_CARDS:
         if not stats:
             return False
-        flag_key = QUEST_UNLOCK_FLAG_CARDS[clean_cid]
+        from ...core.progress.achievement_service import has_achievement
+
+        ach_id = QUEST_UNLOCK_ACHIEVEMENT_CARDS[clean_cid]
         unlocked = set(getattr(stats, "unlocked_new_cards", []) or []) | set(getattr(stats, "purchased_pool", []) or [])
-        flags = getattr(stats, "town_flags", {}) or {}
-        return bool(flags.get(flag_key)) or clean_cid in unlocked
+        return has_achievement(stats, ach_id) or clean_cid in unlocked
     if clean_cid in MARKET_CARDS:
         if not stats:
             return False

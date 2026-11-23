@@ -286,13 +286,9 @@ def on_chireiden_combat_resolved(run: GameRun, room: RoomState, save_manager=Non
         DeckService.add_card_to_deck(run.player, "hisoutensoku_thermonuclear_cannon")
         portal_msg = get_locale_text("i18n_chireiden.gate.portal_defeated_unlock", coord=CHIREIDEN_EXIT_COORD)
         if save_manager is not None:
-            from ...data.content.ultimate_prism_data import CHIREIDEN_QUEST_COMPLETED_FLAG
             ach = AchievementService(save_manager)
             for msg_uid in run.human_uids():
                 ach.record_stat(msg_uid, "chireiden_portal_kills", 1, mode="add", run=run)
-                st = save_manager.load_stats(msg_uid)
-                st.town_flags[CHIREIDEN_QUEST_COMPLETED_FLAG] = True
-                save_manager.save_stats(msg_uid, st)
         for msg_uid in run.human_uids():
             add_notice(run, msg_uid, portal_msg)
 

@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
 from ....models.state import UserStats
-from ....data.world.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_QUEST_ROUTE_KEY, YOG_QUEST_ZONE_KEY
+from ....data.world.yog_quest_config import YOG_INFO_ACHIEVEMENT_ID, YOG_QUEST_FLAG, YOG_QUEST_ROUTE_KEY, YOG_QUEST_ZONE_KEY
+from ...progress.achievement_service import has_achievement
 from ....data.text.locale_data import get_locale_text
 
 
@@ -14,7 +15,7 @@ def _tour_quest(stats: UserStats) -> Dict[str, Any]:
         return {}
     visited = stats.town_flags.get("quest_town_tour_visited", [])
     visited_cnt = len(visited)
-    if state == "completed":
+    if state == "completed" or has_achievement(stats, "temple_awakening"):
         return {
             "state": state,
             "title": get_locale_text("i18n_town.quest_tour_title"),
@@ -41,7 +42,7 @@ def _brew_quest(stats: UserStats) -> Dict[str, Any]:
     if state == "unstarted":
         return {}
     title = get_locale_text("i18n_town.quest_brew_title")
-    if state == "completed":
+    if state == "completed" or has_achievement(stats, "temple_awakening"):
         outcome = stats.town_flags.get("quest_brew_outcome")
         if outcome == "bartender":
             intro = get_locale_text("i18n_town.quest_brew_done_bartender")
@@ -78,7 +79,7 @@ def _hammer_quest(stats: UserStats) -> Dict[str, Any]:
     if state == "unstarted":
         return {}
     title = get_locale_text("i18n_town.quest_hammer_title")
-    if state == "completed":
+    if state == "completed" or has_achievement(stats, "temple_awakening"):
         outcome = stats.town_flags.get("quest_hammer_outcome")
         if outcome == "real":
             intro = get_locale_text("i18n_town.quest_hammer_done_real")
@@ -115,13 +116,13 @@ def _yog_death_quest(stats: UserStats) -> Dict[str, Any]:
     flags = stats.town_flags
     state = flags.get(YOG_QUEST_FLAG, "unstarted")
     title = get_locale_text("i18n_yog_quest.quest.title")
-    if state == "completed":
+    if state == "completed" or has_achievement(stats, "temple_awakening"):
         if flags.get(YOG_QUEST_ROUTE_KEY) == "butcher":
             intro = get_locale_text("i18n_yog_quest.quest.done_butcher")
         else:
             intro = get_locale_text("i18n_yog_quest.quest.done_standard")
         return {"state": state, "title": title, "intro": intro, "objectives": []}
-    if not flags.get(YOG_INFO_FLAG):
+    if not has_achievement(stats, YOG_INFO_ACHIEVEMENT_ID):
         return {
             "state": state,
             "title": title,

@@ -1,13 +1,14 @@
 from ...data.progression.starting_deck_config import LOCK_SLOT_LIMIT
 from ...data.content.ultimate_prism_data import (
-    CHIREIDEN_QUEST_COMPLETED_FLAG,
+    CHIREIDEN_COMPLETED_ACHIEVEMENT_ID,
     ULTIMATE_PRISM_CARD_ID,
     ULTIMATE_PRISM_CONFIG,
     ULTIMATE_PRISM_FLAG_DEPARTED,
     ULTIMATE_PRISM_FLAG_IDLE_BATTLES,
-    ULTIMATE_PRISM_FLAG_UNLOCKED,
+    ULTIMATE_PRISM_UNLOCKED_ACHIEVEMENT_ID,
 )
 from ...models.state import UserStats
+from ..progress.achievement_service import AchievementService, has_achievement
 from ..text.events import locale_text
 from ..text.pipeline import render_text_node
 
@@ -19,21 +20,14 @@ def _t(key: str, **params) -> str:
 def has_completed_chireiden_quest(stats: UserStats | None) -> bool:
     if stats is None:
         return False
-    flags = getattr(stats, "town_flags", None) or {}
-    if flags.get(CHIREIDEN_QUEST_COMPLETED_FLAG):
+    if has_achievement(stats, CHIREIDEN_COMPLETED_ACHIEVEMENT_ID):
         return True
     ach_stats = getattr(stats, "achievement_stats", None) or {}
-    if int(ach_stats.get("chireiden_portal_kills", 0) or 0) >= 1:
-        return True
-    unlocked = getattr(stats, "unlocked_achievements", None) or []
-    return "chireiden_penning_sealer" in unlocked
+    return int(ach_stats.get("chireiden_portal_kills", 0) or 0) >= 1
 
 
 def is_ultimate_prism_unlocked(stats: UserStats | None) -> bool:
-    if stats is None:
-        return False
-    flags = getattr(stats, "town_flags", None) or {}
-    return bool(flags.get(ULTIMATE_PRISM_FLAG_UNLOCKED))
+    return has_achievement(stats, ULTIMATE_PRISM_UNLOCKED_ACHIEVEMENT_ID)
 
 
 def is_ultimate_prism_departed(stats: UserStats | None) -> bool:
@@ -55,7 +49,7 @@ def can_relock_ultimate_prism(stats: UserStats | None) -> bool:
     return is_ultimate_prism_unlocked(stats) and is_ultimate_prism_departed(stats)
 
 
-def buy_ultimate_prism(stats: UserStats) -> tuple[bool, str]:
+def buy_ultimate_prism(stats: UserStats, save_manager=None, user_id: str = "") -> tuple[bool, str]:
     price = int(ULTIMATE_PRISM_CONFIG["unlock_price_gp"])
     if not has_completed_chireiden_quest(stats):
         return False, _t("i18n_prism.market.need_chireiden")
@@ -71,7 +65,15 @@ def buy_ultimate_prism(stats: UserStats) -> tuple[bool, str]:
     if stats.gp < price:
         return False, _t("global.gp_insufficient", req=price, owned=stats.gp)
     stats.gp -= price
-    stats.town_flags[ULTIMATE_PRISM_FLAG_UNLOCKED] = True
+    if save_manager is not None and user_id:
+        AchievementService(save_manager).unlock(user_id, ULTIMATE_PRISM_UNLOCKED_ACHIEVEMENT_ID, stats=stats, save=False)
+    else:
+        unlocked_ach = getattr(stats, "unlocked_achievements", None)
+        if not isinstance(unlocked_ach, list):
+            unlocked_ach = []
+            stats.unlocked_achievements = unlocked_ach
+        if ULTIMATE_PRISM_UNLOCKED_ACHIEVEMENT_ID not in unlocked_ach:
+            unlocked_ach.append(ULTIMATE_PRISM_UNLOCKED_ACHIEVEMENT_ID)
     stats.town_flags[ULTIMATE_PRISM_FLAG_DEPARTED] = False
     stats.town_flags[ULTIMATE_PRISM_FLAG_IDLE_BATTLES] = 0
     if not hasattr(stats, "unlocked_new_cards") or stats.unlocked_new_cards is None:

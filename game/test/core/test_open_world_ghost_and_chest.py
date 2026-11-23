@@ -7,7 +7,7 @@ import unittest
 from game.data.world.outer_plane_config import NECRONOMICON_ITEM, OUTER_PLANE_ACTIVE_FLAG
 from game.data.progression.starting_deck_config import CLASS_STARTING_CARDS
 from game.data.world.world_social_config import WORLD_OUTER_PLANE, WORLD_SNOWFIELD, WORLD_TOWN
-from game.data.world.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
+from game.data.world.yog_quest_config import YOG_INFO_ACHIEVEMENT_ID, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
 from game.models.state import CardState
 from game.test.core.base import CorePlugin, floor_of, load_run, run_command
 
@@ -44,7 +44,8 @@ class TestOpenWorldGhostAndChest(unittest.TestCase):
         stats.selected_class = "法师"
         stats.yog_sothoth_kill_count = 1
         stats.locked_cards = list(locked or [])
-        stats.town_flags[YOG_INFO_FLAG] = True
+        if YOG_INFO_ACHIEVEMENT_ID not in stats.unlocked_achievements:
+            stats.unlocked_achievements.append(YOG_INFO_ACHIEVEMENT_ID)
         stats.town_flags[YOG_QUEST_FLAG] = "started"
         for item in (YOG_SIGIL_ITEM, NECRONOMICON_ITEM):
             if item not in stats.town_inventory:

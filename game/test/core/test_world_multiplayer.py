@@ -10,7 +10,7 @@ from game.core.world.grid_map_generator import coord_to_xy, xy_to_coord
 from game.core.world.presence import WorldPresenceService
 from game.data.world.outer_plane_config import NECRONOMICON_ITEM
 from game.data.world.world_social_config import WORLD_PRESENCE_TIMEOUT_SECONDS, WORLD_TOWN
-from game.data.world.yog_quest_config import YOG_INFO_FLAG, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
+from game.data.world.yog_quest_config import YOG_INFO_ACHIEVEMENT_ID, YOG_QUEST_FLAG, YOG_SIGIL_ITEM
 from game.test.core.base import CorePlugin, clear_battle_if_needed, floor_of, load_run, move_to_room, run_command
 
 
@@ -184,7 +184,8 @@ class WorldMultiplayerTest(unittest.TestCase):
         for uid in (self.a, self.b):
             stats = self.plugin.save_manager.load_stats(uid)
             stats.yog_sothoth_kill_count = 1
-            stats.town_flags[YOG_INFO_FLAG] = True
+            if YOG_INFO_ACHIEVEMENT_ID not in stats.unlocked_achievements:
+                stats.unlocked_achievements.append(YOG_INFO_ACHIEVEMENT_ID)
             stats.town_inventory.append(YOG_SIGIL_ITEM)
             stats.in_town = True
             stats.town_pos = "west_gate"
@@ -203,7 +204,8 @@ class WorldMultiplayerTest(unittest.TestCase):
         for uid in (self.a, self.b):
             stats = self.plugin.save_manager.load_stats(uid)
             stats.yog_sothoth_kill_count = 1
-            stats.town_flags[YOG_INFO_FLAG] = True
+            if YOG_INFO_ACHIEVEMENT_ID not in stats.unlocked_achievements:
+                stats.unlocked_achievements.append(YOG_INFO_ACHIEVEMENT_ID)
             stats.town_inventory.append(YOG_SIGIL_ITEM)
             self.plugin.save_manager.save_stats(uid, stats)
         self.enter_town()

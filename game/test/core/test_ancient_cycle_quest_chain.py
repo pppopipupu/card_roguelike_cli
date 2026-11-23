@@ -4,7 +4,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from game.data.world.map_quest_config import FLOOR5_KEY_ITEM, TOWN_FLAG_FLOOR5_KEY
+from game.core.progress.achievement_service import has_achievement
+from game.data.world.map_quest_config import ANCIENT_CYCLE_ACHIEVEMENT_ID, FLOOR5_KEY_ITEM
 from game.test.core.base import CorePlugin, floor_of, load_run, require_run, run_command
 
 
@@ -131,7 +132,7 @@ class TestAncientCycleQuestChain(unittest.TestCase):
         self.assertIn("先古循环之钥", done3)
 
         stats = self.plugin.save_manager.load_stats(uid)
-        self.assertTrue(stats.town_flags.get(TOWN_FLAG_FLOOR5_KEY))
+        self.assertTrue(has_achievement(stats, ANCIENT_CYCLE_ACHIEVEMENT_ID))
         self.assertIn(FLOOR5_KEY_ITEM, stats.town_inventory)
         self.assertIn("ancient_cycle_breaker", stats.unlocked_achievements)
 

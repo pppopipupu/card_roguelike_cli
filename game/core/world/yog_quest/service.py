@@ -6,12 +6,13 @@ from ....data.world.outer_plane_config import NECRONOMICON_ITEM, OUTER_PLANE_ACT
 from ....data.world.grid_map_config import FLOOR_CONFIGS
 from ....data.world.yog_quest_config import (
     YOG_FLOOR_WILDS,
-    YOG_INFO_FLAG,
+    YOG_INFO_ACHIEVEMENT_ID,
     YOG_QUEST_FLAG,
     YOG_QUEST_ROUTE_KEY,
     YOG_QUEST_ZONE_KEY,
     YOG_SIGIL_ITEM,
 )
+from ...progress.achievement_service import has_achievement
 from ....models.state import GameRun
 from ....data.progression.balance_config import COOP_MAX_PLAYERS
 from ..presence import sync_active
@@ -22,7 +23,7 @@ from .floor import generate_yog_quest_floor
 
 
 def ensure_sigil(stats) -> bool:
-    if not stats.town_flags.get(YOG_INFO_FLAG):
+    if not has_achievement(stats, YOG_INFO_ACHIEVEMENT_ID):
         return False
     inventory = getattr(stats, "town_inventory", None)
     if not isinstance(inventory, list):
@@ -37,7 +38,7 @@ def ensure_sigil(stats) -> bool:
 def can_start(stats) -> tuple[bool, str]:
     if int(getattr(stats, "yog_sothoth_kill_count", 0) or 0) <= 0:
         return False, get_locale_text("i18n_yog_quest.enter.need_kill")
-    if not stats.town_flags.get(YOG_INFO_FLAG):
+    if not has_achievement(stats, YOG_INFO_ACHIEVEMENT_ID):
         return False, get_locale_text("i18n_yog_quest.enter.need_info")
     if YOG_SIGIL_ITEM not in (getattr(stats, "town_inventory", None) or []):
         return False, get_locale_text("i18n_yog_quest.enter.need_sigil")
@@ -78,7 +79,7 @@ def _party_quest_members(save_manager, user_id: str, stats) -> tuple[list[str] |
             return [], get_locale_text("i18n_world_social.team_quest.member_not_town", name=profile_name)
         if not ready.get(member_uid) and member_uid != user_id:
             return [], get_locale_text("i18n_world_social.team_quest.member_not_ready", name=profile_name)
-        if not member_stats.town_flags.get(YOG_INFO_FLAG):
+        if not has_achievement(member_stats, YOG_INFO_ACHIEVEMENT_ID):
             return [], get_locale_text("i18n_yog_quest.enter.need_info")
     return members, ""
 

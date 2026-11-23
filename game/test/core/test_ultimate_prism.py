@@ -5,15 +5,15 @@ import unittest
 
 from game.core.inventory.card_distribution import CardDistributor
 from game.data.content.ultimate_prism_data import (
-    CHIREIDEN_QUEST_COMPLETED_FLAG,
+    CHIREIDEN_COMPLETED_ACHIEVEMENT_ID,
     GLASS_SHARD_ITEM_ID,
     ULTIMATE_PRISM_ACHIEVEMENT_ID,
     ULTIMATE_PRISM_CARD_ID,
     ULTIMATE_PRISM_CONFIG,
     ULTIMATE_PRISM_FLAG_DEPARTED,
     ULTIMATE_PRISM_FLAG_IDLE_BATTLES,
-    ULTIMATE_PRISM_FLAG_UNLOCKED,
     ULTIMATE_PRISM_MERC_ID,
+    ULTIMATE_PRISM_UNLOCKED_ACHIEVEMENT_ID,
 )
 from game.entities import ALL_CARDS
 from game.core.battle.card_cost import resolve_card_effective_cost_a
@@ -73,7 +73,7 @@ class TestUltimatePrism(unittest.TestCase):
         self.run_cmd("离开", uid)
 
         stats = self.plugin.save_manager.load_stats(uid)
-        stats.town_flags[CHIREIDEN_QUEST_COMPLETED_FLAG] = True
+        stats.unlocked_achievements.append(CHIREIDEN_COMPLETED_ACHIEVEMENT_ID)
         self.plugin.save_manager.save_stats(uid, stats)
 
         dlg = self.run_cmd("talk 卡牌商人", uid)
@@ -91,9 +91,13 @@ class TestUltimatePrism(unittest.TestCase):
 
         after_stats = self.plugin.save_manager.load_stats(uid)
         from game.data.progression.achievement_data import ACHIEVEMENTS_CONFIG
-        bonus_gp = ACHIEVEMENTS_CONFIG["collection_complete"]["gp_reward"] if "collection_complete" in after_stats.unlocked_achievements else 0
+        bonus_gp = sum(
+            ACHIEVEMENTS_CONFIG[aid]["gp_reward"]
+            for aid in ("collection_complete", ULTIMATE_PRISM_UNLOCKED_ACHIEVEMENT_ID)
+            if aid in after_stats.unlocked_achievements
+        )
         self.assertEqual(after_stats.gp, 10000 - 7891 + bonus_gp)
-        self.assertTrue(after_stats.town_flags.get(ULTIMATE_PRISM_FLAG_UNLOCKED))
+        self.assertIn(ULTIMATE_PRISM_UNLOCKED_ACHIEVEMENT_ID, after_stats.unlocked_achievements)
         self.assertIn(ULTIMATE_PRISM_CARD_ID, after_stats.locked_cards)
 
         self.run_cmd("离开", uid)
@@ -290,7 +294,7 @@ class TestUltimatePrism(unittest.TestCase):
         stats = self.plugin.save_manager.load_stats(uid_town)
         stats.achievement_stats["ultimate_prism_played"] = 1
         stats.unlocked_achievements.append(ULTIMATE_PRISM_ACHIEVEMENT_ID)
-        stats.town_flags[ULTIMATE_PRISM_FLAG_UNLOCKED] = True
+        stats.unlocked_achievements.append(ULTIMATE_PRISM_UNLOCKED_ACHIEVEMENT_ID)
         self.plugin.save_manager.save_stats(uid_town, stats)
         self.run_cmd("主城", uid_town)
         self.run_cmd("talk 终极棱镜", uid_town)
@@ -304,8 +308,8 @@ class TestUltimatePrism(unittest.TestCase):
         uid = "prism_depart_user"
         stats = self.plugin.save_manager.load_stats(uid)
         stats.gp = 1000
-        stats.town_flags[CHIREIDEN_QUEST_COMPLETED_FLAG] = True
-        stats.town_flags[ULTIMATE_PRISM_FLAG_UNLOCKED] = True
+        stats.unlocked_achievements.append(CHIREIDEN_COMPLETED_ACHIEVEMENT_ID)
+        stats.unlocked_achievements.append(ULTIMATE_PRISM_UNLOCKED_ACHIEVEMENT_ID)
         stats.locked_cards = [ULTIMATE_PRISM_CARD_ID]
         self.plugin.save_manager.save_stats(uid, stats)
 
