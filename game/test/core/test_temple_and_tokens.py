@@ -26,9 +26,7 @@ class TestTempleAndTokens(unittest.TestCase):
 
     def _cleanup(self, uid):
         self.sm.delete_save(uid)
-        sp = self.sm.get_stats_path(uid)
-        if os.path.exists(sp):
-            os.remove(sp)
+        self.sm.delete_stats(uid)
 
     def _run(self, cmd, uid):
         return asyncio.run(run_command(self.plugin, cmd, uid))

@@ -9,10 +9,29 @@ from .corpse_registry import _atomic_write_json
 
 
 class TradeRegistry:
-    def __init__(self, data_dir: str):
+    def __init__(self, data_dir: str, store=None):
         self.path = os.path.join(data_dir, TRADE_OFFER_FILE)
+        self._store = store
 
     def _load(self) -> Dict[str, dict]:
+        if self._store is not None:
+            data = self._store.get_json("kv_store", "trade_registry")
+            if data is None and os.path.exists(self.path):
+                try:
+                    with open(self.path, "r", encoding="utf-8") as f:
+                        loaded = load(f)
+                    if isinstance(loaded, dict):
+                        if not isinstance(loaded.get("offers"), dict):
+                            loaded["offers"] = {}
+                        self._store.put_json("kv_store", "trade_registry", loaded, updated_at=os.path.getmtime(self.path))
+                        data = loaded
+                except Exception:
+                    return {"offers": {}}
+            if not isinstance(data, dict):
+                return {"offers": {}}
+            if not isinstance(data.get("offers"), dict):
+                data["offers"] = {}
+            return data
         if not os.path.exists(self.path):
             return {"offers": {}}
         try:
@@ -27,6 +46,9 @@ class TradeRegistry:
             return {"offers": {}}
 
     def _save(self, data: Dict[str, dict]) -> None:
+        if self._store is not None:
+            self._store.put_json("kv_store", "trade_registry", data)
+            return
         _atomic_write_json(self.path, data)
 
     def _live(self, data: Dict[str, dict], now: Optional[float] = None) -> Dict[str, dict]:

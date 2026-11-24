@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import threading
 import time
 from datetime import datetime, timezone
@@ -53,14 +54,30 @@ class WorldPresenceService:
         return os.path.join(self.save_manager.data_dir, WORLD_PRESENCE_FILE)
 
     def _load(self) -> tuple[dict[str, dict], bool]:
-        path = self._path()
-        if not os.path.exists(path):
-            return {}, False
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = load(f)
-        except (OSError, ValueError, TypeError):
-            return {}, False
+        store = getattr(self.save_manager, "store", None)
+        data = None
+        if store is not None:
+            try:
+                data = store.get_json("kv_store", "world_presence")
+                if data is None:
+                    path = self._path()
+                    if os.path.exists(path):
+                        with open(path, "r", encoding="utf-8") as f:
+                            loaded = load(f)
+                        if isinstance(loaded, dict):
+                            store.put_json("kv_store", "world_presence", loaded, updated_at=os.path.getmtime(path))
+                            data = loaded
+            except (OSError, ValueError, TypeError, sqlite3.Error):
+                return {}, False
+        else:
+            path = self._path()
+            if not os.path.exists(path):
+                return {}, False
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = load(f)
+            except (OSError, ValueError, TypeError):
+                return {}, False
         if not isinstance(data, dict):
             return {}, False
         entries = {}
@@ -89,6 +106,10 @@ class WorldPresenceService:
         return kept, changed
 
     def _write(self, entries: dict[str, dict]) -> None:
+        store = getattr(self.save_manager, "store", None)
+        if store is not None:
+            store.put_json("kv_store", "world_presence", entries)
+            return
         _atomic_write_json(self._path(), entries, indent=0)
 
     def _active_entries(self, world: str | None = None) -> dict[str, dict]:

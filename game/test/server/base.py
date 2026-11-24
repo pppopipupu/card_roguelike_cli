@@ -8,14 +8,26 @@ import unittest
 import uuid
 from dataclasses import replace
 from pathlib import Path
+import tempfile
 from tempfile import TemporaryDirectory
 import jwt
 from fastapi.testclient import TestClient
 from game.data.progression.account_config import GITHUB_BIND_REWARD_GP, RENAME_COST_GP
 from game.json_codec import dumps, loads
+from game.models.sqlite_store import close_stores_under
 from server.accounts import AccountStore
 from server.app import create_app
 from server.config import Settings
+
+if not getattr(tempfile.TemporaryDirectory.cleanup, "_rogue_sqlite_patched", False):
+    _orig_tempdir_cleanup = tempfile.TemporaryDirectory.cleanup
+
+    def _rogue_tempdir_cleanup(self):
+        close_stores_under(getattr(self, "name", ""))
+        return _orig_tempdir_cleanup(self)
+
+    setattr(_rogue_tempdir_cleanup, "_rogue_sqlite_patched", True)
+    tempfile.TemporaryDirectory.cleanup = _rogue_tempdir_cleanup
 
 
 def make_settings(root: Path) -> Settings:
@@ -43,7 +55,7 @@ class ServerTestBase(unittest.TestCase):
         self.client = TestClient(self.app)
 
     def tearDown(self):
-        self.app.state.service.accounts.close()
+        self.app.state.service.close()
         self.tmp.cleanup()
 
     def web_headers(self, subject: str = "web-user-1") -> dict:

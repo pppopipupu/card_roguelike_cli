@@ -13,9 +13,9 @@ from ..cli.base.aliases import (
     has_pending_node_cancel,
 )
 from ..battle.selection import TargetSelectorParser
+from ..admin import AdminCommandRouter
 from ...renderer.menu import get_reader_total_pages, render_reader_page
 from ...renderer import GameRenderer, format_output_numbers
-from ...cards import resolve_card_id, ALL_CARDS
 from ...data.text.locale_data import get_locale_text
 from ...data.world.world_social_config import WORLD_PLAYER_DIALOG_EXIT_WORDS
 
@@ -34,7 +34,13 @@ class HeadlessGameServer:
         self.save_manager.ensure_player_handles()
         self.engine = GameEngine(self.save_manager)
         self.cli_router = CLIRouter(self.save_manager, self.engine)
+        self.admin_router = AdminCommandRouter(self)
         self.user_locks = {}
+
+    def close(self) -> None:
+        close_fn = getattr(self.save_manager, "close", None)
+        if callable(close_fn):
+            close_fn()
 
     def _get_user_lock(self, user_id: str) -> asyncio.Lock:
         resolve_key = getattr(self.save_manager, "resolve_lock_key", None)
@@ -46,24 +52,25 @@ class HeadlessGameServer:
         return lock
 
     def _sync_player_name(self, user_id: str, sender_name: str):
-        stats = self.save_manager.load_stats(user_id)
-        default_name = get_locale_text("i18n_cli_core.default_player_name")
-        if not stats:
-            return
-        current_name = getattr(stats, "player_name", default_name) or default_name
-        if (
-            not getattr(stats, "name_customized", False)
-            and not getattr(stats, "player_handle", "")
-            and current_name == default_name
-        ):
-            if sender_name and sender_name != default_name:
-                stats.player_name = sender_name
-                self.save_manager.save_stats(user_id, stats)
-                current_name = sender_name
-        run = self.save_manager.load_save(user_id)
-        if run and run.player and run.player.name != current_name:
-            run.player.name = current_name
-            self.save_manager.save_save(user_id, run)
+        with self.save_manager.batch():
+            stats = self.save_manager.load_stats(user_id)
+            default_name = get_locale_text("i18n_cli_core.default_player_name")
+            if not stats:
+                return
+            current_name = getattr(stats, "player_name", default_name) or default_name
+            if (
+                not getattr(stats, "name_customized", False)
+                and not getattr(stats, "player_handle", "")
+                and current_name == default_name
+            ):
+                if sender_name and sender_name != default_name:
+                    stats.player_name = sender_name
+                    self.save_manager.save_stats(user_id, stats)
+                    current_name = sender_name
+            run = self.save_manager.load_save(user_id)
+            if run and run.player and run.player.name != current_name:
+                run.player.name = current_name
+                self.save_manager.save_save(user_id, run)
 
     def _get_current_state(self, user_id: str, run, stats) -> str:
         return resolve_game_state(run, stats)
@@ -240,122 +247,4 @@ class HeadlessGameServer:
         return None
 
     async def handle_admin_message(self, user_id: str, message: str) -> str:
-        set_user_id(user_id)
-        parts = message.strip().split()
-        if len(parts) > 0 and parts[0].lower() in ("rogueadmin", "/rogueadmin"):
-            parts = parts[1:]
-
-        if not parts:
-            return get_locale_text("i18n_cli_core.admin_help")
-
-        cmd = parts[0].lower()
-        if cmd == "boss":
-            if len(parts) == 1:
-                cfg = self.save_manager.load_admin_config()
-                boss = cfg.get("final_boss", "random")
-                boss_zh = get_locale_text("i18n_cli_core.random_rotation") if boss == "random" else boss
-                return get_locale_text("i18n_cli_core.admin_boss_current", boss=boss_zh)
-            elif len(parts) >= 3 and parts[1].lower() == "set":
-                target_boss = parts[2]
-                if target_boss.lower() in ("random", "随机", "轮换"):
-                    self.save_manager.save_admin_config({"final_boss": "random"})
-                    return get_locale_text("i18n_cli_core.admin_boss_set_random")
-                elif target_boss in ("腐化之心", "Icerainboww"):
-                    self.save_manager.save_admin_config({"final_boss": target_boss})
-                    return get_locale_text("i18n_cli_core.admin_boss_set_fixed", boss=target_boss)
-                else:
-                    return get_locale_text("i18n_cli_core.err_admin_invalid_boss")
-            else:
-                return get_locale_text("i18n_cli_core.err_admin_boss_usage")
-        elif cmd == "icerainboww":
-            if len(parts) == 1:
-                cfg = self.save_manager.load_admin_config()
-                status = cfg.get("icerainboww_enabled", True)
-                status_zh = get_locale_text("i18n_cli_core.status_enabled") if status else get_locale_text("i18n_cli_core.status_disabled")
-                return get_locale_text("i18n_cli_core.admin_icerainboww_current", status=status_zh)
-            elif len(parts) >= 2:
-                target_status = parts[1].lower()
-                cfg = self.save_manager.load_admin_config()
-                if target_status in ("on", "开启", "enable", "true"):
-                    cfg["icerainboww_enabled"] = True
-                    self.save_manager.save_admin_config(cfg)
-                    return get_locale_text("i18n_cli_core.admin_icerainboww_enabled")
-                elif target_status in ("off", "关闭", "disable", "false"):
-                    cfg["icerainboww_enabled"] = False
-                    self.save_manager.save_admin_config(cfg)
-                    return get_locale_text("i18n_cli_core.admin_icerainboww_disabled")
-                else:
-                    return get_locale_text("i18n_cli_core.err_admin_icerainboww_param")
-            else:
-                return get_locale_text("i18n_cli_core.err_admin_icerainboww_usage")
-        elif cmd == "jump":
-            if len(parts) == 2:
-                target_user_id = user_id
-                stage_str = parts[1]
-            elif len(parts) >= 3:
-                target_user_id = parts[1]
-                stage_str = parts[2]
-            else:
-                return get_locale_text("i18n_cli_core.err_admin_jump_usage")
-            try:
-                target_stage = int(stage_str)
-            except ValueError:
-                return get_locale_text("i18n_cli_core.err_admin_jump_int")
-            if not (1 <= target_stage <= 32):
-                return get_locale_text("i18n_cli_core.err_admin_jump_range")
-            lock = self._get_user_lock(target_user_id)
-            async with lock:
-                run = self.save_manager.load_save(target_user_id)
-                if not run:
-                    return get_locale_text("i18n_cli_core.err_admin_no_save")
-                msg = self.engine.jump_to_stage(run, target_stage)
-                return get_locale_text("i18n_cli_core.admin_action_result", msg=msg, rendered=GameRenderer.render_game(run))
-        elif cmd == "add_card":
-            if len(parts) == 2:
-                card_input = parts[1]
-                target_user_id = user_id
-            elif len(parts) >= 3:
-                card_input = parts[1]
-                target_user_id = parts[2]
-                resolved = resolve_card_id(card_input)
-                if not resolved:
-                    resolved_alt = resolve_card_id(parts[2])
-                    if resolved_alt:
-                        card_input = parts[2]
-                        target_user_id = parts[1]
-            else:
-                return get_locale_text("i18n_cli_core.err_admin_add_card_usage")
-            
-            upgraded = card_input.endswith("+")
-            card_id = resolve_card_id(card_input)
-            if not card_id:
-                return get_locale_text("i18n_cli_core.err_admin_card_not_found", card_input=card_input)
-            
-            lock = self._get_user_lock(target_user_id)
-            async with lock:
-                run = self.save_manager.load_save(target_user_id)
-                if not run:
-                    return get_locale_text("i18n_cli_core.err_admin_no_save")
-                
-                card_obj = ALL_CARDS.get(card_id)
-                card_name = card_obj.name if card_obj else card_id
-                if upgraded:
-                    card_name += "+"
-                
-                from ...models.state import CardState
-                card_state = CardState(id=card_id, upgraded=upgraded)
-                run.player.deck.append(card_state)
-                in_battle = (run.node_type == "battle")
-                if in_battle:
-                    run.player.hand.append(card_state)
-                    
-                self.save_manager.save_save(target_user_id, run)
-                
-                if in_battle:
-                    msg = get_locale_text("i18n_cli_core.admin_card_added_battle", card_name=card_name, target_user_id=target_user_id)
-                else:
-                    msg = get_locale_text("i18n_cli_core.admin_card_added", card_name=card_name, target_user_id=target_user_id)
-                    
-                return get_locale_text("i18n_cli_core.admin_action_result", msg=msg, rendered=GameRenderer.render_game(run))
-        else:
-            return get_locale_text("i18n_cli_core.err_admin_unknown")
+        return await self.admin_router.dispatch(user_id, message)

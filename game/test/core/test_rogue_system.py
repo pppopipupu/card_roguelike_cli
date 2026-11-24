@@ -193,9 +193,7 @@ class TestRogueSystem(unittest.TestCase):
         plugin = MyPlugin(DummyContext())
         user_id = "test_user_multi_lock"
         plugin.save_manager.delete_save(user_id)
-        stats_path = plugin.save_manager.get_stats_path(user_id)
-        if os.path.exists(stats_path):
-            os.remove(stats_path)
+        plugin.save_manager.delete_stats(user_id)
 
         async def go():
             stats = plugin.save_manager.load_stats(user_id)
@@ -273,9 +271,7 @@ class TestRogueSystem(unittest.TestCase):
             self.assertIn("warrior_defend", stats_after.locked_cards)
 
             plugin.save_manager.delete_save(user_id)
-            stats_path = plugin.save_manager.get_stats_path(user_id)
-            if os.path.exists(stats_path):
-                os.remove(stats_path)
+            plugin.save_manager.delete_stats(user_id)
 
         asyncio.run(go())
 

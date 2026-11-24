@@ -1,9 +1,10 @@
+from contextlib import nullcontext
 import os
 import logging
 import math
+import sqlite3
 import tempfile
-from dataclasses import asdict
-from typing import Optional, Tuple, Dict, List
+from typing import Optional, Dict, List
 from .state import GameRun, UserStats, PlayerState, ensure_card_state
 from .records import Lobby, PlayerProfile
 from .corpse_registry import CorpseRegistry
@@ -12,7 +13,8 @@ from .pvp_registry import PvpRegistry
 from .trade_registry import TradeRegistry
 from .save_codec import SaveCodecMixin
 from .settlement import SettlementMixin
-from ..json_codec import dumps, load
+from .sqlite_store import SqliteStore
+from ..json_codec import dumps, load, loads
 from ..core.social.player_names import fallback_player_name, unique_handle
 from ..data.text.locale_data import get_locale_text
 from ..data.progression.starting_deck_config import LOCK_SLOT_LIMIT
@@ -68,10 +70,60 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 self.data_dir = os.path.join(os.path.dirname(os.path.dirname(current_dir)), "data")
         if not os.path.exists(self.data_dir):
             os.makedirs(self.data_dir)
-        self.corpses = CorpseRegistry(self.data_dir)
-        self.open_world_ghosts = OpenWorldGhostRegistry(self.data_dir)
-        self.pvp = PvpRegistry(self.data_dir)
-        self.trades = TradeRegistry(self.data_dir)
+        self.store = SqliteStore.for_path(os.path.join(self.data_dir, "rogue.db"))
+        self.corpses = CorpseRegistry(self.data_dir, store=self.store)
+        self.open_world_ghosts = OpenWorldGhostRegistry(self.data_dir, store=self.store)
+        self.pvp = PvpRegistry(self.data_dir, store=self.store)
+        self.trades = TradeRegistry(self.data_dir, store=self.store)
+
+    def batch(self):
+        store = getattr(self, "store", None)
+        if store is None:
+            return nullcontext()
+        return store.batch()
+
+    def close(self) -> None:
+        store = getattr(self, "store", None)
+        if store is not None:
+            store.close()
+
+    def _load_json_or_legacy(self, table: str, key: str, legacy_path: str):
+        data = self.store.get_json(table, key)
+        if data is not None:
+            return data
+        if not os.path.exists(legacy_path):
+            return None
+        with open(legacy_path, "r", encoding="utf-8") as f:
+            data = load(f)
+        if data is None:
+            return None
+        self.store.put_json(table, key, data, updated_at=os.path.getmtime(legacy_path))
+        return data
+
+    def _remove_legacy_file(self, path: str) -> bool:
+        if os.path.exists(path):
+            os.remove(path)
+            return True
+        return False
+
+    def _sync_legacy_stats_dir(self) -> None:
+        if not os.path.isdir(self.data_dir):
+            return
+        for name in os.listdir(self.data_dir):
+            if not name.startswith("stats_") or not name.endswith(".json"):
+                continue
+            uid = name[len("stats_"):-len(".json")]
+            if self.store.exists("user_stats", uid):
+                continue
+            path = os.path.join(self.data_dir, name)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = load(f)
+                if not isinstance(data, dict):
+                    continue
+                self.store.put_json("user_stats", uid, data, updated_at=os.path.getmtime(path))
+            except (OSError, ValueError, sqlite3.Error) as exc:
+                logger.warning(get_locale_text("i18n_models.manager.read_profile_failed", user_id=uid, error=exc))
 
     def get_save_path(self, user_id: str) -> str:
         safe_id = "".join([c for c in user_id if c.isalnum() or c in ("-", "_")])
@@ -85,7 +137,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         return os.path.join(self.data_dir, "coop_lobbies.json")
 
     def has_personal_save(self, user_id: str) -> bool:
-        return os.path.exists(self.get_save_path(user_id))
+        return self.store.exists("user_saves", user_id) or os.path.exists(self.get_save_path(user_id))
 
     def resolve_lock_key(self, user_id: str) -> str:
         stats = self.load_stats(user_id)
@@ -103,11 +155,10 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
 
     def load_stats(self, user_id: str) -> UserStats:
         path = self.get_stats_path(user_id)
-        if not os.path.exists(path):
-            return UserStats()
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                d = load(f)
+            d = self._load_json_or_legacy("user_stats", user_id, path)
+            if d is None:
+                return UserStats()
             if not isinstance(d, dict):
                 raise TypeError(type(d).__name__)
             locked_cards = d.get("locked_cards", [])
@@ -210,18 +261,27 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 encountered_entities=[str(x) for x in (d.get("encountered_entities", []) or []) if x],
                 tutorial_done=bool(d["tutorial_done"]) if "tutorial_done" in d else True,
             )
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_stats_failed", user_id=user_id, error=exc))
             return UserStats()
 
     def save_stats(self, user_id: str, stats: UserStats) -> bool:
-        path = self.get_stats_path(user_id)
         try:
             d = dict(stats.__dict__)
             d["total_damage"] = str(int(stats.total_damage))
-            _atomic_write_json(path, d)
+            self.store.put_json("user_stats", user_id, d)
             return True
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.save_stats_failed", user_id=user_id, error=exc))
+            return False
+
+    def delete_stats(self, user_id: str) -> bool:
+        try:
+            deleted = self.store.delete("user_stats", user_id)
+            if self._remove_legacy_file(self.get_stats_path(user_id)):
+                deleted = True
+            return deleted
+        except (OSError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_stats_failed", user_id=user_id, error=exc))
             return False
 
@@ -246,71 +306,6 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         stats.total_stages += 1
         self.save_stats(user_id, stats)
 
-    def get_duel_registry_path(self) -> str:
-        return os.path.join(self.data_dir, "duel_registry.json")
-
-    def get_duel_registry(self) -> dict:
-        path = self.get_duel_registry_path()
-        if not os.path.exists(path):
-            return {}
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = load(f)
-            return data if isinstance(data, dict) else {}
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            logger.warning(get_locale_text("i18n_models.manager.read_duel_registry_failed", error=exc))
-            return {}
-
-    def save_duel_registry(self, reg: dict) -> bool:
-        path = self.get_duel_registry_path()
-        try:
-            _atomic_write_json(path, reg)
-            return True
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            logger.warning(get_locale_text("i18n_models.manager.save_duel_registry_failed", error=exc))
-            return False
-
-    def get_duel_game_id(self, user_id: str) -> Optional[str]:
-        return self.get_duel_registry().get(user_id)
-
-    def bind_duel_game(self, user_id1: str, user_id2: str, game_id: str):
-        reg = self.get_duel_registry()
-        reg[user_id1] = game_id
-        reg[user_id2] = game_id
-        self.save_duel_registry(reg)
-
-    def unbind_duel_game(self, game_id: str):
-        reg = self.get_duel_registry()
-        keys_to_del = [k for k, v in reg.items() if v == game_id]
-        for k in keys_to_del:
-            del reg[k]
-        self.save_duel_registry(reg)
-
-    def get_duel_deck_path(self, user_id: str) -> str:
-        safe_id = "".join([c for c in user_id if c.isalnum() or c in ("-", "_")])
-        return os.path.join(self.data_dir, f"duel_decks_{safe_id}.json")
-
-    def load_duel_decks(self, user_id: str) -> dict:
-        path = self.get_duel_deck_path(user_id)
-        if not os.path.exists(path):
-            return {}
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = load(f)
-            return data if isinstance(data, dict) else {}
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            logger.warning(get_locale_text("i18n_models.manager.read_duel_decks_failed", user_id=user_id, error=exc))
-            return {}
-
-    def save_duel_decks(self, user_id: str, decks: dict) -> bool:
-        path = self.get_duel_deck_path(user_id)
-        try:
-            _atomic_write_json(path, decks)
-            return True
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            logger.warning(get_locale_text("i18n_models.manager.save_duel_decks_failed", user_id=user_id, error=exc))
-            return False
-
     def load_save(self, user_id: str) -> Optional[GameRun]:
         stats = self.load_stats(user_id)
         coop_id = getattr(stats, "active_coop_id", "")
@@ -319,11 +314,10 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
             if run:
                 return run
         path = self.get_save_path(user_id)
-        if not os.path.exists(path):
-            return None
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                d = load(f)
+            d = self._load_json_or_legacy("user_saves", user_id, path)
+            if d is None:
+                return None
             run = self.from_dict(d)
             if run:
                 if user_id in run.players:
@@ -339,7 +333,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                     from ..core.battle.pvp_service import PvpService
                     PvpService.bind_run_from_match(self, run, user_id)
             return run
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_save_failed", user_id=user_id, error=exc))
             return None
 
@@ -386,11 +380,10 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 if run.node_data.get(PVP_MATCH_KEY):
                     from ..core.battle.pvp_service import PvpService
                     PvpService.sync_match_from_run(self, run, save_uid)
-            path = self.get_save_path(save_uid)
             d = self.to_dict(run)
-            _atomic_write_json(path, d)
+            self.store.put_json("user_saves", save_uid, d)
             return True
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_save_failed", user_id=save_uid, error=exc))
             return False
         finally:
@@ -404,22 +397,21 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         if getattr(stats, "active_coop_id", ""):
             return False
         path = self.get_save_path(user_id)
-        if os.path.exists(path):
-            try:
-                os.remove(path)
-                return True
-            except (OSError, ValueError, KeyError, TypeError) as exc:
-                logger.warning(get_locale_text("i18n_models.manager.delete_save_failed", user_id=user_id, error=exc))
-                return False
-        return False
+        try:
+            deleted = self.store.delete("user_saves", user_id)
+            if self._remove_legacy_file(path):
+                deleted = True
+            return deleted
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.delete_save_failed", user_id=user_id, error=exc))
+            return False
 
     def load_coop_save(self, user_id: str, coop_id: str) -> Optional[GameRun]:
         path = self.get_coop_save_path(coop_id)
-        if not os.path.exists(path):
-            return None
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                d = load(f)
+            d = self._load_json_or_legacy("coop_saves", coop_id, path)
+            if d is None:
+                return None
             run = self.from_dict(d)
             if run and user_id in run.players:
                 run.player = run.players[user_id]
@@ -434,7 +426,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                     from ..core.battle.pvp_service import PvpService
                     PvpService.bind_run_from_match(self, run, user_id)
             return run
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_coop_save_failed", user_id=user_id, coop_id=coop_id, error=exc))
             return None
 
@@ -446,43 +438,39 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         SessionContextScoper.sync_from_run(run, user_id)
         persist_view(run, user_id)
         self._sync_open_world_from_run(run)
-        path = self.get_coop_save_path(run.coop_id)
         try:
             d = self.to_dict(run)
-            _atomic_write_json(path, d)
+            self.store.put_json("coop_saves", run.coop_id, d)
             return True
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_coop_save_failed", user_id=user_id, coop_id=run.coop_id, error=exc))
             return False
 
     def delete_coop_save(self, coop_id: str) -> bool:
         path = self.get_coop_save_path(coop_id)
-        if os.path.exists(path):
-            try:
-                os.remove(path)
-                return True
-            except (OSError, ValueError, KeyError, TypeError) as exc:
-                logger.warning(get_locale_text("i18n_models.manager.delete_coop_save_failed", coop_id=coop_id, error=exc))
-                return False
-        return False
+        try:
+            deleted = self.store.delete("coop_saves", coop_id)
+            if self._remove_legacy_file(path):
+                deleted = True
+            return deleted
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
+            logger.warning(get_locale_text("i18n_models.manager.delete_coop_save_failed", coop_id=coop_id, error=exc))
+            return False
 
     def load_lobbies(self) -> Dict[str, Lobby]:
         path = self.get_lobbies_path()
-        if not os.path.exists(path):
-            return {}
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = load(f)
+            data = self._load_json_or_legacy("kv_store", "coop_lobbies", path)
             return data if isinstance(data, dict) else {}
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_lobbies_failed", error=exc))
             return {}
 
     def save_lobbies(self, lobbies: Dict[str, Lobby]) -> bool:
         try:
-            _atomic_write_json(self.get_lobbies_path(), lobbies)
+            self.store.put_json("kv_store", "coop_lobbies", lobbies)
             return True
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_lobbies_failed", error=exc))
             return False
 
@@ -503,53 +491,41 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         return False
 
     def ensure_player_handles(self) -> None:
-        if not os.path.isdir(self.data_dir):
-            return
+        self._sync_legacy_stats_dir()
         entries = []
-        for name in os.listdir(self.data_dir):
-            if not name.startswith("stats_") or not name.endswith(".json"):
-                continue
-            path = os.path.join(self.data_dir, name)
-            uid = name[len("stats_"):-len(".json")]
+        for uid, blob, updated_at in self.store.list_rows("user_stats"):
             try:
-                with open(path, "r", encoding="utf-8") as f:
-                    data = load(f)
-                mtime = os.path.getmtime(path)
-            except (OSError, ValueError) as exc:
+                data = loads(blob)
+            except (ValueError, TypeError) as exc:
                 logger.warning(get_locale_text("i18n_models.manager.read_profile_failed", user_id=uid, error=exc))
                 continue
             if not isinstance(data, dict):
                 continue
-            entries.append((mtime, uid, path, data))
+            entries.append((updated_at, uid, data))
         entries.sort(key=lambda item: (item[0], item[1]))
         taken = set()
-        for _, uid, path, data in entries:
-            base = fallback_player_name(
-                data.get("player_handle") or data.get("player_name") or ""
-            )
-            handle = unique_handle(str(base), taken)
-            taken.add(handle)
-            if data.get("player_handle") == handle and data.get("player_name") == handle:
-                continue
-            data["player_handle"] = handle
-            data["player_name"] = handle
-            try:
-                _atomic_write_json(path, data)
-            except (OSError, ValueError, TypeError) as exc:
-                logger.warning(get_locale_text("i18n_models.manager.save_stats_failed", user_id=uid, error=exc))
+        with self.batch():
+            for updated_at, uid, data in entries:
+                base = fallback_player_name(
+                    data.get("player_handle") or data.get("player_name") or ""
+                )
+                handle = unique_handle(str(base), taken)
+                taken.add(handle)
+                if data.get("player_handle") == handle and data.get("player_name") == handle:
+                    continue
+                data["player_handle"] = handle
+                data["player_name"] = handle
+                try:
+                    self.store.put_json("user_stats", uid, data, updated_at=updated_at)
+                except (OSError, ValueError, TypeError, sqlite3.Error) as exc:
+                    logger.warning(get_locale_text("i18n_models.manager.save_stats_failed", user_id=uid, error=exc))
 
     def list_player_profiles(self) -> List[PlayerProfile]:
+        self._sync_legacy_stats_dir()
         profiles: List[PlayerProfile] = []
-        if not os.path.isdir(self.data_dir):
-            return profiles
-        for name in os.listdir(self.data_dir):
-            if not name.startswith("stats_") or not name.endswith(".json"):
-                continue
-            path = os.path.join(self.data_dir, name)
-            uid = name[len("stats_"):-len(".json")]
+        for uid, blob, updated_at in self.store.list_rows("user_stats"):
             try:
-                with open(path, "r", encoding="utf-8") as f:
-                    data = load(f)
+                data = loads(blob)
                 if not isinstance(data, dict):
                     continue
                 profiles.append(PlayerProfile(
@@ -563,93 +539,29 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                     active_coop_id=data.get("active_coop_id", ""),
                     active_lobby_id=data.get("active_lobby_id", ""),
                     in_town=data.get("in_town", False),
-                    mtime=os.path.getmtime(path),
+                    mtime=updated_at,
                 ))
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 logger.warning(get_locale_text("i18n_models.manager.read_profile_failed", user_id=uid, error=exc))
                 continue
         return profiles
 
-    def load_duel_save(self, user_id: str) -> Optional[GameRun]:
-        game_id = self.get_duel_game_id(user_id)
-        if not game_id:
-            return None
-        path = os.path.join(self.data_dir, f"duel_{game_id}.json")
-        if not os.path.exists(path):
-            return None
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                d = load(f)
-            run = self.from_dict(d)
-            if run:
-                p2_id = run.node_data.get("player2_id")
-                if p2_id == user_id and run.player2 is not None:
-                    run.player, run.player2 = run.player2, run.player
-                    run.user_id = user_id
-            return run
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            logger.warning(get_locale_text("i18n_models.manager.read_duel_save_failed", user_id=user_id, error=exc))
-            return None
-
-    def save_duel_save(self, user_id: str, run: GameRun) -> bool:
-        game_id = self.get_duel_game_id(user_id)
-        if not game_id:
-            return False
-        path = os.path.join(self.data_dir, f"duel_{game_id}.json")
-        p2_id = run.node_data.get("player2_id")
-        swap_view = p2_id == user_id and run.player2 is not None
-        if swap_view and run.player2 is not None:
-            run.player, run.player2 = run.player2, run.player
-            run.user_id = run.node_data.get("player1_id", run.user_id)
-        try:
-            d = self.to_dict(run)
-            if swap_view and run.player2 is not None:
-                run.player, run.player2 = run.player2, run.player
-                run.user_id = user_id
-            _atomic_write_json(path, d)
-            return True
-        except (OSError, ValueError, KeyError, TypeError) as exc:
-            logger.warning(get_locale_text("i18n_models.manager.save_duel_save_failed", user_id=user_id, error=exc))
-            if swap_view and run.player2 is not None:
-                run.player, run.player2 = run.player2, run.player
-                run.user_id = user_id
-            return False
-
-    def delete_duel_save(self, user_id: str) -> bool:
-        game_id = self.get_duel_game_id(user_id)
-        if not game_id:
-            return False
-        path = os.path.join(self.data_dir, f"duel_{game_id}.json")
-        self.unbind_duel_game(game_id)
-        if os.path.exists(path):
-            try:
-                os.remove(path)
-                return True
-            except (OSError, ValueError, KeyError, TypeError) as exc:
-                logger.warning(get_locale_text("i18n_models.manager.delete_duel_save_failed", user_id=user_id, error=exc))
-                return False
-        return False
-
     def get_admin_config_path(self) -> str:
         return os.path.join(self.data_dir, "admin_config.json")
 
     def load_admin_config(self) -> dict:
         path = self.get_admin_config_path()
-        if not os.path.exists(path):
-            return {"final_boss": "random"}
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = load(f)
+            data = self._load_json_or_legacy("kv_store", "admin_config", path)
             return data if isinstance(data, dict) else {"final_boss": "random"}
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.read_admin_config_failed", error=exc))
             return {"final_boss": "random"}
 
     def save_admin_config(self, cfg: dict) -> bool:
-        path = self.get_admin_config_path()
         try:
-            _atomic_write_json(path, cfg)
+            self.store.put_json("kv_store", "admin_config", cfg)
             return True
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_admin_config_failed", error=exc))
             return False

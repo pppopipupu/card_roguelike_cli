@@ -355,6 +355,7 @@ class ServerImAndProjectionTests(ServerTestBase):
         self.assertIsNone(store.get_by_im(qq_id))
         self.assertIsNone(store.get_by_im(matrix_id))
         self.assertEqual(list(self.settings.player_dir.glob("stats_*.json")), [])
+        self.assertEqual(self.app.state.service.save_manager.store.list_rows("user_stats"), [])
         self.assertFalse(shell_root.exists() and any(shell_root.iterdir()))
 
         started = self.post(

@@ -12,9 +12,7 @@ class TestRogueTown(unittest.TestCase):
 
         async def run_test():
             plugin.save_manager.delete_save(uid)
-            stats_path = plugin.save_manager.get_stats_path(uid)
-            if os.path.exists(stats_path):
-                os.remove(stats_path)
+            plugin.save_manager.delete_stats(uid)
             await run_command(plugin, ".rogue 主城", uid)
             touch_res = await run_command(plugin, ".rogue touch 向导长老", uid)
             self.assertIn("与向导长老闲聊", touch_res)
@@ -29,12 +27,7 @@ class TestRogueTown(unittest.TestCase):
     def test_town_full_loop(self):
         plugin = MyPlugin(DummyContext())
         save_manager = SaveManager()
-        stats_path = save_manager.get_stats_path("test_user")
-        if os.path.exists(stats_path):
-            try:
-                os.remove(stats_path)
-            except:
-                pass
+        save_manager.delete_stats("test_user")
         save_manager.delete_save("test_user")
 
         async def run_test():
@@ -240,12 +233,7 @@ class TestRogueTown(unittest.TestCase):
         plugin = MyPlugin(DummyContext())
         save_manager = SaveManager()
         save_manager.delete_save("test_user")
-        stats_path = save_manager.get_stats_path("test_user")
-        if os.path.exists(stats_path):
-            try:
-                os.remove(stats_path)
-            except:
-                pass
+        save_manager.delete_stats("test_user")
 
         async def run_p_test():
             await run_command(plugin, ".rogue 主城")
@@ -282,12 +270,7 @@ class TestRogueTown(unittest.TestCase):
         plugin = MyPlugin(DummyContext())
         save_manager = SaveManager()
         save_manager.delete_save("test_user")
-        stats_path = save_manager.get_stats_path("test_user")
-        if os.path.exists(stats_path):
-            try:
-                os.remove(stats_path)
-            except:
-                pass
+        save_manager.delete_stats("test_user")
 
         async def run_repl_test():
             await run_command(plugin, ".rogue 主城")
@@ -344,12 +327,7 @@ class TestRogueTown(unittest.TestCase):
 
         async def run_ham_test():
             save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                try:
-                    os.remove(stats_path)
-                except:
-                    pass
+            save_manager.delete_stats("test_user")
 
             await run_command(plugin, ".rogue 主城")
             stats = save_manager.load_stats("test_user")
@@ -386,9 +364,7 @@ class TestRogueTown(unittest.TestCase):
             self.assertEqual(stats.town_health_bonus, 5)
 
             save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                os.remove(stats_path)
+            save_manager.delete_stats("test_user")
 
             await run_command(plugin, ".rogue 主城")
             stats = save_manager.load_stats("test_user")
@@ -431,9 +407,7 @@ class TestRogueTown(unittest.TestCase):
             self.assertEqual(stats.town_flags.get("quest_hammer_state"), "completed")
 
             save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                os.remove(stats_path)
+            save_manager.delete_stats("test_user")
 
             await run_command(plugin, ".rogue 主城")
             stats = save_manager.load_stats("test_user")
@@ -490,12 +464,7 @@ class TestRogueTown(unittest.TestCase):
 
         async def run_brew_test():
             save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                try:
-                    os.remove(stats_path)
-                except:
-                    pass
+            save_manager.delete_stats("test_user")
 
             await run_command(plugin, ".rogue 主城")
             stats = save_manager.load_stats("test_user")
@@ -547,9 +516,7 @@ class TestRogueTown(unittest.TestCase):
             self.assertEqual(stats.town_health_bonus, 5)
 
             save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                os.remove(stats_path)
+            save_manager.delete_stats("test_user")
 
             await run_command(plugin, ".rogue 主城")
             stats = save_manager.load_stats("test_user")
@@ -591,9 +558,7 @@ class TestRogueTown(unittest.TestCase):
             self.assertIn("void_herb", stats.town_inventory)
 
             save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                os.remove(stats_path)
+            save_manager.delete_stats("test_user")
 
             await run_command(plugin, ".rogue 主城")
             stats = save_manager.load_stats("test_user")
@@ -617,9 +582,7 @@ class TestRogueTown(unittest.TestCase):
             self.assertIn("promotional_agreement", stats.town_inventory)
 
             save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                os.remove(stats_path)
+            save_manager.delete_stats("test_user")
 
             await run_command(plugin, ".rogue 主城")
             stats = save_manager.load_stats("test_user")
@@ -689,12 +652,7 @@ class TestRogueTown(unittest.TestCase):
 
         async def run_shop_test():
             save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                try:
-                    os.remove(stats_path)
-                except:
-                    pass
+            save_manager.delete_stats("test_user")
 
             await run_command(plugin, ".rogue 主城")
             stats = save_manager.load_stats("test_user")
@@ -733,12 +691,7 @@ class TestRogueTown(unittest.TestCase):
             await run_command(plugin, ".rogue exit")
 
             save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                try:
-                    os.remove(stats_path)
-                except:
-                    pass
+            save_manager.delete_stats("test_user")
 
         asyncio.run(run_shop_test())
 
@@ -748,12 +701,7 @@ class TestRogueTown(unittest.TestCase):
 
         async def run_victory_test():
             save_manager.delete_save("test_user")
-            stats_path = save_manager.get_stats_path("test_user")
-            if os.path.exists(stats_path):
-                try:
-                    os.remove(stats_path)
-                except:
-                    pass
+            save_manager.delete_stats("test_user")
 
             await run_command(plugin, ".rogue 主城")
             await run_command(plugin, ".rogue up")
@@ -783,12 +731,7 @@ class TestRogueTown(unittest.TestCase):
         async def run_tp_test():
             uid = "test_tp_user"
             save_manager.delete_save(uid)
-            stats_path = save_manager.get_stats_path(uid)
-            if os.path.exists(stats_path):
-                try:
-                    os.remove(stats_path)
-                except OSError:
-                    pass
+            save_manager.delete_stats(uid)
 
             await run_command(plugin, ".rogue 主城", sender_id=uid)
             list_res = await run_command(plugin, ".rogue tp", sender_id=uid)

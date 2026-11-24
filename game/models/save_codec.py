@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from typing import Optional
 
 import msgspec
@@ -23,7 +22,7 @@ class SaveCodecMixin:
             logs = run.node_data.pop("battle_logs", None)
             owners = run.node_data.pop("battle_log_owners", None)
         try:
-            res = asdict(run)
+            res = msgspec.to_builtins(run)
         finally:
             if scoped_order is not None:
                 run.party_order = scoped_order
@@ -33,7 +32,7 @@ class SaveCodecMixin:
                 if owners is not None:
                     run.node_data["battle_log_owners"] = owners
         if run.player_count() > 1:
-            node_data = res.setdefault("node_data", {})
+            node_data = dict(res.get("node_data") or {})
             if logs is not None:
                 node_data["battle_logs"] = [
                     msgspec.to_builtins(item) if isinstance(item, TextNode) else item
@@ -41,6 +40,7 @@ class SaveCodecMixin:
                 ]
             if owners is not None:
                 node_data["battle_log_owners"] = owners
+            res["node_data"] = node_data
         return res
 
     def _parse_player_state(self, p_data: dict | None) -> Optional[PlayerState]:

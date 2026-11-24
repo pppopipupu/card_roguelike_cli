@@ -1,5 +1,6 @@
 import os
 import random
+import sqlite3
 import tempfile
 import threading
 import uuid
@@ -37,10 +38,29 @@ def _atomic_write_json(path: str, data) -> None:
 
 
 class CorpseRegistry:
-    def __init__(self, data_dir: str):
+    def __init__(self, data_dir: str, store=None):
         self.path = os.path.join(data_dir, "corpses.json")
+        self._store = store
 
     def _load(self) -> dict:
+        if self._store is not None:
+            try:
+                data = self._store.get_json("kv_store", "corpses")
+                if data is None and os.path.exists(self.path):
+                    with open(self.path, "r", encoding="utf-8") as handle:
+                        loaded = load(handle)
+                    if isinstance(loaded, dict):
+                        if not isinstance(loaded.get("corpses"), list):
+                            loaded["corpses"] = []
+                        self._store.put_json("kv_store", "corpses", loaded, updated_at=os.path.getmtime(self.path))
+                        data = loaded
+            except (OSError, ValueError, TypeError, sqlite3.Error):
+                return {"corpses": []}
+            if not isinstance(data, dict):
+                return {"corpses": []}
+            if not isinstance(data.get("corpses"), list):
+                data["corpses"] = []
+            return data
         if not os.path.exists(self.path):
             return {"corpses": []}
         try:
@@ -55,6 +75,9 @@ class CorpseRegistry:
             return {"corpses": []}
 
     def _save(self, data: dict) -> None:
+        if self._store is not None:
+            self._store.put_json("kv_store", "corpses", data)
+            return
         _atomic_write_json(self.path, data)
 
     def create_from_run(self, run: GameRun, cause: str) -> Optional[dict]:

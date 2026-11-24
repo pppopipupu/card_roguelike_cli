@@ -196,6 +196,13 @@ class CLIRouter:
         ]
 
     def handle_command(self, user_id: str, parts: list[str], project: bool = True) -> Generator[str, None, None]:
+        if hasattr(self.save_manager, "batch"):
+            with self.save_manager.batch():
+                yield from self._handle_command_impl(user_id, parts, project=project)
+        else:
+            yield from self._handle_command_impl(user_id, parts, project=project)
+
+    def _handle_command_impl(self, user_id: str, parts: list[str], project: bool = True) -> Generator[str, None, None]:
         command = " ".join(str(part) for part in parts).strip()
         set_active_service(self.world_social.presence)
         from ..battle.pvp_service import PvpService

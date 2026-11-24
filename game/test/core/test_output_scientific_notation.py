@@ -47,9 +47,7 @@ class TestOutputScientificNotation(unittest.TestCase):
         stats = self.plugin.save_manager.load_stats(uid)
         stats.total_damage = 10 ** 400
         self.assertTrue(self.plugin.save_manager.save_stats(uid, stats))
-        from game.json_codec import load
-        with open(self.plugin.save_manager.get_stats_path(uid), "r", encoding="utf-8") as handle:
-            raw = load(handle)
+        raw = self.plugin.save_manager.store.get_json("user_stats", uid)
         if not isinstance(raw, dict):
             self.fail("stats payload is not an object")
         self.assertIsInstance(raw["total_damage"], str)

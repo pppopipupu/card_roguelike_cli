@@ -12,15 +12,11 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
         self.user_id = "test_user_gems_unlocks"
         self.save_manager = SaveManager()
         self.save_manager.delete_save(self.user_id)
-        stats_path = self.save_manager.get_stats_path(self.user_id)
-        if os.path.exists(stats_path):
-            os.remove(stats_path)
+        self.save_manager.delete_stats(self.user_id)
 
     def tearDown(self):
         self.save_manager.delete_save(self.user_id)
-        stats_path = self.save_manager.get_stats_path(self.user_id)
-        if os.path.exists(stats_path):
-            os.remove(stats_path)
+        self.save_manager.delete_stats(self.user_id)
 
     def test_gem_burn_gold_and_sturdy_exhaust_in_dummy_battle(self):
         plugin = MyPlugin(DummyContext())
@@ -133,9 +129,7 @@ class TestRogueGemsAndUnlocks(unittest.TestCase):
         asyncio.run(run_checkin_unlock())
 
         self.save_manager.delete_save(self.user_id)
-        stats_path = self.save_manager.get_stats_path(self.user_id)
-        if os.path.exists(stats_path):
-            os.remove(stats_path)
+        self.save_manager.delete_stats(self.user_id)
 
         async def run_gold_unlock():
             stats = self.save_manager.load_stats(self.user_id)

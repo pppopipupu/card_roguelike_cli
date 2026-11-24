@@ -9,10 +9,33 @@ from ..data.world.pvp_config import PVP_INVITE_EXPIRE_SECONDS
 
 
 class PvpRegistry:
-    def __init__(self, data_dir: str):
+    def __init__(self, data_dir: str, store=None):
         self.path = os.path.join(data_dir, "pvp_sessions.json")
+        self._store = store
 
     def _load(self) -> Dict[str, dict]:
+        if self._store is not None:
+            data = self._store.get_json("kv_store", "pvp_registry")
+            if data is None and os.path.exists(self.path):
+                try:
+                    with open(self.path, "r", encoding="utf-8") as f:
+                        loaded = load(f)
+                    if isinstance(loaded, dict):
+                        if not isinstance(loaded.get("invites"), dict):
+                            loaded["invites"] = {}
+                        if not isinstance(loaded.get("matches"), dict):
+                            loaded["matches"] = {}
+                        self._store.put_json("kv_store", "pvp_registry", loaded, updated_at=os.path.getmtime(self.path))
+                        data = loaded
+                except Exception:
+                    return {"invites": {}, "matches": {}}
+            if not isinstance(data, dict):
+                return {"invites": {}, "matches": {}}
+            if not isinstance(data.get("invites"), dict):
+                data["invites"] = {}
+            if not isinstance(data.get("matches"), dict):
+                data["matches"] = {}
+            return data
         if not os.path.exists(self.path):
             return {"invites": {}, "matches": {}}
         try:
@@ -29,6 +52,9 @@ class PvpRegistry:
             return {"invites": {}, "matches": {}}
 
     def _save(self, data: Dict[str, dict]) -> None:
+        if self._store is not None:
+            self._store.put_json("kv_store", "pvp_registry", data)
+            return
         _atomic_write_json(self.path, data)
 
     def get_invite(self, target_uid: str, now: Optional[float] = None) -> Optional[dict]:

@@ -1,6 +1,7 @@
 import os
 import sys
 import io
+import tempfile
 import unittest
 import asyncio
 
@@ -13,6 +14,7 @@ if sys.platform.startswith("win"):
             except Exception:
                 pass
 from game.models.manager import SaveManager
+from game.models.sqlite_store import close_stores_under
 from game.models.state import GameRun, PlayerState, EnemyState, MinionState, BuffState, FloorMapState
 from game.core.battle.engine import BattleEngine
 from game.core.world.map_engine import MapEngine
@@ -22,6 +24,16 @@ from game.core.cli.router import CLIRouter
 from game.models.state import UserStats
 from game.engine import GameEngine
 from game.core.api.headless_server import HeadlessGameServer
+
+if not getattr(tempfile.TemporaryDirectory.cleanup, "_rogue_sqlite_patched", False):
+    _orig_tempdir_cleanup = tempfile.TemporaryDirectory.cleanup
+
+    def _rogue_tempdir_cleanup(self):
+        close_stores_under(getattr(self, "name", ""))
+        return _orig_tempdir_cleanup(self)
+
+    setattr(_rogue_tempdir_cleanup, "_rogue_sqlite_patched", True)
+    tempfile.TemporaryDirectory.cleanup = _rogue_tempdir_cleanup
 
 
 class DummySaveManagerBase(SaveManager):
@@ -38,6 +50,9 @@ class CorePlugin:
         self.save_manager = self.server.save_manager
         self.engine = self.server.engine
         self.cli_router = self.server.cli_router
+
+    def close(self) -> None:
+        self.server.close()
 
     def _prefixes(self):
         value = self.config.get("shortcut_prefix", [".rogue"])

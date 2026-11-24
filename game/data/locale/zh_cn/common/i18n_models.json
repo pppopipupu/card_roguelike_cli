@@ -2,10 +2,7 @@
   "manager": {
     "read_stats_failed": "读取玩家统计失败 {user_id}: {error}",
     "save_stats_failed": "保存玩家统计失败 {user_id}: {error}",
-    "read_duel_registry_failed": "读取决斗登记表失败: {error}",
-    "save_duel_registry_failed": "保存决斗登记表失败: {error}",
-    "read_duel_decks_failed": "读取决斗卡组失败 {user_id}: {error}",
-    "save_duel_decks_failed": "保存决斗卡组失败 {user_id}: {error}",
+
     "read_save_failed": "读取个人存档失败 {user_id}: {error}",
     "save_save_failed": "保存个人存档失败 {user_id}: {error}",
     "delete_save_failed": "删除个人存档失败 {user_id}: {error}",
@@ -15,9 +12,7 @@
     "read_lobbies_failed": "读取大厅列表失败: {error}",
     "save_lobbies_failed": "保存大厅列表失败: {error}",
     "read_profile_failed": "读取玩家档案失败 {user_id}: {error}",
-    "read_duel_save_failed": "读取决斗存档失败 {user_id}: {error}",
-    "save_duel_save_failed": "保存决斗存档失败 {user_id}: {error}",
-    "delete_duel_save_failed": "删除决斗存档失败 {user_id}: {error}",
+
     "read_admin_config_failed": "读取管理配置失败: {error}",
     "save_admin_config_failed": "保存管理配置失败: {error}",
     "settle_no_progress": "本局结算：未找到有效的角色进度，未获得 GP。",

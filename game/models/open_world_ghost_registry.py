@@ -8,10 +8,23 @@ from .corpse_registry import _atomic_write_json
 
 
 class OpenWorldGhostRegistry:
-    def __init__(self, data_dir: str):
+    def __init__(self, data_dir: str, store=None):
         self.path = os.path.join(data_dir, "open_world_ghosts.json")
+        self._store = store
 
     def _load(self) -> Dict[str, dict]:
+        if self._store is not None:
+            data = self._store.get_json("kv_store", "open_world_ghosts")
+            if data is None and os.path.exists(self.path):
+                try:
+                    with open(self.path, "r", encoding="utf-8") as f:
+                        loaded = load(f)
+                    if isinstance(loaded, dict):
+                        self._store.put_json("kv_store", "open_world_ghosts", loaded, updated_at=os.path.getmtime(self.path))
+                        data = loaded
+                except Exception:
+                    return {}
+            return data if isinstance(data, dict) else {}
         if not os.path.exists(self.path):
             return {}
         try:
@@ -22,6 +35,9 @@ class OpenWorldGhostRegistry:
             return {}
 
     def _save(self, data: Dict[str, dict]) -> None:
+        if self._store is not None:
+            self._store.put_json("kv_store", "open_world_ghosts", data)
+            return
         _atomic_write_json(self.path, data)
 
     def list_at(self, world: str, coord: str) -> List[dict]:
