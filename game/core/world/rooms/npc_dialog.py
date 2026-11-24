@@ -59,6 +59,8 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
     if resolved is not None:
         _, provider = resolved
         node_data = provider.open_dialog(save_manager, run, room, coord, nid)
+    if isinstance(node_data, dict) and node_data.get("_error"):
+        return str(node_data["_error"])
     if node_data is None:
         node_data = {"npc_id": nid, "dialog_state": "start", "coord": coord}
     SessionContextScoper.create_session(run, coord, "room_dialog", [run.user_id], node_data=node_data)
@@ -98,11 +100,31 @@ def render_room_dialog(run, save_manager=None) -> str:
     return render_legacy_dialog_screen(run, name, text, opts)
 
 
-def close_room_dialog(save_manager, run) -> str:
-    nid = run.node_data.get("npc_id", "")
-    cfg = ROOM_NPCS.get(nid, {})
-    name = get_locale_text(cfg["name_key"]) if cfg.get("name_key") else nid
+def close_room_dialog(save_manager, run, mark_solo_talked: bool = True) -> str:
+    nd = run.node_data or {}
+    nid = str(nd.get("npc_id", "") or "")
+    if nid.startswith("cafe_guest:"):
+        from ....data.world.cafe_data import NPC_SHOW_NAMES
+        guest_key = nid.split(":", 1)[1]
+        name = str(NPC_SHOW_NAMES.get(guest_key, guest_key))
+    else:
+        cfg = ROOM_NPCS.get(nid, {})
+        name = get_locale_text(cfg["name_key"]) if cfg.get("name_key") else nid
     fm = getattr(run, "floor_map", None)
+    if nd.get("provider") == "cafe" and fm is not None:
+        coord = str(nd.get("coord") or fm.player_coords.get(run.user_id, ""))
+        room = fm.rooms.get(coord)
+        cafe_npc = str(nd.get("cafe_npc") or "")
+        if room is not None and cafe_npc:
+            state = room.shared_payload.get("cafe_state")
+            if isinstance(state, dict):
+                active_by_npc = state.get("active_by_npc")
+                if isinstance(active_by_npc, dict) and active_by_npc.get(cafe_npc) == run.user_id:
+                    active_by_npc.pop(cafe_npc, None)
+                if mark_solo_talked and run.player_count() <= 1 and cafe_npc != "Barista_Bruno":
+                    talked_npcs = state.setdefault("talked_npcs", [])
+                    if cafe_npc not in talked_npcs:
+                        talked_npcs.append(cafe_npc)
     if fm is not None:
         sid = fm.player_session_map.get(run.user_id)
         if sid:
@@ -295,6 +317,14 @@ def attack_in_room(map_engine, run, query: str) -> str:
         return get_locale_text("i18n_room_interact.combat.attack_not_found", target=q)
     if is_hostile_npc(nid):
         return trigger_hostile_npc_battle(map_engine.grid_map_service, run, run.user_id, coord, room, nid)
+    if nid == "cafe_barista":
+        if room.shared_payload.get("barista_defeated"):
+            return get_locale_text("i18n_room_interact.combat.attack_already_defeated", name=get_locale_text(ROOM_NPCS["cafe_barista"]["name_key"]))
+        return start_npc_combat(map_engine, run, "cafe_barista", npc_source="cafe_barista", non_lethal=False)
+    if nid.startswith("cafe_guest:"):
+        from ....data.world.cafe_data import NPC_SHOW_NAMES
+        guest_key = nid.split(":", 1)[1]
+        return start_npc_combat(map_engine, run, nid, npc_source="cafe_guest", guest_name=str(NPC_SHOW_NAMES.get(guest_key, guest_key)), non_lethal=False)
     if ROOM_NPCS.get(nid, {}).get("non_hostile"):
         npc_cfg = ROOM_NPCS[nid]
         nname = get_locale_text(npc_cfg["name_key"]) if npc_cfg.get("name_key") else nid

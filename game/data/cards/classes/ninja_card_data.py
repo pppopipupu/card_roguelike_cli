@@ -16,7 +16,7 @@ NINJA_UPGRADE_CONFIG: dict[str, dict] = {'ninja_strike': {'base_dmg': 9, 'desc':
  'ninja_comet_corrupted_star': {'desc': '若当前蕾克拉大于 2，消耗 1 点蕾克拉并获得 1A；否则获得 3 点蕾克拉。'},
  'ninja_darkness_snake_hand': {'desc': '获得 2 点蕾克拉，抽 5 张牌，随后将当前手牌中所有卡牌的本回合主动作消耗随机重置为 0~3A。消耗。'},
  'ninja_flame_thrower': {'base_dmg': 9, 'desc': '对目标造成 9 点火焰伤害并施加 1 层虚弱。忍术 1：再对目标施加 6 层中毒。'},
- 'ninja_frog_frog_go': {'desc': '随机消耗 1 张手牌。忍术 1：获得 2A。消耗。'},
+ 'ninja_frog_frog_go': {'desc': '选择消耗 1 张手牌。忍术 1：获得 2A。消耗。'},
  'ninja_gamma_blade': {'base_dmg': 18, 'desc': '科学忍具（每点蕾克拉 -1A，打出消耗 1 点蕾克拉）。对所有敌人造成 18 点挥砍伤害，并施加 2 层虚弱与 2 层易伤。'},
  'ninja_god_and_buddha': {'exhaust': False, 'desc': '将 1 张随机忍者专属食物加入手牌。消耗。', 'cost_a': 0},
  'ninja_gonna_eat_shit': {'desc': '自身受到 3 点无视护盾的真实伤害；立即获得 3 点蕾克拉与 1A，下回合开始时再获得 3 点蕾克拉与 1A。消耗。'},

@@ -30,13 +30,53 @@ class CafeEngine(CafeDialogMixin):
         return ""
 
     def _view_cafe(self, run: GameRun) -> dict:
+        if run.node_type == "room_dialog":
+            return run.node_data
         return run.node_data.setdefault("cafe_data", {})
 
     def _shared_cafe(self, run: GameRun) -> dict:
+        if run.node_type == "room_dialog":
+            from ..rooms.interact import get_current_room
+            room, _ = get_current_room(run)
+            if room is not None:
+                state = room.shared_payload.get("cafe_state")
+                if isinstance(state, dict):
+                    return state
         shared = run.node_data.get("coop_cafe")
         if isinstance(shared, dict):
             return shared
         return self._view_cafe(run)
+
+    def ensure_cafe_room(self, run: GameRun, room, player_count: int | None = None) -> dict:
+        state = room.shared_payload.get("cafe_state")
+        if not isinstance(state, dict):
+            if player_count is None:
+                player_count = len(run.all_human_uids()) if hasattr(run, "all_human_uids") else run.player_count()
+            state = self.build_cafe_state(run, player_count=player_count)
+            defeated_guests = set(room.shared_payload.get("cafe_defeated_guests") or [])
+            if defeated_guests:
+                state["npcs"] = [n for n in state["npcs"] if n not in defeated_guests]
+            state["talked_by"] = {}
+            state["active_by_npc"] = {}
+            room.shared_payload["cafe_state"] = state
+            if state.get("npcs"):
+                from ..encounter_lore import record_encounter_for_run
+                record_encounter_for_run(self.save_manager, run, *state["npcs"])
+        defeated_npcs = set(room.defeated_npcs or [])
+        defeated_guests = set(room.shared_payload.get("cafe_defeated_guests") or [])
+        desired: list[str] = []
+        if not room.shared_payload.get("barista_defeated") and "cafe_barista" not in defeated_npcs:
+            desired.append("cafe_barista")
+        for g in state.get("npcs") or []:
+            gid = f"cafe_guest:{g}"
+            if g not in defeated_guests and gid not in defeated_npcs:
+                desired.append(gid)
+        existing = list(room.npcs or [])
+        for nid in desired:
+            if nid not in existing:
+                existing.append(nid)
+        room.npcs = existing
+        return state
     def _release_npc_lock(self, shared_cafe: dict, uid: str, npc: Optional[str] = None):
         active_by_npc = shared_cafe.get("active_by_npc")
         if not isinstance(active_by_npc, dict):
@@ -158,6 +198,9 @@ class CafeEngine(CafeDialogMixin):
             self.save_manager.save_save(run.user_id, run)
 
     def render_cafe(self, run: GameRun) -> str:
+        if run.node_type == "room_dialog":
+            from ..rooms.npc_dialog import render_room_dialog
+            return render_room_dialog(run, save_manager=self.save_manager)
         if run.node_data.get("coop_done"):
             from ....renderer.party import render_waiting
             return render_waiting(run)
@@ -337,15 +380,15 @@ class CafeEngine(CafeDialogMixin):
         shared_cafe = self._shared_cafe(run)
         active_npc = view_cafe.get("active_npc")
         if active_npc is not None:
-            if run.player_count() > 1:
-                self._release_npc_lock(shared_cafe, run.user_id, active_npc)
-            else:
-                self._release_npc_lock(shared_cafe, run.user_id, active_npc)
+            self._release_npc_lock(shared_cafe, run.user_id, active_npc)
+            if run.player_count() <= 1 and active_npc != "Barista_Bruno":
                 talked_npcs = shared_cafe.setdefault("talked_npcs", [])
                 if active_npc not in talked_npcs:
                     talked_npcs.append(active_npc)
             view_cafe["active_npc"] = None
             view_cafe["dialog_state"] = None
+            if run.node_type == "room_dialog":
+                return get_locale_text("i18n_map_cafe.cafe_msg_left_npc")
             self.save_manager.save_save(run.user_id, run)
             return get_locale_text("i18n_map_cafe.cafe_msg_left_npc") + "\n\n" + self.render_cafe(run)
         return get_locale_text("i18n_map_cafe.cafe_err_already_lobby")

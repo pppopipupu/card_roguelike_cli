@@ -487,34 +487,11 @@ class GridMapService:
             return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
 
         if room.room_type == "cafe":
-            broken_msg = break_map_invisibility(run, reason="interact", player=p)
-            existing_sid = self._find_session_at(fm, coord, "cafe")
-            if existing_sid:
-                sess = fm.active_sessions[existing_sid]
-                if uid not in sess.participants:
-                    sess.participants.append(uid)
-                    if uid not in sess.roster:
-                        sess.roster.append(uid)
-                    views = sess.node_data.setdefault("player_views", {})
-                    shared_cafe = sess.node_data.get("coop_cafe", {})
-                    views[uid] = {
-                        "node_type": "cafe",
-                        "data": {
-                            "cafe_data": {"npcs": list(shared_cafe.get("npcs", [])), "active_npc": None, "dialog_state": None},
-                            "coop_done": p.downed,
-                        },
-                    }
-                    sess.node_data.setdefault("stage_ready", {})[uid] = p.downed
-                fm.player_session_map[uid] = existing_sid
-                SessionContextScoper.bind_to_run(run, uid)
-                self.save_manager.save_save(uid, run)
-                rendered = GameRenderer.render_game(run)
-                return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
-            SessionContextScoper.create_session(run, coord, "cafe", [uid])
             from .cafe.engine import CafeEngine
-            CafeEngine(self.save_manager, self.map_engine).init_cafe(run, persist=True, player_count=len(run.all_human_uids()))
-            rendered = GameRenderer.render_game(run)
-            return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
+            CafeEngine(self.save_manager, self.map_engine).ensure_cafe_room(run, room)
+            room.cleared = True
+            self.save_manager.save_save(uid, run)
+            return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
 
         broken_msg = break_map_invisibility(run, reason="interact", player=p)
         if room.room_type == "event":

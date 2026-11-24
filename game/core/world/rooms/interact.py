@@ -71,10 +71,25 @@ def resolve_npc_in_room(room, query: str, fm=None, include_hostile: bool = True)
     if not q:
         return alive[0] if len(alive) == 1 else None
     ql = q.lower()
+    from ....data.world.cafe_data import NPC_ALIASES, NPC_SHOW_NAMES
     entries = []
     for nid in alive:
         if nid.lower() == ql:
             return nid
+        if nid.startswith("cafe_guest:"):
+            guest_key = nid.split(":", 1)[1]
+            show_name = str(NPC_SHOW_NAMES.get(guest_key, guest_key))
+            if guest_key.lower() == ql or show_name.lower() == ql or ql in show_name.lower() or ql in guest_key.lower():
+                return nid
+            mapped = NPC_ALIASES.get(ql)
+            if mapped == guest_key:
+                return nid
+            entries.append((nid, show_name))
+            entries.append((nid, guest_key))
+            for alias, target_guest in NPC_ALIASES.items():
+                if target_guest == guest_key:
+                    entries.append((nid, alias))
+            continue
         cfg = ROOM_NPCS.get(nid, {})
         name = get_locale_text(cfg["name_key"]) if cfg.get("name_key") else nid
         if name.lower() == ql or ql in name.lower():

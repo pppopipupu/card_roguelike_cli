@@ -61,5 +61,8 @@
   "mobius_exhaust_replay": "🐍 【莫比乌回环蛇】从消耗堆苏醒，自动重放了【{name}】！",
   "darkness_snake_scramble": "🐍 【暗秽蛇手】打乱了当前所有手牌的本回合主动作消耗（0~3A）！",
   "scare_form_cast": "😱 【受惊形态】触发：免费随机释放了忍术【{name}】！",
-  "blade_defence_lex": "🛡️ 【拿刀防卫】完美格挡了攻击，获得 1 点蕾克拉！"
+  "blade_defence_lex": "🛡️ 【拿刀防卫】完美格挡了攻击，获得 1 点蕾克拉！",
+  "frog_frog_go_prompt": "🐸 【蛤蟆蛤蟆go】请选择 1 张要消耗的手牌（输入序号，或输入 取消 放弃打出）：",
+  "frog_frog_go_required": "❌ 请选择 1 张要消耗的手牌。",
+  "frog_frog_go_result": "🐸 你施展了【{name}】，消耗了手牌【{exhausted}】！"
 }

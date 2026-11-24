@@ -424,6 +424,33 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         after = load_run(self.plugin, uids[1]).players[uids[1]].actions
         self.assertEqual(after, before + 1)
 
+    def test_coop_cafe_room_allows_immediate_ally_summon(self):
+        random.seed(7)
+        uids = ["cafe_sum_a", "cafe_sum_b"]
+        run = self._start_coop_direct(uids)
+        fm = floor_of(run)
+        cafe_coord = next(c for c, r in fm.rooms.items() if r.room_type == "cafe")
+        fm.rooms[cafe_coord].explored = True
+        if cafe_coord not in fm.revealed_coords:
+            fm.revealed_coords.append(cafe_coord)
+        self.plugin.save_manager.save_save(uids[0], run)
+
+        tp_res = self.run_cmd(f"tp {cafe_coord}", uids[1])
+        self.assertIn("布鲁诺", tp_res)
+        b_in_cafe = load_run(self.plugin, uids[1])
+        self.assertEqual(b_in_cafe.node_type, "grid_map")
+
+        _, a_battle = move_to_room(self.plugin, uids[0], ("battle",), rally=False)
+        self.assertEqual(a_battle.node_type, "ally_summon_select")
+        self.run_cmd("c 2", uids[0])
+
+        b_confirm = load_run(self.plugin, uids[1])
+        self.assertEqual(b_confirm.node_type, "ally_summon_confirm")
+        accept_res = self.run_cmd("c 1", uids[1])
+        self.assertIn("加入", accept_res)
+        b_joined = load_run(self.plugin, uids[1])
+        self.assertEqual(b_joined.node_type, "battle")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -3,7 +3,7 @@ from ...models.state import Card
 from ...data.cards.card_data import CARD_CONFIG
 from ...data.cards.card_upgrade_data import CARD_UPGRADE_CONFIG
 from ...data.text.locale_data import get_locale_text
-from ...core.battle.selection import SelectionStepSpec, pop_selected_pile_cards
+from ...core.battle.selection import SelectionResult
 from .registry import register_card
 
 @register_card("tactical_focus")
@@ -250,18 +250,17 @@ class MoyaiTrioCard(Card):
         shield = getattr(self, "shield_amount", 10)
         engine._gain_shield(run, "p0", shield)
         p = run.player
-        selected = selections.get("discard_card", [])
-        if not selected or not p.hand:
-            return get_locale_text("i18n_cards_neutral.neutral.cards.moyai_trio.empty", name=self.name, shield=shield)
-        popped = pop_selected_pile_cards(p.hand, selected)
+        result = SelectionResult.from_raw(selections)
+        popped = result.pop_cards(p.hand, "discard_card") if p.hand else []
         if not popped:
             return get_locale_text("i18n_cards_neutral.neutral.cards.moyai_trio.empty", name=self.name, shield=shield)
         effect_msg = engine._discard_card(run, popped[0])
+        labels = result.labels("discard_card")
         return get_locale_text(
             "i18n_cards_neutral.neutral.cards.moyai_trio.result",
             name=self.name,
             shield=shield,
-            discarded=selected[0]["label"],
+            discarded=labels[0] if labels else popped[0].id,
             effect=effect_msg or "",
         )
 

@@ -64,10 +64,9 @@ class TestGridMapAndBladesong(unittest.TestCase):
         tp_pinyin = self.run_cmd("tp kfg", "gm_nav")
         after_tp = load_run(self.plugin, "gm_nav")
         self.assertEqual(floor_of(after_tp).player_coords["gm_nav"], cafe_coord)
-        self.assertEqual(after_tp.node_type, "cafe")
+        self.assertEqual(after_tp.node_type, "grid_map")
         self.assertIn("咖啡", tp_pinyin)
 
-        self.run_cmd("离开", "gm_nav")
         back_to_spawn = self.run_cmd(f"tp {spawn_coord}", "gm_nav")
         self.assertIn(spawn_coord, back_to_spawn)
         after_spawn = load_run(self.plugin, "gm_nav")

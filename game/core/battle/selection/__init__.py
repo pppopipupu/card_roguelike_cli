@@ -9,6 +9,7 @@ from .components import (
     discover_from_pool_spec,
     discard_hand_spec,
     pile_card_step,
+    select_pile_cards_spec,
     target_step,
 )
 from .pile_ops import pop_selected_pile_cards
@@ -34,6 +35,7 @@ __all__ = [
     "discover_from_pool_spec",
     "discard_hand_spec",
     "pile_card_step",
+    "select_pile_cards_spec",
     "handle_selection_input",
     "pop_selected_pile_cards",
     "resolve_session_for_mercenary",

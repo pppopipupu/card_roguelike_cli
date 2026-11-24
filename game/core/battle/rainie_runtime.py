@@ -84,13 +84,6 @@ def reset_lyric_progress(run: GameRun, player: PlayerState) -> None:
         run.node_data.pop(run.turn_key(key, player), None)
 
 
-def player_ref(run: GameRun, uid: str) -> str:
-    if not uid or uid not in run.players:
-        return "p0"
-    from .party_battle import party_target_ref
-    return party_target_ref(run, uid)
-
-
 def player_uid(run: GameRun, player: Optional[PlayerState] = None) -> str:
     target = player if player is not None else run.player
     return run.uid_for(target) if target is not None else run.user_id
@@ -266,11 +259,6 @@ def steal_regular_debuffs(engine, run: GameRun, source: PlayerState, enemy: Enem
         add_buff(engine, source, buff.id, buff.stacks)
         stolen += max(1, int(buff.stacks))
     return stolen
-
-
-def grant_next_card_free(run: GameRun, player: PlayerState) -> None:
-    key = run.turn_key("rainie_next_card_free", player)
-    run.node_data[key] = True
 
 
 def apply_legacy_at_battle_start(engine, run: GameRun, player: PlayerState) -> str:

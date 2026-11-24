@@ -271,6 +271,8 @@ def _consume_tokens_into_session(session: dict, tokens: list[str]) -> tuple[bool
                 _selected_uids_for_step(step),
             )
             if matched is None:
+                if _try_auto_fill_step(step) and _is_step_complete(step):
+                    break
                 session["current_step"] = step_idx
                 return False, token
             chosen = dict(matched)

@@ -395,3 +395,66 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
 
         res_back_idle = await run_command(self.plugin, "back", sender_id=self.uid)
         self.assertIn("没有可退回的交互选择", res_back_idle)
+
+    async def test_ninja_frog_frog_go_select_exhaust_flow(self):
+        p1 = PlayerState(
+            name="忍者",
+            hp=60,
+            max_hp=80,
+            shield=0,
+            gold=0,
+            stage=1,
+            actions=1,
+            bonus_actions=0,
+            lex_kela=2,
+            deck=[CardState(id="ninja_frog_frog_go"), CardState(id="fire_bolt"), CardState(id="warrior_defend")],
+            hand=[CardState(id="ninja_frog_frog_go"), CardState(id="fire_bolt"), CardState(id="warrior_defend")],
+        )
+        run = GameRun(
+            user_id=self.uid,
+            player=p1,
+            enemies=[EnemyState(name="木桩", hp=100, max_hp=100, shield=0, intent_desc="待机")],
+            node_type="battle",
+        )
+        self.sm.save_save(self.uid, run)
+
+        prompt = await run_command(self.plugin, "p 1", sender_id=self.uid)
+        self.assertIn("蛤蟆蛤蟆go", prompt)
+        self.assertIn("火焰弹", prompt)
+        self.assertIn("防御", prompt)
+        mid = load_run(self.plugin, self.uid)
+        self.assertEqual(len(mid.node_data.get("state_stack", [])), 1)
+
+        res = await run_command(self.plugin, "c 2", sender_id=self.uid)
+        self.assertIn("蛤蟆蛤蟆go", res)
+        self.assertIn("防御", res)
+        after = load_run(self.plugin, self.uid)
+        self.assertEqual(len(after.node_data.get("state_stack", [])), 0)
+        self.assertEqual([c.id for c in after.player.hand], ["fire_bolt"])
+        exhaust_ids = [c.id for c in after.player.exhaust_pile]
+        self.assertIn("warrior_defend", exhaust_ids)
+        self.assertIn("ninja_frog_frog_go", exhaust_ids)
+        self.assertEqual(after.player.actions, 2)
+        self.assertEqual(after.player.lex_kela, 1)
+
+        after.player.hand = [CardState(id="ninja_frog_frog_go"), CardState(id="fire_bolt"), CardState(id="warrior_defend")]
+        after.player.exhaust_pile = []
+        after.player.lex_kela = 2
+        self.sm.save_save(self.uid, after)
+        res_inline = await run_command(self.plugin, "p 1 h:fy", sender_id=self.uid)
+        self.assertNotIn("请选择", res_inline)
+        self.assertIn("防御", res_inline)
+        after_inline = load_run(self.plugin, self.uid)
+        self.assertEqual([c.id for c in after_inline.player.hand], ["fire_bolt"])
+        self.assertIn("warrior_defend", [c.id for c in after_inline.player.exhaust_pile])
+
+        after_inline.player.hand = [CardState(id="ninja_frog_frog_go"), CardState(id="fire_bolt")]
+        after_inline.player.exhaust_pile = []
+        after_inline.player.lex_kela = 1
+        self.sm.save_save(self.uid, after_inline)
+        res_auto = await run_command(self.plugin, "p 1", sender_id=self.uid)
+        self.assertNotIn("请选择", res_auto)
+        self.assertIn("火焰弹", res_auto)
+        after_auto = load_run(self.plugin, self.uid)
+        self.assertEqual(after_auto.player.hand, [])
+        self.assertIn("fire_bolt", [c.id for c in after_auto.player.exhaust_pile])

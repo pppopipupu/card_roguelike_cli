@@ -175,7 +175,7 @@ def render_grid_map(run: GameRun) -> str:
 
     cur_room = fm.rooms.get(viewer_coord)
     if cur_room is not None:
-        lines.extend(_render_room_details(fm, cur_room, viewer_coord, p, world_here))
+        lines.extend(_render_room_details(fm, cur_room, viewer_coord, p, world_here, run=run))
         eff_props = get_effective_props(fm, cur_room)
         eff_done = set(get_effective_interacted_props(fm, cur_room))
         if cur_room.room_type == "downstairs":
@@ -317,10 +317,39 @@ def _describe_neighbor(fm, x: int, y: int, viewer_big_room_id: str = "") -> str:
     return get_locale_text("i18n_room_interact.dir.room_open", room_label=label)
 
 
-def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players: list[dict] | None = None) -> list[str]:
+def _format_room_npc_label(nid: str, fm, cur_room, run=None) -> str:
+    from ..data.world.room_interact_data import ROOM_NPCS
+    if nid.startswith("cafe_guest:"):
+        from ..data.world.cafe_data import NPC_SHOW_NAMES
+        guest_key = nid.split(":", 1)[1]
+        show = str(NPC_SHOW_NAMES.get(guest_key, guest_key))
+        shared = (getattr(cur_room, "shared_payload", None) or {}).get("cafe_state")
+        status = ""
+        if isinstance(shared, dict):
+            talked_npcs = shared.get("talked_npcs") or []
+            talked_by = shared.get("talked_by") or {}
+            active_by_npc = shared.get("active_by_npc") or {}
+            players = getattr(run, "players", {}) or {} if run is not None else {}
+            multi = run is not None and run.player_count() > 1
+            if guest_key in talked_npcs:
+                actor_uid = talked_by.get(guest_key)
+                if multi and actor_uid in players:
+                    status = get_locale_text("i18n_map_cafe.cafe_status_talked_by", name=players[actor_uid].name)
+                else:
+                    status = get_locale_text("i18n_map_cafe.cafe_status_talked")
+            elif multi and active_by_npc.get(guest_key) in players:
+                busy_uid = active_by_npc.get(guest_key)
+                if fm is not None:
+                    bsid = fm.player_session_map.get(busy_uid)
+                    if bsid and bsid in fm.active_sessions and fm.active_sessions[bsid].node_type == "room_dialog":
+                        status = get_locale_text("i18n_map_cafe.cafe_status_busy", name=players[busy_uid].name)
+        return f"【{show}{status}】"
+    return f"【{get_locale_text(ROOM_NPCS[nid]['name_key'])}】" if nid in ROOM_NPCS else nid
+
+
+def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players: list[dict] | None = None, run=None) -> list[str]:
     from ..core.inventory.bag_service import format_weight, get_bag_max_weight, get_bag_weight, get_item_display_name
     from ..core.world.rooms.interact import format_room_env_with_props
-    from ..data.world.room_interact_data import ROOM_NPCS
     ensure_room_hostile_npcs(fm, cur_room)
     ensure_treasure_chest_prop(cur_room)
     shared = getattr(cur_room, "shared_payload", None) or {}
@@ -354,7 +383,7 @@ def _render_room_details(fm, cur_room, viewer_coord: str, player, world_players:
 
     alive_npcs = get_effective_alive_npcs(fm, cur_room)
     npc_names = [
-        f"【{get_locale_text(ROOM_NPCS[nid]['name_key'])}】" if nid in ROOM_NPCS else nid
+        _format_room_npc_label(nid, fm, cur_room, run=run)
         for nid in alive_npcs
     ]
     ghost_names: list[str] = []

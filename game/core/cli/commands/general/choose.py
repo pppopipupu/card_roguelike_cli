@@ -21,10 +21,28 @@ class ChooseCommand(CommandHandler, names=["选择", "c"], allowed_states=["menu
         run = router.save_manager.load_save(user_id)
         if run is not None and run.node_type == "cafe":
             val = parts[1] if len(parts) > 1 else parts[0]
+            if run.node_data.get("pending_upgrade"):
+                if val.lower() in ("取消", "离开", "返回", "cancel", "leave", "back", "0", "q"):
+                    run.node_data["pending_upgrade"] = False
+                    router.save_manager.save_save(user_id, run)
+                    yield get_locale_text("i18n_cli_core.msg_cancel_upgrade")
+                elif val.isdigit():
+                    res = router.engine.upgrade_card_in_deck(run, int(val))
+                    router.save_manager.save_save(user_id, run)
+                    yield res
+                else:
+                    yield get_locale_text("i18n_cli_general_b.err_invalid_option_index")
+                return
             if val.isdigit():
                 from ....world.cafe.engine import CafeEngine
                 cafe = CafeEngine(router.save_manager, router.engine.map_engine)
-                yield cafe.choose_option(run, int(val))
+                res = cafe.choose_option(run, int(val))
+                if res == "UPGRADE_FLOW":
+                    run.node_data["pending_upgrade"] = True
+                    router.save_manager.save_save(user_id, run)
+                    yield get_locale_text("i18n_cli_core.msg_upgrade_flow_started")
+                else:
+                    yield res
             else:
                 yield get_locale_text("i18n_cli_general_b.err_invalid_option_index")
             return

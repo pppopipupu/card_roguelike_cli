@@ -185,6 +185,62 @@ def pile_card_step(
     )
 
 
+def select_pile_cards_spec(
+    *,
+    step_id: str,
+    pile: str,
+    min_count: int = 1,
+    max_count: int = 1,
+    required: bool = True,
+    exclude_playing_card: bool = False,
+    filter_fn: Optional[Callable] = None,
+    prompt_key: str = "i18n_cli_core.select_prompt_default",
+    continue_key: str = "",
+    error_key: str = "i18n_cli_core.select_required_default",
+    invalid_index_key: str = "i18n_cli_core.select_invalid_index_default",
+    empty_key: str = "i18n_cli_core.select_empty_default",
+    with_enemy_target: bool = False,
+    enemy_target_step_id: str = "target",
+    enemy_target_allow_simple_auto: bool = False,
+    phase: str = "pre_play",
+    can_cancel: bool = True,
+    cancel_key: str = "i18n_cli_core.select_cancelled",
+    empty_abort_check: bool = False,
+) -> SelectionSpec:
+    steps = []
+    if with_enemy_target:
+        steps.append(
+            target_step(
+                enemy_target_step_id,
+                "enemy",
+                allow_simple_auto=enemy_target_allow_simple_auto,
+            )
+        )
+    steps.append(
+        pile_card_step(
+            step_id,
+            pile,
+            min_count=min_count,
+            max_count=max_count,
+            required=required,
+            exclude_playing_card=exclude_playing_card,
+            filter_fn=filter_fn,
+            prompt_key=prompt_key,
+            continue_key=continue_key,
+            error_key=error_key,
+            invalid_index_key=invalid_index_key,
+            empty_key=empty_key,
+        )
+    )
+    return {
+        "phase": phase,
+        "can_cancel": can_cancel,
+        "cancel_key": cancel_key,
+        "empty_abort_check": empty_abort_check,
+        "steps": steps,
+    }
+
+
 def discover_from_pile_spec(
     *,
     step_id: str,
@@ -198,24 +254,12 @@ def discover_from_pile_spec(
     filter_fn: Optional[Callable] = None,
 ) -> SelectionSpec:
     """从指定牌堆中发现卡牌的规格，淘汰手写四层字典。"""
-    step = pile_card_step(
-        step_id,
-        source,
-        max_count=max_count,
-        filter_fn=filter_fn,
-        prompt_key=prompt_key,
-        continue_key=continue_key,
-        error_key=error_key,
-        invalid_index_key=invalid_index_key,
-        empty_key=empty_key,
+    return select_pile_cards_spec(
+        step_id=step_id, pile=source, max_count=max_count, filter_fn=filter_fn,
+        prompt_key=prompt_key, continue_key=continue_key, error_key=error_key,
+        invalid_index_key=invalid_index_key, empty_key=empty_key,
+        cancel_key="i18n_cli_core.err_cancel_discover", empty_abort_check=True,
     )
-    return {
-        "phase": "pre_play",
-        "can_cancel": True,
-        "cancel_key": "i18n_cli_core.err_cancel_discover",
-        "empty_abort_check": True,
-        "steps": [step],
-    }
 
 
 def discover_from_pool_spec(
@@ -233,26 +277,12 @@ def discover_from_pool_spec(
 ) -> SelectionSpec:
     """构造动态卡池发掘规格，创建会话时固化随机候选快照。"""
     step = SelectionStepSpec(
-        step_id=step_id,
-        kind="generated_card",
-        min_count=pick_count,
-        max_count=pick_count,
-        required=True,
-        auto_single=False,
-        card_pool_fn=card_pool_fn,
-        sample_count=sample_count,
-        pick_count=pick_count,
-        prompt_key=prompt_key,
-        continue_key=continue_key,
-        error_key=error_key,
-        invalid_index_key=invalid_index_key,
+        step_id=step_id, kind="generated_card", min_count=pick_count, max_count=pick_count,
+        required=True, auto_single=True, card_pool_fn=card_pool_fn,
+        sample_count=sample_count, pick_count=pick_count, prompt_key=prompt_key,
+        continue_key=continue_key, error_key=error_key, invalid_index_key=invalid_index_key,
     )
-    return {
-        "phase": "pre_play",
-        "can_cancel": can_cancel,
-        "cancel_key": cancel_key,
-        "steps": [step],
-    }
+    return {"phase": "pre_play", "can_cancel": can_cancel, "cancel_key": cancel_key, "steps": [step]}
 
 
 def discard_hand_spec(
@@ -269,30 +299,17 @@ def discard_hand_spec(
     enemy_target_allow_simple_auto: bool = False,
     phase: str = "pre_play",
     can_cancel: bool = True,
+    filter_fn: Optional[Callable] = None,
 ) -> SelectionSpec:
     """构造弃牌选择规格；需要目标时按“先目标、后弃牌”排序。"""
-    steps = []
-    if with_enemy_target:
-        steps.append(
-            target_step(
-                enemy_target_step_id,
-                "enemy",
-                allow_simple_auto=enemy_target_allow_simple_auto,
-            )
-        )
-    steps.append(
-        pile_card_step(
-            step_id,
-            "hand",
-            min_count=min_count,
-            max_count=max_count,
-            exclude_playing_card=exclude_playing_card,
-            prompt_key=prompt_key,
-            error_key=error_key,
-            invalid_index_key=invalid_index_key,
-        )
+    return select_pile_cards_spec(
+        step_id=step_id, pile="hand", min_count=min_count, max_count=max_count,
+        exclude_playing_card=exclude_playing_card, filter_fn=filter_fn,
+        prompt_key=prompt_key, error_key=error_key, invalid_index_key=invalid_index_key,
+        with_enemy_target=with_enemy_target, enemy_target_step_id=enemy_target_step_id,
+        enemy_target_allow_simple_auto=enemy_target_allow_simple_auto,
+        phase=phase, can_cancel=can_cancel,
     )
-    return {"phase": phase, "can_cancel": can_cancel, "steps": steps}
 
 
 def target_step(

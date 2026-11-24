@@ -27,11 +27,6 @@ def _command_parts(command: str) -> list[str]:
     return parts
 
 
-def is_log_command(command: str) -> bool:
-    parts = _command_parts(command)
-    return bool(parts) and parts[0].lower() in LOG_COMMANDS
-
-
 def parse_log_limit(parts: list[str]) -> tuple[int, str]:
     if len(parts) < 2:
         return LOG_DEFAULT_ENTRIES, ""

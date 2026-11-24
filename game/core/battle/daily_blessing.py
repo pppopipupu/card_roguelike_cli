@@ -10,10 +10,6 @@ def roll_daily_blessing() -> str:
     return random.choice(list(DAILY_BLESSINGS.keys()))
 
 
-def get_daily_blessing(blessing_id: str):
-    return DAILY_BLESSINGS.get(blessing_id)
-
-
 def _pick_random_card(card_filter: str, stats):
     from ...entities.cards.base import ALL_CARDS
     candidates = []

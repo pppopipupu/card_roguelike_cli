@@ -288,25 +288,6 @@ def _score_card_obj(merc: PlayerState, card_obj) -> int:
     return score
 
 
-def _pick_discard_index(merc: PlayerState) -> int:
-    best_idx = 0
-    best_priority: tuple[int, int] = (999, 999)
-    for idx, raw_c in enumerate(merc.hand):
-        state = ensure_card_state(raw_c)
-        card_obj = ALL_CARDS.get(state)
-        prio: tuple[int, int]
-        if card_obj and (getattr(card_obj, "agile", False) or getattr(card_obj, "cryptic", False)):
-            prio = (0, -_score_card_obj(merc, card_obj))
-        elif card_obj is None or getattr(card_obj, "type", "") == "curse" or getattr(card_obj, "unplayable", False):
-            prio = (1, 0)
-        else:
-            prio = (2, _score_card_obj(merc, card_obj))
-        if prio[0] < best_priority[0] or (prio[0] == best_priority[0] and prio[1] < best_priority[1]):
-            best_priority = prio
-            best_idx = idx
-    return best_idx
-
-
 def _pick_playable_card(
     battle_engine,
     run: GameRun,

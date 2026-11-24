@@ -20,14 +20,14 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _atomic_write_json(path: str, data) -> None:
+def _atomic_write_json(path: str, data, indent: int = 2) -> None:
     directory = os.path.dirname(path)
     if directory:
         os.makedirs(directory, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(prefix=".rogue-corpse-", suffix=".tmp", dir=directory or None)
     try:
         with os.fdopen(fd, "wb") as handle:
-            handle.write(dumps(data, indent=True))
+            handle.write(dumps(data, indent=indent > 0))
         os.replace(tmp_path, path)
     except BaseException:
         try:

@@ -1,7 +1,7 @@
 from typing import Optional
 from ...models.state import Card, ensure_card_state
 from ...data.text.locale_data import get_locale_text
-from ...core.battle.selection import SelectionResult, pile_card_step
+from ...core.battle.selection import SelectionResult, select_pile_cards_spec
 from .registry import register_card
 from .neutral_cards_base import (
     TacticalFocusCard,
@@ -177,21 +177,15 @@ class NeutralPlaneShiftCard(Card):
 @register_card("neutral_emperor_eye")
 class NeutralEmperorEyeCard(Card):
     def get_selection_spec(self, run, engine) -> Optional[dict]:
-        return {
-            "phase": "pre_play",
-            "can_cancel": True,
-            "cancel_key": "i18n_cli_core.err_cancel_overload",
-            "steps": [
-                pile_card_step(
-                    "keep_card",
-                    "hand",
-                    exclude_playing_card=True,
-                    prompt_key="i18n_cards_neutral.neutral.cards.emperor_eye.prompt",
-                    error_key="i18n_cli_core.err_overload_required",
-                    invalid_index_key="i18n_cli_core.err_invalid_hand_index",
-                )
-            ],
-        }
+        return select_pile_cards_spec(
+            step_id="keep_card",
+            pile="hand",
+            exclude_playing_card=True,
+            prompt_key="i18n_cards_neutral.neutral.cards.emperor_eye.prompt",
+            error_key="i18n_cli_core.err_overload_required",
+            invalid_index_key="i18n_cli_core.err_invalid_hand_index",
+            cancel_key="i18n_cli_core.err_cancel_overload",
+        )
 
     def execute_with_selections(self, run, selections: dict, engine) -> str:
         p = run.player

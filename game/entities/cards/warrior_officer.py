@@ -2,7 +2,7 @@ from typing import Optional
 from ...models.state import Card
 from ...data.text.locale_data import get_locale_text
 from ...core.inventory.deck_service import DeckService
-from ...core.battle.selection import SelectionStepSpec, pop_selected_pile_cards
+from ...core.battle.selection import SelectionResult
 from .registry import register_card
 
 AURORA_ENTRY_SHIELD = 12
@@ -196,7 +196,7 @@ class CommanderValiantHeraldCard(Card):
             from .base import ALL_CARDS
             chosen = None
             if selected:
-                popped = pop_selected_pile_cards(run.player.draw_pile, selected)
+                popped = SelectionResult.from_raw({"recruit_card": selected}).pop_cards(run.player.draw_pile, "recruit_card")
                 if popped:
                     chosen = popped[0]
             elif selected is None:

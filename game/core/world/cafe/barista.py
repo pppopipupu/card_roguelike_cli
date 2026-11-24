@@ -80,7 +80,7 @@ def execute_barista_dialog_choice(cafe_engine, run, idx: int) -> str:
         before = p.hp
         p.hp = min(p.max_hp, p.hp + cfg["chamomile_heal"])
         old_ex = getattr(p, "exhaustion", 0)
-        new_ex = reduce_exhaustion(p, cfg["chamomile_exhaustion_cure"])
+        new_ex = reduce_exhaustion(p, cfg["chamomile_ex_cure"])
         cure_persistent_debuffs(p, 1)
         cafe_engine.save_manager.save_save(run.user_id, run)
         return get_locale_text("i18n_room_interact.cafe.chamomile_ok", heal=p.hp - before, cure=max(0, old_ex - new_ex))
@@ -100,6 +100,11 @@ def execute_barista_dialog_choice(cafe_engine, run, idx: int) -> str:
         cost = cfg["grinder_gold_cost"]
         if p.gold < cost:
             return get_locale_text("i18n_map_cafe.cafe_err_gold_insufficient", cost=cost)
+        if run.node_type == "room_dialog":
+            run.node_data["upgrade_source"] = "room_dialog"
+            run.node_data["pending_room_dialog_cost"] = cost
+            run.node_data["pending_upgrade"] = True
+            return "UPGRADE_FLOW"
         p.gold -= cost
         run.node_data["upgrade_source"] = "cafe"
         run.node_data["pending_upgrade"] = True
@@ -116,6 +121,8 @@ def execute_barista_dialog_choice(cafe_engine, run, idx: int) -> str:
         return get_locale_text("i18n_room_interact.cafe.rumor_ok", coords="、".join(revealed))
     cafe_data["active_npc"] = None
     cafe_data["dialog_state"] = None
+    if run.node_type == "room_dialog":
+        return get_locale_text("i18n_map_cafe.cafe_msg_left_npc")
     return get_locale_text("i18n_map_cafe.cafe_msg_left_npc") + "\n\n" + cafe_engine.render_cafe(run)
 
 

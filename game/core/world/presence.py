@@ -22,7 +22,7 @@ from ...data.world.world_social_config import (
 )
 from ...data.world.yog_quest_config import YOG_FLOOR_WILDS
 from ...json_codec import load
-from ...models.manager import _atomic_write_json
+from ...models.corpse_registry import _atomic_write_json
 
 _REGISTRY_LOCK = threading.RLock()
 _ACTIVE_SERVICE = None

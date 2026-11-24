@@ -206,7 +206,7 @@ class TestRoomInteractAndShop(unittest.TestCase):
             self.plugin.save_manager.save_save(uid, run)
             self.run_cmd(f"tp {cafe_coord}", uid)
             run = load_run(self.plugin, uid)
-        self.assertEqual(run.node_type, "cafe")
+        self.assertEqual(run.node_type, "grid_map")
         look_out = self.run_cmd("look", uid)
         self.assertIn("布鲁诺", look_out)
         self.assertIn("咖啡机", look_out)
@@ -218,12 +218,27 @@ class TestRoomInteractAndShop(unittest.TestCase):
 
         talk_barista = self.run_cmd("对话 店长", uid)
         self.assertIn("布鲁诺", talk_barista)
+        self.assertEqual(load_run(self.plugin, uid).node_type, "room_dialog")
         mac_out = self.run_cmd("c 3", uid)
         self.assertIn("25 金币", mac_out)
         drink_out = self.run_cmd("c 1", uid)
         self.assertIn("浓缩咖啡", drink_out)
 
-        self.run_cmd("c 7", uid)
+        run_pre = load_run(self.plugin, uid)
+        run_pre.player.gold = 200
+        self.plugin.save_manager.save_save(uid, run_pre)
+        tea_out = self.run_cmd("c 4", uid)
+        self.assertIn("温热花茶", tea_out)
+
+        grinder_out = self.run_cmd("c 5", uid)
+        self.assertNotIn("UPGRADE_FLOW", grinder_out)
+        self.assertTrue(load_run(self.plugin, uid).node_data.get("pending_upgrade"))
+        upg_done = self.run_cmd("c 1", uid)
+        self.assertNotIn("UPGRADE_FLOW", upg_done)
+        after_upg = load_run(self.plugin, uid)
+        self.assertEqual(after_upg.node_type, "grid_map")
+        self.assertLess(after_upg.player.gold, 200)
+
         atk_barista = self.run_cmd("攻击 店长", uid)
         self.assertIn("布鲁诺", atk_barista)
         self.assertEqual(load_run(self.plugin, uid).node_type, "battle")
@@ -305,7 +320,6 @@ class TestRoomInteractAndShop(unittest.TestCase):
         cafe_dialog_fold = self.run_cmd("f", uid)
         self.assertIn("展开提示", cafe_dialog_fold)
         self.run_cmd("f", uid)
-        self.run_cmd("leave", uid)
         self.run_cmd("leave", uid)
 
         self.run_cmd("w", uid)

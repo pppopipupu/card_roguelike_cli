@@ -133,11 +133,46 @@ class NinjaFlameThrowerCard(NinjaCard):
 
 @register_card("ninja_frog_frog_go")
 class NinjaFrogFrogGoCard(NinjaCard):
+    def get_selection_spec(self, run, engine):
+        from ...core.battle.selection import select_pile_cards_spec
+        return select_pile_cards_spec(
+            step_id="exhaust_card",
+            pile="hand",
+            min_count=1,
+            max_count=1,
+            exclude_playing_card=True,
+            prompt_key="i18n_cards_ninja.frog_frog_go_prompt",
+            error_key="i18n_cards_ninja.frog_frog_go_required",
+            invalid_index_key="i18n_cli_core.err_invalid_hand_index",
+        )
+
+    def execute_with_selections(self, run, selections: dict, engine) -> str:
+        from ...core.battle.selection import SelectionResult
+        from ...models.events import CardExhaustEvent
+        p = run.player
+        result = SelectionResult.from_raw(selections)
+        exhausted_label = ""
+        if p.hand:
+            popped = result.pop_cards(p.hand, "exhaust_card")
+            if popped:
+                p.exhaust_pile.append(popped[0])
+                engine.event_bus.dispatch(CardExhaustEvent(run, popped[0], "ninja_frog_frog_go"))
+                labels = result.labels("exhaust_card")
+                exhausted_label = labels[0] if labels else popped[0].id
+        ok, _ = consume_ninjutsu_lex(engine, run, p, 1, self.id)
+        if ok:
+            p.actions += 2 if self.upgraded else 1
+        if exhausted_label:
+            return get_locale_text("i18n_cards_ninja.frog_frog_go_result", name=self.name, exhausted=exhausted_label)
+        return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
+
     def execute(self, run, target, engine) -> str:
+        from ...models.events import CardExhaustEvent
         p = run.player
         if p.hand:
             rem = p.hand.pop(random.randrange(len(p.hand)))
             p.exhaust_pile.append(rem)
+            engine.event_bus.dispatch(CardExhaustEvent(run, rem, "ninja_frog_frog_go"))
         ok, _ = consume_ninjutsu_lex(engine, run, p, 1, self.id)
         if ok:
             p.actions += 2 if self.upgraded else 1

@@ -10,6 +10,3 @@ from ..data.entities.gem_data import GEM_CONFIG
 
 def get_gem_name(gem_id: str) -> str:
     return GEM_CONFIG.get(gem_id, {}).get("name", gem_id)
-
-def get_gem_desc(gem_id: str) -> str:
-    return GEM_CONFIG.get(gem_id, {}).get("desc", "")

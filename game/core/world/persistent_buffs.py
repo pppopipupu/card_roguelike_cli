@@ -142,10 +142,6 @@ def consume_persistent_buff_in_battle(player, buff_id: str, stacks: int = 1) -> 
     return remaining
 
 
-def has_map_invisibility(player) -> bool:
-    return get_persistent_buff_stacks(player, "invisibility") > 0
-
-
 def consume_map_invisibility(player) -> bool:
     if get_persistent_buff(player, "invisibility") is None:
         return False

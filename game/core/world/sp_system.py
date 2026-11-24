@@ -63,12 +63,3 @@ def check_exhaustion_death(save_manager, run, player) -> tuple[bool, str]:
     msg = save_manager.settle_game_and_delete(uid, run, is_victory=False, create_corpse=True)
     return True, msg
 
-
-def format_exhaustion_effects(exhaustion: int) -> str:
-    lvl = max(0, int(exhaustion or 0))
-    if lvl == 0:
-        return get_locale_text("i18n_grid_map.exhaustion_desc_0")
-    parts = []
-    for i in range(1, min(lvl, 5) + 1):
-        parts.append(get_locale_text(f"i18n_grid_map.exhaustion_desc_{i}"))
-    return "；".join(parts)

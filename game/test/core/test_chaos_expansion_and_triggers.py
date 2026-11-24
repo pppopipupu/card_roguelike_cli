@@ -231,8 +231,9 @@ class TestChaosExpansionAndTriggers(unittest.TestCase):
 
         self.run_cmd("d", uid)
         cafe_run = load_run(self.plugin, uid)
-        self.assertEqual(cafe_run.node_type, "cafe")
-        guests_here = list((cafe_run.node_data.get("cafe_data") or {}).get("npcs") or [])
+        self.assertEqual(cafe_run.node_type, "grid_map")
+        cafe_room = cafe_run.floor_map.rooms["B1"] if cafe_run.floor_map else None
+        guests_here = list(((cafe_room.shared_payload.get("cafe_state") if cafe_room else None) or {}).get("npcs") or [])
         self.assertTrue(len(guests_here) > 0)
         target_guest = next((g for g in guests_here if g != "pppopipupu"), guests_here[0])
         atk_guest = self.run_cmd(f"攻击 {target_guest}", uid)

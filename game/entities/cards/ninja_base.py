@@ -33,14 +33,6 @@ def has_ninja_tag(card, tag: str) -> bool:
     return tag in get_card_ninja_tags(card)
 
 
-def effective_science_cost_a(card, player) -> int:
-    cost_a = int(getattr(card, "cost_a", 0) or 0)
-    if cost_a <= 0 or not getattr(card, "science", False):
-        return cost_a
-    lex = max(0, int(getattr(player, "lex_kela", 0) or 0))
-    return max(0, cost_a - lex)
-
-
 def scramble_hand_costs(player, low: int = 0, high: int = 3) -> list[int]:
     results = []
     for st in player.hand:

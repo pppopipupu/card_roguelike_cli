@@ -3,7 +3,7 @@ from ...models.state import Card
 from ...data.cards.card_data import CARD_CONFIG
 from ...data.text.locale_data import get_locale_text
 from ...core.inventory.deck_service import DeckService
-from ...core.battle.selection import SelectionStepSpec, pop_selected_pile_cards
+from ...core.battle.selection import SelectionResult
 from .registry import register_card
 from .warrior_officer import (
     AURORA_ENTRY_SHIELD,
@@ -408,10 +408,9 @@ class DiscoverCard(Card):
     def execute_with_selections(self, run, selections: dict, engine) -> str:
         from .base import ALL_CARDS
         p = run.player
-        selected = selections.get("discover_cards", [])
-        if not selected:
+        popped = SelectionResult.from_raw(selections).pop_cards(p.exhaust_pile, "discover_cards")
+        if not popped:
             return get_locale_text("i18n_cards_warrior_wizard.warrior.discover.no_cards", name=self.name)
-        popped = pop_selected_pile_cards(p.exhaust_pile, selected)
         selected_names = []
         for cid in popped:
             DeckService.add_card_to_hand(p, cid)

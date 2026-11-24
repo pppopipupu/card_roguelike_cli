@@ -3,7 +3,6 @@ import os
 import logging
 import math
 import sqlite3
-import tempfile
 from typing import Optional, Dict, List
 from .state import GameRun, UserStats, PlayerState, ensure_card_state
 from .records import Lobby, PlayerProfile
@@ -14,7 +13,7 @@ from .trade_registry import TradeRegistry
 from .save_codec import SaveCodecMixin
 from .settlement import SettlementMixin
 from .sqlite_store import SqliteStore
-from ..json_codec import dumps, load, loads
+from ..json_codec import load, loads
 from ..core.social.player_names import fallback_player_name, unique_handle
 from ..data.text.locale_data import get_locale_text
 from ..data.progression.starting_deck_config import LOCK_SLOT_LIMIT
@@ -38,22 +37,6 @@ def _parse_total_damage(value) -> int:
     else:
         return 0
     return parsed if parsed > 0 else 0
-
-def _atomic_write_json(path: str, data, indent: int = 2) -> None:
-    directory = os.path.dirname(path)
-    if directory:
-        os.makedirs(directory, exist_ok=True)
-    fd, tmp_path = tempfile.mkstemp(prefix=".rogue-", suffix=".tmp", dir=directory or None)
-    try:
-        with os.fdopen(fd, "wb") as f:
-            f.write(dumps(data, indent=indent > 0))
-        os.replace(tmp_path, path)
-    except BaseException:
-        try:
-            os.remove(tmp_path)
-        except OSError:
-            pass
-        raise
 
 class SaveManager(SaveCodecMixin, SettlementMixin):
     _default_data_dir = None

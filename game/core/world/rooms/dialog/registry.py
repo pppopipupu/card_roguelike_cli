@@ -150,3 +150,115 @@ class TutorialNpcProvider(NpcDialogProvider):
 
         chosen_opt = (tut_dlg.get("options") or [])[idx - 1]
         return handle_tutorial_elder_choice(map_engine, run, chosen_opt)
+
+
+@register_npc_provider("cafe", priority=25)
+class CafeNpcProvider(NpcDialogProvider):
+    def can_handle(self, run, npc_id: str) -> bool:
+        return npc_id == "cafe_barista" or npc_id.startswith("cafe_guest:")
+
+    def open_dialog(self, save_manager, run, room, coord: str, npc_id: str) -> Optional[dict]:
+        from .....data.text.locale_data import get_locale_text
+        from .....data.world.cafe_data import NPC_SHOW_NAMES
+        from ...cafe.engine import CafeEngine
+
+        cafe = CafeEngine(save_manager, None)
+        state = cafe.ensure_cafe_room(run, room)
+        if npc_id == "cafe_barista":
+            if room.shared_payload.get("barista_defeated"):
+                return {
+                    "_error": get_locale_text(
+                        "i18n_room_interact.combat.attack_already_defeated",
+                        name=get_locale_text("i18n_room_interact.npcs.cafe_barista.name"),
+                    )
+                }
+            return {
+                "npc_id": "cafe_barista",
+                "cafe_npc": "Barista_Bruno",
+                "active_npc": "Barista_Bruno",
+                "dialog_state": "start",
+                "coord": coord,
+                "provider": "cafe",
+            }
+        guest_key = npc_id.split(":", 1)[1]
+        active_by_npc = state.setdefault("active_by_npc", {})
+        holder = active_by_npc.get(guest_key)
+        players = getattr(run, "players", {}) or {}
+        fm = getattr(run, "floor_map", None)
+        holder_still_talking = False
+        if holder and holder != run.user_id and holder in players and fm is not None:
+            hsid = fm.player_session_map.get(holder)
+            if hsid and hsid in fm.active_sessions:
+                hsess = fm.active_sessions[hsid]
+                if hsess.node_type == "room_dialog" and (hsess.node_data or {}).get("cafe_npc") == guest_key:
+                    holder_still_talking = True
+        if holder_still_talking:
+            return {
+                "_error": get_locale_text(
+                    "i18n_map_cafe.cafe_err_npc_busy",
+                    npc_name=NPC_SHOW_NAMES.get(guest_key, guest_key),
+                    player_name=players[holder].name,
+                )
+            }
+        if holder and holder != run.user_id and not holder_still_talking:
+            active_by_npc.pop(guest_key, None)
+        if guest_key not in state.get("talked_npcs", []):
+            active_by_npc[guest_key] = run.user_id
+        return {
+            "npc_id": npc_id,
+            "cafe_npc": guest_key,
+            "active_npc": guest_key,
+            "dialog_state": "start",
+            "coord": coord,
+            "provider": "cafe",
+        }
+
+    def render_content(self, run, save_manager=None) -> Optional[Tuple[str, str, List[str]]]:
+        nd = run.node_data or {}
+        cafe_npc = str(nd.get("cafe_npc") or "")
+        if not cafe_npc:
+            return None
+        from .....data.text.locale_data import get_locale_text
+        from .....data.world.cafe_data import NPC_SHOW_NAMES
+        from ...cafe.engine import CafeEngine
+
+        cafe = CafeEngine(save_manager, None)
+        shared_cafe = cafe._shared_cafe(run)
+        talked = False if cafe_npc == "Barista_Bruno" else cafe_npc in shared_cafe.get("talked_npcs", [])
+        text, opts = cafe._get_dialog_content(run, cafe_npc, nd.get("dialog_state"), talked)
+        if cafe_npc == "Barista_Bruno":
+            name = get_locale_text("i18n_room_interact.npcs.cafe_barista.name")
+        else:
+            name = str(NPC_SHOW_NAMES.get(cafe_npc, cafe_npc))
+        return name, text, opts
+
+    def handle_choice(self, map_engine, run, idx: int) -> Optional[str]:
+        nd = run.node_data or {}
+        cafe_npc = str(nd.get("cafe_npc") or "")
+        if not cafe_npc:
+            return None
+        from ...cafe.engine import CafeEngine
+        from ..npc_dialog import close_room_dialog
+
+        cafe = CafeEngine(map_engine.save_manager, map_engine)
+        shared_cafe = cafe._shared_cafe(run)
+        talked_before = cafe_npc in shared_cafe.get("talked_npcs", [])
+        talked_flag = False if cafe_npc == "Barista_Bruno" else talked_before
+        res = cafe._execute_dialog_logic(run, cafe_npc, nd.get("dialog_state"), idx, talked_flag)
+        if res == "UPGRADE_FLOW":
+            map_engine.save_manager.save_save(run.user_id, run)
+            return "UPGRADE_FLOW"
+        if run.node_type == "gem_insert":
+            cafe._release_npc_lock(shared_cafe, run.user_id, cafe_npc)
+            if cafe_npc in shared_cafe.get("talked_npcs", []) and not talked_before:
+                shared_cafe.setdefault("talked_by", {})[cafe_npc] = run.user_id
+            map_engine.save_manager.save_save(run.user_id, run)
+            return res
+        if nd.get("active_npc") is None:
+            cafe._release_npc_lock(shared_cafe, run.user_id, cafe_npc)
+            if cafe_npc in shared_cafe.get("talked_npcs", []) and not talked_before:
+                shared_cafe.setdefault("talked_by", {})[cafe_npc] = run.user_id
+            close_room_dialog(map_engine.save_manager, run, mark_solo_talked=False)
+            return res
+        map_engine.save_manager.save_save(run.user_id, run)
+        return res

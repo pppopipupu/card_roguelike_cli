@@ -34,9 +34,16 @@ class CafeDialogMixin:
 
         def leave_npc(self, run: GameRun) -> str: ...
     def _close_dialog(self, cafe_data: dict, talked_npcs: list, npc: str):
-        talked_npcs.append(npc)
+        if npc not in talked_npcs:
+            talked_npcs.append(npc)
         cafe_data["active_npc"] = None
         cafe_data["dialog_state"] = None
+
+    def _start_cafe_gem_insert(self, run: GameRun, gem_id: str) -> None:
+        from ..explore_engine import ExploreEngine
+        expl = ExploreEngine(self.save_manager, self.map_engine)
+        next_type = "room_dialog" if run.node_type == "room_dialog" else "cafe"
+        expl.start_gem_insert_flow(run, gem_id, next_type, run.node_data.copy())
 
     def _get_dialog_content(self, run: GameRun, npc: str, state: Optional[str], talked: bool) -> Tuple[str, list[str]]:
         p = run.player
@@ -257,10 +264,9 @@ class CafeDialogMixin:
             elif state == "branch_a":
                 if idx == 1:
                     self._close_dialog(cafe_data, talked_npcs, npc)
-                    run.node_data["cafe_data"] = cafe_data
-                    from ..explore_engine import ExploreEngine
-                    expl = ExploreEngine(self.save_manager, self.map_engine)
-                    expl.start_gem_insert_flow(run, "gem_return_5", "cafe", run.node_data.copy())
+                    if run.node_type != "room_dialog":
+                        run.node_data["cafe_data"] = cafe_data
+                    self._start_cafe_gem_insert(run, "gem_return_5")
                     return get_locale_text("i18n_map_cafe.cafe_fisher_gem_reward")
                 elif idx == 2:
                     p.gold = max(0, p.gold - CAFE_PRICES["pppopipupu_disturb_cost"])
@@ -324,10 +330,9 @@ class CafeDialogMixin:
                 p.gold -= CAFE_PRICES["gemcutter_gem_cost"]
                 gem_id = stock[idx - 2]
                 self._close_dialog(cafe_data, talked_npcs, npc)
-                run.node_data["cafe_data"] = cafe_data
-                from ..explore_engine import ExploreEngine
-                expl = ExploreEngine(self.save_manager, self.map_engine)
-                expl.start_gem_insert_flow(run, gem_id, "cafe", run.node_data.copy())
+                if run.node_type != "room_dialog":
+                    run.node_data["cafe_data"] = cafe_data
+                self._start_cafe_gem_insert(run, gem_id)
                 return get_locale_text("i18n_map_cafe.cafe_erin_gem_reward", name=GEM_CONFIG[gem_id]['name'])
             else:
                 return self.leave_npc(run)
@@ -400,13 +405,32 @@ class CafeDialogMixin:
                 return self.leave_npc(run)
 
         elif npc == "咪咪":
+            if state == "branch_a":
+                if idx == 1:
+                    self._close_dialog(cafe_data, talked_npcs, npc)
+                    if random.random() < CAFE_PRICES["cat_gem_chance"]:
+                        self._start_cafe_gem_insert(run, "gem_shield_add_8")
+                        return get_locale_text("i18n_map_cafe.cafe_mimi_gem_reward")
+                    else:
+                        p.hp = max(CAFE_MIN_HP, p.hp - CAFE_PRICES["cat_pet_hp_cost"])
+                        return get_locale_text("i18n_map_cafe.cafe_mimi_bite")
+                elif idx == 2:
+                    from ....models.state import ensure_card_state
+                    curses = [cid for cid in p.deck if ensure_card_state(cid).id.startswith("curse_")]
+                    purged_msg = get_locale_text("i18n_map_cafe.cafe_mimi_purge_none")
+                    if curses:
+                        cur = curses[0]
+                        p.deck.remove(cur)
+                        purged_msg = get_locale_text("i18n_map_cafe.cafe_mimi_purge_curse", name=ALL_CARDS[cur].name)
+                    self._close_dialog(cafe_data, talked_npcs, npc)
+                    return get_locale_text("i18n_map_cafe.cafe_mimi_fish_reward", purged_msg=purged_msg)
+                else:
+                    return self.leave_npc(run)
             if idx == 1:
                 self._close_dialog(cafe_data, talked_npcs, npc)
                 if random.random() < CAFE_PRICES["cat_claw_chance"]:
                     p.hp = max(CAFE_MIN_HP, p.hp - CAFE_PRICES["cat_claw_hp_cost"])
-                    from ..explore_engine import ExploreEngine
-                    expl = ExploreEngine(self.save_manager, self.map_engine)
-                    expl.start_gem_insert_flow(run, "gem_dmg_add_2", "cafe", run.node_data.copy())
+                    self._start_cafe_gem_insert(run, "gem_dmg_add_2")
                     return get_locale_text("i18n_map_cafe.cafe_mimi_claw_reward")
                 else:
                     p.gold += CAFE_PRICES["cat_gold_reward"]
@@ -417,30 +441,6 @@ class CafeDialogMixin:
                 p.gold -= CAFE_PRICES["cat_fish_cost"]
                 cafe_data["dialog_state"] = "branch_a"
                 return get_locale_text("i18n_map_cafe.cafe_mimi_fish_msg") + "\n\n" + self.render_cafe(run)
-            else:
-                return self.leave_npc(run)
-
-        elif npc == "咪咪" and state == "branch_a":
-            if idx == 1:
-                self._close_dialog(cafe_data, talked_npcs, npc)
-                if random.random() < CAFE_PRICES["cat_gem_chance"]:
-                    from ..explore_engine import ExploreEngine
-                    expl = ExploreEngine(self.save_manager, self.map_engine)
-                    expl.start_gem_insert_flow(run, "gem_shield_add_8", "cafe", run.node_data.copy())
-                    return get_locale_text("i18n_map_cafe.cafe_mimi_gem_reward")
-                else:
-                    p.hp = max(CAFE_MIN_HP, p.hp - CAFE_PRICES["cat_pet_hp_cost"])
-                    return get_locale_text("i18n_map_cafe.cafe_mimi_bite")
-            elif idx == 2:
-                from ....models.state import ensure_card_state
-                curses = [cid for cid in p.deck if ensure_card_state(cid).id.startswith("curse_")]
-                purged_msg = get_locale_text("i18n_map_cafe.cafe_mimi_purge_none")
-                if curses:
-                    cur = curses[0]
-                    p.deck.remove(cur)
-                    purged_msg = get_locale_text("i18n_map_cafe.cafe_mimi_purge_curse", name=ALL_CARDS[cur].name)
-                self._close_dialog(cafe_data, talked_npcs, npc)
-                return get_locale_text("i18n_map_cafe.cafe_mimi_fish_reward", purged_msg=purged_msg)
             else:
                 return self.leave_npc(run)
 
@@ -496,20 +496,18 @@ class CafeDialogMixin:
                 legendary_gems = [k for k, v in GEM_CONFIG.items() if v.get("rarity") == "legendary"]
                 gem_id = random.choice(legendary_gems) if legendary_gems else "gem_dmg_mul_3"
                 self._close_dialog(cafe_data, talked_npcs, npc)
-                run.node_data["cafe_data"] = cafe_data
-                from ..explore_engine import ExploreEngine
-                expl = ExploreEngine(self.save_manager, self.map_engine)
-                expl.start_gem_insert_flow(run, gem_id, "cafe", run.node_data.copy())
+                if run.node_type != "room_dialog":
+                    run.node_data["cafe_data"] = cafe_data
+                self._start_cafe_gem_insert(run, gem_id)
                 return get_locale_text("i18n_map_cafe.cafe_slake_gem_reward", name=GEM_CONFIG[gem_id]['name'])
             elif idx == 2:
                 epic_gems = [k for k, v in GEM_CONFIG.items() if v.get("rarity") == "epic"]
                 gem_id = random.choice(epic_gems) if epic_gems else "gem_copy_1"
                 DeckService.add_card_to_deck(p, "curse_mana_backflow")
                 self._close_dialog(cafe_data, talked_npcs, npc)
-                run.node_data["cafe_data"] = cafe_data
-                from ..explore_engine import ExploreEngine
-                expl = ExploreEngine(self.save_manager, self.map_engine)
-                expl.start_gem_insert_flow(run, gem_id, "cafe", run.node_data.copy())
+                if run.node_type != "room_dialog":
+                    run.node_data["cafe_data"] = cafe_data
+                self._start_cafe_gem_insert(run, gem_id)
                 return get_locale_text("i18n_map_cafe.cafe_slake_curse_gem_reward", name=GEM_CONFIG[gem_id]['name'])
             else:
                 return self.leave_npc(run)
