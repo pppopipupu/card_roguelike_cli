@@ -441,3 +441,54 @@ class TestDungeonNpcCrpgDialog(unittest.TestCase):
         self.run_cmd("leave", uid1)
         self.assertEqual(require_run(load_run(self.plugin, uid1)).node_type, "grid_map")
         self.assertEqual(require_run(load_run(self.plugin, uid2)).node_type, "room_dialog")
+
+    def test_queue_map_move_and_npc_dialog_single_final_render_with_logs_above(self):
+        town_uid = "queue_render_town_user"
+        self.run_cmd("town", town_uid)
+        town_out = self.run_cmd("q w; s", town_uid)
+        self.assertEqual(town_out.count("先古主城 ──"), 1)
+        self.assertIn("移动至【训练靶场】(C1)", town_out)
+        self.assertIn("移动至【中心广场】(C2)", town_out)
+        self.assertLess(town_out.index("移动至【中心广场】(C2)"), town_out.index("先古主城 ──"))
+
+        grid_uid = "queue_render_grid_user"
+        self._start_grid(grid_uid)
+        self._place_npc_in_cur_room(grid_uid, "wandering_smith")
+        dlg_root = self.run_cmd("talk 托林", grid_uid)
+        craft_idx = self._find_option_idx(dlg_root, "整座铁砧")
+        dlg_craft = self.run_cmd(f"c {craft_idx}", grid_uid)
+        self.assertEqual(dlg_craft.count("💬 与【流浪铁匠·托林】交谈中"), 1)
+        flame_idx = self._find_option_idx(dlg_craft, "蓝焰")
+        dlg_after = self.run_cmd(f"c {flame_idx}", grid_uid)
+        self.assertEqual(dlg_after.count("💬 与【流浪铁匠·托林】交谈中"), 1)
+        self.assertIn("总算来了个识货的", dlg_after)
+        self.assertLess(dlg_after.index("总算来了个识货的"), dlg_after.index("💬 与【流浪铁匠·托林】交谈中"))
+        self.run_cmd("leave", grid_uid)
+
+        q_dlg_out = self.run_cmd("q talk 托林; 1", grid_uid)
+        self.assertEqual(q_dlg_out.count("----------------------------------------"), 2)
+        self.assertLess(q_dlg_out.index("💬 与【流浪铁匠·托林】交谈中"), q_dlg_out.index("----------------------------------------"))
+        self.run_cmd("leave", grid_uid)
+
+        run = require_run(load_run(self.plugin, grid_uid))
+        fm = floor_of(run)
+        cur = fm.player_coords[grid_uid]
+        col_ch, row_num = cur[0], int(cur[1:])
+        candidates = [
+            ("d", "a", f"{chr(ord(col_ch) + 1)}{row_num}"),
+            ("a", "d", f"{chr(ord(col_ch) - 1)}{row_num}"),
+            ("s", "w", f"{col_ch}{row_num + 1}"),
+            ("w", "s", f"{col_ch}{row_num - 1}"),
+        ]
+        fwd, bwd, adj = next((f, b, c) for f, b, c in candidates if c in fm.rooms)
+        fm.rooms[adj].room_type = "empty"
+        fm.rooms[adj].cleared = True
+        fm.rooms[adj].npcs = []
+        self.plugin.save_manager.save_save(grid_uid, run)
+
+        q_move_out = self.run_cmd(f"q {fwd}; {bwd}", grid_uid)
+        self.assertEqual(q_move_out.count("当前坐标："), 1)
+        self.assertIn(f"移动至 {adj}", q_move_out)
+        self.assertIn(f"移动至 {cur}", q_move_out)
+        self.assertLess(q_move_out.index(f"移动至 {adj}"), q_move_out.index("当前坐标："))
+        self.assertLess(q_move_out.index(f"移动至 {cur}"), q_move_out.index("当前坐标："))

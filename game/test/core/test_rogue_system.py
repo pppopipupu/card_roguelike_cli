@@ -19,7 +19,7 @@ class TestRogueSystem(unittest.TestCase):
             save_manager.save_stats("test_user_warrior", stats)
             
             player = PlayerState(
-                hp=80, max_hp=80, shield=0, gold=100, stage=1,
+                hp=80, max_hp=80, shield=0, gold=100,
                 deck=[CardState(id="strike")], draw_pile=[CardState(id="strike")], discard_pile=[], exhaust_pile=[], graveyard=[]
             )
             run = GameRun("test_user_warrior", "battle", player=player, enemies=[EnemyState(name="测试怪物", hp=20, max_hp=20, shield=0, actions=1, bonus_actions=0, max_actions=1, max_bonus_actions=0)])
@@ -82,7 +82,7 @@ class TestRogueSystem(unittest.TestCase):
             save_manager.save_stats("test_user_discover", stats)
             
             player = PlayerState(
-                hp=80, max_hp=80, shield=0, gold=100, stage=1,
+                hp=80, max_hp=80, shield=0, gold=100,
                 deck=[CardState(id="discover"), CardState(id="dagger_throw"), CardState(id="first_aid")],
                 hand=[CardState(id="discover"), CardState(id="dagger_throw")],
                 draw_pile=[], discard_pile=[],

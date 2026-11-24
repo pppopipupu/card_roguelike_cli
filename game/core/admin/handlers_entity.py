@@ -25,7 +25,6 @@ from .resolvers import (
     resolve_gem,
     resolve_item,
     resolve_relic,
-    resolve_target_user,
 )
 
 PLAYER_INT_ATTR_MAP = {
@@ -44,7 +43,6 @@ PLAYER_INT_ATTR_MAP = {
     "ba": "bonus_actions",
     "lex": "lex_kela",
     "lex_kela": "lex_kela",
-    "stage": "stage",
     "exhaustion": "exhaustion",
     "bag_max_weight": "bag_max_weight",
     "weight": "bag_max_weight",
@@ -312,7 +310,10 @@ class StatAdminCommand(AdminCommandHandler):
                 stats = ctx.save_manager.load_stats(ctx.target_user_id)
                 run = ctx.save_manager.load_save(ctx.target_user_id)
                 if run:
+                    from ...data.world.grid_map_config import format_display_floor
                     p = run.player
+                    fm = getattr(run, "floor_map", None)
+                    floor_label = format_display_floor(fm.floor_index) if fm is not None else "-"
                     return get_locale_text(
                         "i18n_admin.stat_snapshot_run",
                         uid=ctx.target_user_id,
@@ -328,7 +329,7 @@ class StatAdminCommand(AdminCommandHandler):
                         a=p.actions,
                         ba=p.bonus_actions,
                         lex=p.lex_kela,
-                        stage=p.stage,
+                        floor=floor_label,
                         exhaustion=p.exhaustion,
                         gp=stats.gp,
                         node=run.node_type,
@@ -522,12 +523,18 @@ class CardAdminCommand(AdminCommandHandler):
         if sub != "add" and len(rest) == 2 and not rest[1].isdigit() and rest[1].lower() not in PILE_MAP:
             resolved_first = resolve_card_id(rest[0])
             if resolved_first:
-                target_uid = resolve_target_user(ctx.save_manager, rest[1]) or rest[1]
+                resolved_u = ctx.resolve_user(rest[1])
+                if resolved_u is None:
+                    return get_locale_text("i18n_admin.err_user_not_found", user=rest[1])
+                target_uid = resolved_u
             else:
                 resolved_second = resolve_card_id(rest[1])
                 if resolved_second:
                     card_input = rest[1]
-                    target_uid = resolve_target_user(ctx.save_manager, rest[0]) or rest[0]
+                    resolved_u = ctx.resolve_user(rest[0])
+                    if resolved_u is None:
+                        return get_locale_text("i18n_admin.err_user_not_found", user=rest[0])
+                    target_uid = resolved_u
         else:
             for extra in rest[1:]:
                 low = extra.lower()

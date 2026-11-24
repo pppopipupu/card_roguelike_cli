@@ -5,7 +5,7 @@ from .formatters import format_relic_bar
 
 def render_party_status(run: GameRun) -> str:
     lines = [t("renderer_town.party_title")]
-    reason = getattr(run, "coop_end_reason", "")
+    reason = getattr(run, "end_reason", "")
     if reason:
         lines.append(f"⏳ {reason}")
         return "\n".join(lines)

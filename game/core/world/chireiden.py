@@ -17,7 +17,6 @@ from ...data.content.chireiden_data import (
     CHIREIDEN_PROPS,
     CHIREIDEN_RIN_ELITE_COORD,
     CHIREIDEN_SPECIAL_ROOMS,
-    CHIREIDEN_STAGE_MIN,
     CHIREIDEN_START_COORD,
     CHIREIDEN_UTSUHO_BOSS_COORD,
     CHIREIDEN_WALL_COORDS,
@@ -132,10 +131,6 @@ def enter_chireiden_elevator(map_engine, run: GameRun, actor_uid: str) -> str:
     fm = generate_chireiden_floor(run, CHIREIDEN_FLOOR_INDEX)
     run.floor_map = fm
     msg = map_engine._finalize_next_floor(run, actor_uid, cfg, yog_quest=False)
-    for uid in run.human_uids():
-        pl = run.players.get(uid)
-        if pl is not None:
-            pl.stage = CHIREIDEN_STAGE_MIN
     sm = getattr(map_engine, "save_manager", None)
     record_run_achievement_stat(sm, run, "chireiden_visits", 1)
     banner = get_locale_text("i18n_chireiden.elevator.entered_banner")

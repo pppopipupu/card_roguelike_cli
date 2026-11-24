@@ -1,5 +1,4 @@
 from typing import Optional
-from ...data.world.map_config import MapConfig
 from .base import EventOption, EventTemplate
 from .registry import EVENT_OPTIONS_REGISTRY
 from ...data.world.event_data import EVENT_CONFIG
@@ -101,8 +100,8 @@ ALL_EVENTS = [
             ListenMusicOption(get_locale_text("i18n_events_c.opt_fairy_music"), "listen_music"),
             LeaveEventOption(get_locale_text("i18n_events_c.opt_fairy_decline"), "leave_event", "fairy_tea")
         ],
-        min_stage=2,
-        max_stage=12
+        min_floor=1,
+        max_floor=1
     ),
     EventTemplate(
         "void_contract",
@@ -113,8 +112,8 @@ ALL_EVENTS = [
             AbsorbVoidOption(get_locale_text("i18n_events_c.opt_absorb_void"), "absorb_void"),
             LeaveEventOption(get_locale_text("i18n_events_c.opt_contract_refuse"), "leave_event", "void_contract")
         ],
-        min_stage=14,
-        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+        min_floor=2,
+        max_floor=2
     ),
     EventTemplate(
         "forge_furnace",
@@ -127,8 +126,8 @@ ALL_EVENTS = [
             ForgeEnchantOption(get_locale_text("i18n_enchantment.events.forge_enchant_text"), "forge_enchant"),
             LeaveEventOption(get_locale_text("i18n_events_c.opt_forge_leave"), "leave_event", "forge_furnace")
         ],
-        min_stage=2,
-        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+        min_floor=1,
+        max_floor=2
     ),
     EventTemplate(
         "enchant_altar",
@@ -138,8 +137,8 @@ ALL_EVENTS = [
             EnchantAltarChaosOption(get_locale_text("i18n_enchantment.events.enchant_altar_opt_chaos"), "enchant_altar_chaos"),
             EnchantAltarEscapeOption(get_locale_text("i18n_enchantment.events.enchant_altar_opt_escape"), "enchant_altar_escape"),
         ],
-        min_stage=1,
-        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+        min_floor=1,
+        max_floor=2
     ),
     EventTemplate(
         "ninja_the_spectre",
@@ -149,8 +148,8 @@ ALL_EVENTS = [
             NinjaSpectreAlanOption(get_locale_text("i18n_ninja_events.spectre_opt_alan"), "ninja_spectre_alan"),
             LeaveEventOption(get_locale_text("i18n_ninja_events.spectre_opt_leave"), "leave_event", "ninja_the_spectre"),
         ],
-        min_stage=1,
-        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+        min_floor=1,
+        max_floor=2
     ),
     EventTemplate(
         "ninja_the_great_seal",
@@ -161,8 +160,8 @@ ALL_EVENTS = [
             NinjaSealHamoodOption(get_locale_text("i18n_ninja_events.seal_opt_hamood"), "ninja_seal_hamood"),
             NinjaSealBreakLimitsOption(get_locale_text("i18n_ninja_events.seal_opt_break_limits"), "ninja_seal_break_limits"),
         ],
-        min_stage=1,
-        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+        min_floor=1,
+        max_floor=2
     ),
     EventTemplate(
         "ninja_drink",
@@ -171,8 +170,8 @@ ALL_EVENTS = [
             NinjaDrinkSipOption(get_locale_text("i18n_ninja_events.drink_opt_sip"), "ninja_drink_sip"),
             LeaveEventOption(get_locale_text("i18n_ninja_events.drink_opt_leave"), "leave_event", "ninja_drink"),
         ],
-        min_stage=1,
-        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+        min_floor=1,
+        max_floor=2
     ),
     EventTemplate(
         "ninja_man_yu_dian",
@@ -182,8 +181,8 @@ ALL_EVENTS = [
             NinjaEelFightOption(get_locale_text("i18n_ninja_events.eel_opt_fight"), "ninja_eel_fight"),
             NinjaEelLeaveOption(get_locale_text("i18n_ninja_events.eel_opt_leave"), "ninja_eel_leave"),
         ],
-        min_stage=1,
-        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+        min_floor=1,
+        max_floor=2
     ),
     EventTemplate(
         "portal_chamber",
@@ -193,8 +192,8 @@ ALL_EVENTS = [
             ArcanePortalOption(get_locale_text("i18n_events_c.opt_portal_arcane"), "arcane_portal"),
             LeaveEventOption(get_locale_text("i18n_events_c.opt_portal_leave"), "leave_event", "portal_chamber")
         ],
-        min_stage=27,
-        max_stage=30
+        min_floor=3,
+        max_floor=3
     ),
     EventTemplate(
         "void_library",
@@ -204,8 +203,8 @@ ALL_EVENTS = [
             BurnVoidBooksOption(get_locale_text("i18n_events_c.opt_library_burn"), "burn_void_books"),
             SacrificeMindOption(get_locale_text("i18n_events_c.opt_library_sacrifice"), "sacrifice_mind")
         ],
-        min_stage=6,
-        max_stage=16
+        min_floor=1,
+        max_floor=2
     ),
     EventTemplate(
         "goblin_blackmarket",
@@ -215,8 +214,8 @@ ALL_EVENTS = [
             RobBlackmarketOption(get_locale_text("i18n_events_c.opt_blackmarket_rob"), "rob_blackmarket"),
             SellFleshOption(get_locale_text("i18n_events_c.opt_blackmarket_sell"), "sell_flesh")
         ],
-        min_stage=14,
-        max_stage=MapConfig.COMMON_EVENT_MAX_STAGE
+        min_floor=2,
+        max_floor=2
     ),
     EventTemplate(
         "time_fountain_trial",
@@ -226,8 +225,8 @@ ALL_EVENTS = [
             AccelerateCinderOption(get_locale_text("i18n_events_c.opt_time_accelerate"), "accelerate_cinder"),
             TouchTimeRiftOption(get_locale_text("i18n_events_c.opt_time_rift"), "touch_time_rift")
         ],
-        min_stage=27,
-        max_stage=31
+        min_floor=3,
+        max_floor=3
     ),
     EventTemplate(
         "astral_caravan_disaster",
@@ -237,8 +236,8 @@ ALL_EVENTS = [
             RepairEngineOption(get_locale_text("i18n_events_c.opt_caravan_repair"), "repair_engine"),
             BraveStormOption(get_locale_text("i18n_events_c.opt_caravan_storm"), "brave_storm")
         ],
-        min_stage=27,
-        max_stage=30
+        min_floor=3,
+        max_floor=3
     ),
     EventTemplate(
         "nameless_tombstone",
@@ -248,8 +247,8 @@ ALL_EVENTS = [
             ReadEpitaphOption(get_locale_text("i18n_events_c.opt_tomb_read"), "read_epitaph"),
             CarveOwnNameOption(get_locale_text("i18n_events_c.opt_tomb_carve"), "carve_own_name")
         ],
-        min_stage=30,
-        max_stage=31
+        min_floor=3,
+        max_floor=3
     ),
     EventTemplate(
         "ghostification",
@@ -258,8 +257,8 @@ ALL_EVENTS = [
             AcceptGhostificationOption(get_locale_text("i18n_grid_map.event.ghostification.opt_accept"), "accept_ghostification"),
             RefuseGhostificationOption(get_locale_text("i18n_grid_map.event.ghostification.opt_refuse"), "refuse_ghostification")
         ],
-        min_stage=2,
-        max_stage=32
+        min_floor=1,
+        max_floor=4
     ),
     EventTemplate(
         "collapsed_tunnel",
@@ -269,8 +268,8 @@ ALL_EVENTS = [
             TunnelBreakGoldOption(get_locale_text("i18n_grid_map.event.collapsed_tunnel.opt_gold"), "tunnel_break_gold"),
             TunnelLeaveOption(get_locale_text("i18n_grid_map.event.collapsed_tunnel.opt_leave"), "tunnel_leave")
         ],
-        min_stage=2,
-        max_stage=32
+        min_floor=1,
+        max_floor=4
     ),
     EventTemplate(
         "ancient_beacon",
@@ -280,8 +279,8 @@ ALL_EVENTS = [
             BeaconIgniteDangerOption(get_locale_text("i18n_grid_map.event.ancient_beacon.opt_danger"), "beacon_ignite_danger"),
             BeaconLeaveOption(get_locale_text("i18n_grid_map.event.ancient_beacon.opt_leave"), "beacon_leave")
         ],
-        min_stage=2,
-        max_stage=32
+        min_floor=1,
+        max_floor=4
     ),
     EventTemplate(
         "mist_ferryman",
@@ -290,8 +289,8 @@ ALL_EVENTS = [
             FerryToSpecialOption(get_locale_text("i18n_grid_map.event.mist_ferryman.opt_ferry"), "ferry_to_special"),
             FerryRefuseOption(get_locale_text("i18n_grid_map.event.mist_ferryman.opt_refuse"), "ferry_refuse")
         ],
-        min_stage=2,
-        max_stage=32
+        min_floor=1,
+        max_floor=4
     ),
     EventTemplate(
         "bladesinger_echo",
@@ -300,8 +299,8 @@ ALL_EVENTS = [
             BladesongLearnOption(get_locale_text("i18n_grid_map.event.bladesinger_echo.opt_learn"), "bladesong_learn"),
             BladesongMeditateOption(get_locale_text("i18n_grid_map.event.bladesinger_echo.opt_meditate"), "bladesong_meditate")
         ],
-        min_stage=2,
-        max_stage=32
+        min_floor=1,
+        max_floor=4
     ),
     EventTemplate(
         "kappa_invention",
@@ -312,8 +311,8 @@ ALL_EVENTS = [
             KappaCorePrismOption(get_locale_text("i18n_kappa_pancake.kappa.opt_core_prism"), "kappa_core_prism"),
             KappaLeaveOption(get_locale_text("i18n_kappa_pancake.kappa.opt_leave"), "kappa_leave"),
         ],
-        min_stage=2,
-        max_stage=32
+        min_floor=1,
+        max_floor=4
     ),
     EventTemplate(
         "pancake_stack_event",
@@ -323,8 +322,8 @@ ALL_EVENTS = [
             PancakePayHpOption(get_locale_text("i18n_kappa_pancake.pancake.opt_pay_hp"), "pancake_pay_hp"),
             PancakeLeaveOption(get_locale_text("i18n_kappa_pancake.pancake.opt_leave"), "pancake_leave"),
         ],
-        min_stage=2,
-        max_stage=32
+        min_floor=1,
+        max_floor=4
     )
 ]
 

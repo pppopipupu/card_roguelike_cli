@@ -2,6 +2,7 @@ from typing import Tuple
 
 from ....data.text.locale_data import get_locale_text
 from ....models.state import GameRun, ensure_card_state
+from .extra_play_flow import complete_extra_play_session, complete_post_play_session
 from .selector import TargetSelectorParser
 from .session_flow import _execute_pre_play_card
 from .session_state import (
@@ -12,6 +13,7 @@ from .session_state import (
     _is_step_complete,
     _remaining_for_step,
     _render_step_prompt,
+    _resolve_batch_token,
     _selected_uids_for_step,
     _try_auto_fill_step,
     _validate_all_selections_live,
@@ -40,7 +42,6 @@ def _finalize_interaction_session(action_router, router, user_id: str, run: Game
     battle_engine = engine.battle_engine if hasattr(engine, "battle_engine") else engine
     state_stack = run.node_data.get("state_stack", [])
     if session.get("phase") == "post_play":
-        from ....entities import ALL_CARDS
         if not _validate_all_selections_live(run, session, hand_idx=None):
             for step in session.get("steps", []):
                 step["selected"] = []
@@ -50,15 +51,36 @@ def _finalize_interaction_session(action_router, router, user_id: str, run: Game
             return get_locale_text("i18n_cli_core.select_revalidate_failed") + "\n" + _render_step_prompt(session, cur_step), False, False
         if state_stack and state_stack[-1] is session:
             state_stack.pop()
-        card = ALL_CARDS.get(session.get("card_id"))
-        if card is not None and session.get("upgraded"):
-            card = ALL_CARDS.get(f"{session['card_id']}+") or card
-        res = card.execute_post_selections(run, _build_selections_payload(session), battle_engine) if card else ""
+        initial_status = [(e.hp, e.shield) for e in run.enemies]
+        res, suspended_after = complete_post_play_session(battle_engine.card_player, run, session)
         action_router.save_manager.save_save(user_id, run)
         if run.player.hp <= 0:
             return finalize_defeat(action_router.save_manager, user_id, run, res, True)
         if engine.is_battle_won(run):
             return finalize_victory(action_router.save_manager, engine, user_id, run, res, True, append_logs=True)
+        if not suspended_after:
+            res = battle_engine.card_player._post_battle_action_check(run, initial_status, res, run.player)
+        return battle_engine._append_logs_to_res(run, res), False, True
+
+    if session.get("phase") == "extra_play":
+        if not _validate_all_selections_live(run, session, hand_idx=None):
+            for step in session.get("steps", []):
+                step["selected"] = []
+            session["current_step"] = 0
+            cur_step = session["steps"][0]
+            action_router.save_manager.save_save(user_id, run)
+            return get_locale_text("i18n_cli_core.select_revalidate_failed") + "\n" + _render_step_prompt(session, cur_step), False, False
+        if state_stack and state_stack[-1] is session:
+            state_stack.pop()
+        initial_status = [(e.hp, e.shield) for e in run.enemies]
+        res, suspended_after = complete_extra_play_session(battle_engine.card_player, run, session)
+        action_router.save_manager.save_save(user_id, run)
+        if run.player.hp <= 0:
+            return finalize_defeat(action_router.save_manager, user_id, run, res, True)
+        if engine.is_battle_won(run):
+            return finalize_victory(action_router.save_manager, engine, user_id, run, res, True, append_logs=True)
+        if not suspended_after:
+            res = battle_engine.card_player._post_battle_action_check(run, initial_status, res, run.player)
         return battle_engine._append_logs_to_res(run, res), False, True
 
     if not _validate_all_selections_live(run, session, hand_idx=None):
@@ -166,21 +188,21 @@ def handle_selection_input(action_router, router, user_id: str, run: GameRun, pa
     if not tokens:
         return get_locale_text(step.get("error_key", "i18n_cli_core.select_required_default"), card_name=session.get("card_name", "")), False, False
 
+    batch_step_idx: int | None = None
+    batch_snapshot: list[dict] = []
     for token in tokens:
         cur_idx = int(session.get("current_step", 0))
         if cur_idx >= len(session["steps"]):
             break
         step = session["steps"][cur_idx]
-        remaining = _remaining_for_step(step)
-        matched = TargetSelectorParser.resolve_token(
-            step["candidates"],
-            token,
-            _selected_uids_for_step(step),
-        )
+        if batch_step_idx != cur_idx:
+            batch_step_idx = cur_idx
+            batch_snapshot = _remaining_for_step(step)
+        matched = _resolve_batch_token(step, token, batch_snapshot)
         if matched is None:
             return get_locale_text(
                 step.get("invalid_index_key", "i18n_cli_core.select_invalid_index_default"),
-                count=len(remaining),
+                count=len(batch_snapshot),
             ), False, False
         chosen = dict(matched)
         chosen["auto_filled"] = False

@@ -21,7 +21,6 @@ class TestRogueCorpse(unittest.TestCase):
                         max_hp=50,
                         shield=0,
                         gold=100,
-                        stage=3,
                         name="尸体测试",
                         deck=[CardState(id="magic_missile")],
                     ),

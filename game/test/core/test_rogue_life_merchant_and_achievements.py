@@ -8,7 +8,6 @@ from game.core.progress.achievement_service import AchievementService
 from game.core.battle.engine import BattleEngine
 from game.core.world.life_merchant import calc_life_merchant_price
 from game.data.progression.achievement_data import ACHIEVEMENT_ALL_VIEW_PRICE, ACHIEVEMENTS_CONFIG
-from game.data.world.map_config import MapConfig
 from game.models.state import EnemyIntentState, EnemyState, GameRun, PlayerState, UserStats, ensure_card_state
 from game.core.world.grid_map_generator import generate_floor_map
 from game.core.party.session import SessionContextScoper
@@ -37,7 +36,6 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
     def test_life_merchant_dynamic_pricing_min_hp_one_and_shou_hui_bonus(self):
         self._run_cmd("start")
         run = load_run(self.plugin, self.uid)
-        run.player.stage = 6
         run.player.max_hp = 5
         run.player.hp = 5
         run.player.deck = [ensure_card_state("fire_bolt"), ensure_card_state("shield")]
@@ -212,6 +210,8 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         self.assertNotIn("尤格-索托斯", shop_txt)
 
         res_achi = self._run_cmd("achi")
+        self.assertIn("[ ] 1.", res_achi)
+        self.assertIn("[✓] 6.", res_achi)
         self.assertIn("极寒终结", res_achi)
         self.assertIn("万物归一的终结", res_achi)
         self.assertIn("钓鱼佬的末日", res_achi)
@@ -239,6 +239,8 @@ class TestRogueLifeMerchantAndAchievements(unittest.TestCase):
         self.assertIn("已退出阅读器", res_quit)
 
         res_filter = self._run_cmd("achi 传奇")
+        self.assertIn("[✓] ", res_filter)
+        self.assertIn("[?] ", res_filter)
         self.assertIn("万物归一的终结", res_filter)
         self.assertIn("？？？", res_filter)
         self._run_cmd("q")

@@ -414,7 +414,7 @@ NEUTRAL_CARD_SPELLS = {
         "desc": "传送脱逃离开遭遇战，无任何战利品金币奖励。20层和25层BOSS战禁用。即逝。",
         "rarity": "mythic",
         "fleeting": True,
-        "forbidden_stages": (25, 32),
+        "forbidden_boss_floors": (2, 4),
         "gp_reward": 0,
         "feedback": "🔮 你咏唱了【异界传送】，张开空间裂缝使自己瞬间传送逃离战场！"
     },

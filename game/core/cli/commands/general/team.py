@@ -9,11 +9,13 @@ class TeamCommand(CommandHandler, names=["team", "队伍", "组队", "tm", "lobb
     def execute(self, router, user_id: str, parts: list[str]) -> Generator[str, None, None]:
         service = router.social_service
         if len(parts) < 2:
-            yield service.team_status(user_id)
+            yield get_locale_text("i18n_cli_general_a.team.usage")
             return
         sub = parts[1].strip().lower()
         arg = " ".join(parts[2:]).strip() if len(parts) > 2 else ""
-        if sub in ("create", "new", "创建", "建队"):
+        if sub in ("help", "h", "帮助", "?"):
+            yield get_locale_text("i18n_cli_general_a.team.usage")
+        elif sub in ("create", "new", "创建", "建队"):
             yield service.team_create(user_id)
         elif sub in ("invite", "邀请"):
             if not arg:

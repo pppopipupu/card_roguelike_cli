@@ -66,7 +66,7 @@ class Pair:
         return self.run.players[uid]
 
     def deck(self, uid: str) -> list:
-        if self.kind == "coop":
+        if self.kind == "run":
             return self._player(uid).deck
         stats = self.stats[uid]
         if not stats.open_world_deck:
@@ -74,18 +74,18 @@ class Pair:
         return stats.open_world_deck
 
     def set_deck(self, uid: str, cards: list) -> None:
-        if self.kind == "coop":
+        if self.kind == "run":
             self._player(uid).deck = cards
         else:
             self.stats[uid].open_world_deck = cards
 
     def relics(self, uid: str) -> list:
-        if self.kind == "coop":
+        if self.kind == "run":
             return self._player(uid).relics
         return self.stats[uid].open_world_relics
 
     def relic_counter(self, uid: str, relic_id: str) -> int:
-        if self.kind == "coop":
+        if self.kind == "run":
             return get_relic_counter(self._player(uid), relic_id)
         counters = self.stats[uid].open_world_relic_counters
         if relic_id in counters:
@@ -93,7 +93,7 @@ class Pair:
         return int(RELIC_CONFIG.get(relic_id, {}).get("counter_init", 0))
 
     def add_relic(self, uid: str, relic_id: str, counter: int) -> None:
-        if self.kind == "coop":
+        if self.kind == "run":
             player = self._player(uid)
             grant_relic(player, relic_id)
             set_relic_counter(player, relic_id, counter)
@@ -106,7 +106,7 @@ class Pair:
         counters[relic_id] = int(counter)
 
     def remove_relic(self, uid: str, relic_id: str) -> None:
-        if self.kind == "coop":
+        if self.kind == "run":
             revoke_relic(self._player(uid), relic_id)
             return
         stats = self.stats[uid]
@@ -115,23 +115,23 @@ class Pair:
         stats.open_world_relic_counters.pop(relic_id, None)
 
     def bag(self, uid: str) -> list:
-        if self.kind == "coop":
+        if self.kind == "run":
             return self._player(uid).bag_items
         return self.stats[uid].open_world_bag
 
     def set_bag(self, uid: str, items: list) -> None:
-        if self.kind == "coop":
+        if self.kind == "run":
             self._player(uid).bag_items = items
         else:
             self.stats[uid].open_world_bag = items
 
     def max_bag_weight(self, uid: str) -> float:
-        if self.kind == "coop":
+        if self.kind == "run":
             return float(get_bag_max_weight(self._player(uid)))
         return float(BAG_DEFAULT_MAX_WEIGHT)
 
     def save(self, actor_uid: str) -> None:
-        if self.kind == "coop":
+        if self.kind == "run":
             self.save_manager.save_save(actor_uid, self.run)
             return
         for uid, stats in self.stats.items():

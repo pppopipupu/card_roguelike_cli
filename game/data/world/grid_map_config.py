@@ -2,12 +2,16 @@ from typing import Any
 
 ALLY_SUMMON_SP_COST = 1
 
+ACT1_FLOOR = 1
+GATE_BOSS_FLOOR = 2
+AVERGOMON_FLOOR = 3
+FINAL_BOSS_FLOOR = 4
+
 FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     0: {
         "width": 5,
         "height": 3,
-        "stage_min": 1,
-        "stage_max": 1,
+        "difficulty_scale": 1,
         "display_floor": 0,
         "name_key": "i18n_tutorial.floor_name",
         "has_cafe": False,
@@ -26,8 +30,8 @@ FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     1: {
         "width": 8,
         "height": 6,
-        "stage_min": 2,
-        "stage_max": 12,
+        "difficulty_scale": 3,
+        "boss_pool": "early",
         "name_key": "i18n_grid_map.floor_1_name",
         "has_cafe": True,
         "has_shop": True,
@@ -45,8 +49,8 @@ FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     2: {
         "width": 9,
         "height": 7,
-        "stage_min": 14,
-        "stage_max": 25,
+        "difficulty_scale": 18,
+        "boss_pool": "gate",
         "name_key": "i18n_grid_map.floor_2_name",
         "has_cafe": True,
         "has_shop": True,
@@ -64,8 +68,8 @@ FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     3: {
         "width": 8,
         "height": 6,
-        "stage_min": 27,
-        "stage_max": 31,
+        "difficulty_scale": 29,
+        "boss_pool": "aforgomon",
         "name_key": "i18n_grid_map.floor_3_name",
         "has_cafe": True,
         "has_shop": True,
@@ -82,8 +86,7 @@ FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     },
     3.5: {
         "name_key": "i18n_grid_map.floor_3_5_name",
-        "stage_min": 31,
-        "stage_max": 32,
+        "difficulty_scale": 31,
         "boss_name": "彭宁离子井·超级传送门·初阶裂隙",
         "secret_boss_name": "灵乌路空",
         "landmarks": ["chireiden_fusion_terminal", "chireiden_penning_stabilizer"],
@@ -97,8 +100,8 @@ FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     4: {
         "width": 6,
         "height": 5,
-        "stage_min": 32,
-        "stage_max": 32,
+        "difficulty_scale": 32,
+        "boss_pool": "final",
         "name_key": "i18n_grid_map.floor_4_name",
         "has_cafe": False,
         "has_shop": False,
@@ -116,8 +119,7 @@ FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     5: {
         "width": 16,
         "height": 12,
-        "stage_min": 30,
-        "stage_max": 38,
+        "difficulty_scale": 34,
         "display_floor": 1,
         "name_key": "i18n_yog_quest.map.frost_wilds",
         "has_cafe": False,
@@ -136,8 +138,7 @@ FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     6: {
         "width": 10,
         "height": 8,
-        "stage_min": 38,
-        "stage_max": 44,
+        "difficulty_scale": 40,
         "display_floor": 1,
         "name_key": "i18n_yog_quest.map.yog_temple",
         "has_cafe": False,
@@ -156,8 +157,7 @@ FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     1.5: {
         "width": 6,
         "height": 5,
-        "stage_min": 5,
-        "stage_max": 10,
+        "difficulty_scale": 8,
         "display_floor": 1.5,
         "name_key": "i18n_bleak_falls.floor_1_5_name",
         "has_cafe": False,
@@ -176,8 +176,7 @@ FLOOR_CONFIGS: dict[int | float, dict[str, Any]] = {
     1.67777: {
         "width": 6,
         "height": 3,
-        "stage_min": 8,
-        "stage_max": 13,
+        "difficulty_scale": 11,
         "display_floor": 1.67777,
         "name_key": "i18n_bleak_falls.floor_1_67777_name",
         "has_cafe": False,
@@ -201,6 +200,31 @@ def get_display_floor(floor_index: int | float) -> int | float:
     if cfg is not None and "display_floor" in cfg:
         return cfg["display_floor"]
     return floor_index
+
+
+def format_display_floor(floor_index: int | float) -> str:
+    display = get_display_floor(floor_index)
+    if isinstance(display, float) and not display.is_integer():
+        return f"{display:g}"
+    return str(int(display))
+
+
+def get_run_floor_index(run) -> int | float:
+    fm = getattr(run, "floor_map", None) if run is not None else None
+    if fm is not None:
+        return fm.floor_index
+    return 1
+
+
+def get_floor_difficulty_scale(floor_index: int | float) -> int:
+    cfg = FLOOR_CONFIGS.get(floor_index)
+    if cfg is not None and "difficulty_scale" in cfg:
+        return int(cfg["difficulty_scale"])
+    return int(FLOOR_CONFIGS[1]["difficulty_scale"])
+
+
+def get_run_difficulty_scale(run) -> int:
+    return get_floor_difficulty_scale(get_run_floor_index(run))
 
 
 SP_CONFIG = {

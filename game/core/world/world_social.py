@@ -193,7 +193,7 @@ class WorldSocialService:
         self.save_manager.save_stats(uid, stats)
         return get_locale_text("i18n_world_social.dialog.closed")
 
-    def push_log(self, target_uid: str, line: str, *, command: str = "", player_name: str = "", record_history: bool = True, coop_id: str = "", stats=None) -> bool:
+    def push_log(self, target_uid: str, line: str, *, command: str = "", player_name: str = "", record_history: bool = True, run_id: str = "", stats=None) -> bool:
         clean_line = str(line or "").strip()
         if not target_uid or not clean_line:
             return False
@@ -212,7 +212,7 @@ class WorldSocialService:
                 "command": command or clean_line,
                 "text": clean_line,
                 "player": player_name,
-                "coop_id": coop_id or getattr(target_stats, "active_coop_id", ""),
+                "run_id": run_id or getattr(target_stats, "active_run_id", ""),
             })
             target_stats.log_history = history[-LOG_MAX_ENTRIES:]
         return self.save_manager.save_stats(target_uid, target_stats)
@@ -265,7 +265,7 @@ class WorldSocialService:
             command=f"talk {source_name}",
             player_name=source_name,
             record_history=True,
-            coop_id=getattr(source_stats, "active_coop_id", ""),
+            run_id=getattr(source_stats, "active_run_id", ""),
         )
         return get_locale_text(
             "i18n_world_social.dialog.sent",

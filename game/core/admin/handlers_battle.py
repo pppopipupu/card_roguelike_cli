@@ -97,8 +97,6 @@ def _attach_mercenary(run: GameRun, owner_uid: str, merc_id: str, battle_engine)
         suffix += 1
         merc_uid = f"merc:{merc_id}:{owner_uid}:{suffix}"
     merc = build_mercenary_player(merc_id, owner_uid)
-    owner = run.players.get(owner_uid) or run.player
-    merc.stage = owner.stage
     run.players[merc_uid] = merc
     run.party_order.append(merc_uid)
     full_order = getattr(run, "_full_party_order", None)

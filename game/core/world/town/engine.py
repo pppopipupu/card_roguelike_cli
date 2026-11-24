@@ -78,6 +78,9 @@ class TownEngine:
         return list(stats.town_flags.get("visited_rooms", []))
 
     def render_current_room(self, user_id: str, stats: UserStats) -> str:
+        from ....models.state import is_in_queue
+        if is_in_queue():
+            return ""
         from ....data.world.outer_plane_config import OUTER_PLANE_ACTIVE_FLAG
         if stats.town_flags.get(OUTER_PLANE_ACTIVE_FLAG):
             return self.outer_plane_engine.render(user_id, stats)
@@ -103,6 +106,9 @@ class TownEngine:
         return render_town(stats, room_data, ghost_names=ghost_names)
 
     def _render_dialog_window(self, stats: UserStats, npc_id: str, zh_cn: Dict[str, Any]) -> str:
+        from ....models.state import is_in_queue
+        if is_in_queue():
+            return ""
         from .dialog_handler import build_dialog_menu
         menu = build_dialog_menu(self, stats, npc_id, zh_cn)
         menu_lines = "\n".join(option["text"] for option in menu["options"])
@@ -169,6 +175,11 @@ class TownEngine:
 
         self.save_manager.save_stats(user_id, stats)
         sync_active(user_id, stats=stats)
+        from ....models.state import is_in_queue
+        if is_in_queue():
+            rooms_loc = self._load_zh_cn().get("rooms", {})
+            target_name = rooms_loc.get(target_room, {}).get("name", target_room)
+            return get_locale_text("i18n_cli_commands.town_move_success", name=target_name, coord=target_coord)
         target_room_data = self._load_room_data(target_room)
         from ....renderer.town import render_town
         ghost_names = OpenWorldGhostService.display_names_at(self.save_manager, WORLD_TOWN, target_room)
@@ -275,7 +286,12 @@ class TownEngine:
         stats.town_flags["current_dialog"] = target_id
         stats.town_flags.pop("market_sub_menu", None)
         self.save_manager.save_stats(user_id, stats)
-        return self._render_dialog_window(stats, target_id, self._load_zh_cn())
+        zh_cn = self._load_zh_cn()
+        from ....models.state import is_in_queue
+        if is_in_queue():
+            npc_name = zh_cn.get("interactive_entities", {}).get(target_id, {}).get("name", target_id)
+            return get_locale_text("global.dialog_title", name=npc_name)
+        return self._render_dialog_window(stats, target_id, zh_cn)
 
     def talk_npc(self, user_id: str, target_name: str) -> str:
         stats = self.save_manager.load_stats(user_id)
@@ -492,7 +508,6 @@ class TownEngine:
             max_hp=resolved_max_hp,
             shield=0,
             gold=0,
-            stage=1,
             name=getattr(stats, "player_name", get_locale_text("i18n_town.player_default_name")),
             deck=deck,
             draw_pile=list(deck),

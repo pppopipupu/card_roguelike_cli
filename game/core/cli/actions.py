@@ -48,6 +48,9 @@ def finalize_victory(
         msg = (res.rstrip() + "\n\n" + settled_msg).strip() if res and res.strip() else settled_msg
         return msg, True, success
     if run.node_type == "room_dialog":
+        from ...models.state import is_in_queue
+        if is_in_queue(run):
+            return res.strip() if res else "", True, success
         from ..world.rooms.npc_dialog import render_room_dialog
         rendered = render_room_dialog(run, save_manager=save_manager)
         out = (res.rstrip() + "\n\n" + rendered).strip() if res and res.strip() else rendered
@@ -398,6 +401,9 @@ class EndTurnAction(ActionHandler, actions=["结束", "e"]):
         res = router.engine.end_turn(run)
         success = "❌" not in res
         if run.node_type == "room_dialog":
+            from ...models.state import is_in_queue
+            if is_in_queue(run):
+                return res.strip() if res else "", True, success
             from ..world.rooms.npc_dialog import render_room_dialog
             rendered = render_room_dialog(run, save_manager=router.save_manager)
             out = (res.rstrip() + "\n\n" + rendered).strip() if res and res.strip() else rendered

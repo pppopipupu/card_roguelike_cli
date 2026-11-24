@@ -54,7 +54,6 @@ class MapEngine:
             player = run.players.get(uid)
             if player is None:
                 continue
-            player.stage = 1
             if getattr(player, "is_mercenary", False):
                 views[uid] = {"node_type": "start_ancient", "data": {"options": [], "coop_done": True}}
                 ready[uid] = True
@@ -101,8 +100,6 @@ class MapEngine:
         player.abilities.clear()
         player.actions = 1
         player.bonus_actions = 1
-        if was_start_ancient and player.stage < 2:
-            player.stage = 2
         if not was_start_ancient and mark_cleared:
             if not getattr(player, "is_mercenary", False) and hasattr(self.save_manager, "record_stage_passed"):
                 self.save_manager.record_stage_passed(uid)
@@ -200,38 +197,7 @@ class MapEngine:
                 return
             self.complete_session(run, mark_cleared=True)
             return
-        from ..battle.party_battle import revive_downed_players
-        from ..party.coordinator import apply_and_scope, attach_notices, collect_notices
-        caller = run.user_id
-        carried = collect_notices(run)
-        revive_downed_players(run)
-        target_stage = max((run.players[u].stage for u in run.party_order if u in run.players), default=run.player.stage) + 1
-        run.enemies.clear()
-        run.node_data = {}
-        for uid in run.party_order:
-            player = run.players.get(uid)
-            if player is None:
-                continue
-            player.stage = target_stage
-            player.shield = 0
-            player.minions.clear()
-            player.amulets.clear()
-            player.abilities.clear()
-            player.actions = 1
-            player.bonus_actions = 1
-            if "espresso_relic" in player.relics:
-                player.relics.remove("espresso_relic")
-            if "lucky_coin" in player.relics:
-                player.gold += MAP_LUCKY_COIN_GOLD
-            if "tax_contract" in player.relics:
-                player.gold = max(0, player.gold - MAP_TAX_CONTRACT_GOLD)
-        if target_stage == 1:
-            self._populate_start_ancient(run)
-            attach_notices(run, carried, caller)
-            return
-        run.node_type = "grid_map"
-        attach_notices(run, carried, caller)
-        apply_and_scope(run, caller)
+        self.complete_session(run, mark_cleared=True)
 
     def _finalize_next_floor(self, run: GameRun, actor_uid: str, cfg: dict, *, yog_quest: bool = False) -> str:
         from .presence import sync_active_many
@@ -250,7 +216,6 @@ class MapEngine:
                 continue
             p.sp = p.max_sp
             reduce_exhaustion(p, 1)
-            p.stage = int(cfg["stage_min"])
         run.node_type = "grid_map"
         run.enemies.clear()
         run.node_data = {}
@@ -265,7 +230,7 @@ class MapEngine:
         )
         stats_by_uid = {uid: self.save_manager.load_stats(uid) for uid in humans}
         sync_active_many(humans, stats_by_uid=stats_by_uid, run=run)
-        coop_id_str = str(getattr(run, "coop_id", "") or "")
+        run_id_str = str(getattr(run, "run_id", "") or "")
         for uid in humans:
             stats = stats_by_uid[uid]
             if yog_quest:
@@ -276,7 +241,7 @@ class MapEngine:
                     notice,
                     command="downstairs",
                     player_name=actor_name,
-                    coop_id=coop_id_str,
+                    run_id=run_id_str,
                     stats=stats,
                 )
             elif yog_quest:

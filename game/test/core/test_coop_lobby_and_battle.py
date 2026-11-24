@@ -175,13 +175,13 @@ class TestCoopLobbyAndBattle(CoopTestBase):
             run = load_run(self.plugin, uids[0])
         self.assertEqual(run.node_type, "battle")
         blocked = self.run_cmd("start confirm", uids[0])
-        self.assertIn("联机", blocked)
+        self.assertIn("无法覆盖开启新局", blocked)
         self.assertIsNotNone(load_run(self.plugin, uids[0]))
         abandoned = self.run_cmd("abandon confirm", uids[0])
         self.assertIn("全队进度已结算", abandoned)
         for uid in uids:
             self.assertIsNone(self.plugin.save_manager.load_save(uid))
-            self.assertEqual(getattr(self.plugin.save_manager.load_stats(uid), "active_coop_id", ""), "")
+            self.assertEqual(getattr(self.plugin.save_manager.load_stats(uid), "active_run_id", ""), "")
 
     def test_coop_battle_logs_not_replayed(self):
         uids = ["log_leader", "log_member"]

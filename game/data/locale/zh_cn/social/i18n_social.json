@@ -8,8 +8,7 @@
     "none": "无"
   },
   "online": {
-    "coop": "联机牌局中",
-    "solo": "单人牌局中",
+    "in_run": "冒险中",
     "town": "主城中",
     "idle": "空闲"
   },
@@ -88,20 +87,19 @@
   },
   "team_create": {
     "already_in_team": "❌ 你已在队伍 {lobby_id} 中。\n{lobby_status}",
-    "in_coop": "❌ 你正在进行联机牌局，无法创建队伍。",
-    "personal_save": "❌ 你有一局单人冒险尚未结束。请先输入 放弃 结束单人存档，再创建队伍。",
+    "in_run": "❌ 你有一局冒险尚未结束。请先输入 abandon confirm 结束当前冒险，再创建队伍。",
     "success": "🏠 已创建队伍 {lobby_id}。\n{lobby_status}\n邀请好友：friend invite <好友昵称或ID>"
   },
   "team_invite": {
     "no_team": "❌ 你还没有队伍。先输入 team create 创建队伍。",
     "not_leader": "❌ 只有队长可以邀请好友加入队伍。",
-    "in_coop": "❌ 联机牌局进行中，无法继续邀请队员。",
+    "in_run": "❌ 冒险进行中，无法继续邀请队员。",
     "self": "❌ 不能邀请自己。",
     "not_friend": "❌ 【{name}】还不是你的好友。先发送 friend add。",
     "already_member": "✅ 【{name}】已经在队伍中。",
     "already_invited": "📨 已经邀请过【{name}】，等待对方 team join 接受。",
     "full": "❌ 队伍最多 {max_members} 人，邀请名额已满。",
-    "target_in_coop": "❌ 【{name}】正在联机牌局中，无法接受邀请。",
+    "target_in_run": "❌ 【{name}】正在冒险中，无法接受邀请。",
     "success": "📨 已邀请【{name}】加入队伍 {lobby_id}。\n对方可输入 team join {lobby_id} 接受邀请。"
   },
   "team_invites": {
@@ -115,48 +113,43 @@
     "not_found": "❌ 队伍【{lobby_id}】不存在。",
     "not_invited": "❌ 你没有收到该队伍的邀请。",
     "already_member": "✅ 你已经在队伍中。",
-    "in_coop": "❌ 你正在进行联机牌局，无法加入队伍。",
+    "in_run": "❌ 你有一局冒险尚未结束。请先输入 abandon confirm 结束当前冒险，再加入队伍。",
     "already_in_other": "❌ 你已在队伍 {lobby_id} 中，请先 team leave。",
-    "personal_save": "❌ 你有一局单人冒险尚未结束。请先输入 放弃 结束单人存档，再接受邀请。",
     "full": "❌ 该队伍人数已满。",
     "success": "✅ 已加入队伍 {lobby_id}。\n{lobby_status}\n准备就绪：team ready"
   },
   "team_leave": {
-    "in_coop": "❌ 联机牌局进行中，无法离开队伍。",
+    "in_run": "❌ 冒险进行中，无法离开队伍。",
     "invite_cancelled": "✅ 已取消该队伍的邀请。",
     "disbanded": "✅ 你已离开队伍 {lobby_id}，队伍已解散。",
     "success": "✅ 你已离开队伍 {lobby_id}。\n{lobby_status}"
   },
   "team_disband": {
     "not_leader": "❌ 只有队长可以解散队伍。",
-    "in_coop": "❌ 联机牌局进行中，无法解散队伍。",
+    "in_run": "❌ 冒险进行中，无法解散队伍。",
     "success": "✅ 队伍 {lobby_id} 已解散。"
   },
   "team_kick": {
     "not_leader": "❌ 只有队长可以移出队员。",
     "self": "❌ 不能移出自己。",
-    "target_in_coop": "❌ 【{name}】正在联机牌局中，无法移出队伍。",
+    "target_in_run": "❌ 【{name}】正在冒险中，无法移出队伍。",
     "not_member": "❌ 【{name}】不在你的队伍中。",
     "success": "✅ 已将【{name}】移出队伍。\n{lobby_status}"
   },
   "team_ready": {
     "not_member": "❌ 你不在该队伍中。",
-    "ready": "✅ 你已准备就绪。\n{lobby_status}\n队长可输入 team start 开启联机牌局。",
+    "ready": "✅ 你已准备就绪。\n{lobby_status}\n队长可输入 team start 开启冒险。",
     "unready": "⬜ 你已取消准备。\n{lobby_status}"
   },
-  "team_status": {
-    "in_coop": "❌ 你正在联机牌局中。"
-  },
   "team_start": {
-    "not_leader": "❌ 只有队长可以开启联机牌局。",
-    "min_players": "❌ 联机牌局至少需要 {min_players} 名玩家。邀请好友后再开始。",
-    "max_players": "❌ 联机牌局最多 {max_members} 名玩家。",
+    "not_leader": "❌ 只有队长可以开启队伍冒险。",
+    "min_players": "❌ 组队冒险至少需要 {min_players} 名玩家。邀请好友后再开始。",
+    "max_players": "❌ 队伍最多 {max_members} 名玩家。",
     "not_ready": "❌ 以下队员尚未准备：{names}。",
-    "member_in_coop": "❌ 【{name}】正在联机牌局中。",
-    "member_personal_save": "❌ 【{name}】还有单人冒险存档。请其先输入 放弃 结束单人存档。",
+    "member_in_run": "❌ 【{name}】还有未结束的冒险。请其先输入 abandon confirm 结束当前冒险。",
     "stale": "❌ 以下队员已离开队伍：{names}。",
-    "no_engine": "❌ 联机引擎未初始化。",
-    "success": "🎉 队伍 {lobby_id} 已开启联机牌局！\n队伍成员：{names}\n所有队员输入任意冒险指令即可载入共享地图。"
+    "no_engine": "❌ 游戏引擎未初始化。",
+    "success": "🎉 队伍 {lobby_id} 已开启冒险！\n队伍成员：{names}\n所有队员输入任意冒险指令即可载入共享地图。"
   },
   "checkin": {
     "claim_pending": "今日已签到，请选择一张集换卡盖章：\n",
@@ -194,15 +187,15 @@
     "state_event": "事件中",
     "state_interact": "交互中",
     "state_ready": "探索中",
-    "not_in_coop": "❌ 当前未处于联机冒险队伍中。",
+    "not_in_run": "❌ 当前没有正在进行的冒险。",
     "not_started": "❌ 队伍尚未进入地牢，请先由队长执行 team start。",
     "no_floor_map": "🪜 当前位于开局先古神殿，尚未进入地牢楼层。"
   },
   "team_teleport": {
-    "not_in_coop": "❌ 当前未处于联机冒险队伍中。",
+    "not_in_run": "❌ 当前没有正在进行的冒险。",
     "not_started": "❌ 队伍尚未进入地牢，请先由队长执行 team start。",
     "no_floor_map": "🪜 当前位于开局先古神殿，尚未进入地牢楼层。",
-    "no_engine": "❌ 联机引擎未初始化。",
+    "no_engine": "❌ 游戏引擎未初始化。",
     "in_session": "❌ 你正在战斗或事件中，无法使用 team tp。",
     "self_downed": "❌ 你已倒地，无法使用 team tp。",
     "need_target": "❌ 请提供要传送到的队友名字，例如 team tp Alice。",

@@ -99,7 +99,6 @@ def build_tutorial_player(stats, user_id: str) -> PlayerState:
         max_hp=TUTORIAL_STARTING_MAX_HP,
         shield=0,
         gold=TUTORIAL_STARTING_GOLD,
-        stage=1,
         name=getattr(stats, "player_name", get_locale_text("i18n_cli_core.default_player_name")),
         deck=[CardState(id=cid) for cid in TUTORIAL_DECK],
         draw_pile=[],
@@ -125,8 +124,11 @@ def start_tutorial_run(
 ) -> tuple[Optional[GameRun], str]:
     from ...renderer import GameRenderer
     stats = save_manager.load_stats(user_id)
-    if getattr(stats, "active_coop_id", "") or getattr(stats, "active_lobby_id", ""):
+    existing = save_manager.load_save(user_id)
+    if getattr(stats, "active_lobby_id", "") or (existing is not None and len(existing.all_human_uids()) > 1):
         return None, get_locale_text("i18n_tutorial.flow.cannot_start_in_coop")
+    if existing is not None:
+        save_manager.delete_save(user_id)
     player = build_tutorial_player(stats, user_id)
     run = GameRun(
         user_id=user_id,
@@ -270,11 +272,11 @@ def handle_tutorial_elder_choice(map_engine, run: GameRun, chosen_opt: dict[str,
     from .rooms.npc_dialog import close_room_dialog, render_room_dialog
     action = str(chosen_opt.get("action") or "")
     if action == "topic_ops":
-        return get_locale_text("i18n_tutorial.elder.reply_ops") + "\n\n" + render_room_dialog(run)
+        return get_locale_text("i18n_tutorial.elder.reply_ops")
     if action == "topic_cards":
-        return get_locale_text("i18n_tutorial.elder.reply_cards") + "\n\n" + render_room_dialog(run)
+        return get_locale_text("i18n_tutorial.elder.reply_cards")
     if action == "topic_map":
-        return get_locale_text("i18n_tutorial.elder.reply_map") + "\n\n" + render_room_dialog(run)
+        return get_locale_text("i18n_tutorial.elder.reply_map")
     if action == "skip_tutorial":
         run.node_data["tutorial_finished"] = True
         return finish_tutorial_run(

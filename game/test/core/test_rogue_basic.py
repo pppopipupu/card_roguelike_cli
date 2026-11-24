@@ -86,7 +86,7 @@ class TestRogueBasic(unittest.TestCase):
                 self.stats = stats
                 return True
             def load_save(self, user_id):
-                player = PlayerState(hp=30, max_hp=30, shield=0, gold=100, stage=2, deck=[], hand=[], draw_pile=[], discard_pile=[], exhaust_pile=[], graveyard=[])
+                player = PlayerState(hp=30, max_hp=30, shield=0, gold=100, deck=[], hand=[], draw_pile=[], discard_pile=[], exhaust_pile=[], graveyard=[])
                 return GameRun(user_id=user_id, node_type="event", player=player, enemies=[], node_data={"event_id": "test_event"})
         mgr_with_save = DummySaveManagerWithSave()
         plugin_with_save = MyPlugin(DummyContext())
@@ -118,6 +118,9 @@ class TestRogueBasic(unittest.TestCase):
             def save_save(self, user_id, run) -> bool:
                 self.saved_run = run
                 return True
+            def delete_save(self, user_id) -> bool:
+                self.saved_run = None
+                return True
             def settle_game_and_delete(self, user_id, run, is_victory=False, create_corpse=True, force=False) -> str:
                 self.saved_run = None
                 return "游戏已结算。"
@@ -131,7 +134,7 @@ class TestRogueBasic(unittest.TestCase):
         plugin.cli_router.town_engine.save_manager = mgr
         
         async def go():
-            player = PlayerState(hp=30, max_hp=30, shield=0, gold=100, stage=2, deck=[], hand=[], draw_pile=[], discard_pile=[], exhaust_pile=[], graveyard=[])
+            player = PlayerState(hp=30, max_hp=30, shield=0, gold=100, deck=[], hand=[], draw_pile=[], discard_pile=[], exhaust_pile=[], graveyard=[])
             mgr.saved_run = GameRun(user_id="test_user", node_type="event", player=player, enemies=[], node_data={"event_id": "test_event"})
             res = await run_command(plugin, "start confirm")
             self.assertIn("已重新开始新的一局游戏", res)
@@ -181,6 +184,9 @@ class TestRogueBasic(unittest.TestCase):
             def save_save(self, user_id, run) -> bool:
                 self.saved_run = run
                 return True
+            def delete_save(self, user_id) -> bool:
+                self.saved_run = None
+                return True
             def settle_game_and_delete(self, user_id, run, is_victory=False, create_corpse=True, force=False) -> str:
                 self.saved_run = None
                 return "游戏已结算。"
@@ -198,7 +204,6 @@ class TestRogueBasic(unittest.TestCase):
                 max_hp=30,
                 shield=0,
                 gold=100,
-                stage=2,
                 deck=[],
                 hand=[
                     CardState(id="adrenaline", upgraded=True),

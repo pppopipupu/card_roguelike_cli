@@ -1,7 +1,13 @@
 import random
 
 from ...data.text.locale_data import get_locale_text
-from ...data.world.map_config import MapConfig
+from ...data.world.grid_map_config import (
+    ACT1_FLOOR,
+    AVERGOMON_FLOOR,
+    FINAL_BOSS_FLOOR,
+    GATE_BOSS_FLOOR,
+    get_run_floor_index,
+)
 from ...data.entities.relic_data import RELIC_CONFIG, relic_allowed_for_any_class
 from ...data.progression.reward_config import (
     BOSS_MYTHIC_CARDS,
@@ -259,7 +265,7 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
             self.engine.save_manager.save_save(run.user_id, run)
             return
         difficulty = run.node_data.get("difficulty", "normal")
-        stage = max((run.players[u].stage for u in run.party_order if u in run.players), default=run.player.stage)
+        floor_index = get_run_floor_index(run)
         from ..world.tutorial import is_tutorial_run, notify_tutorial_battle_win
         if is_tutorial_run(run):
             run.enemies.clear()
@@ -277,11 +283,11 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
         is_bleak_zone = bool(run.floor_map and run.floor_map.floor_flags.get("bleak_falls_zone"))
         is_chireiden_zone = bool(run.floor_map and run.floor_map.floor_flags.get("chireiden_zone"))
         is_optional_zone = is_bleak_zone or is_chireiden_zone
-        is_stage_boss = difficulty == "boss" and not is_optional_zone
-        if is_stage_boss and stage in (MapConfig.FINAL_BOSS_STAGE, MapConfig.GATE_BOSS_STAGE):
+        is_floor_boss = difficulty == "boss" and not is_optional_zone
+        if is_floor_boss and floor_index in (FINAL_BOSS_FLOOR, GATE_BOSS_FLOOR):
             roll_battle_gold(difficulty)
             roll_potion(self.engine.save_manager.load_stats(run.user_id), difficulty)
-        if is_stage_boss and stage == MapConfig.FINAL_BOSS_STAGE:
+        if is_floor_boss and floor_index == FINAL_BOSS_FLOOR:
             boss_name = run.node_data.get("boss_name", get_locale_text("i18n_explore_core.final_boss_name"))
             run.node_type = "victory"
             run.node_data = {"coop_node_type": "victory", "boss_name": boss_name}
@@ -297,7 +303,7 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
                 self.engine.save_manager.save_stats(uid, stats)
             self.engine.save_manager.save_save(run.user_id, run)
             return
-        if is_stage_boss and stage == MapConfig.GATE_BOSS_STAGE:
+        if is_floor_boss and floor_index == GATE_BOSS_FLOOR:
             has_gatekey = all(
                 getattr(self.engine.save_manager.load_stats(uid), "unlocked_gatekey", False)
                 for uid in run.all_human_uids()
@@ -332,9 +338,9 @@ class CardPlayerRewardsMixin(CardPlayerEngineMixin):
                 if not is_optional_zone:
                     if player and player.max_hp <= 1:
                         ach.record_stat(uid, "one_hp_boss_kills", 1, stats=stats, save=False)
-                    if stage == 12:
+                    if floor_index == ACT1_FLOOR:
                         ach.record_stat(uid, "act1_boss_kills", 1, stats=stats, save=False)
-                    elif stage == MapConfig.AVERGOMON_STAGE:
+                    elif floor_index == AVERGOMON_FLOOR:
                         ach.record_stat(uid, "avergomon_kills", 1, stats=stats, save=False)
                 from ..world.map_quest_service import record_battle_won
                 record_battle_won(run, stats, True)

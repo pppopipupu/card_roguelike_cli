@@ -224,10 +224,10 @@ class WorldMultiplayerTest(unittest.TestCase):
         self.assertIn("雪原", started)
         self.assertIn("队伍状态", started)
         self.assertEqual(
-            self.plugin.save_manager.load_stats(self.a).active_coop_id,
-            self.plugin.save_manager.load_stats(self.b).active_coop_id,
+            self.plugin.save_manager.load_stats(self.a).active_run_id,
+            self.plugin.save_manager.load_stats(self.b).active_run_id,
         )
-        self.assertNotEqual(self.plugin.save_manager.load_stats(self.a).active_coop_id, "")
+        self.assertNotEqual(self.plugin.save_manager.load_stats(self.a).active_run_id, "")
         self.assertEqual(self.plugin.save_manager.load_stats(self.a).town_flags.get(YOG_QUEST_FLAG), "started")
         party_view = self.cmd("看", self.b)
         self.assertIn("第 1 层 · 雾隐雪原", party_view)

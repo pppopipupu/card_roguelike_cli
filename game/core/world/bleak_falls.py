@@ -246,15 +246,9 @@ def generate_bleak_falls_floor(run: GameRun, floor_index: float) -> FloorMapStat
 def enter_bleak_floor(save_manager, map_engine, run: GameRun, target_floor: float, stage_key: str) -> str:
     stats = save_manager.load_stats(run.user_id) if save_manager is not None else None
     new_fm = generate_bleak_falls_floor(run, target_floor)
-    cfg = FLOOR_CONFIGS.get(target_floor, {})
-    stage_min = int(cfg.get("stage_min", 5))
     run.floor_map = new_fm
     run.node_type = "grid_map"
     run.node_data = {}
-    for uid in run.human_uids():
-        pl = run.players.get(uid)
-        if pl is not None and pl.stage < stage_min:
-            pl.stage = stage_min
     update_bleak_falls_stage(run, stats, stage_key)
     map_engine.open_floor_arrival_ancient(run)
     if save_manager is not None:
@@ -627,6 +621,8 @@ def _handle_bleak_npc_choice_inner(map_engine, run: GameRun, dialog: dict[str, A
     fm = run.floor_map
     coord = fm.player_coords.get(run.user_id) if fm else None
     room = fm.rooms.get(coord) if (fm and coord) else None
+    from ...models.state import is_in_queue
+    in_queue = is_in_queue(run)
     action = opt.get("action", "leave")
     if action == "arvel_fight" and room is not None:
         return _start_arvel_combat(map_engine, run, room)
@@ -638,6 +634,8 @@ def _handle_bleak_npc_choice_inner(map_engine, run: GameRun, dialog: dict[str, A
     run.node_data.pop("room_dialog", None)
 
     if action == "leave" or room is None:
+        if in_queue:
+            return ""
         from ...renderer import GameRenderer
         return GameRenderer.render_game(run)
 

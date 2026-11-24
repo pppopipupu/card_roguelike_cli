@@ -27,7 +27,6 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=100,
-            stage=1,
             actions=3,
             bonus_actions=0,
             deck=[CardState(id="discover", upgraded=True)],
@@ -95,7 +94,6 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=100,
-            stage=1,
             actions=3,
             bonus_actions=0,
             deck=[CardState(id="discover"), CardState(id="moyai_trio"), CardState(id="demon_form")],
@@ -136,7 +134,6 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=100,
-            stage=1,
             actions=3,
             bonus_actions=0,
             deck=[CardState(id="neutral_emperor_eye"), CardState(id="fire_bolt"), CardState(id="warrior_defend")],
@@ -162,7 +159,6 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=100,
-            stage=1,
             actions=3,
             bonus_actions=0,
             deck=[CardState(id="fleeting_spark"), CardState(id="dagger_throw"), CardState(id="demon_form")],
@@ -191,7 +187,6 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=0,
-            stage=1,
             actions=5,
             bonus_actions=0,
             deck=[CardState(id="special_rlyeh_astrolabe")],
@@ -231,7 +226,6 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=100,
-            stage=1,
             actions=5,
             bonus_actions=5,
             deck=[CardState(id="commander_valiant_herald")] + copy.deepcopy(soldiers),
@@ -300,7 +294,6 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=0,
-            stage=1,
             actions=3,
             bonus_actions=0,
             deck=[CardState(id=probe_id)],
@@ -315,7 +308,6 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=0,
-            stage=1,
             minion_graveyard=["gate_guard", "water_elemental"],
         )
         run = GameRun(
@@ -363,7 +355,6 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=0,
-            stage=1,
             actions=4,
             bonus_actions=4,
             deck=[CardState(id="fire_bolt"), CardState(id="fire_bolt"), CardState(id="first_aid")],
@@ -403,7 +394,6 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=0,
-            stage=1,
             actions=1,
             bonus_actions=0,
             lex_kela=2,
@@ -458,3 +448,288 @@ class TestUnifiedSelectionSystem(unittest.IsolatedAsyncioTestCase):
         after_auto = load_run(self.plugin, self.uid)
         self.assertEqual(after_auto.player.hand, [])
         self.assertIn("fire_bolt", [c.id for c in after_auto.player.exhaust_pile])
+
+    async def test_r_and_status_render_screen_and_prompt_during_selection(self):
+        p1 = PlayerState(
+            name="忍者",
+            hp=60,
+            max_hp=80,
+            shield=0,
+            gold=0,
+            actions=2,
+            bonus_actions=0,
+            lex_kela=2,
+            deck=[CardState(id="ninja_frog_frog_go"), CardState(id="fire_bolt"), CardState(id="warrior_defend")],
+            hand=[CardState(id="ninja_frog_frog_go"), CardState(id="fire_bolt"), CardState(id="warrior_defend")],
+        )
+        run = GameRun(
+            user_id=self.uid,
+            player=p1,
+            enemies=[EnemyState(name="木桩", hp=100, max_hp=100, shield=0, intent_desc="待机")],
+            node_type="battle",
+        )
+        self.sm.save_save(self.uid, run)
+
+        await run_command(self.plugin, "p 1", sender_id=self.uid)
+        for cmd in ("r", "status"):
+            out = await run_command(self.plugin, cmd, sender_id=self.uid)
+            self.assertNotIn("❌", out)
+            self.assertIn("木桩", out)
+            self.assertIn("蛤蟆蛤蟆go", out)
+            self.assertIn("火焰弹", out)
+        self.assertEqual(len(load_run(self.plugin, self.uid).node_data.get("state_stack", [])), 1)
+        done = await run_command(self.plugin, "c 1", sender_id=self.uid)
+        self.assertIn("火焰弹", done)
+        self.assertEqual(len(load_run(self.plugin, self.uid).node_data.get("state_stack", [])), 0)
+
+    async def test_mercenary_auto_resolves_selection_cards(self):
+        merc_uid = f"merc_{self.uid}_1"
+        p1 = PlayerState(
+            name="队长",
+            hp=70,
+            max_hp=80,
+            shield=0,
+            gold=0,
+            actions=1,
+            bonus_actions=0,
+            deck=[CardState(id="fire_bolt")],
+            hand=[CardState(id="fire_bolt")],
+        )
+        merc = PlayerState(
+            name="忍者佣兵",
+            hp=60,
+            max_hp=60,
+            shield=0,
+            gold=0,
+            actions=2,
+            bonus_actions=0,
+            lex_kela=2,
+            is_mercenary=True,
+            mercenary_owner=self.uid,
+            mercenary_timing="after",
+            deck=[CardState(id="ninja_frog_frog_go"), CardState(id="fire_bolt"), CardState(id="warrior_defend")],
+            hand=[CardState(id="ninja_frog_frog_go"), CardState(id="fire_bolt"), CardState(id="warrior_defend")],
+        )
+        run = GameRun(
+            user_id=self.uid,
+            player=p1,
+            enemies=[EnemyState(name="木桩", hp=200, max_hp=200, shield=0, intent_desc="待机")],
+            node_type="battle",
+            node_data={"turn_ready": {self.uid: False, merc_uid: True}},
+            party_order=[self.uid, merc_uid],
+            players={self.uid: p1, merc_uid: merc},
+        )
+        self.sm.save_save(self.uid, run)
+
+        end_out = await run_command(self.plugin, "e", sender_id=self.uid)
+        self.assertIn("蛤蟆蛤蟆go", end_out)
+        self.assertNotIn("请选择 1 张要消耗的手牌", end_out)
+        after = load_run(self.plugin, self.uid)
+        self.assertEqual(len(after.node_data.get("state_stack", [])), 0)
+        self.assertIn("ninja_frog_frog_go", [c.id for c in after.players[merc_uid].exhaust_pile])
+        self.assertGreaterEqual(len(after.players[merc_uid].exhaust_pile), 2)
+
+    async def test_coop_selection_state_does_not_leak_to_teammate(self):
+        ally_uid = "coop_sel_ally"
+        run_id = "run_sel_iso_1"
+        p1 = PlayerState(
+            name="队友甲",
+            hp=70,
+            max_hp=80,
+            shield=0,
+            gold=0,
+            actions=2,
+            bonus_actions=0,
+            lex_kela=2,
+            deck=[CardState(id="ninja_frog_frog_go"), CardState(id="fire_bolt"), CardState(id="warrior_defend")],
+            hand=[CardState(id="ninja_frog_frog_go"), CardState(id="fire_bolt"), CardState(id="warrior_defend")],
+        )
+        p2 = PlayerState(
+            name="队友乙",
+            hp=70,
+            max_hp=80,
+            shield=0,
+            gold=0,
+            actions=2,
+            bonus_actions=2,
+            deck=[CardState(id="fire_bolt")],
+            hand=[CardState(id="fire_bolt")],
+        )
+        run = GameRun(
+            user_id=self.uid,
+            run_id=run_id,
+            player=p1,
+            enemies=[EnemyState(name="木桩", hp=100, max_hp=100, shield=0, intent_desc="待机")],
+            node_type="battle",
+            party_order=[self.uid, ally_uid],
+            players={self.uid: p1, ally_uid: p2},
+        )
+        for uid in (self.uid, ally_uid):
+            st = self.sm.load_stats(uid)
+            st.rogue_mode = True
+            st.active_run_id = run_id
+            self.sm.save_stats(uid, st)
+        self.sm.save_save(self.uid, run)
+
+        p1_prompt = await run_command(self.plugin, "p 1", sender_id=self.uid)
+        self.assertIn("蛤蟆蛤蟆go", p1_prompt)
+        self.assertEqual(len(load_run(self.plugin, self.uid).node_data.get("state_stack", [])), 1)
+
+        p2_run = load_run(self.plugin, ally_uid)
+        self.assertEqual(len(p2_run.node_data.get("state_stack", [])), 0)
+        p2_status = await run_command(self.plugin, "r", sender_id=ally_uid)
+        self.assertNotIn("请选择 1 张要消耗的手牌", p2_status)
+
+        p2_play = await run_command(self.plugin, "p 1", sender_id=ally_uid)
+        self.assertIn("火焰弹", p2_play)
+        self.assertEqual(load_run(self.plugin, ally_uid).enemies[0].hp, 97)
+
+        p1_finish = await run_command(self.plugin, "c 2", sender_id=self.uid)
+        self.assertIn("防御", p1_finish)
+        p1_after = load_run(self.plugin, self.uid)
+        self.assertEqual(len(p1_after.node_data.get("state_stack", [])), 0)
+        self.assertIn("warrior_defend", [c.id for c in p1_after.players[self.uid].exhaust_pile])
+
+    async def test_ninja_frog_frog_go_prompt_lists_options_and_echo_replay_triggers_multiple_selections(self):
+        from game.models.state import BuffState
+        p1 = PlayerState(
+            name="忍者",
+            hp=60,
+            max_hp=80,
+            shield=0,
+            gold=0,
+            actions=1,
+            bonus_actions=0,
+            lex_kela=3,
+            buffs=[BuffState(id="echo_form", name="回响形态", desc="回响", stacks=1)],
+            deck=[
+                CardState(id="ninja_frog_frog_go", replay=1),
+                CardState(id="fire_bolt"),
+                CardState(id="warrior_defend"),
+                CardState(id="warrior_strike"),
+                CardState(id="first_aid"),
+            ],
+            hand=[
+                CardState(id="ninja_frog_frog_go", replay=1),
+                CardState(id="fire_bolt"),
+                CardState(id="warrior_defend"),
+                CardState(id="warrior_strike"),
+                CardState(id="first_aid"),
+            ],
+        )
+        run = GameRun(
+            user_id=self.uid,
+            player=p1,
+            enemies=[EnemyState(name="木桩", hp=100, max_hp=100, shield=0, intent_desc="待机")],
+            node_type="battle",
+        )
+        self.sm.save_save(self.uid, run)
+
+        prompt1 = await run_command(self.plugin, "p 1", sender_id=self.uid)
+        self.assertIn("1. 火焰弹", prompt1)
+        self.assertIn("2. 防御", prompt1)
+        self.assertIn("3. 打击", prompt1)
+        self.assertIn("4. 绷带包扎", prompt1)
+
+        prompt2 = await run_command(self.plugin, "c 1", sender_id=self.uid)
+        self.assertIn("火焰弹", prompt2)
+        self.assertIn("1. 防御", prompt2)
+        self.assertIn("2. 打击", prompt2)
+        self.assertIn("3. 绷带包扎", prompt2)
+        mid1 = load_run(self.plugin, self.uid)
+        self.assertEqual(len(mid1.node_data.get("state_stack", [])), 1)
+        self.assertEqual(mid1.node_data["state_stack"][-1].get("phase"), "extra_play")
+
+        prompt3 = await run_command(self.plugin, "c 2", sender_id=self.uid)
+        self.assertIn("打击", prompt3)
+        self.assertIn("1. 防御", prompt3)
+        self.assertIn("2. 绷带包扎", prompt3)
+        mid2 = load_run(self.plugin, self.uid)
+        self.assertEqual(len(mid2.node_data.get("state_stack", [])), 1)
+        self.assertEqual(mid2.node_data["state_stack"][-1].get("phase"), "extra_play")
+
+        done = await run_command(self.plugin, "c 1", sender_id=self.uid)
+        self.assertIn("防御", done)
+        after = load_run(self.plugin, self.uid)
+        self.assertEqual(len(after.node_data.get("state_stack", [])), 0)
+        self.assertEqual([c.id for c in after.player.hand], ["first_aid"])
+        exhaust_ids = [c.id for c in after.player.exhaust_pile]
+        self.assertIn("fire_bolt", exhaust_ids)
+        self.assertIn("warrior_strike", exhaust_ids)
+        self.assertIn("warrior_defend", exhaust_ids)
+        self.assertIn("ninja_frog_frog_go", exhaust_ids)
+        self.assertEqual(after.player.actions, 4)
+        self.assertEqual(after.player.lex_kela, 0)
+
+    async def test_ninja_back_fourth_hand_select_retrieve_and_discard_with_echo(self):
+        from game.models.state import BuffState
+        p1 = PlayerState(
+            name="忍者",
+            hp=60,
+            max_hp=80,
+            shield=0,
+            gold=0,
+            actions=2,
+            bonus_actions=0,
+            buffs=[BuffState(id="echo_form", name="回响形态", desc="回响", stacks=1)],
+            deck=[
+                CardState(id="ninja_back_fourth_hand"),
+                CardState(id="dagger_throw"),
+                CardState(id="first_aid"),
+                CardState(id="fire_bolt"),
+                CardState(id="warrior_defend"),
+                CardState(id="warrior_strike"),
+            ],
+            hand=[
+                CardState(id="ninja_back_fourth_hand"),
+                CardState(id="dagger_throw"),
+                CardState(id="first_aid"),
+            ],
+            discard_pile=[
+                CardState(id="fire_bolt"),
+                CardState(id="warrior_defend"),
+                CardState(id="warrior_strike"),
+            ],
+        )
+        run = GameRun(
+            user_id=self.uid,
+            player=p1,
+            enemies=[EnemyState(name="木桩", hp=100, max_hp=100, shield=0, intent_desc="待机")],
+            node_type="battle",
+        )
+        self.sm.save_save(self.uid, run)
+
+        retrieve_prompt = await run_command(self.plugin, "p 1", sender_id=self.uid)
+        self.assertIn("1. 火焰弹", retrieve_prompt)
+        self.assertIn("2. 防御", retrieve_prompt)
+        self.assertIn("3. 打击", retrieve_prompt)
+
+        discard_prompt = await run_command(self.plugin, "c 1 3", sender_id=self.uid)
+        self.assertIn("哈回米内四又反手", discard_prompt)
+        self.assertIn("1. 匕首投掷", discard_prompt)
+        self.assertIn("2. 绷带包扎", discard_prompt)
+        self.assertIn("3. 火焰弹", discard_prompt)
+        self.assertIn("4. 打击", discard_prompt)
+        mid = load_run(self.plugin, self.uid)
+        self.assertEqual(mid.player.shield, 8)
+        self.assertEqual(mid.node_data["state_stack"][-1].get("phase"), "post_play")
+
+        echo_retrieve_prompt = await run_command(self.plugin, "c 2 3", sender_id=self.uid)
+        self.assertIn("绷带包扎", echo_retrieve_prompt)
+        self.assertIn("火焰弹", echo_retrieve_prompt)
+        self.assertIn("1. 防御", echo_retrieve_prompt)
+        mid_echo = load_run(self.plugin, self.uid)
+        self.assertEqual(mid_echo.node_data["state_stack"][-1].get("phase"), "extra_play")
+
+        echo_discard_prompt = await run_command(self.plugin, "c 1 2", sender_id=self.uid)
+        self.assertIn("请选择 2 张要丢弃的手牌", echo_discard_prompt)
+        mid_echo2 = load_run(self.plugin, self.uid)
+        self.assertEqual(mid_echo2.player.shield, 16)
+        self.assertEqual(mid_echo2.node_data["state_stack"][-1].get("phase"), "post_play")
+
+        done = await run_command(self.plugin, "c 1 2", sender_id=self.uid)
+        self.assertIn("丢弃了手牌", done)
+        after = load_run(self.plugin, self.uid)
+        self.assertEqual(len(after.node_data.get("state_stack", [])), 0)
+        self.assertEqual(len(after.player.hand), 2)
+        self.assertEqual(after.player.shield, 16)

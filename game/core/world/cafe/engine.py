@@ -231,11 +231,13 @@ class CafeEngine(CafeDialogMixin):
                 npcs_str += f"\n  - {NPC_SHOW_NAMES.get(npc, npc)}{status}"
             from .barista import render_cafe_room_extras
             from ....renderer.formatters import format_persistent_buff_bar
+            from ....data.world.grid_map_config import format_display_floor, get_run_floor_index
+            floor_label = format_display_floor(get_run_floor_index(run))
             lines = [
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 get_locale_text("i18n_map_cafe.cafe_title"),
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-                get_locale_text("i18n_map_cafe.cafe_header_stage", stage=p.stage, name=run.player.name),
+                get_locale_text("i18n_map_cafe.cafe_header_stage", stage=floor_label, name=run.player.name),
                 get_locale_text("i18n_map_cafe.cafe_header_stats", hp=p.hp, max_hp=p.max_hp, gold=p.gold) + format_persistent_buff_bar(p),
                 "" if not p.relics else get_locale_text("i18n_map_cafe.cafe_relics_prefix") + " ".join(f"【{get_relic_name(r)}】" for r in p.relics),
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",

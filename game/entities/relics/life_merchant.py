@@ -74,15 +74,17 @@ class SanguineCrownRelic(RelicImpl):
         run.node_data[used_key] = True
         if engine.is_battle_won(run):
             return
-        extra_res = engine._execute_card_effect(run, event.card, event.target)
-        played_evt = CardPlayedEvent(run, event.card, event.target, extra_res, is_extra=True)
-        engine.event_bus.dispatch(played_evt)
-        run.node_data.setdefault("extra_play_msgs", []).append(
-            get_locale_text(
-                "i18n_relics_amulets.mythic.sanguine_crown.extra_play",
-                name=event.card.name,
-                feedback=played_evt.feedback,
-            )
+        from ...core.battle.card_executor import execute_extra_card_effect
+        execute_extra_card_effect(
+            engine,
+            run,
+            event.card,
+            event.target,
+            trigger_type="sanguine_crown",
+            dispatch_played_event=True,
+            dispatch_extra_event=False,
+            msg_key="i18n_relics_amulets.mythic.sanguine_crown.extra_play",
+            msg_params={"name": event.card.name},
         )
 
 

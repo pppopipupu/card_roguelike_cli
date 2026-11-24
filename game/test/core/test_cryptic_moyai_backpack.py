@@ -22,7 +22,6 @@ class TestCrypticMoyaiBackpack(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=100,
-            stage=1,
             actions=3,
             bonus_actions=0,
             deck=[
@@ -67,7 +66,6 @@ class TestCrypticMoyaiBackpack(unittest.IsolatedAsyncioTestCase):
             max_hp=80,
             shield=0,
             gold=1000,
-            stage=1,
             deck=[CardState(id="strike")],
         )
         run = GameRun(user_id=self.uid, player=player, node_type="explore")

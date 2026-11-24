@@ -27,7 +27,7 @@ class TestMillikaCard(unittest.TestCase):
 
     def build_battle(self, uid, hand, draw_pile, discard_pile, deck=None, minions=None, hp=1000, node_data=None, enemy=None):
         p = PlayerState(
-            hp=hp, max_hp=hp, shield=0, gold=0, stage=1,
+            hp=hp, max_hp=hp, shield=0, gold=0,
             deck=deck or [], hand=hand, draw_pile=draw_pile, discard_pile=discard_pile,
             exhaust_pile=[], graveyard=[], actions=1, bonus_actions=1,
             minions=minions or {},

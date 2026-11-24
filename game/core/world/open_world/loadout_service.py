@@ -95,7 +95,6 @@ class OpenWorldLoadoutService:
         hp: Optional[int] = None,
         max_hp: Optional[int] = None,
         gold: Optional[int] = None,
-        stage: int = 0,
     ) -> PlayerState:
         selected_class = getattr(stats, "selected_class", "法师")
         selected_subclass = getattr(stats, "selected_subclass", "")
@@ -108,7 +107,6 @@ class OpenWorldLoadoutService:
             max_hp=resolved_max_hp,
             shield=0,
             gold=resolved_gold,
-            stage=stage,
             name=getattr(stats, "player_name", user_id),
             deck=[],
             relics=[],

@@ -3,6 +3,11 @@ from typing import Optional
 from ....data.text.locale_data import get_locale_text
 from ....models.events import CardPlayEvent
 from ....models.state import Card, GameRun
+from .extra_play_flow import (
+    card_state_meta,
+    drain_pending_extra_plays,
+    resolve_pre_play_post_and_extra,
+)
 from .selector import TargetSelectorParser
 from .session_state import (
     _advance_session,
@@ -68,28 +73,29 @@ def _execute_pre_play_card(
     run.node_data["current_playing_card_cid"] = c_state
     run.node_data["current_playing_card_id"] = card.id
     run.node_data["extra_play_msgs"] = []
+    suspended_after = False
     try:
         res = card.execute_with_selections(run, selections, engine)
-        if already_suspended:
-            engine.resolve_suspended_card(run, target=primary_target)
-        else:
-            res, _ = card_player._finalize_card_play(
-                run,
-                p,
-                card,
-                c_state,
-                primary_target,
-                res,
-                source="played",
-                register=True,
-            )
+        res, suspended_after = resolve_pre_play_post_and_extra(
+            card_player,
+            run,
+            card,
+            c_state,
+            hand_idx,
+            primary_target,
+            req_a,
+            req_ba,
+            res,
+            already_suspended=already_suspended,
+        )
     finally:
         run.node_data["current_playing_card_id"] = ""
         run.node_data["current_playing_card_cid"] = ""
         run.node_data.pop("current_playing_card_hand_idx", None)
         run.node_data.pop("split_to_ten_active", None)
     engine.save_manager.save_save(run.user_id, run)
-    res = card_player._post_battle_action_check(run, initial_status, res, p)
+    if not suspended_after:
+        res = card_player._post_battle_action_check(run, initial_status, res, p)
     return engine._append_logs_to_res(run, res)
 
 
@@ -203,9 +209,11 @@ def _start_post_play_selection(
     session_steps = [_step_to_dict(s, TargetSelectorParser.build_candidates(run, s)) for s in follow_specs]
     session = {
         "type": "interaction_session",
+        "owner_uid": run.user_id,
         "card_id": card.id,
         "card_name": card.name,
         "upgraded": bool(card.upgraded),
+        "card_meta": card_state_meta(card),
         "phase": "post_play",
         "can_cancel": bool(spec.get("can_cancel", False)),
         "steps": session_steps,
@@ -216,8 +224,10 @@ def _start_post_play_selection(
     if all_done:
         post_res = card.execute_post_selections(run, _build_selections_payload(session), engine)
         combined = f"{res}\n{post_res}".strip() if post_res else res
+        combined, suspended_extra = drain_pending_extra_plays(card_player, run, combined)
         engine.save_manager.save_save(run.user_id, run)
-        combined = card_player._post_battle_action_check(run, initial_status, combined, p)
+        if not suspended_extra:
+            combined = card_player._post_battle_action_check(run, initial_status, combined, p)
         return engine._append_logs_to_res(run, combined)
 
     run.node_data.setdefault("state_stack", []).append(session)
@@ -257,6 +267,7 @@ def start_card_selection(
 
     session = {
         "type": "interaction_session",
+        "owner_uid": run.user_id,
         "card_id": card.id,
         "card_name": card.name,
         "upgraded": bool(card.upgraded),

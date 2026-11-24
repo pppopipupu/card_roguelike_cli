@@ -24,6 +24,12 @@ class AdminContext:
     def lock(self, user_id: Optional[str] = None):
         return self.server._get_user_lock(user_id or self.target_user_id)
 
+    def resolve_user(self, query: str) -> Optional[str]:
+        from .resolvers import resolve_target_user
+        router = getattr(self.server, "admin_router", None)
+        resolver = getattr(router, "user_resolver", None)
+        return resolve_target_user(self.save_manager, query, user_resolver=resolver)
+
 
 class AdminCommandHandler:
     aliases: Tuple[str, ...] = ()
@@ -93,6 +99,10 @@ def extract_target_option(parts: list[str]) -> Tuple[Optional[str], list[str]]:
 class AdminCommandRouter:
     def __init__(self, server: Any):
         self.server = server
+        self.user_resolver: Optional[Callable[[str], Optional[str]]] = None
+
+    def set_user_resolver(self, resolver: Optional[Callable[[str], Optional[str]]]) -> None:
+        self.user_resolver = resolver
 
     async def dispatch(self, user_id: str, message: str) -> str:
         set_user_id(user_id)
@@ -113,7 +123,11 @@ class AdminCommandRouter:
 
         target_user_id = user_id
         if target_override:
-            resolved_uid = resolve_target_user(self.server.save_manager, target_override)
+            resolved_uid = resolve_target_user(
+                self.server.save_manager,
+                target_override,
+                user_resolver=self.user_resolver,
+            )
             if resolved_uid is None:
                 return get_locale_text("i18n_admin.err_user_not_found", user=target_override)
             target_user_id = resolved_uid
@@ -126,7 +140,11 @@ class AdminCommandRouter:
             args=parts[1:],
         )
         handler = handler_cls()
-        return await handler.execute(ctx)
+        set_user_id(target_user_id)
+        try:
+            return await handler.execute(ctx)
+        finally:
+            set_user_id(user_id)
 
 
 CATEGORY_ORDER = ("config", "entity", "battle", "world", "save")

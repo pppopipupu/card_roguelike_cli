@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 from .state import GameRun, UserStats
-from ..data.world.map_config import MapConfig
+from ..data.entities.corpse_config import CorpseConfig
+from ..data.world.grid_map_config import FINAL_BOSS_FLOOR, format_display_floor, get_run_floor_index
 from ..data.text.locale_data import get_locale_text
 
 
@@ -20,8 +21,6 @@ class SettlementMixin:
         def save_save(self, user_id: str, run: GameRun) -> bool: ...
 
         def delete_save(self, user_id: str) -> bool: ...
-
-        def delete_coop_save(self, coop_id: str) -> bool: ...
 
         def load_lobbies(self) -> dict[str, Lobby]: ...
 
@@ -89,13 +88,10 @@ class SettlementMixin:
             results.append(result)
             lines.append(get_locale_text("i18n_models.manager.settle_coop_line", name=player.name, result=result))
             stats = self.load_stats(uid)
-            stats.active_coop_id = ""
             stats.active_lobby_id = ""
             self.save_stats(uid, stats)
         run.player = original_player
         run.user_id = original_user
-        if getattr(run, "coop_id", ""):
-            self.delete_coop_save(run.coop_id)
         self.delete_save(user_id)
         if run.player_count() <= 1 and results:
             return results[0]
@@ -105,7 +101,10 @@ class SettlementMixin:
             if delete_personal:
                 self.delete_save(user_id)
             return get_locale_text("i18n_models.manager.settle_no_progress")
-        stage = run.player.stage
+        floor_index = get_run_floor_index(run)
+        floor_label = format_display_floor(floor_index)
+        fm = getattr(run, "floor_map", None)
+        cleared_rooms = sum(1 for r in fm.rooms.values() if r.cleared) if fm is not None else 0
         gold = run.player.gold
         corpse_note = ""
         if create_corpse and not is_victory:
@@ -113,10 +112,10 @@ class SettlementMixin:
             if run.node_data:
                 cause = str(run.node_data.get("death_cause", "")).strip()
             if not cause:
-                cause = get_locale_text("i18n_models.manager.settle_fall_at_stage", stage=stage)
+                cause = get_locale_text("i18n_models.manager.settle_fall_at_stage", stage=floor_label)
             corpse = self.corpses.create_from_run(run, cause)
             if corpse:
-                corpse_note = get_locale_text("i18n_models.manager.settle_corpse_note", stage=stage)
+                corpse_note = get_locale_text("i18n_models.manager.settle_corpse_note", stage=floor_label)
         stats = self.load_stats(user_id)
         carryover_note = ""
         if is_victory or run.player.hp > 0:
@@ -127,10 +126,11 @@ class SettlementMixin:
         from ..core.world.map_quest_service import sync_run_to_stats
         sync_run_to_stats(run, stats)
         self.save_stats(user_id, stats)
-        if stage < 5:
+        qualifies_gp = is_victory or float(floor_index) >= CorpseConfig.MIN_FLOOR_FOR_GP or cleared_rooms >= CorpseConfig.MIN_CLEARED_ROOMS_FOR_GP
+        if not qualifies_gp:
             if delete_personal:
                 self.delete_save(user_id)
-            return get_locale_text("i18n_models.manager.settle_too_shallow", stage=stage, corpse_note=corpse_note, carryover_note=carryover_note)
+            return get_locale_text("i18n_models.manager.settle_too_shallow", stage=floor_label, corpse_note=corpse_note, carryover_note=carryover_note)
         gp_gained = gold * 10
         victory_bonus = ""
         unlock_msg = ""
@@ -138,7 +138,7 @@ class SettlementMixin:
             ach_stats = getattr(stats, "achievement_stats", None)
             if isinstance(ach_stats, dict):
                 ach_stats["wins"] = int(ach_stats.get("wins", 0) or 0) + 1
-            if stage == MapConfig.FINAL_BOSS_STAGE:
+            if floor_index == FINAL_BOSS_FLOOR:
                 gp_gained += 3000
                 victory_bonus = get_locale_text("i18n_models.manager.settle_bonus_final")
                 unlock_msg = get_locale_text("i18n_models.manager.settle_unlock_final")

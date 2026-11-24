@@ -70,8 +70,7 @@ def _party_quest_members(save_manager, user_id: str, stats) -> tuple[list[str] |
         if getattr(member_stats, "active_lobby_id", "") != lobby_id:
             return [], get_locale_text("i18n_world_social.team_quest.member_not_town", name=profile_name)
         if (
-            getattr(member_stats, "active_coop_id", "")
-            or save_manager.has_personal_save(member_uid)
+            save_manager.has_active_save(member_uid)
             or member_stats.town_flags.get(OUTER_PLANE_ACTIVE_FLAG)
         ):
             return [], get_locale_text("i18n_world_social.team_quest.member_busy", name=profile_name)
@@ -85,14 +84,13 @@ def _party_quest_members(save_manager, user_id: str, stats) -> tuple[list[str] |
 
 
 def _start_party_quest(save_manager, engine, user_id: str, members: list[str]) -> str:
-    coop_id = uuid.uuid4().hex[:8]
+    run_id = uuid.uuid4().hex[:8]
     lobby_id = getattr(save_manager.load_stats(user_id), "active_lobby_id", "")
     players = {}
     member_stats = {}
     for member_uid in members:
         m_stats = save_manager.load_stats(member_uid)
         player = OpenWorldLoadoutService.build_player_state(member_uid, m_stats)
-        player.stage = int(FLOOR_CONFIGS[YOG_FLOOR_WILDS]["stage_min"])
         players[member_uid] = player
         member_stats[member_uid] = m_stats
         save_manager.save_stats(member_uid, m_stats)
@@ -103,7 +101,7 @@ def _start_party_quest(save_manager, engine, user_id: str, members: list[str]) -
         player=leader_player,
         enemies=[],
         node_data={"yog_quest": True},
-        coop_id=coop_id,
+        run_id=run_id,
         leader_id=user_id,
         party_order=list(members),
         players=players,
@@ -117,7 +115,7 @@ def _start_party_quest(save_manager, engine, user_id: str, members: list[str]) -
             stats.town_flags[YOG_QUEST_FLAG] = "started"
         stats.town_flags[YOG_QUEST_ZONE_KEY] = 0
         stats.in_town = False
-        stats.active_coop_id = coop_id
+        stats.active_run_id = run_id
         stats.active_lobby_id = ""
         save_manager.save_stats(member_uid, stats)
     save_manager.save_save(user_id, run)
@@ -141,33 +139,7 @@ def start_quest_run(save_manager, engine, user_id: str) -> Optional[str]:
     members, party_error = _party_quest_members(save_manager, user_id, stats)
     if party_error:
         return party_error
-    if members:
-        return _start_party_quest(save_manager, engine, user_id, members)
-    lobby_id = getattr(stats, "active_lobby_id", "")
-    if lobby_id:
-        stats.active_lobby_id = ""
-        save_manager.delete_lobby(lobby_id)
-    player = OpenWorldLoadoutService.build_player_state(user_id, stats)
-    run = GameRun(
-        user_id=user_id,
-        node_type="grid_map",
-        player=player,
-        enemies=[],
-        node_data={"yog_quest": True},
-        party_order=[user_id],
-        leader_id=user_id,
-        players={user_id: player},
-    )
-    run.floor_map = generate_yog_quest_floor(run, YOG_FLOOR_WILDS)
-    player.stage = int(FLOOR_CONFIGS[YOG_FLOOR_WILDS]["stage_min"])
-    if stats.town_flags.get(YOG_QUEST_FLAG) != "completed":
-        stats.town_flags[YOG_QUEST_FLAG] = "started"
-    stats.town_flags[YOG_QUEST_ZONE_KEY] = 0
-    stats.in_town = False
-    save_manager.save_stats(user_id, stats)
-    save_manager.save_save(user_id, run)
-    sync_active(user_id, stats=stats, run=run)
-    return get_locale_text("i18n_yog_quest.enter.first") + "\n\n" + GameRenderer.render_game(run)
+    return _start_party_quest(save_manager, engine, user_id, members or [user_id])
 
 
 def finish_quest(save_manager, map_engine, run: GameRun) -> str:
@@ -177,7 +149,6 @@ def finish_quest(save_manager, map_engine, run: GameRun) -> str:
     fm = getattr(run, "floor_map", None)
     flags = dict((fm.floor_flags.get("yog_flags") or {})) if fm is not None else {}
     butcher = bool(flags.get("altar_defiled") or flags.get("blade_offered"))
-    coop_id = getattr(run, "coop_id", "")
     members = list(run.all_human_uids()) if hasattr(run, "all_human_uids") else [uid]
     stats_by_uid = {}
     for member_uid in members:
@@ -193,15 +164,11 @@ def finish_quest(save_manager, map_engine, run: GameRun) -> str:
             stats.town_inventory.append(NECRONOMICON_ITEM)
         stats.in_town = True
         stats.town_pos = "square"
-        stats.active_coop_id = ""
         stats.active_lobby_id = ""
         save_manager.save_stats(member_uid, stats)
         stats_by_uid[member_uid] = stats
     run.node_data["yog_finished"] = True
-    if coop_id:
-        save_manager.delete_coop_save(coop_id)
-    else:
-        save_manager.delete_save(uid)
+    save_manager.delete_save(uid)
     achievement = AchievementService(save_manager)
     for member_uid, stats in stats_by_uid.items():
         achievement.unlock(member_uid, "temple_awakening", stats=stats)

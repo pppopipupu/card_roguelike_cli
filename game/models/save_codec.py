@@ -118,7 +118,6 @@ class SaveCodecMixin:
             max_hp=p_data["max_hp"],
             shield=p_data["shield"],
             gold=p_data["gold"],
-            stage=p_data["stage"],
             name=p_data.get("name", "玩家"),
             deck=p_data.get("deck", []),
             draw_pile=p_data.get("draw_pile", []),
@@ -336,11 +335,12 @@ class SaveCodecMixin:
             node_data=d.get("node_data", {}),
             map_data=d.get("map_data", {}),
             player2=player2,
-            coop_id=d.get("coop_id", ""),
+            run_id=d.get("run_id") or d.get("coop_id") or "",
             leader_id=d.get("leader_id", ""),
             party_order=d.get("party_order", []),
             players=players,
             floor_map=floor_map,
+            end_reason=d.get("end_reason") or d.get("coop_end_reason") or "",
         )
         from ..data.entities.relic_data import migrate_relic_id
         for state in [run.player, run.player2, *run.players.values()]:

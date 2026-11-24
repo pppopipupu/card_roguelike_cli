@@ -177,7 +177,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         if not run.player or run.player.downed:
             if is_all_downed(run):
                 if multi:
-                    run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
+                    run.end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(run.user_id, run, is_victory=False)
                 if multi:
                     return [locale_text(key="i18n_explore_core.coop_wipe_simple", params={"settle_msg": settle_msg})]
@@ -192,7 +192,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         if self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
-                    run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
+                    run.end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
                     return [locale_text(key="i18n_explore_core.coop_wipe_simple", params={"settle_msg": settle_msg})]
@@ -208,7 +208,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         if extra_events and self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
-                    run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
+                    run.end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
                     return [locale_text(key="i18n_explore_core.coop_wipe_simple", params={"settle_msg": settle_msg})]
@@ -252,7 +252,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         if self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
-                    run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
+                    run.end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
                     return [locale_text(key="i18n_explore_core.coop_wipe_enemy_log", params={
@@ -272,7 +272,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         if self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
-                    run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
+                    run.end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
                     return [locale_text(key="i18n_explore_core.coop_wipe_enemy_log", params={
@@ -287,7 +287,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
             return self._finish_turn(run, self._victory_events(enemy_events), viewer_uid)
         if is_all_downed(run):
             if multi:
-                run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
+                run.end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
             settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
             if multi:
                 return [locale_text(key="i18n_explore_core.coop_wipe_enemy_log", params={
@@ -302,7 +302,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         if self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
-                    run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
+                    run.end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
                     return [locale_text(key="i18n_explore_core.coop_wipe_enemy_log", params={
@@ -335,7 +335,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
         if self.engine.is_battle_won(run):
             if is_all_downed(run):
                 if multi:
-                    run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
+                    run.end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
                 settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
                 if multi:
                     return [locale_text(key="i18n_explore_core.coop_wipe_joined", params={
@@ -351,7 +351,7 @@ class CardPlayerTurnMixin(CardPlayerEngineMixin):
             return self._finish_turn(run, self._victory_events(enemy_events + turn_logs), viewer_uid)
         if is_all_downed(run):
             if multi:
-                run.coop_end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
+                run.end_reason = get_locale_text("i18n_explore_core.coop_end_reason")
             settle_msg = self.engine.save_manager.settle_game_and_delete(viewer_uid, run, is_victory=False)
             if multi:
                 return [locale_text(key="i18n_explore_core.coop_wipe_joined", params={

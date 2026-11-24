@@ -229,7 +229,7 @@ class EnemyTurnController:
                 finally:
                     run.node_data.pop("enemy_single_target_attack", None)
                 if is_all_downed(run) or (run.node_data or {}).get("non_lethal_result"):
-                    if is_all_downed(run) and run.player_count() > 1:
+                    if is_all_downed(run) and len(run.all_human_uids()) > 1:
                         logs.append(locale_text(key="i18n_battle_core.coop_all_downed_log"))
                     break
             if is_all_downed(run) or (run.node_data or {}).get("non_lethal_result"):

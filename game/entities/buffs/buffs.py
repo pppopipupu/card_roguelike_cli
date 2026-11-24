@@ -53,15 +53,19 @@ class EchoFormBuff(BuffImpl):
             stacks = max(0, stacks - 1)
         num_echoes = min(_stat(self, "echo_form", "max_echoes", 5), max(0, stacks - _stat(self, "echo_form", "echo_stack_cost", 5) * played_count))
         if num_echoes > 0:
+            from ...core.battle.card_executor import execute_extra_card_effect
             for _ in range(num_echoes):
                 if event.engine.is_battle_won(event.run):
                     break
-                extra_res = event.engine._execute_card_effect(event.run, event.card, event.target)
-                from ...models.events import CardExtraTriggerEvent, CardPlayedEvent
-                played_evt = CardPlayedEvent(event.run, event.card, event.target, extra_res, is_extra=True)
-                event.engine.event_bus.dispatch(played_evt)
-                event.engine.event_bus.dispatch(CardExtraTriggerEvent(event.run, event.card, "echo"))
-                event.run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.echo_trigger_msg", res=played_evt.feedback))
+                execute_extra_card_effect(
+                    event.engine,
+                    event.run,
+                    event.card,
+                    event.target,
+                    trigger_type="echo",
+                    dispatch_played_event=True,
+                    msg_key="i18n_buffs.echo_trigger_msg",
+                )
 
     def on_card_played_legacy(self, run, card, target: str, engine) -> str:
         played_count = run.node_data.get(run.turn_key("cards_played_this_turn", run.player), 0)
@@ -181,12 +185,21 @@ class DoubleTapBuff(BuffImpl):
         if entity == event.run.player:
             dtype = getattr(event.card, "damage_type", "spell")
             if is_physical_damage(dtype):
+                from ...core.battle.card_executor import execute_extra_card_effect
                 stacks = buff_state.stacks
                 for _ in range(stacks):
                     if event.engine.is_battle_won(event.run):
                         break
-                    extra_res = event.engine._execute_card_effect(event.run, event.card, event.target)
-                    event.run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.double_tap_trigger_msg", res=extra_res))
+                    execute_extra_card_effect(
+                        event.engine,
+                        event.run,
+                        event.card,
+                        event.target,
+                        trigger_type="double_tap",
+                        dispatch_played_event=False,
+                        dispatch_extra_event=False,
+                        msg_key="i18n_buffs.double_tap_trigger_msg",
+                    )
                 if buff_state in event.run.player.buffs:
                     event.run.player.buffs.remove(buff_state)
 
@@ -391,14 +404,20 @@ class DemonContractBuff(BuffImpl):
                 card_id = card_id[5:]
             if card_id.startswith("demon_contract"):
                 return
+            from ...core.battle.card_executor import execute_extra_card_effect
             stacks = buff_state.stacks
             for _ in range(stacks):
                 if event.engine.is_battle_won(event.run):
                     break
-                extra_res = event.engine._execute_card_effect(event.run, event.card, event.target)
-                from ...models.events import CardExtraTriggerEvent
-                event.engine.event_bus.dispatch(CardExtraTriggerEvent(event.run, event.card, "echo"))
-                event.run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.demon_contract_trigger_msg", res=extra_res))
+                execute_extra_card_effect(
+                    event.engine,
+                    event.run,
+                    event.card,
+                    event.target,
+                    trigger_type="echo",
+                    dispatch_played_event=False,
+                    msg_key="i18n_buffs.demon_contract_trigger_msg",
+                )
             if buff_state in event.run.player.buffs:
                 event.run.player.buffs.remove(buff_state)
 
@@ -683,15 +702,13 @@ class SplitToTenBuff(BuffImpl):
             for _ in range(replay_amount):
                 if engine.is_battle_won(run):
                     break
-                extra_res = execute_extra_card_effect(
+                execute_extra_card_effect(
                     engine,
                     run,
                     event.card,
                     event.target,
                     trigger_type="split_to_ten",
-                )
-                run.node_data.setdefault("extra_play_msgs", []).append(
-                    get_locale_text("i18n_battle_core.split_to_ten_extra", feedback=extra_res)
+                    msg_key="i18n_battle_core.split_to_ten_extra",
                 )
         finally:
             run.node_data.pop("split_to_ten_running", None)

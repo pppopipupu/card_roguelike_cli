@@ -37,6 +37,9 @@ def open_shop_dialog(explore_engine, run) -> str:
     run.node_data["shop_mode"] = "dialog"
     run.node_data["dialog_state"] = "start"
     explore_engine.save_manager.save_save(run.user_id, run)
+    from ....models.state import is_in_queue
+    if is_in_queue(run):
+        return ""
     return render_shop_view(run)
 
 
@@ -50,9 +53,11 @@ def render_shop_view(run) -> str:
     merchant_dead = bool(run.node_data.get("merchant_defeated")) or (room is not None and bool(room.shared_payload.get("merchant_defeated")))
     from ....renderer.formatters import format_npcs_and_players_line, format_persistent_buff_bar
     from ..presence import render_players_for
+    from ....data.world.grid_map_config import format_display_floor, get_run_floor_index
+    floor_label = format_display_floor(get_run_floor_index(run))
     lines = [
         get_locale_text("renderer_explore.separator"),
-        get_locale_text("i18n_room_interact.shop.lobby_title", stage=p.stage) if mode == "lobby" else get_locale_text("i18n_room_interact.shop.dialog_title"),
+        get_locale_text("i18n_room_interact.shop.lobby_title", stage=floor_label) if mode == "lobby" else get_locale_text("i18n_room_interact.shop.dialog_title"),
         get_locale_text("renderer_explore.status_line", name=p.name, hp=p.hp, max_hp=p.max_hp, gold=p.gold) + format_persistent_buff_bar(p),
     ]
     npcs_line = format_npcs_and_players_line(None, render_players_for(run.user_id, run=run))
@@ -120,6 +125,9 @@ def handle_shop_lobby_or_dialog_choice(explore_engine, run, option_idx: int) -> 
     if option_idx == 1:
         run.node_data["shop_mode"] = "wares"
         explore_engine.save_manager.save_save(run.user_id, run)
+        from ....models.state import is_in_queue
+        if is_in_queue(run):
+            return ""
         return render_shop_view(run)
     if option_idx == 2:
         if run.node_data.get("haggled"):
@@ -172,5 +180,8 @@ def handle_shop_lobby_or_dialog_choice(explore_engine, run, option_idx: int) -> 
     if option_idx == 6:
         run.node_data["shop_mode"] = "lobby"
         explore_engine.save_manager.save_save(run.user_id, run)
+        from ....models.state import is_in_queue
+        if is_in_queue(run):
+            return ""
         return render_shop_view(run)
     return get_locale_text("err_invalid_option_idx")

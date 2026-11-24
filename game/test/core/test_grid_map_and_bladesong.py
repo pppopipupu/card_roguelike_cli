@@ -415,7 +415,6 @@ class TestGridMapAndBladesong(unittest.TestCase):
         self.assertEqual(len(floor2.node_data.get("options", [])), 5)
         self.assertEqual(floor2.player.sp, floor2.player.max_sp)
         self.assertEqual(floor2.player.exhaustion, 1)
-        self.assertEqual(floor2.player.stage, FLOOR_CONFIGS[2]["stage_min"])
 
         bless_res = self.run_cmd("c 1", "gm_lm")
         self.assertIn("先古赐福", bless_res)

@@ -6,7 +6,6 @@ import unittest
 from game.models.state import CardState
 from game.data.progression.balance_config import COOP_MAX_PLAYERS
 from game.data.world.cafe_data import CAFE_GUESTS, CAFE_NORMALS, CAFE_NPCS_PER_EXTRA_PLAYER, CAFE_TOTAL_NPCS, NPC_SHOW_NAMES
-from game.data.world.map_config import MapConfig
 from game.test.core.base import CorePlugin, floor_of, load_run, move_to_room, run_command, walk_to_boss_battle
 
 
@@ -29,7 +28,7 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
             stats.player_name = f"玩家{index}"
             stats.player_handle = f"玩家{index}"
             self.plugin.save_manager.save_stats(uid, stats)
-        self.plugin.engine.start_party_game(uids, uids[0], shared_save=True)
+        self.plugin.engine.start_party_game(uids, uids[0])
         for uid in uids:
             res = self.run_cmd("c 1", uid)
             self.assertIn("契约达成", res)
@@ -62,7 +61,7 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         self.assertEqual(len(run.party_order), 16)
 
         with self.assertRaises(ValueError):
-            self.plugin.engine.start_party_game(uids + ["cap_overflow"], uids[0], shared_save=True)
+            self.plugin.engine.start_party_game(uids + ["cap_overflow"], uids[0])
 
         battle_run = walk_to_boss_battle(self.plugin, uids[0])
         self.assertIsNotNone(battle_run)
@@ -181,7 +180,7 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
             ready = self.run_cmd("team ready", uid)
             self.assertIn("已准备就绪", ready)
         started = self.run_cmd("team start", leader)
-        self.assertIn("已开启联机牌局", started)
+        self.assertIn("已开启冒险", started)
         run = load_run(self.plugin, leader)
         self.assertEqual(len(run.players), 6)
 
@@ -450,6 +449,51 @@ class TestRogueCoopCafeAndCapacity(unittest.TestCase):
         self.assertIn("加入", accept_res)
         b_joined = load_run(self.plugin, uids[1])
         self.assertEqual(b_joined.node_type, "battle")
+
+    def test_team_command_list_and_solo_with_mercenary_unified(self):
+        random.seed(11)
+        uid = "solo_merc_team_user"
+        st = self.plugin.save_manager.load_stats(uid)
+        st.hired_mercenaries = ["harry_du_bois"]
+        self.plugin.save_manager.save_stats(uid, st)
+
+        usage_idle = self.run_cmd("team", uid)
+        self.assertIn("team create", usage_idle)
+        self.assertIn("team coord", usage_idle)
+
+        self.run_cmd("start", uid)
+        self.run_cmd("c 1", uid)
+        run = load_run(self.plugin, uid)
+        self.assertTrue(bool(run.run_id))
+        self.assertEqual(self.plugin.save_manager.load_stats(uid).active_run_id, run.run_id)
+        self.assertEqual(len(run.all_human_uids()), 1)
+        self.assertGreater(run.player_count(), 1)
+
+        usage_in_run = self.run_cmd("team", uid)
+        self.assertIn("team create", usage_in_run)
+        self.assertNotIn("联机牌局中", usage_in_run)
+
+        status_in_run = self.run_cmd("team status", uid)
+        self.assertIn("哈里", status_in_run)
+        self.assertIn("雇佣兵", status_in_run)
+        self.assertNotIn("联机牌局中", status_in_run)
+
+        coord_in_run = self.run_cmd("team coord", uid)
+        self.assertIn("哈里", coord_in_run)
+        self.assertIn("雇佣兵", coord_in_run)
+
+        _, battle_run = move_to_room(self.plugin, uid, ("battle",), rally=False)
+        self.assertEqual(battle_run.node_type, "battle")
+        end_out = self.run_cmd("e", uid)
+        self.assertNotIn("等待队友", end_out)
+
+        uids = ["mp_team_a", "mp_team_b"]
+        self._start_coop_direct(uids)
+        mp_usage = self.run_cmd("team", uids[0])
+        self.assertIn("team create", mp_usage)
+        self.assertNotIn("联机牌局中", mp_usage)
+        mp_status = self.run_cmd("team status", uids[0])
+        self.assertIn("团队实时位置", mp_status)
 
 
 if __name__ == "__main__":

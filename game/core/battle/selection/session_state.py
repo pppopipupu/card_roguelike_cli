@@ -86,10 +86,9 @@ def _is_step_complete(step: dict) -> bool:
     selected_cnt = len(step.get("selected", []))
     remaining_cnt = len(_remaining_for_step(step))
     max_cnt = int(step.get("max_count", 1))
-    min_cnt = int(step.get("min_count", 1))
     if selected_cnt >= max_cnt:
         return True
-    if remaining_cnt == 0 and selected_cnt >= min_cnt:
+    if remaining_cnt == 0:
         return True
     if not step.get("candidates") and not step.get("required", True):
         return True
@@ -100,9 +99,12 @@ def _try_auto_fill_step(step: dict) -> bool:
     if not step.get("auto_single", True):
         return False
     changed = False
+    min_cnt = int(step.get("min_count", 1))
+    required = bool(step.get("required", True))
     while not _is_step_complete(step):
         remaining = _remaining_for_step(step)
-        if len(remaining) == 1:
+        need_min = max(0, min_cnt - len(step.get("selected", [])))
+        if len(remaining) == 1 or (required and 0 < len(remaining) <= need_min):
             only_cand = dict(remaining[0])
             only_cand["auto_filled"] = True
             step.setdefault("selected", []).append(only_cand)
@@ -141,6 +143,8 @@ def _render_step_prompt(session: dict, step: dict, prefix_msg: str = "") -> str:
             exhaust_list=options_str,
             hand_list=options_str,
         )
+    if options_str and options_str not in body:
+        body = f"{body}\n{options_str}" if body else options_str
     hints = []
     if not step.get("required", True) or (len(selected) >= int(step.get("min_count", 1)) and int(step.get("max_count", 1)) > len(selected)):
         hints.append(
@@ -154,6 +158,20 @@ def _render_step_prompt(session: dict, step: dict, prefix_msg: str = "") -> str:
         hints.append(get_locale_text("i18n_cli_core.select_prompt_back_hint"))
     full = "\n".join([p for p in [prefix_msg, body, *hints] if p])
     return full
+
+
+def render_active_selection_prompt(run) -> str:
+    state_stack = (getattr(run, "node_data", None) or {}).get("state_stack") or []
+    if not state_stack:
+        return ""
+    session = state_stack[-1]
+    if not isinstance(session, dict) or session.get("type") not in ("interaction_session", "card_selection"):
+        return ""
+    steps = session.get("steps") or []
+    if not steps:
+        return ""
+    cur_idx = min(int(session.get("current_step", 0)), len(steps) - 1)
+    return _render_step_prompt(session, steps[cur_idx])
 
 
 def _has_manual_history(session: dict) -> bool:
@@ -254,6 +272,21 @@ def _extract_primary_target(selections: dict[str, list[dict]]) -> Optional[str]:
     return None
 
 
+def _resolve_batch_token(
+    step: dict,
+    token: str,
+    batch_snapshot: list[dict],
+) -> Optional[dict]:
+    used = _selected_uids_for_step(step)
+    parsed = TargetSelectorParser.parse_token(token)
+    if parsed.index is not None:
+        matched = TargetSelectorParser.resolve_token(batch_snapshot, token, set())
+        if matched is not None and matched["uid"] not in used:
+            return matched
+        return None
+    return TargetSelectorParser.resolve_token(step["candidates"], token, used)
+
+
 def _consume_tokens_into_session(session: dict, tokens: list[str]) -> tuple[bool, Optional[str]]:
     steps = session.get("steps", [])
     token_idx = 0
@@ -263,13 +296,10 @@ def _consume_tokens_into_session(session: dict, tokens: list[str]) -> tuple[bool
         if not step.get("candidates"):
             step_idx += 1
             continue
+        batch_snapshot = _remaining_for_step(step)
         while not _is_step_complete(step) and token_idx < len(tokens):
             token = tokens[token_idx]
-            matched = TargetSelectorParser.resolve_token(
-                step["candidates"],
-                token,
-                _selected_uids_for_step(step),
-            )
+            matched = _resolve_batch_token(step, token, batch_snapshot)
             if matched is None:
                 if _try_auto_fill_step(step) and _is_step_complete(step):
                     break

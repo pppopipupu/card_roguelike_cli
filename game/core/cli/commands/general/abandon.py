@@ -58,7 +58,7 @@ class AbandonCommand(CommandHandler, names=["放弃", "abandon"], allowed_states
                 yield finish_tutorial_run(router.save_manager, router.town_engine, user_id, skipped=True)
                 return
             run.party_order = SessionContextScoper.ensure_full_party_order(run)
-            multi = run.player_count() > 1
+            multi = len(run.all_human_uids()) > 1
             open_world = is_open_world_run(run)
             settle_msg = router.save_manager.settle_game_and_delete(user_id, run, is_victory=False, create_corpse=open_world, force=True)
             if open_world:

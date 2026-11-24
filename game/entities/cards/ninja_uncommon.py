@@ -41,13 +41,93 @@ class NinjaAnnaiMasterCard(NinjaCard):
 
 @register_card("ninja_back_fourth_hand")
 class NinjaBackFourthHandCard(NinjaCard):
+    def get_selection_spec(self, run, engine):
+        from ...core.battle.selection import select_pile_cards_spec
+        count = min(2, len(run.player.discard_pile))
+        return select_pile_cards_spec(
+            step_id="retrieve_cards",
+            pile="discard",
+            min_count=count,
+            max_count=2,
+            required=True,
+            prompt_key="i18n_cards_ninja.back_fourth_hand_retrieve_prompt",
+            continue_key="i18n_cards_ninja.back_fourth_hand_retrieve_continue",
+            error_key="i18n_cards_ninja.back_fourth_hand_retrieve_required",
+            invalid_index_key="i18n_cards_ninja.back_fourth_hand_retrieve_invalid",
+        )
+
+    def execute_with_selections(self, run, selections: dict, engine) -> str:
+        from ...core.battle.selection import SelectionResult
+        shield = int(getattr(self, "shield_amount", 8) or 8)
+        engine.combat_resolver.gain_shield(run, "p0", shield)
+        p = run.player
+        result = SelectionResult.from_raw(selections)
+        popped = result.pop_cards(p.discard_pile, "retrieve_cards") if p.discard_pile else []
+        for c_state in popped:
+            DeckService.add_card_to_hand(p, c_state)
+        labels = result.labels("retrieve_cards")
+        if popped:
+            retrieved_str = "、".join(labels[: len(popped)]) if labels else "、".join(c.id for c in popped)
+            return get_locale_text(
+                "i18n_cards_ninja.back_fourth_hand_retrieve_result",
+                name=self.name,
+                shield=shield,
+                retrieved=retrieved_str,
+            )
+        return get_locale_text(
+            "i18n_cards_ninja.back_fourth_hand_retrieve_empty",
+            name=self.name,
+            shield=shield,
+        )
+
+    def get_post_selection_spec(self, run, engine):
+        p = run.player
+        if not p.hand:
+            return None
+        from ...core.battle.selection import select_pile_cards_spec
+        count = min(2, len(p.hand))
+        return select_pile_cards_spec(
+            step_id="discard_cards",
+            pile="hand",
+            min_count=count,
+            max_count=2,
+            required=True,
+            prompt_key="i18n_cards_ninja.back_fourth_hand_discard_prompt",
+            continue_key="i18n_cards_ninja.back_fourth_hand_discard_continue",
+            error_key="i18n_cards_ninja.back_fourth_hand_discard_required",
+            invalid_index_key="i18n_cli_core.err_invalid_hand_index",
+            phase="post_play",
+            can_cancel=False,
+        )
+
+    def execute_post_selections(self, run, selections: dict, engine) -> str:
+        from ...core.battle.selection import SelectionResult
+        p = run.player
+        if not p.hand:
+            return ""
+        result = SelectionResult.from_raw(selections)
+        popped = result.pop_cards(p.hand, "discard_cards")
+        if not popped:
+            return ""
+        labels = result.labels("discard_cards")
+        effect_msgs = []
+        for c_state in popped:
+            eff = engine._discard_card(run, c_state)
+            if eff:
+                effect_msgs.append(eff)
+        discarded_str = "、".join(labels[: len(popped)]) if labels else "、".join(c.id for c in popped)
+        res = get_locale_text("i18n_cards_ninja.back_fourth_hand_discard_result", discarded=discarded_str)
+        if effect_msgs:
+            res += "\n" + "\n".join(effect_msgs)
+        return res
+
     def execute(self, run, target, engine) -> str:
         engine.combat_resolver.gain_shield(run, "p0", int(getattr(self, "shield_amount", 8) or 8))
         p = run.player
         for _ in range(min(2, len(p.discard_pile))):
             DeckService.add_card_to_hand(p, p.discard_pile.pop(random.randrange(len(p.discard_pile))))
         for _ in range(min(2, len(p.hand))):
-            p.discard_pile.append(p.hand.pop(random.randrange(len(p.hand))))
+            engine._discard_card(run, p.hand.pop(random.randrange(len(p.hand))))
         return get_locale_text("i18n_cards_ninja.card_generic_res", name=self.name)
 
 

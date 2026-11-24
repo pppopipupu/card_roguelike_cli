@@ -105,14 +105,7 @@ class OpenWorldDeathService:
         resolved_cause = cause_key or ("i18n_open_world.cause_abandon" if is_abandon else "i18n_open_world.cause_defeat")
         run.node_data["open_world_death_handled"] = True
         players = getattr(run, "players", None) or {}
-        if getattr(run, "coop_id", "") and players:
-            member_uids = [
-                uid
-                for uid, player in players.items()
-                if not getattr(player, "is_mercenary", False)
-            ]
-        else:
-            member_uids = [run.user_id]
+        member_uids = list(run.all_human_uids()) if hasattr(run, "all_human_uids") else [run.user_id]
         if user_id not in member_uids:
             member_uids.insert(0, user_id)
 
@@ -136,7 +129,6 @@ class OpenWorldDeathService:
                 is_abandon,
                 player=player,
             )
-            stats.active_coop_id = ""
             stats.active_lobby_id = ""
             if town_engine is not None:
                 town_engine.record_visited_room(stats)
@@ -144,11 +136,7 @@ class OpenWorldDeathService:
             if uid == user_id or primary_notice is None:
                 primary_notice = notice_node
 
-        if getattr(run, "coop_id", ""):
-            save_manager.delete_coop_save(run.coop_id)
-        save_manager.delete_save(run.user_id)
-        if user_id != run.user_id:
-            save_manager.delete_save(user_id)
+        save_manager.delete_save(user_id)
 
         notice_text = render_text_node(primary_notice) if primary_notice is not None else ""
         if town_engine is not None:

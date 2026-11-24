@@ -70,11 +70,11 @@ class ProjectionService:
                     stats_cache[uid] = stats
             if not getattr(stats, "projection_enabled", True):
                 continue
-            if run.coop_id and getattr(stats, "active_coop_id", "") != run.coop_id:
+            if run.run_id and getattr(stats, "active_run_id", "") != run.run_id:
                 continue
             feed = stats.projection_feed if isinstance(stats.projection_feed, list) else []
             feed.append({
-                "coop_id": run.coop_id,
+                "run_id": run.run_id,
                 "player": actor.name,
                 "command": command,
                 "result": result,

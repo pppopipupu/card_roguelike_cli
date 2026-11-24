@@ -159,7 +159,6 @@ class GhostEnemyTemplate(EnemyTemplate):
             max_hp=int(enemy.max_hp),
             shield=int(enemy.shield),
             gold=0,
-            stage=int(getattr(original_player, "stage", 0)),
             name=enemy.name,
             deck=[DeckService.clone_state(card_state) for card_state in deck_states],
             draw_pile=draw_states,

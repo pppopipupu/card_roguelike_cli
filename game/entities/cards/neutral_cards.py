@@ -156,8 +156,10 @@ class NeutralPowerWordPainCard(Card):
 @register_card("neutral_plane_shift")
 class NeutralPlaneShiftCard(Card):
     def execute(self, run, target, engine) -> str:
-        forbidden_stages = getattr(self, "forbidden_stages", (32,) if self.upgraded else (25, 32))
-        if run.player.stage in forbidden_stages:
+        from ...data.world.grid_map_config import get_run_floor_index
+        forbidden_boss_floors = getattr(self, "forbidden_boss_floors", (4,) if self.upgraded else (2, 4))
+        is_boss = run.node_data.get("difficulty") == "boss"
+        if is_boss and get_run_floor_index(run) in forbidden_boss_floors:
             return get_locale_text("i18n_cards_neutral.neutral.cards.plane_shift.forbidden")
 
         from ...data.world.pvp_config import PVP_ESCAPE_KEY, PVP_MATCH_KEY

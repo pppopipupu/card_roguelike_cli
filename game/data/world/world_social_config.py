@@ -1,7 +1,7 @@
 WORLD_TOWN = "town"
 WORLD_SNOWFIELD = "snowfield"
 WORLD_OUTER_PLANE = "outer_plane"
-WORLD_COOP_PREFIX = "coop:"
+WORLD_RUN_PREFIX = "run:"
 
 WORLD_PRESENCE_FILE = "world_presence.json"
 WORLD_PRESENCE_TIMEOUT_SECONDS = 300

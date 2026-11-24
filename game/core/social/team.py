@@ -96,10 +96,8 @@ class SocialTeamMixin:
                 lobby_id=lobby.get("lobby_id"),
                 lobby_status=self._lobby_status(lobby),
             )
-        if getattr(stats, "active_coop_id", ""):
-            return get_locale_text("i18n_social.team_create.in_coop")
-        if self.save_manager.has_personal_save(uid):
-            return get_locale_text("i18n_social.team_create.personal_save")
+        if self.save_manager.has_active_save(uid):
+            return get_locale_text("i18n_social.team_create.in_run")
         lobby_id = self._new_lobby_id()
         new_lobby: Lobby = {
             "lobby_id": lobby_id,
@@ -130,8 +128,8 @@ class SocialTeamMixin:
             return get_locale_text("i18n_social.team_invite.no_team")
         if lobby.get("leader_id") != uid:
             return get_locale_text("i18n_social.team_invite.not_leader")
-        if getattr(self._stats(uid), "active_coop_id", ""):
-            return get_locale_text("i18n_social.team_invite.in_coop")
+        if self.save_manager.has_active_save(uid):
+            return get_locale_text("i18n_social.team_invite.in_run")
         target = self._find_profile(query)
         if not target:
             return get_locale_text("i18n_social.common.player_not_found", query=query)
@@ -147,9 +145,8 @@ class SocialTeamMixin:
             return get_locale_text("i18n_social.team_invite.already_invited", name=target.name)
         if len(lobby.get("members", [])) + len(lobby.get("invited", [])) >= TEAM_MAX_MEMBERS:
             return get_locale_text("i18n_social.team_invite.full", max_members=TEAM_MAX_MEMBERS)
-        target_stats = self._stats(target_uid)
-        if getattr(target_stats, "active_coop_id", ""):
-            return get_locale_text("i18n_social.team_invite.target_in_coop", name=target.name)
+        if self.save_manager.has_active_save(target_uid):
+            return get_locale_text("i18n_social.team_invite.target_in_run", name=target.name)
         lobby.setdefault("invited", []).append(target_uid)
         self.save_manager.save_lobby(lobby)
         return get_locale_text(
@@ -201,13 +198,11 @@ class SocialTeamMixin:
         if uid in lobby.get("members", []):
             return get_locale_text("i18n_social.team_join.already_member")
         stats = self._stats(uid)
-        if getattr(stats, "active_coop_id", ""):
-            return get_locale_text("i18n_social.team_join.in_coop")
+        if self.save_manager.has_active_save(uid):
+            return get_locale_text("i18n_social.team_join.in_run")
         current_lobby = self._lobby_of(uid)
         if current_lobby and current_lobby.get("lobby_id") != lobby.get("lobby_id"):
             return get_locale_text("i18n_social.team_join.already_in_other", lobby_id=current_lobby.get("lobby_id"))
-        if self.save_manager.has_personal_save(uid):
-            return get_locale_text("i18n_social.team_join.personal_save")
         if len(lobby.get("members", [])) >= TEAM_MAX_MEMBERS:
             return get_locale_text("i18n_social.team_join.full")
         lobby.setdefault("members", []).append(uid)
@@ -227,9 +222,8 @@ class SocialTeamMixin:
         if not lobby:
             return get_locale_text("i18n_social.common.not_in_team")
         lobby_id = lobby.get("lobby_id")
-        stats = self._stats(uid)
-        if uid in lobby.get("members", []) and getattr(stats, "active_coop_id", ""):
-            return get_locale_text("i18n_social.team_leave.in_coop")
+        if uid in lobby.get("members", []) and self.save_manager.has_active_save(uid):
+            return get_locale_text("i18n_social.team_leave.in_run")
         if uid not in lobby.get("members", []):
             lobby["invited"] = [item for item in lobby.get("invited", []) if item != uid]
             self.save_manager.save_lobby(lobby)
@@ -262,8 +256,8 @@ class SocialTeamMixin:
             return get_locale_text("i18n_social.common.not_in_team")
         if lobby.get("leader_id") != uid:
             return get_locale_text("i18n_social.team_disband.not_leader")
-        if any(getattr(self._stats(member_uid), "active_coop_id", "") for member_uid in lobby.get("members", [])):
-            return get_locale_text("i18n_social.team_disband.in_coop")
+        if any(self.save_manager.has_active_save(member_uid) for member_uid in lobby.get("members", [])):
+            return get_locale_text("i18n_social.team_disband.in_run")
         for member_uid in lobby.get("members", []) + lobby.get("invited", []):
             stats = self._stats(member_uid)
             if getattr(stats, "active_lobby_id", "") == lobby.get("lobby_id"):
@@ -284,8 +278,8 @@ class SocialTeamMixin:
         target_uid = target.user_id
         if target_uid == uid:
             return get_locale_text("i18n_social.team_kick.self")
-        if getattr(self._stats(target_uid), "active_coop_id", ""):
-            return get_locale_text("i18n_social.team_kick.target_in_coop", name=target.name)
+        if self.save_manager.has_active_save(target_uid):
+            return get_locale_text("i18n_social.team_kick.target_in_run", name=target.name)
         removed = False
         if target_uid in lobby.get("members", []):
             lobby["members"] = [item for item in lobby["members"] if item != target_uid]
@@ -329,12 +323,13 @@ class SocialTeamMixin:
         lobby = self._lobby_of(uid)
         if lobby:
             return self._lobby_status(lobby)
-        stats = self._stats(uid)
-        return (
-            self.team_invites(uid)
-            if not getattr(stats, "active_coop_id", "")
-            else get_locale_text("i18n_social.team_status.in_coop")
-        )
+        run = self.save_manager.load_save(uid)
+        if run is not None:
+            if getattr(run, "floor_map", None) is not None:
+                return self.team_coordinate(uid)
+            from ...renderer.party import render_party_status
+            return render_party_status(run)
+        return self.team_invites(uid)
 
     def team_start(self, uid):
         lobby = self._lobby_of(uid)
@@ -360,21 +355,16 @@ class SocialTeamMixin:
             if getattr(stats, "active_lobby_id", "") != lobby.get("lobby_id"):
                 stale.append(self._profile(member_uid)["name"])
                 continue
-            if getattr(stats, "active_coop_id", ""):
+            if self.save_manager.has_active_save(member_uid):
                 return get_locale_text(
-                    "i18n_social.team_start.member_in_coop",
-                    name=self._profile(member_uid)["name"],
-                )
-            if self.save_manager.has_personal_save(member_uid):
-                return get_locale_text(
-                    "i18n_social.team_start.member_personal_save",
+                    "i18n_social.team_start.member_in_run",
                     name=self._profile(member_uid)["name"],
                 )
         if stale:
             return get_locale_text("i18n_social.team_start.stale", names=separator.join(stale))
         if not self.engine:
             return get_locale_text("i18n_social.team_start.no_engine")
-        run = self.engine.start_party_game(members, uid, shared_save=True)
+        run = self.engine.start_party_game(members, uid)
         self.save_manager.delete_lobby(lobby.get("lobby_id"))
         notice = get_locale_text(
             "i18n_social.team_start.success",
@@ -385,10 +375,10 @@ class SocialTeamMixin:
 
     def team_coordinate(self, uid):
         run = self.save_manager.load_save(uid)
-        if run is None or not getattr(run, "coop_id", ""):
+        if run is None:
             if self._lobby_of(uid) is not None:
                 return get_locale_text("i18n_social.team_coordinate.not_started")
-            return get_locale_text("i18n_social.team_coordinate.not_in_coop")
+            return get_locale_text("i18n_social.team_coordinate.not_in_run")
         fm = getattr(run, "floor_map", None)
         if fm is None:
             return get_locale_text("i18n_social.team_coordinate.no_floor_map")
@@ -404,14 +394,16 @@ class SocialTeamMixin:
             )
         ]
         ready_map = fm.floor_flags.get("downstairs_ready", {}) if isinstance(fm.floor_flags.get("downstairs_ready"), dict) else {}
-        for pid in run.all_human_uids():
+        for pid in run.all_party_order():
             pl = run.players.get(pid)
             if pl is None:
                 continue
-            coord = fm.player_coords.get(pid, "?")
+            is_merc = bool(getattr(pl, "is_mercenary", False))
+            owner_uid = getattr(pl, "mercenary_owner", "") if is_merc else ""
+            coord = fm.player_coords.get(pid) or (fm.player_coords.get(owner_uid, "?") if owner_uid else "?")
             room = fm.rooms.get(coord)
             room_name = get_locale_text(f"i18n_grid_map.room_name.{room.room_type}") if room is not None else "?"
-            sid = fm.player_session_map.get(pid)
+            sid = fm.player_session_map.get(pid) or (fm.player_session_map.get(owner_uid) if owner_uid else None)
             sess = fm.active_sessions.get(sid) if sid else None
             if isinstance(sess, dict):
                 sess_type = str(sess.get("node_type") or "")
@@ -432,7 +424,7 @@ class SocialTeamMixin:
                 state = get_locale_text("i18n_social.team_coordinate.state_interact")
             else:
                 state = get_locale_text("i18n_social.team_coordinate.state_ready")
-            marker = get_locale_text("i18n_social.team_coordinate.you_marker") if pid == uid else ""
+            marker = get_locale_text("i18n_social.team_coordinate.you_marker") if pid == uid else (get_locale_text("renderer_town.party_mercenary_marker") if is_merc else "")
             lines.append(
                 get_locale_text(
                     "i18n_social.team_coordinate.member_line",
@@ -447,10 +439,10 @@ class SocialTeamMixin:
 
     def team_teleport(self, uid, query):
         run = self.save_manager.load_save(uid)
-        if run is None or not getattr(run, "coop_id", ""):
+        if run is None:
             if self._lobby_of(uid) is not None:
                 return get_locale_text("i18n_social.team_teleport.not_started")
-            return get_locale_text("i18n_social.team_teleport.not_in_coop")
+            return get_locale_text("i18n_social.team_teleport.not_in_run")
         if not self.engine:
             return get_locale_text("i18n_social.team_teleport.no_engine")
         return self.engine.map_engine.grid_map_service.team_teleport_player(run, query)

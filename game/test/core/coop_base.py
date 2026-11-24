@@ -73,7 +73,7 @@ class CoopTestBase(unittest.TestCase):
         for _ in range(legacy_roll_calls * len(uids)):
             random.choice([0, 1])
         started = self.run_cmd("team start", leader)
-        self.assertIn("已开启联机牌局", started)
+        self.assertIn("已开启冒险", started)
         for uid in uids:
             chosen = self.run_cmd("c 1", uid)
             self.assertIn("契约达成", chosen)

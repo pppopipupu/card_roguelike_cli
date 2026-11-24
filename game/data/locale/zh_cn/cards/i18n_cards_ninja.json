@@ -62,7 +62,17 @@
   "darkness_snake_scramble": "🐍 【暗秽蛇手】打乱了当前所有手牌的本回合主动作消耗（0~3A）！",
   "scare_form_cast": "😱 【受惊形态】触发：免费随机释放了忍术【{name}】！",
   "blade_defence_lex": "🛡️ 【拿刀防卫】完美格挡了攻击，获得 1 点蕾克拉！",
-  "frog_frog_go_prompt": "🐸 【蛤蟆蛤蟆go】请选择 1 张要消耗的手牌（输入序号，或输入 取消 放弃打出）：",
+  "frog_frog_go_prompt": "🐸 【蛤蟆蛤蟆go】请选择 1 张要消耗的手牌（输入序号，或输入 取消 放弃打出）：\n{options}",
   "frog_frog_go_required": "❌ 请选择 1 张要消耗的手牌。",
-  "frog_frog_go_result": "🐸 你施展了【{name}】，消耗了手牌【{exhausted}】！"
+  "frog_frog_go_result": "🐸 你施展了【{name}】，消耗了手牌【{exhausted}】！",
+  "back_fourth_hand_retrieve_prompt": "✋ 【{card_name}】请从弃牌堆选择最多 2 张牌加入手牌（输入序号或用空格分隔多个序号，或输入 取消 放弃打出）：\n{options}",
+  "back_fourth_hand_retrieve_continue": "✋ 【{card_name}】已选择【{chosen_name}】，请继续选择第 {next_index} 张要取回的弃牌堆卡牌：\n{options}",
+  "back_fourth_hand_retrieve_required": "❌ 请从弃牌堆选择要取回的卡牌。",
+  "back_fourth_hand_retrieve_invalid": "❌ 无效的弃牌堆卡牌序号，当前可选共 {count} 张。",
+  "back_fourth_hand_retrieve_result": "✋ 你施展了【{name}】，获得 {shield} 点护盾，并从弃牌堆取回了【{retrieved}】！",
+  "back_fourth_hand_retrieve_empty": "✋ 你施展了【{name}】，获得 {shield} 点护盾（弃牌堆无可取回的卡牌）。",
+  "back_fourth_hand_discard_prompt": "✋ 【{card_name}】请选择 2 张要丢弃的手牌（输入序号或用空格分隔多个序号）：\n{options}",
+  "back_fourth_hand_discard_continue": "✋ 【{card_name}】已选择丢弃【{chosen_name}】，请继续选择第 {next_index} 张要丢弃的手牌：\n{options}",
+  "back_fourth_hand_discard_required": "❌ 请选择要丢弃的手牌。",
+  "back_fourth_hand_discard_result": "🗑️ 丢弃了手牌【{discarded}】！"
 }

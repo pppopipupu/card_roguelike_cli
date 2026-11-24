@@ -57,21 +57,30 @@ def parse_flag_value(raw: str) -> Any:
     return text
 
 
-def resolve_target_user(save_manager, query: str) -> Optional[str]:
+def resolve_target_user(save_manager, query: str, user_resolver=None) -> Optional[str]:
     q = str(query or "").strip()
     if not q:
         return None
+    if callable(user_resolver):
+        resolved = user_resolver(q)
+        if resolved:
+            return str(resolved)
     if save_manager.load_save(q) is not None:
         return q
     if hasattr(save_manager, "list_player_profiles"):
         profiles = save_manager.list_player_profiles()
         low = q.lower()
+        prefix_matches: list[str] = []
         for prof in profiles:
             uid = str(getattr(prof, "user_id", "") or "")
             handle = str(getattr(prof, "handle", "") or "")
             name = str(getattr(prof, "player_name", "") or "")
             if q == uid or low == handle.lower() or low == name.lower():
                 return uid
+            if len(q) >= 4 and uid.lower().startswith(low):
+                prefix_matches.append(uid)
+        if len(prefix_matches) == 1:
+            return prefix_matches[0]
         entries = []
         for prof in profiles:
             uid = str(getattr(prof, "user_id", "") or "")
@@ -84,7 +93,10 @@ def resolve_target_user(save_manager, query: str) -> Optional[str]:
         matched = find_entry_by_query(entries, q)
         if matched:
             return matched
-    return q
+    store = getattr(save_manager, "store", None)
+    if store is not None and store.get_json("user_stats", q) is not None:
+        return q
+    return None
 
 
 def resolve_buff(query: str) -> Optional[Tuple[str, str, str]]:

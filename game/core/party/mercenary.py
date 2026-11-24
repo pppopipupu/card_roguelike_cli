@@ -74,7 +74,6 @@ def summon_evil_twin_mercenary(battle_engine, run: GameRun, owner_uid: str) -> t
         max_hp=hp,
         shield=0,
         gold=0,
-        stage=owner.stage,
         name=name,
         deck=cloned_deck,
         draw_pile=[],
@@ -174,7 +173,6 @@ def build_mercenary_player(merc_id: str, owner_uid: str) -> PlayerState:
         max_hp=hp,
         shield=0,
         gold=0,
-        stage=0,
         name=cfg["name"],
         deck=deck,
         draw_pile=[],
@@ -422,20 +420,26 @@ def run_mercenary_turn(battle_engine, run: GameRun, merc_uid: str) -> str:
             card_obj = ALL_CARDS.get(c_state)
             card_name = card_obj.name if card_obj else c_state.id
             initial_stack_len = len(run.node_data.get("state_stack", []))
+            sel_spec = card_obj.get_selection_spec(run, battle_engine) if card_obj is not None else None
+            play_target = None if (sel_spec is not None and sel_spec.get("phase") != "post_play") else target
             chaotic = is_chaotic_mercenary(merc)
             if chaotic:
                 run.node_data["chaotic_attacker_uid"] = merc_uid
             try:
-                res = battle_engine.card_player.play_card(run, card_idx, target)
+                res = battle_engine.card_player.play_card(run, card_idx, play_target)
             finally:
                 if chaotic:
                     run.node_data.pop("chaotic_attacker_uid", None)
-            if not res or res.startswith("[FAIL]") or res.startswith("❌"):
+            pushed_session = len(run.node_data.get("state_stack", [])) > initial_stack_len
+            if not pushed_session and (not res or res.startswith("[FAIL]") or res.startswith("❌")):
                 skip_obj_ids.add(id(merc.hand[card_idx - 1]) if card_idx - 1 < len(merc.hand) else id(raw_entry))
                 continue
             acted_any = True
             extra_notes = _resolve_merc_interactions(battle_engine, run, merc_uid, merc, initial_stack_len)
-            combined_res = "\n".join([res, *extra_notes]).strip() if extra_notes else res
+            if pushed_session and extra_notes and sel_spec is not None and sel_spec.get("phase") != "post_play":
+                combined_res = "\n".join(extra_notes).strip()
+            else:
+                combined_res = "\n".join([res, *extra_notes]).strip() if extra_notes else res
             logs.append(get_locale_text("i18n_mercenary.ai_play_card", card=card_name, result=combined_res))
         for grid, minion in list(merc.minions.items()):
             if battle_engine.is_battle_won(run):

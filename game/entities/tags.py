@@ -11,8 +11,14 @@ class ReplayTag(CardTag):
             for _ in range(self.value):
                 if engine.is_battle_won(run):
                     break
-                result = execute_extra_card_effect(engine, run, card, target, trigger_type="replay")
-                run.node_data.setdefault("extra_play_msgs", []).append(get_locale_text("i18n_buffs.replay_trigger_msg", res=result))
+                execute_extra_card_effect(
+                    engine,
+                    run,
+                    card,
+                    target,
+                    trigger_type="replay",
+                    msg_key="i18n_buffs.replay_trigger_msg",
+                )
         return None
 
 class FragileTag(CardTag):

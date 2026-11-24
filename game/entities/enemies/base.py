@@ -7,11 +7,12 @@ class EnemyTemplate:
         self.name = name
 
     def roll_intents(self, run, engine, enemy) -> List:
+        from ...data.world.grid_map_config import get_run_difficulty_scale
         from ...models.state import EnemyIntentState
-        stage = run.player.stage
+        scale = get_run_difficulty_scale(run)
         intents_list = []
         for _ in range(enemy.max_actions):
-            itype, val, desc = self._roll_single_intent(run, enemy, stage)
+            itype, val, desc = self._roll_single_intent(run, enemy, scale)
             intents_list.append(EnemyIntentState(
                 type=itype,
                 val=val,
@@ -20,7 +21,7 @@ class EnemyTemplate:
                 cost_ba=0
             ))
         for _ in range(enemy.max_bonus_actions):
-            itype, val, desc = self._roll_single_intent(run, enemy, stage)
+            itype, val, desc = self._roll_single_intent(run, enemy, scale)
             intents_list.append(EnemyIntentState(
                 type=itype,
                 val=val,

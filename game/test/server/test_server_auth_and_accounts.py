@@ -233,6 +233,57 @@ class ServerAuthAndAccountsTests(ServerTestBase):
         self.assertTrue(allowed["ok"])
         self.assertIn("最终BOSS", allowed["text"])
 
+        jump_removed = self.post(
+            {"command": ".rogueadmin jump 2", "channel": "im", "force": True},
+            self.im_headers("im-admin"),
+        ).json()
+        self.assertTrue(jump_removed["ok"])
+        self.assertIn("未知管理命令", jump_removed["text"])
+
+    def test_rogueadmin_target_user_option_resolves_im_id(self):
+        self.post(
+            {"command": "start confirm", "channel": "im", "force": True},
+            self.im_headers("admin-caller"),
+        )
+        self._grant_admin("admin-caller")
+        self.post(
+            {"command": "start confirm", "channel": "im", "force": True},
+            self.im_headers("2655439416"),
+        )
+        self.post(
+            {"command": "1", "channel": "im", "force": True},
+            self.im_headers("2655439416"),
+        )
+        spawned = self.post(
+            {
+                "command": ".rogueadmin -u 2655439416 spawn enemy 腐化之心",
+                "channel": "im",
+                "force": True,
+            },
+            self.im_headers("admin-caller"),
+        ).json()
+        self.assertTrue(spawned["ok"])
+        self.assertNotIn("未找到该玩家的活跃游戏存档", spawned["text"])
+        self.assertIn("腐化之心", spawned["text"])
+
+        target_acc = self.app.state.service.accounts.get_by_im("2655439416")
+        self.assertIsNotNone(target_acc)
+        target_run = self.app.state.service.save_manager.load_save(target_acc["uuid"])
+        self.assertIsNotNone(target_run)
+        self.assertEqual(target_run.node_type, "battle")
+        self.assertTrue(any(e.name == "腐化之心" for e in target_run.enemies))
+
+        missing = self.post(
+            {
+                "command": ".rogueadmin -u nonexistent_qq_99999 spawn enemy 腐化之心",
+                "channel": "im",
+                "force": True,
+            },
+            self.im_headers("admin-caller"),
+        ).json()
+        self.assertTrue(missing["ok"])
+        self.assertIn("未找到玩家", missing["text"])
+
     def test_guest_login_cross_device_and_duplicate_handles(self):
         guest_id, body = self.guest_login("小明")
         self.assertTrue(body["ok"])

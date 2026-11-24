@@ -84,15 +84,20 @@ class CorpseRegistry:
         player = getattr(run, "player", None)
         if player is None or not getattr(player, "deck", None):
             return None
-        stage = int(getattr(player, "stage", 0))
+        from ..data.world.grid_map_config import format_display_floor, get_run_floor_index
+        floor_index = get_run_floor_index(run)
+        floor_label = format_display_floor(floor_index)
+        fm = getattr(run, "floor_map", None)
+        cleared_rooms = sum(1 for r in fm.rooms.values() if r.cleared) if fm is not None else 0
         gold = int(getattr(player, "gold", 0))
-        gp_pool = gold * CorpseConfig.GP_MULTIPLIER if stage >= CorpseConfig.MIN_STAGE_FOR_GP else 0
+        qualifies_gp = float(floor_index) >= CorpseConfig.MIN_FLOOR_FOR_GP or cleared_rooms >= CorpseConfig.MIN_CLEARED_ROOMS_FOR_GP
+        gp_pool = gold * CorpseConfig.GP_MULTIPLIER if qualifies_gp else 0
         corpse = {
             "id": uuid.uuid4().hex,
-            "stage": stage,
+            "floor": floor_index,
             "user_id": str(getattr(run, "user_id", "")),
             "player_name": str(getattr(player, "name", "玩家")),
-            "cause": str(cause or "").strip() or get_locale_text("i18n_models.corpse_registry.fall_at_stage", stage=stage),
+            "cause": str(cause or "").strip() or get_locale_text("i18n_models.corpse_registry.fall_at_stage", stage=floor_label),
             "gold": gold,
             "gp_pool": max(0, gp_pool),
             "max_hp": int(getattr(player, "max_hp", 1)),
@@ -109,12 +114,13 @@ class CorpseRegistry:
             self._save(data)
         return corpse
 
-    def list_at_stage(self, stage: int, exclude_user: str = "") -> list[dict]:
+    def list_at_floor(self, floor_index: int | float, exclude_user: str = "") -> list[dict]:
         with _LOCK:
             data = self._load()
             result = []
             for corpse in data["corpses"]:
-                if int(corpse.get("stage", -1)) != int(stage):
+                corpse_floor = corpse.get("floor")
+                if corpse_floor is None or float(corpse_floor) != float(floor_index):
                     continue
                 if corpse.get("claimed_by"):
                     continue

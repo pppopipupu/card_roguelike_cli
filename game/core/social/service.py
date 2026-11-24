@@ -87,10 +87,8 @@ class SocialService(SocialTeamMixin):
 
     def _online_text(self, uid):
         stats = self._stats(uid)
-        if getattr(stats, "active_coop_id", ""):
-            return get_locale_text("i18n_social.online.coop")
-        if self.save_manager.has_personal_save(uid):
-            return get_locale_text("i18n_social.online.solo")
+        if self.save_manager.has_active_save(uid):
+            return get_locale_text("i18n_social.online.in_run")
         if getattr(stats, "in_town", False):
             return get_locale_text("i18n_social.online.town")
         return get_locale_text("i18n_social.online.idle")

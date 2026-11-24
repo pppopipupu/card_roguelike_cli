@@ -63,9 +63,15 @@ def talk_room_npc(save_manager, run, query: str) -> Optional[str]:
         return str(node_data["_error"])
     if node_data is None:
         node_data = {"npc_id": nid, "dialog_state": "start", "coord": coord}
+    from ....models.state import is_in_queue
+    in_queue = is_in_queue(run)
     SessionContextScoper.create_session(run, coord, "room_dialog", [run.user_id], node_data=node_data)
-    rendered = render_room_dialog(run, save_manager=save_manager)
     save_manager.save_save(run.user_id, run)
+    if in_queue:
+        name, _, _ = _room_dialog_content(run, save_manager=save_manager)
+        title = get_locale_text("i18n_room_interact.dialog.title", name=name)
+        return "\n".join(x for x in (broken_msg, *trigger_logs, title) if x)
+    rendered = render_room_dialog(run, save_manager=save_manager)
     prefix = "\n".join(x for x in (broken_msg, *trigger_logs) if x)
     return f"{prefix}\n\n{rendered}" if prefix else rendered
 
@@ -151,10 +157,15 @@ def resume_room_dialog_after_flow(save_manager, run, msg: str, committed: bool) 
         if return_node:
             nd["node_id"] = return_node
     if nd.get("provider") == "crpg_graph":
-        nd["last_outcome_nodes"] = [{"type": "rendered", "text": msg}] if msg else []
+        from ....models.state import is_in_queue
+        in_queue = is_in_queue(run)
+        nd["last_outcome_nodes"] = []
         run.node_type = "room_dialog"
         save_manager.save_save(run.user_id, run)
-        return render_room_dialog(run, save_manager=save_manager)
+        if in_queue:
+            return msg or ""
+        rendered = render_room_dialog(run, save_manager=save_manager)
+        return f"{msg}\n{rendered}" if msg else rendered
     close_room_dialog(save_manager, run)
     return msg
 
@@ -201,13 +212,14 @@ def start_npc_combat(
         reward_item = cfg.get("reward_item", "")
     if non_lethal is None:
         non_lethal = bool(cfg.get("non_lethal", npc_source == "grid"))
-    stage = max(1, int(getattr(run.player, "stage", 1) or 1))
-    hp = int(cfg["base_hp"]) + stage * int(cfg.get("hp_per_stage", 2))
+    from ....data.world.grid_map_config import get_run_difficulty_scale
+    scale = get_run_difficulty_scale(run)
+    hp = int(cfg["base_hp"]) + scale * int(cfg.get("hp_per_stage", 2))
     npc_combat = {
         "npc_id": npc_id,
         "enemy_name": enemy_name,
         "hp": hp,
-        "atk": int(cfg["atk"]) + stage // 4,
+        "atk": int(cfg["atk"]) + scale // 4,
         "actions": int(cfg.get("actions", 1)),
         "bonus_actions": int(cfg.get("bonus_actions", 1)),
         "reward_gold": int(cfg.get("reward_gold", 40)),
@@ -223,6 +235,8 @@ def start_npc_combat(
         "battle_mode": BATTLE_MODE_FORCED_SOLO,
         "non_lethal": bool(non_lethal),
     }
+    from ....models.state import is_in_queue
+    in_queue = is_in_queue(run)
     if fm is not None:
         old_sid = fm.player_session_map.get(run.user_id)
         if old_sid:
@@ -234,7 +248,10 @@ def start_npc_combat(
     map_engine.battle_engine._init_battle_node(run, difficulty="npc_combat")
     map_engine.save_manager.save_save(run.user_id, run)
     prefix = get_locale_text("i18n_room_interact.combat.attack_start", name=enemy_name)
-    return f"{prefix}\n\n{GameRenderer.render_game(run)}"
+    log_text = map_engine.battle_engine._append_logs_to_res(run, prefix).strip()
+    if in_queue:
+        return log_text
+    return f"{log_text}\n\n{GameRenderer.render_game(run)}"
 
 
 def attack_in_room(map_engine, run, query: str) -> str:

@@ -41,7 +41,6 @@ class TestUltimatePrism(unittest.TestCase):
             max_hp=100,
             shield=0,
             gold=200,
-            stage=1,
             deck=list(deck) if deck is not None else list(hand),
             hand=list(hand),
             draw_pile=[CardState(id="shield")] * 5,
@@ -225,7 +224,6 @@ class TestUltimatePrism(unittest.TestCase):
             max_hp=80,
             shield=0,
             gold=500,
-            stage=1,
             deck=[CardState(id=ULTIMATE_PRISM_CARD_ID), CardState(id="fire_bolt")],
         )
         shop_run = GameRun(

@@ -251,7 +251,7 @@ def handle_start_ancient(engine, run, option_idx, target=None) -> str | None:
         from ...models.state import ensure_card_state
         p.deck.append(ensure_card_state(cid))
         bonus_str += get_locale_text("i18n_explore_core.ancient_card_bonus", card_name=ALL_CARDS[cid].name)
-    msg = get_locale_text("i18n_explore_core.ancient_contract_coop", bonus=bonus_str) if run.player_count() > 1 else get_locale_text("i18n_explore_core.ancient_contract_start", bonus=bonus_str)
+    msg = get_locale_text("i18n_explore_core.ancient_contract_coop", bonus=bonus_str) if len(run.all_human_uids()) > 1 else get_locale_text("i18n_explore_core.ancient_contract_start", bonus=bonus_str)
     return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
 
 
@@ -512,10 +512,11 @@ def handle_corpse_reward(engine, run, option_idx, target=None) -> str | None:
     picks_left = int(run.node_data.get("picks_left", 0))
     skip_idx = len(cards) + 1
     if picks_left <= 0:
-        stage = p.stage
+        from ...data.world.grid_map_config import format_display_floor, get_run_floor_index
+        floor_label = format_display_floor(get_run_floor_index(run))
         engine.map_engine.return_to_grid_map(run)
         engine.save_manager.save_save(run.user_id, run)
-        return get_locale_text("i18n_explore_core.corpse_search_complete", stage=stage)
+        return get_locale_text("i18n_explore_core.corpse_search_complete", stage=floor_label)
     if option_idx < 1 or option_idx > skip_idx:
         return get_locale_text("err_invalid_option_idx")
     if option_idx == skip_idx:
@@ -537,10 +538,11 @@ def handle_corpse_reward(engine, run, option_idx, target=None) -> str | None:
         corpse_id = run.node_data.get("corpse_id")
         if corpse_id:
             engine.save_manager.corpses.remove(corpse_id)
-        stage = p.stage
+        from ...data.world.grid_map_config import format_display_floor, get_run_floor_index
+        floor_label = format_display_floor(get_run_floor_index(run))
         engine.map_engine.return_to_grid_map(run)
         engine.save_manager.save_save(run.user_id, run)
-        return get_locale_text("i18n_explore_core.corpse_return", msg=msg, stage=stage)
+        return get_locale_text("i18n_explore_core.corpse_return", msg=msg, stage=floor_label)
     engine.save_manager.save_save(run.user_id, run)
     return get_locale_text("i18n_explore_core.corpse_remaining", msg=msg, picks_left=picks_left)
 
@@ -579,7 +581,7 @@ def handle_card_select(engine, run, option_idx, target=None) -> str | None:
             return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, f"{msg}\n{get_locale_text('msg_rewards_claimed_finished')}")
         return msg
     else:
-        suffix = msg if run.player_count() > 1 else get_locale_text("i18n_explore_core.next_stage_suffix", msg=msg)
+        suffix = msg if len(run.all_human_uids()) > 1 else get_locale_text("i18n_explore_core.next_stage_suffix", msg=msg)
         return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, suffix)
 
 
@@ -587,7 +589,7 @@ def handle_rest(engine, run, option_idx, target=None) -> str | None:
     if run.node_data.get("coop_done"):
         return get_locale_text("i18n_coop_explore.coop_done_waiting")
     p = run.player
-    multi = run.player_count() > 1
+    multi = len(run.all_human_uids()) > 1
     items = run.node_data.setdefault("items", [])
     if not items:
         engine._init_rest_node(run)
@@ -828,7 +830,7 @@ def handle_shop(engine, run, option_idx, target=None) -> str | None:
             run.node_data["shop_mode"] = "lobby"
             engine.save_manager.save_save(run.user_id, run)
             return render_shop_view(run)
-        msg = get_locale_text("i18n_explore_core.shop_leave_coop") if run.player_count() > 1 else get_locale_text("i18n_explore_core.shop_leave_next")
+        msg = get_locale_text("i18n_explore_core.shop_leave_coop") if len(run.all_human_uids()) > 1 else get_locale_text("i18n_explore_core.shop_leave_next")
         return finish_player_node(engine.save_manager, engine.map_engine, run, run.user_id, msg)
 
 

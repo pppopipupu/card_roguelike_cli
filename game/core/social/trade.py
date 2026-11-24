@@ -39,9 +39,7 @@ class TradeService:
         if run is not None:
             if run.node_type == "battle":
                 return Spot("battle", run=run, stats=stats)
-            if getattr(run, "coop_id", "") and uid in getattr(run, "players", {}):
-                return Spot("coop", run=run, stats=stats)
-            return Spot("solo", run=run, stats=stats)
+            return Spot("run", run=run, stats=stats)
         return Spot("town", stats=stats)
 
     def _pair(self, uid: str, target_uid: str) -> tuple[Optional[Pair], Optional[LocaleText]]:
@@ -51,17 +49,17 @@ class TradeService:
         target = self._spot(target_uid)
         if target.kind == "battle":
             return None, _t("i18n_trade.err_target_battle")
-        if actor.kind == "coop" and target.kind == "coop":
+        if actor.kind == "run" and target.kind == "run":
             assert actor.run is not None
             assert target.run is not None
-            if actor.run.coop_id != target.run.coop_id:
+            if not actor.run.run_id or actor.run.run_id != target.run.run_id:
                 return None, _t("i18n_trade.err_not_same_party")
             run = actor.run
             if uid not in run.players or target_uid not in run.players:
                 return None, _t("i18n_trade.err_not_same_party")
             if getattr(run.players[uid], "is_mercenary", False) or getattr(run.players[target_uid], "is_mercenary", False):
                 return None, _t("i18n_trade.err_not_same_party")
-            return Pair(self.save_manager, "coop", run=run), None
+            return Pair(self.save_manager, "run", run=run), None
         if actor.kind == "town" and target.kind == "town":
             assert actor.stats is not None
             assert target.stats is not None

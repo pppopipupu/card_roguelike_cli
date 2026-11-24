@@ -91,11 +91,17 @@ class GridTalkCommand(CommandHandler, names=["talk", "talk_to", "interact", "int
                 return
             yield get_locale_text("i18n_room_interact.dialog.talk_not_found", target=query)
             return
+        from .....models.state import is_in_queue
+        in_queue = is_in_queue(run)
         err = open_room_talk(router.save_manager, run, user_id)
         if not err:
             broken_msg = break_map_invisibility(run, reason="interact")
             if broken_msg:
                 router.save_manager.save_save(user_id, run)
+            if in_queue:
+                if broken_msg:
+                    yield broken_msg
+                return
             rendered = GameRenderer.render_game(run)
             yield f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
             return
@@ -181,7 +187,11 @@ class BattleBagUseCommand(CommandHandler, names=["use"], allowed_states=["battle
             if router.engine.battle_engine.is_battle_won(run):
                 router.engine.battle_engine._handle_battle_win(run)
         router.save_manager.save_save(user_id, run)
-        yield msg + "\n" + GameRenderer.render_game(run)
+        from .....models.state import is_in_queue
+        if is_in_queue(run):
+            yield msg
+        else:
+            yield msg + "\n" + GameRenderer.render_game(run)
 
 
 class DropItemCommand(CommandHandler, names=["丢弃物品", "扔掉", "drop_item", "di"], allowed_states=["grid_map", "explore", "cafe", "town", "outer_plane"], help_key="drop_item"):

@@ -12,7 +12,7 @@ from ...data.world.outer_plane_config import (
 )
 from ...data.world.town_map_config import TOWN_ROOM_COORDS
 from ...data.world.world_social_config import (
-    WORLD_COOP_PREFIX,
+    WORLD_RUN_PREFIX,
     WORLD_LIVE_MESSAGE_LIMIT,
     WORLD_OUTER_PLANE,
     WORLD_PRESENCE_FILE,
@@ -35,7 +35,7 @@ def _now_text() -> str:
 def _is_valid_world(world: object) -> bool:
     if world in (WORLD_TOWN, WORLD_SNOWFIELD, WORLD_OUTER_PLANE):
         return True
-    return isinstance(world, str) and world.startswith(WORLD_COOP_PREFIX) and len(world) > len(WORLD_COOP_PREFIX)
+    return isinstance(world, str) and world.startswith(WORLD_RUN_PREFIX) and len(world) > len(WORLD_RUN_PREFIX)
 
 
 def _class_text(stats) -> str:
@@ -269,8 +269,13 @@ class WorldPresenceService:
             run = self.save_manager.load_save(uid)
         outer_active = bool(stats.town_flags.get(OUTER_PLANE_ACTIVE_FLAG))
         if run is not None:
+            if outer_active:
+                room = stats.town_flags.get(OUTER_PLANE_ROOM_KEY) or OUTER_PLANE_START_ROOM
+                return WORLD_OUTER_PLANE, str(room)
+            if stats.in_town and run.node_data.get("is_town_combat"):
+                return WORLD_TOWN, TOWN_ROOM_COORDS.get(stats.town_pos, "C2")
             floor_map = getattr(run, "floor_map", None)
-            coop_id = str(getattr(run, "coop_id", "") or "")
+            run_id = str(getattr(run, "run_id", "") or "")
             if floor_map is not None:
                 if floor_map.floor_flags.get("yog_quest"):
                     coord = floor_map.player_coords.get(uid, "")
@@ -278,27 +283,17 @@ class WorldPresenceService:
                         if not coord:
                             return None
                         return WORLD_SNOWFIELD, coord
-                    if coop_id and coord:
-                        return f"{WORLD_COOP_PREFIX}{coop_id}", f"{floor_map.floor_index}:{coord}"
+                    if run_id and coord:
+                        return f"{WORLD_RUN_PREFIX}{run_id}", f"{floor_map.floor_index}:{coord}"
                     return None
-                if coop_id:
+                if run_id:
                     coord = floor_map.player_coords.get(uid, "")
                     if not coord:
                         return None
-                    return f"{WORLD_COOP_PREFIX}{coop_id}", f"{floor_map.floor_index}:{coord}"
-                if outer_active:
-                    room = stats.town_flags.get(OUTER_PLANE_ROOM_KEY) or OUTER_PLANE_START_ROOM
-                    return WORLD_OUTER_PLANE, str(room)
-                if stats.in_town and run.node_data.get("is_town_combat"):
-                    return WORLD_TOWN, TOWN_ROOM_COORDS.get(stats.town_pos, "C2")
+                    return f"{WORLD_RUN_PREFIX}{run_id}", f"{floor_map.floor_index}:{coord}"
                 return None
-            if coop_id:
-                return f"{WORLD_COOP_PREFIX}{coop_id}", "0:START"
-            if outer_active:
-                room = stats.town_flags.get(OUTER_PLANE_ROOM_KEY) or OUTER_PLANE_START_ROOM
-                return WORLD_OUTER_PLANE, str(room)
-            if stats.in_town and run.node_data.get("is_town_combat"):
-                return WORLD_TOWN, TOWN_ROOM_COORDS.get(stats.town_pos, "C2")
+            if run_id:
+                return f"{WORLD_RUN_PREFIX}{run_id}", "0:START"
             return None
         if not stats.in_town:
             return None

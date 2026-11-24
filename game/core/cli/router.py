@@ -230,6 +230,8 @@ class CLIRouter:
             for res in self._handle_command_raw(user_id, parts)
             if res is not None and str(res) != ""
         ]
+        after_run = self.save_manager.load_save(user_id)
+        self.world_social.refresh(user_id, run=after_run)
         unread_logs = []
         if rope_notice:
             unread_logs.append(format_output_numbers(rope_notice))
@@ -238,6 +240,16 @@ class CLIRouter:
             for log_line in self._drain_unread_logs(user_id)
             if log_line is not None and str(log_line).strip() != ""
         )
+        if command:
+            from ..progress.achievement_service import AchievementService
+            ach = AchievementService(self.save_manager)
+            ach.reconcile(user_id)
+            pending = ach.pop_pending_notices(user_id)
+            if pending:
+                unread_logs.append(format_output_numbers(ach.format_notices(pending)))
+        mail_notice = self.world_social.notify(user_id)
+        if mail_notice:
+            unread_logs.append(mail_notice)
         results = []
         if unread_logs:
             log_block = "\n".join(unread_logs)
@@ -248,7 +260,6 @@ class CLIRouter:
         for formatted in raw_outputs:
             results.append(formatted)
             yield formatted
-        after_run = self.save_manager.load_save(user_id)
         if after_run is None or after_run.node_type != "battle":
             pvp_popup = PvpService.render_invite_popup(self.save_manager, user_id)
             if pvp_popup:
@@ -261,20 +272,6 @@ class CLIRouter:
                     trade_text = render_text_node(trade_popup)
                     results.append(trade_text)
                     yield trade_text
-        self.world_social.refresh(user_id, run=after_run)
-        if command:
-            from ..progress.achievement_service import AchievementService
-            ach = AchievementService(self.save_manager)
-            ach.reconcile(user_id)
-            pending = ach.pop_pending_notices(user_id)
-            if pending:
-                notice_text = format_output_numbers(ach.format_notices(pending))
-                results.append(notice_text)
-                yield notice_text
-        mail_notice = self.world_social.notify(user_id)
-        if mail_notice:
-            results.append(mail_notice)
-            yield mail_notice
         if not command:
             return
         publish = project and self.projection_service.should_publish(command)
@@ -495,6 +492,12 @@ class CLIRouter:
             yield res
             return
         if run.node_data.get("state_stack"):
+            if sub in ("status", "r", "状态"):
+                from ..battle.selection.session_state import render_active_selection_prompt
+                rendered = GameRenderer.render_game(run)
+                prompt = render_active_selection_prompt(run)
+                yield f"{rendered}\n\n{prompt}" if prompt else rendered
+                return
             res, term, success = self._execute_sub_action(user_id, run, parts)
             yield self._post_command_settle(user_id, run, is_town_combat, is_open_world, res)
             return

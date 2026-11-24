@@ -1,5 +1,5 @@
 from ...data.text.locale_data import get_locale_text
-from ...models.coop_view import SHARED_PERSIST_KEYS, apply_view, scope_view
+from ...models.coop_view import SHARED_PERSIST_KEYS, apply_view, persist_selection_state, scope_selection_state, scope_view
 
 
 def party_players(run):
@@ -17,16 +17,24 @@ def alive_uids(run):
 def swap_player(run, player):
     previous = run.player
     previous_user = run.user_id
+    if previous_user:
+        persist_selection_state(run, previous_user)
     run.player = player
     uid = run.uid_for(player)
     if uid:
         run.user_id = uid
+        scope_selection_state(run, uid)
     return previous, previous_user
 
 
 def restore_player(run, previous, previous_user):
+    current_user = run.user_id
+    if current_user:
+        persist_selection_state(run, current_user)
     run.player = previous
     run.user_id = previous_user
+    if previous_user:
+        scope_selection_state(run, previous_user)
 
 
 def add_notice(run, uid, text):

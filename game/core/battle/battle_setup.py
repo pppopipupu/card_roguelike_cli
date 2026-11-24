@@ -3,7 +3,11 @@ import re
 from typing import Optional
 
 from ...models.state import GameRun, PlayerState, EnemyState
-from ...data.world.map_config import MapConfig
+from ...data.world.grid_map_config import (
+    FLOOR_CONFIGS,
+    get_floor_difficulty_scale,
+    get_run_floor_index,
+)
 from ...data.enemies.enemy_data import ENEMY_CONFIG
 from ...data.enemies.enemy_data_normal import ENEMY_ENCOUNTER_CONFIG
 from ...data.enemies.enemy_data_boss import BOSS_POOLS
@@ -205,9 +209,10 @@ class BattleSetupMixin(BaseBattleEngine):
             size=resolve_enemy_size(name, size or None),
         )
 
-    def _stage_enemy_pool(self, pools, stage):
+    def _floor_enemy_pool(self, pools, floor_index):
+        f_val = float(floor_index)
         for entry in pools:
-            if entry.get("max_stage") is None or stage <= entry["max_stage"]:
+            if entry.get("max_floor") is None or f_val <= float(entry["max_floor"]):
                 return entry["names"]
         return pools[-1]["names"]
 
@@ -216,19 +221,17 @@ class BattleSetupMixin(BaseBattleEngine):
         return self._build_enemy_state(name, hp, actions, bonus_actions)
 
     def _generate_battle_enemies(self, run: GameRun, difficulty: str):
-        p = run.player
+        floor_index = get_run_floor_index(run)
+        scale = get_floor_difficulty_scale(floor_index)
+        floor_cfg = FLOOR_CONFIGS.get(floor_index, FLOOR_CONFIGS[1])
         if difficulty == "boss":
             preset_boss = str((run.node_data or {}).get("preset_boss_name") or "")
             if preset_boss:
                 boss_name = preset_boss
-            elif p.stage == MapConfig.GATE_BOSS_STAGE:
-                boss_name = random.choice(BOSS_POOLS["gate"])
-            elif p.stage == MapConfig.AVERGOMON_STAGE:
-                boss_name = BOSS_POOLS["aforgomon"][0]
-            elif p.stage == MapConfig.FINAL_BOSS_STAGE:
-                boss_name = BOSS_POOLS["final"][0]
             else:
-                boss_name = random.choice(BOSS_POOLS["early"])
+                pool_key = str(floor_cfg.get("boss_pool") or "early")
+                pool = BOSS_POOLS.get(pool_key, BOSS_POOLS["early"])
+                boss_name = pool[0] if len(pool) == 1 else random.choice(pool)
             run.enemies = [self._create_boss_enemy(boss_name)]
             run.node_data["boss_name"] = boss_name
         elif difficulty == "secret_boss":
@@ -238,12 +241,12 @@ class BattleSetupMixin(BaseBattleEngine):
             run.node_data["is_secret_boss"] = True
         elif difficulty == "elite":
             encounter = ENEMY_ENCOUNTER_CONFIG["elite"]
-            elite_pool = self._stage_enemy_pool(encounter["pools"], p.stage)
+            elite_pool = self._floor_enemy_pool(encounter["pools"], floor_index)
             run.enemies = []
             base_name = random.choice(elite_pool)
             run.node_data["elite_name"] = base_name
             base_hp, actions, bonus_actions = self._enemy_config_stats(base_name)
-            hp_final = base_hp + p.stage * encounter["hp_per_stage"]
+            hp_final = base_hp + scale * encounter["hp_per_stage"]
             run.enemies.append(self._build_enemy_state(base_name, hp_final, actions, bonus_actions))
         elif difficulty == "ghost":
             ghost_name = str(run.node_data.get("ghost_name", get_locale_text("i18n_battle_core.ghost_default_name")))
@@ -269,14 +272,14 @@ class BattleSetupMixin(BaseBattleEngine):
             run.enemies = [self._build_enemy_state(enemy_name, hp, actions, bonus_actions)]
         else:
             encounter = ENEMY_ENCOUNTER_CONFIG["normal"]
-            normal_pool = self._stage_enemy_pool(encounter["pools"], p.stage)
+            normal_pool = self._floor_enemy_pool(encounter["pools"], floor_index)
             run.enemies = []
             count_min, count_max = encounter["count_range"]
             num_enemies = random.randint(count_min, count_max)
             selected_names = [random.choice(normal_pool) for _ in range(num_enemies)]
             for i, base_name in enumerate(selected_names):
                 base_hp, actions, bonus_actions = self._enemy_config_stats(base_name)
-                hp_final = base_hp + p.stage * encounter["hp_per_stage"]
+                hp_final = base_hp + scale * encounter["hp_per_stage"]
                 name = f"{base_name} {chr(65 + i)}" if num_enemies > 1 else base_name
                 run.enemies.append(self._build_enemy_state(name, hp_final, actions, bonus_actions))
         from ...entities import get_enemy_template

@@ -164,7 +164,7 @@ class TestRogueExplore(unittest.TestCase):
         
         async def go():
             player = PlayerState(
-                hp=30, max_hp=30, shield=0, gold=10, stage=4,
+                hp=30, max_hp=30, shield=0, gold=10,
                 deck=[CardState(id="first_aid")], hand=[], draw_pile=[], discard_pile=[], exhaust_pile=[], graveyard=[]
             )
             run = GameRun(
@@ -201,9 +201,8 @@ class TestRogueExplore(unittest.TestCase):
             
             res_skip = await run_command(plugin, ".rogue 选择 2", sender_id=user_id)
             run_after = load_run(plugin, user_id)
-            self.assertEqual(run_after.player.stage, 5)
-            
-            run_after.player.stage = 4
+            self.assertEqual(run_after.node_type, "grid_map")
+
             run_after.player.relics = ["trash_mountain"]
             run_after.node_type = "reward"
             run_after.node_data = {
@@ -224,7 +223,7 @@ class TestRogueExplore(unittest.TestCase):
             
             await run_command(plugin, ".rogue 选择 1", sender_id=user_id)
             run_after = load_run(plugin, user_id)
-            self.assertEqual(run_after.player.stage, 5)
+            self.assertEqual(run_after.node_type, "grid_map")
             from game.models.state import ensure_card_state
             last_card = ensure_card_state(run_after.player.deck[-1])
             self.assertEqual(last_card.id, "fireball")

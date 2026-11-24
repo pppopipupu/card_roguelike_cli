@@ -18,7 +18,7 @@ from ...data.world.grid_map_config import (
 )
 from ...data.text.locale_data import get_locale_text
 from ...data.progression.balance_config import MAP_GHOST_DEFAULT_MAX_HP
-from .grid_map_generator import compute_effective_stage, coord_to_xy, xy_to_coord
+from .grid_map_generator import coord_to_xy, xy_to_coord
 from .landmark_system import build_landmark_options, ensure_descent_tunnel
 from ..party.coordinator import apply_and_scope, restore_player, swap_player
 from ..party.session import SessionContextScoper
@@ -89,14 +89,15 @@ class GridMapService:
     def _reveal_coord(self, fm, coord: str):
         reveal_big_room_if_needed(fm, coord)
 
-    def _sync_stage_for_coord(self, run, player, coord: str):
-        fm = run.floor_map
-        room = fm.rooms.get(coord)
-        cfg = FLOOR_CONFIGS.get(fm.floor_index, FLOOR_CONFIGS[1])
-        if room and room.room_type in ("boss", "downstairs"):
-            player.stage = int(cfg["stage_max"])
-        else:
-            player.stage = compute_effective_stage(fm, coord)
+    def _format_map_output(self, run, log_text: str, in_queue: bool | None = None) -> str:
+        from ...models.state import is_in_queue
+        log = (log_text or "").strip()
+        queued = is_in_queue(run) if in_queue is None else bool(in_queue)
+        if queued:
+            return log
+        from ...renderer import GameRenderer
+        rendered = GameRenderer.render_game(run)
+        return f"{log}\n\n{rendered}" if log else rendered
 
     def _break_obstacle_and_enter(self, run, fm, uid: str, room, target_coord: str) -> str:
         from ...renderer import GameRenderer
@@ -126,7 +127,6 @@ class GridMapService:
         room.obstacle_sp = 0
         fm.player_coords[uid] = target_coord
         self._reveal_coord(fm, target_coord)
-        self._sync_stage_for_coord(run, p, target_coord)
         from .rooms.dialog.quest_hooks import record_npc_quest_event
         record_npc_quest_event(run, self.save_manager.load_stats(uid), "clear_obstacle", {"coord": target_coord}, save_manager=self.save_manager)
         broken_msg = break_map_invisibility(run, reason="interact", player=p)
@@ -134,7 +134,7 @@ class GridMapService:
             prefix = f"{prefix}\n{broken_msg}"
         self.save_manager.save_save(uid, run)
         sync_active(uid, run=run)
-        return f"{prefix}\n\n{GameRenderer.render_game(run)}"
+        return self._format_map_output(run, prefix)
 
     def move_player(self, run, direction: str, dig: bool = False) -> str:
         fm = getattr(run, "floor_map", None)
@@ -217,7 +217,6 @@ class GridMapService:
         if not was_explored:
             from .map_quest_service import record_room_explored
             record_room_explored(run, self.save_manager.load_stats(uid), save_manager=self.save_manager)
-        self._sync_stage_for_coord(run, p, target_coord)
         from .presence import sync_active
         sync_active(uid, run=run)
         return self._enter_room(run, uid, target_coord)
@@ -316,13 +315,12 @@ class GridMapService:
             return get_locale_text("i18n_grid_map.tp_blocked", coord=coord)
         fm.player_coords[uid] = coord
         self._reveal_coord(fm, coord)
-        self._sync_stage_for_coord(run, run.player, coord)
         from .presence import sync_active
         sync_active(uid, run=run)
         if room.room_type in PERMANENT_ICON_TYPES or room.room_type == "big_room" or not room.cleared:
             return self._enter_room(run, uid, coord)
         self.save_manager.save_save(uid, run)
-        return f"{get_locale_text('i18n_grid_map.tp_success', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+        return self._format_map_output(run, get_locale_text("i18n_grid_map.tp_success", coord=coord))
 
     def team_teleport_player(self, run, query: str) -> str:
         from ..cli.base.pinyin_match import find_entry_by_query
@@ -428,7 +426,7 @@ class GridMapService:
         if room.room_type in ("empty", "spawn"):
             room.cleared = True
             self.save_manager.save_save(uid, run)
-            return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+            return self._format_map_output(run, get_locale_text("i18n_grid_map.moved_to", coord=coord))
 
         alive_hostiles = get_alive_hostile_npcs(fm, room)
         if alive_hostiles:
@@ -444,7 +442,7 @@ class GridMapService:
                 nname = get_locale_text(ncfg["name_key"]) if ncfg.get("name_key") else hid
                 notice = get_locale_text("i18n_big_room.ui.stealth_bypass_notice", npc=nname)
                 self.save_manager.save_save(uid, run)
-                return f"{notice}\n\n{GameRenderer.render_game(run)}"
+                return self._format_map_output(run, notice)
             return trigger_hostile_npc_battle(self, run, uid, coord, room, alive_hostiles[0])
 
         existing_battle_sid = self._find_session_at(fm, coord, "battle")
@@ -458,40 +456,44 @@ class GridMapService:
                 room.cleared = True
             sync_big_room_clear_state(fm, room)
             self.save_manager.save_save(uid, run)
-            return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+            return self._format_map_output(run, get_locale_text("i18n_grid_map.moved_to", coord=coord))
 
         if room.room_type == "treasure":
             self.save_manager.save_save(uid, run)
-            return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+            return self._format_map_output(run, get_locale_text("i18n_grid_map.moved_to", coord=coord))
 
         if room.cleared and room.room_type not in PERMANENT_ICON_TYPES:
             self.save_manager.save_save(uid, run)
-            return f"{get_locale_text('i18n_grid_map.moved_cleared', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+            return self._format_map_output(run, get_locale_text("i18n_grid_map.moved_cleared", coord=coord))
 
+        from ...models.state import is_in_queue
+        in_queue = is_in_queue(run)
         if room.room_type == "landmark":
             broken_msg = break_map_invisibility(run, reason="interact", player=p)
             data = build_landmark_options(run, uid)
             SessionContextScoper.create_session(run, coord, "landmark", [uid], node_data=data)
             self.save_manager.save_save(uid, run)
+            if in_queue:
+                return "\n".join(x for x in (get_locale_text("i18n_grid_map.moved_to", coord=coord), broken_msg) if x)
             rendered = GameRenderer.render_game(run)
             return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
 
         if room.room_type == "downstairs":
             ensure_descent_tunnel(room)
             self.save_manager.save_save(uid, run)
-            return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+            return self._format_map_output(run, get_locale_text("i18n_grid_map.moved_to", coord=coord))
 
         from .bleak_falls import BLEAK_LANDMARK_TYPES
         if room.room_type in BLEAK_LANDMARK_TYPES:
             self.save_manager.save_save(uid, run)
-            return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+            return self._format_map_output(run, get_locale_text("i18n_grid_map.moved_to", coord=coord))
 
         if room.room_type == "cafe":
             from .cafe.engine import CafeEngine
             CafeEngine(self.save_manager, self.map_engine).ensure_cafe_room(run, room)
             room.cleared = True
             self.save_manager.save_save(uid, run)
-            return f"{get_locale_text('i18n_grid_map.moved_to', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+            return self._format_map_output(run, get_locale_text("i18n_grid_map.moved_to", coord=coord))
 
         broken_msg = break_map_invisibility(run, reason="interact", player=p)
         if room.room_type == "event":
@@ -519,6 +521,8 @@ class GridMapService:
             elif room.room_type == "life_merchant":
                 self.map_engine.explore_engine._init_life_merchant_node(run)
         self.save_manager.save_save(uid, run)
+        if in_queue:
+            return "\n".join(x for x in (get_locale_text("i18n_grid_map.moved_to", coord=coord), broken_msg) if x)
         rendered = GameRenderer.render_game(run)
         return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
 
@@ -550,9 +554,8 @@ class GridMapService:
             "",
         )
         owner_name = run.players[owner].name if owner in run.players else owner
-        from ...renderer import GameRenderer
         notice = get_locale_text("i18n_grid_map.battle_forced_solo_notice", name=owner_name, coord=coord)
-        return f"{notice}\n\n{GameRenderer.render_game(run)}"
+        return self._format_map_output(run, notice)
 
     def _team_participants(self, run, coordinator_uid: str) -> list[str]:
         fm = run.floor_map
@@ -579,13 +582,13 @@ class GridMapService:
             player = run.players.get(uid)
             if player is None:
                 continue
-            self._sync_stage_for_coord(run, player, coord)
             if not getattr(player, "is_mercenary", False):
                 sync_active(uid, run=run)
 
     def _join_battle_session(self, run, uid: str, coord: str, existing_sid: str) -> str:
-        from ...renderer import GameRenderer
         from .presence import sync_active
+        from ...models.state import is_in_queue
+        in_queue = is_in_queue(run)
         fm = run.floor_map
         sess = fm.active_sessions[existing_sid]
         if session_battle_mode(sess.node_data) == BATTLE_MODE_FORCED_SOLO and uid not in sess.participants:
@@ -600,7 +603,6 @@ class GridMapService:
             fm.player_coords[member] = coord
             player = run.players.get(member)
             if player is not None:
-                self._sync_stage_for_coord(run, player, coord)
                 sync_active(member, run=run)
             fm.player_session_map[member] = existing_sid
         fm.player_session_map[uid] = existing_sid
@@ -608,10 +610,8 @@ class GridMapService:
         for member in new_members:
             self.map_engine.battle_engine.join_battle(run, member)
         self.save_manager.save_save(uid, run)
-        rendered = GameRenderer.render_game(run)
-        if not joined:
-            return rendered
-        return f"{get_locale_text('i18n_grid_map.battle_joined', coord=coord)}\n\n{rendered}"
+        join_msg = get_locale_text("i18n_grid_map.battle_joined", coord=coord) if joined else ""
+        return self._format_map_output(run, join_msg, in_queue=in_queue)
 
     def _start_battle(self, run, uid: str, coord: str, room, difficulty: str, corpse: dict | None = None, hostile_npc_id: str = "", battle_mode: str = "") -> str:
         fm = run.floor_map
@@ -652,6 +652,8 @@ class GridMapService:
 
     def _launch_battle_session(self, run, coord: str, participants: list[str], room, difficulty: str, corpse: dict | None = None, include_render: bool = True, hostile_npc_id: str = "", battle_mode: str = BATTLE_MODE_SOLO) -> str:
         from ...renderer import GameRenderer
+        from ...models.state import is_in_queue
+        in_queue = is_in_queue(run)
         fm = run.floor_map
         caller = run.user_id
         self._move_participants_to(run, coord, participants)
@@ -673,7 +675,7 @@ class GridMapService:
             node_data.update({
                 "corpse_battle": True,
                 "corpse_id": corpse.get("id"),
-                "corpse_stage": int(corpse.get("stage", run.player.stage)),
+                "corpse_floor": corpse.get("floor", fm.floor_index),
                 "corpse_dead_name": dead_name,
                 "corpse_cause": cause,
                 "ghost_name": get_locale_text("i18n_map_cafe.ghost_name", dead_name=dead_name),
@@ -705,6 +707,8 @@ class GridMapService:
             room_label = self._room_display_label(room, fm=fm)
             intro_lines.append(get_locale_text("i18n_room_interact.combat.room_entry_intro", label=room_label, coord=coord))
             intro_lines.extend(format_room_extras(run, include_env=True))
-        prefix = ("\n".join(intro_lines) + "\n") if intro_lines else ""
-        base_text = prefix + (GameRenderer.render_game(run) if include_render else "")
-        return self.map_engine.battle_engine._append_logs_to_res(run, base_text.strip())
+        log_text = self.map_engine.battle_engine._append_logs_to_res(run, "\n".join(intro_lines).strip()).strip()
+        if not include_render or in_queue:
+            return log_text
+        rendered = GameRenderer.render_game(run)
+        return f"{log_text}\n{rendered}" if log_text else rendered

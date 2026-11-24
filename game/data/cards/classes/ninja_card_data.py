@@ -42,7 +42,7 @@ NINJA_UPGRADE_CONFIG: dict[str, dict] = {'ninja_strike': {'base_dmg': 9, 'desc':
  'ninja_ye_suan_milk': {'desc': '获得 5 点蕾克拉。消耗。'},
  'ninja_abrasive_strike': {'base_dmg': 10, 'desc': '对目标造成 11 点挥砍伤害，获得 5 层荆棘。'},
  'ninja_annai_master': {'cost_a': 0, 'desc': '将 1 张随机忍术牌加入手牌,且该牌本回合主动作消耗降为 0A。消耗。'},
- 'ninja_back_fourth_hand': {'shield_amount': 11, 'desc': '获得 12 点护盾，从弃牌堆随机取回 2 张牌加入手牌，再随机丢弃 2 张手牌。'},
+ 'ninja_back_fourth_hand': {'shield_amount': 11, 'desc': '获得 11 点护盾，从弃牌堆选择取回至多 2 张牌加入手牌，再选择丢弃 2 张手牌。'},
  'ninja_beast_shout': {'base_dmg': 15, 'desc': '对所有敌人造成 15 点雷鸣伤害。忍术 1：使所有敌人失去 3 层力量。消耗。'},
  'ninja_black_dragon_hand': {'desc': '虚无。对目标施加 3 层虚弱并移除其无实体。忍术 2：偷取目标 3 点最大生命值。消耗。'},
  'ninja_black_zi_cannon': {'base_dmg': 34, 'desc': '科学忍具（每点蕾克拉 -1A，打出消耗 1 点蕾克拉）。对目标造成 34 点钝击伤害。'},

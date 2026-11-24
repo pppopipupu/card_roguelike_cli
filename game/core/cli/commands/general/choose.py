@@ -55,7 +55,8 @@ class ChooseCommand(CommandHandler, names=["选择", "c"], allowed_states=["menu
             yield get_locale_text("i18n_cli_general_b.err_no_active_game")
             return
         res, term, success = router._execute_sub_action(user_id, run, parts)
-        if term or (run and run.node_data.get("in_queue")):
+        from .....models.state import is_in_queue
+        if term or is_in_queue(run):
             yield res
         else:
             rendered = GameRenderer.render_game(run)

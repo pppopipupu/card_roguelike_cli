@@ -98,7 +98,7 @@ class LogService:
             "command": command,
             "text": str(result or "").strip(),
             "player": name,
-            "coop_id": getattr(run, "coop_id", "") if run is not None else "",
+            "run_id": getattr(run, "run_id", "") if run is not None else "",
         }
         self._append(stats, "log_history", entry)
         party_order = list(run.human_uids()) if run is not None and hasattr(run, "human_uids") else (list(getattr(run, "party_order", []) or []) if run is not None else [])

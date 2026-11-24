@@ -312,7 +312,7 @@ CARD_UPGRADE_CONFIG_CHARACTER = {
         "desc": "若目标生命低于 180 点，使其获得 4 层【流血】与 3 层【虚弱】；否则造成 12 点物理挥砍伤害。"
     },
     "neutral_plane_shift": {
-        "forbidden_stages": (32,),
+        "forbidden_boss_floors": (4,),
         "gp_reward": 40,
         "desc": "传送脱逃离开遭遇战，且获得 40 金币空间遗珍。在 25 层与 32 层 BOSS 战中禁用。即逝。"
     },

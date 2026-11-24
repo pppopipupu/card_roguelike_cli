@@ -476,6 +476,6 @@ class CrpgDialogEngine:
         if next_node == "exhausted_root":
             ctx["p_enc"]["exhausted"] = True
         run.node_data["node_id"] = next_node
-        run.node_data["last_outcome_nodes"] = serialize_outcome_nodes(outcome_nodes)
+        run.node_data["last_outcome_nodes"] = []
         save_manager.save_save(uid, run)
-        return render_room_dialog(run, save_manager=save_manager)
+        return "\n".join(render_text_node(n) for n in outcome_nodes if n is not None)

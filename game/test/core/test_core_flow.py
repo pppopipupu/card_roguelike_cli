@@ -31,7 +31,7 @@ class TestCoreFlow(unittest.TestCase):
         self.run_cmd("start confirm", uid)
         run = load_run(self.plugin, uid)
         self.assertEqual(run.node_type, "start_ancient")
-        self.assertEqual(run.player.stage, 1)
+        self.assertIsNotNone(run.floor_map)
 
         self.run_cmd("c 1", uid)
         run = load_run(self.plugin, uid)

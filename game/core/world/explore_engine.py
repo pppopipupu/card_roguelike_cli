@@ -4,7 +4,7 @@ from ...models.state import GameRun, PlayerState
 from ...models.coop_view import strip_shared
 from ...data.battle.battle_mode_config import BATTLE_MODE_FORCED_SOLO, BATTLE_MODE_SOLO, BATTLE_MODE_TEAM
 from ...data.world.event_data import TEAM_EVENT_IDS
-from ...data.world.map_config import MapConfig
+from ...data.world.grid_map_config import get_run_floor_index
 from ...entities import ALL_CARDS, get_relic_name
 from ...entities.events import ALL_EVENTS
 from ...data.progression.balance_config import (
@@ -177,12 +177,12 @@ class ExploreEngine:
         return res
 
     def resolve_event(self, run: GameRun, event_id: str = ""):
-        stage = max((p.stage for p in run.players.values()), default=run.player.stage)
+        floor_val = float(get_run_floor_index(run))
         if event_id:
             event = next((e for e in ALL_EVENTS if e.id == event_id), None)
             if event is not None:
                 return event
-        valid_events = [e for e in ALL_EVENTS if getattr(e, "min_stage", 2) <= stage <= getattr(e, "max_stage", MapConfig.COMMON_EVENT_MAX_STAGE)]
+        valid_events = [e for e in ALL_EVENTS if float(getattr(e, "min_floor", 1)) <= floor_val <= float(getattr(e, "max_floor", 2))]
         if not valid_events:
             valid_events = ALL_EVENTS
         return random.choice(valid_events)

@@ -1,12 +1,11 @@
 from ...data.text.locale_data import get_locale_text
-from ...renderer import GameRenderer
 from .registry import (
     AdminCommandHandler,
     AdminContext,
     register_admin_command,
     render_admin_help,
 )
-from .resolvers import parse_bool, resolve_target_user
+from .resolvers import parse_bool
 
 BOSS_FIXED_NAMES = ("腐化之心", "Icerainboww")
 BOSS_RANDOM_ALIASES = ("random", "随机", "轮换")
@@ -85,39 +84,3 @@ class IcerainbowwAdminCommand(AdminCommandHandler):
         if parsed:
             return get_locale_text("i18n_cli_core.admin_icerainboww_enabled")
         return get_locale_text("i18n_cli_core.admin_icerainboww_disabled")
-
-
-@register_admin_command(
-    aliases=("jump", "j", "跳层"),
-    category="world",
-    help_key="i18n_admin.help_cmd_jump",
-    detail_key="i18n_admin.detail_jump",
-)
-class JumpAdminCommand(AdminCommandHandler):
-    async def execute(self, ctx: AdminContext) -> str:
-        args = ctx.args
-        if len(args) == 1:
-            target_uid = ctx.target_user_id
-            stage_str = args[0]
-        elif len(args) >= 2:
-            resolved = resolve_target_user(ctx.save_manager, args[0])
-            target_uid = resolved or args[0]
-            stage_str = args[1]
-        else:
-            return get_locale_text("i18n_cli_core.err_admin_jump_usage")
-        try:
-            target_stage = int(stage_str)
-        except ValueError:
-            return get_locale_text("i18n_cli_core.err_admin_jump_int")
-        if not (1 <= target_stage <= 32):
-            return get_locale_text("i18n_cli_core.err_admin_jump_range")
-        async with ctx.lock(target_uid):
-            run = ctx.save_manager.load_save(target_uid)
-            if not run:
-                return get_locale_text("i18n_cli_core.err_admin_no_save")
-            msg = ctx.engine.jump_to_stage(run, target_stage)
-            return get_locale_text(
-                "i18n_cli_core.admin_action_result",
-                msg=msg,
-                rendered=GameRenderer.render_game(run),
-            )

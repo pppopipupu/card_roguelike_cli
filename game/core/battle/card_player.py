@@ -381,6 +381,11 @@ class CardPlayer(CardPlayerMinionMixin, CardPlayerTurnMixin, CardPlayerRewardsMi
 
             if not suspend_post_play:
                 res, _ = self._finalize_card_play(run, p, card, cid, target, res, source="played", register=True)
+                if run.node_data.get("pending_extra_plays"):
+                    from .selection.extra_play_flow import drain_pending_extra_plays
+                    res, suspended_extra = drain_pending_extra_plays(self, run, res)
+                    if suspended_extra:
+                        suspend_post_play = True
         finally:
             run.node_data["current_playing_card_id"] = ""
             run.node_data["current_playing_card_cid"] = ""

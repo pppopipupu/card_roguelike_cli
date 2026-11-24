@@ -9,9 +9,10 @@
     "unknown_sub": "❌ 未知好友子指令。输入 friend 查看用法。"
   },
   "team": {
+    "usage": "🧭 队伍指令：\n team create 创建队伍\n team invite <好友> 邀请好友加入队伍\n team join [队伍编号] 加入队伍\n team ready / unready 准备 / 取消准备\n team start 队长开启队伍冒险\n team status 查看当前队伍或冒险成员状态\n team invites 查看收到的组队邀请\n team coord 查看队伍实时位置\n team tp <队友> 传送到队友位置（消耗 1 SP）\n team leave 离开队伍\n team kick <队员> 移出队员\n team disband 解散队伍",
     "invite_need_arg": "❌ 请提供要邀请的好友昵称或 ID。",
     "kick_need_arg": "❌ 请提供要移出的队员昵称或 ID。",
-    "unknown_sub": "❌ 未知组队子指令。输入 team 查看当前队伍状态。"
+    "unknown_sub": "❌ 未知组队子指令。输入 team 查看用法。"
   },
   "class": {
     "none": "无",

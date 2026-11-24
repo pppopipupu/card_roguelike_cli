@@ -799,7 +799,7 @@ def process_dialog_action(town_engine, stats: UserStats, npc_id: str, action: st
         stats.hired_mercenaries = hired
         save()
         msg = get_locale_text("i18n_mercenary.hire_success", cost=MERCENARY_HARRY_HIRE_COST)
-        if getattr(stats, "active_coop_id", "") or getattr(stats, "active_lobby_id", ""):
+        if getattr(stats, "active_run_id", "") or getattr(stats, "active_lobby_id", ""):
             msg += "\n" + get_locale_text("i18n_mercenary.hire_in_coop_party")
         return msg + "\n\n" + rerender()
 

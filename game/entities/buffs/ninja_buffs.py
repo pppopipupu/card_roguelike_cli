@@ -145,7 +145,16 @@ class ScienceDoubleBuff(BuffImpl):
         buff_state.stacks -= 1
         if buff_state.stacks <= 0 and buff_state in entity.buffs:
             entity.buffs.remove(buff_state)
-        event.engine._execute_card_effect(event.run, event.card, event.target)
+        from ...core.battle.card_executor import execute_extra_card_effect
+        execute_extra_card_effect(
+            event.engine,
+            event.run,
+            event.card,
+            event.target,
+            trigger_type="science_double",
+            dispatch_played_event=False,
+            dispatch_extra_event=False,
+        )
 
 
 @register_buff("blade_power_up")

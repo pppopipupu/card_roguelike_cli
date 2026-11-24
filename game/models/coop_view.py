@@ -58,7 +58,18 @@ SHARED_PERSIST_KEYS = {
     "cthulhu_puzzle_advanced",
     "merc_dialogs",
     "merc_acted_round",
+    "player_selection_states",
 }
+
+SELECTION_STATE_KEYS = (
+    "state_stack",
+    "suspended_card_cid",
+    "suspended_card_cost_a",
+    "suspended_card_cost_ba",
+    "suspended_card_hand_idx",
+    "suspended_card_primary_target",
+    "pending_extra_plays",
+)
 
 VIEW_NODES = {
     "start_ancient",
@@ -106,9 +117,70 @@ def apply_view(run, uid):
     return run
 
 
+def persist_selection_state(run, uid):
+    if not run or not uid:
+        return
+    node_data = run.node_data if run.node_data is not None else {}
+    snapshot = {}
+    for key in SELECTION_STATE_KEYS:
+        if key not in node_data:
+            continue
+        val = node_data.get(key)
+        if key == "state_stack":
+            if val:
+                snapshot[key] = list(val)
+        elif val is not None:
+            snapshot[key] = val
+    states = node_data.get("player_selection_states")
+    if snapshot:
+        if not isinstance(states, dict):
+            states = {}
+            node_data["player_selection_states"] = states
+        states[uid] = snapshot
+    elif isinstance(states, dict):
+        states.pop(uid, None)
+        if not states:
+            node_data.pop("player_selection_states", None)
+
+
+def scope_selection_state(run, uid):
+    if not run or not uid:
+        return
+    node_data = run.node_data if run.node_data is not None else {}
+    states = node_data.get("player_selection_states")
+    if not isinstance(states, dict):
+        legacy_stack = node_data.get("state_stack")
+        if legacy_stack:
+            top = legacy_stack[-1] if isinstance(legacy_stack[-1], dict) else {}
+            owner = str(top.get("owner_uid") or "") or uid
+            migrated = {}
+            for key in SELECTION_STATE_KEYS:
+                if key in node_data and node_data.get(key) is not None:
+                    if key == "state_stack":
+                        if node_data[key]:
+                            migrated[key] = list(node_data[key])
+                    else:
+                        migrated[key] = node_data[key]
+            states = {owner: migrated} if migrated else {}
+            if states:
+                node_data["player_selection_states"] = states
+        else:
+            states = {}
+    for key in SELECTION_STATE_KEYS:
+        node_data.pop(key, None)
+    own = states.get(uid) if isinstance(states, dict) else None
+    if isinstance(own, dict):
+        for key, val in own.items():
+            if key == "state_stack":
+                node_data[key] = list(val)
+            else:
+                node_data[key] = val
+
+
 def persist_view(run, uid):
     if not run or not uid:
         return
+    persist_selection_state(run, uid)
     node_data = run.node_data if run.node_data is not None else {}
     if run.node_type not in VIEW_NODES:
         node_data.pop("coop_node_type", None)
@@ -149,6 +221,7 @@ def strip_shared(data):
 def scope_view(run, uid):
     if not run or not uid:
         return run
+    scope_selection_state(run, uid)
     node_data = run.node_data if run.node_data is not None else {}
     notices_map = node_data.get("coop_notices_by_uid")
     if isinstance(notices_map, dict):

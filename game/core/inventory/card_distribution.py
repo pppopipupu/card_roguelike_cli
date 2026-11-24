@@ -11,7 +11,6 @@ from ...data.cards.card_distribution_config import (
     DEFAULT_RARITY_WEIGHTS,
     KEY_SCHOLAR_REPLACE_CONFIG,
     LATE_FLOOR_THRESHOLD,
-    LATE_STAGE_THRESHOLD,
     UPGRADE_SUFFIX,
 )
 
@@ -91,9 +90,7 @@ class ChannelPolicyRegistry:
         if fm is not None:
             floor_idx = float(getattr(fm, "floor_index", 1) or 1)
             return "late" if floor_idx >= LATE_FLOOR_THRESHOLD else "early"
-        target_player = player if player is not None else (getattr(run, "player", None) if run is not None else None)
-        stage = int(getattr(target_player, "stage", 1) or 1) if target_player is not None else 1
-        return "late" if stage >= LATE_STAGE_THRESHOLD else "early"
+        return "early"
 
     @staticmethod
     def resolve_colors(

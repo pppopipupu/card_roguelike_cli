@@ -449,6 +449,7 @@ class AchievementService:
         items: List[str] = []
         status_unlocked = get_locale_text("i18n_achievement.status_unlocked")
         status_locked = get_locale_text("i18n_achievement.status_locked")
+        status_hidden = get_locale_text("i18n_achievement.status_hidden")
         hidden_name = get_locale_text("i18n_achievement.hidden_name")
         hidden_desc = get_locale_text("i18n_achievement.hidden_desc")
         for rarity in ACHIEVEMENT_RARITY_ORDER:
@@ -461,23 +462,26 @@ class AchievementService:
                 is_unlocked = aid in unlocked_set
                 if only_unlocked and not is_unlocked:
                     continue
+                idx = len(items) + 1
                 rarity_str = self._rarity_label(rarity)
-                status_str = status_unlocked if is_unlocked else status_locked
                 is_hidden = (rarity in HIDDEN_ACHIEVEMENT_RARITIES) and (not is_unlocked) and (not all_view)
                 if is_hidden:
                     items.append(
                         get_locale_text(
                             "i18n_achievement.entry_hidden",
+                            idx=idx,
                             rarity=rarity_str,
                             name=hidden_name,
-                            status=status_str,
+                            status=status_hidden,
                             desc=hidden_desc,
                         )
                     )
                 else:
+                    status_str = status_unlocked if is_unlocked else status_locked
                     items.append(
                         get_locale_text(
                             "i18n_achievement.entry_visible",
+                            idx=idx,
                             rarity=rarity_str,
                             name=cfg["name"],
                             status=status_str,

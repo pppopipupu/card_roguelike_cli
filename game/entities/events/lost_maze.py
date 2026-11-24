@@ -61,8 +61,9 @@ class FightGuardOption(EventOption, action="fight_guard", text=get_locale_text("
         engine.battle_engine._init_battle_node(run, "elite")
         run.node_type = "battle"
         if run.enemies:
+            from ...data.world.grid_map_config import get_run_difficulty_scale
             cfg = EVENT_CONFIG.get("maze_guard", {})
-            guard_hp = cfg.get("guard_hp_base", 30) + run.player.stage * cfg.get("guard_hp_per_stage", 2)
+            guard_hp = cfg.get("guard_hp_base", 30) + get_run_difficulty_scale(run) * cfg.get("guard_hp_per_stage", 2)
             run.enemies[0].name = get_locale_text("i18n_events_b.enemy_fire_guardian")
             run.enemies[0].hp = guard_hp
             run.enemies[0].max_hp = run.enemies[0].hp

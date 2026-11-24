@@ -1,5 +1,4 @@
 from typing import List
-from ...data.world.map_config import MapConfig
 
 class EventOption:
     registry = {}
@@ -26,9 +25,9 @@ class EventOption:
         return ""
 
 class EventTemplate:
-    def __init__(self, id: str, description: str, options: List[EventOption], min_stage: int = 2, max_stage: int = MapConfig.COMMON_EVENT_MAX_STAGE):
+    def __init__(self, id: str, description: str, options: List[EventOption], min_floor: int | float = 1, max_floor: int | float = 2):
         self.id = id
         self.description = description
         self.options = options
-        self.min_stage = min_stage
-        self.max_stage = max_stage
+        self.min_floor = min_floor
+        self.max_floor = max_floor

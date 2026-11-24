@@ -75,7 +75,7 @@ NUMERIC_CARD_FIELDS = (
     "restore_amount",
     "bonus_damage",
     "gp_reward",
-    "forbidden_stages",
+    "forbidden_boss_floors",
     "max_count",
     "coef",
     "factor",

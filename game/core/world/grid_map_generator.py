@@ -1,6 +1,6 @@
 import random
 from collections import deque
-from ...data.progression.balance_config import LIFE_MERCHANT_MAX_PER_RUN, LIFE_MERCHANT_STAGE_CONFIG
+from ...data.progression.balance_config import LIFE_MERCHANT_FLOOR_CHANCE, LIFE_MERCHANT_MAX_PER_RUN
 from ...data.world.big_room_config import BIG_ROOM_FLOOR_RULES, BIG_ROOM_SHAPES, BIG_ROOM_TEMPLATES
 from ...data.world.grid_map_config import (
     FLOOR_CONFIGS,
@@ -36,25 +36,6 @@ def neighbors_4(x: int, y: int, width: int, height: int) -> list[tuple[int, int]
         if 0 <= nx < width and 0 <= ny < height:
             res.append((nx, ny))
     return res
-
-
-def compute_effective_stage(floor_map: FloorMapState, coord: str) -> int:
-    cfg = FLOOR_CONFIGS.get(floor_map.floor_index, FLOOR_CONFIGS[1])
-    s_min = int(cfg["stage_min"])
-    s_max = int(cfg["stage_max"])
-    if s_min >= s_max:
-        return s_min
-    spawn_xy = (0, floor_map.height // 2)
-    for c, r in floor_map.rooms.items():
-        if r.room_type == "spawn":
-            spawn_xy = coord_to_xy(c)
-            break
-    boss_xy = coord_to_xy(floor_map.boss_coord) if floor_map.boss_coord else (floor_map.width - 1, floor_map.height // 2)
-    cur_xy = coord_to_xy(coord)
-    max_dist = max(1, abs(boss_xy[0] - spawn_xy[0]) + abs(boss_xy[1] - spawn_xy[1]))
-    cur_dist = abs(cur_xy[0] - spawn_xy[0]) + abs(cur_xy[1] - spawn_xy[1])
-    ratio = min(1.0, max(0.0, cur_dist / max_dist))
-    return int(round(s_min + ratio * (s_max - s_min)))
 
 
 def _reachable_without_obstacles(rooms: dict[str, RoomState], start_coord: str, width: int, height: int) -> set[str]:
@@ -121,20 +102,15 @@ def _carve_passable_set(width: int, height: int, spawn_xy: tuple[int, int], boss
 
 
 def _roll_life_merchant(run, floor_index: int) -> bool:
-    if run is None or floor_index not in (1, 2, 3):
+    if run is None or floor_index not in LIFE_MERCHANT_FLOOR_CHANCE:
         return False
     seen = int(run.map_data.get("life_merchant_count", 0) or 0)
     if seen >= LIFE_MERCHANT_MAX_PER_RUN:
         return False
-    cfg = FLOOR_CONFIGS.get(floor_index, FLOOR_CONFIGS[1])
-    s_min, s_max = cfg["stage_min"], cfg["stage_max"]
-    for stg in range(s_min, s_max + 1):
-        if stg in LIFE_MERCHANT_STAGE_CONFIG:
-            entry = LIFE_MERCHANT_STAGE_CONFIG[stg]
-            chance = entry[2] if isinstance(entry, (tuple, list)) else entry
-            if random.random() < float(chance):
-                run.map_data["life_merchant_count"] = seen + 1
-                return True
+    chance = float(LIFE_MERCHANT_FLOOR_CHANCE[floor_index])
+    if random.random() < chance:
+        run.map_data["life_merchant_count"] = seen + 1
+        return True
     return False
 
 
@@ -289,9 +265,7 @@ def generate_floor_map(run, floor_index: int, save_manager=None) -> FloorMapStat
 
     if save_manager is not None and hasattr(save_manager, "corpses"):
         caller_uid = getattr(run, "user_id", "") if run else ""
-        found_corpses = []
-        for stg in range(int(cfg["stage_min"]), int(cfg["stage_max"]) + 1):
-            found_corpses.extend(save_manager.corpses.list_at_stage(stg, exclude_user=caller_uid))
+        found_corpses = save_manager.corpses.list_at_floor(floor_index, exclude_user=caller_uid)
         if found_corpses:
             corpse = random.choice(found_corpses)
             c = pop_candidate()

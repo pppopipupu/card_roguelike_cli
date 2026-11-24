@@ -54,7 +54,7 @@ class TestRogueCafe(unittest.TestCase):
         user_id = "test_user_bypass_cafe"
         plugin.save_manager.delete_save(user_id)
         p = PlayerState(
-            hp=30, max_hp=30, shield=0, gold=100, stage=13,
+            hp=30, max_hp=30, shield=0, gold=100,
             deck=[CardState(id="fire_bolt")], hand=[], draw_pile=[], discard_pile=[],
             exhaust_pile=[], graveyard=[], relics=[]
         )
@@ -118,7 +118,7 @@ class TestRogueCafe(unittest.TestCase):
         stats.rogue_mode = True
         plugin.save_manager.save_stats(user_id, stats)
         player = PlayerState(
-            hp=30, max_hp=30, shield=0, gold=100, stage=13,
+            hp=30, max_hp=30, shield=0, gold=100,
             deck=[CardState(id="fire_bolt")], hand=[], draw_pile=[], discard_pile=[],
             exhaust_pile=[], graveyard=[], relics=[]
         )

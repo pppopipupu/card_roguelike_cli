@@ -11,7 +11,7 @@ class PlayerProfile:
     selected_class: str
     selected_subclass: str
     gp: int
-    active_coop_id: str
+    active_run_id: str
     active_lobby_id: str
     in_town: bool
     mtime: float

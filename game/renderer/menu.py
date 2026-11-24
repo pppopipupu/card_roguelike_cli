@@ -198,7 +198,7 @@ def render_reader_page(stats: UserStats, prompt_key: str = "renderer_menu.reader
         lines.append(t("renderer_menu.reader_empty"))
     else:
         for i in range(start_idx, end_idx):
-            if getattr(stats, "reader_mode", "rogue") == "changelog":
+            if getattr(stats, "reader_mode", "rogue") in ("changelog", "achievement"):
                 lines.append(stats.reader_items[i])
             else:
                 lines.append(f"{i + 1}. {stats.reader_items[i]}")

@@ -8,12 +8,18 @@ from ..data.cards.card_alias_data import resolve_card_id
 from ..data.world.room_interact_data import BAG_DEFAULT_MAX_WEIGHT
 
 current_user_id = ContextVar("current_user_id", default="")
+in_queue_ctx = ContextVar("in_queue_ctx", default=False)
 
 def set_user_id(user_id: str):
     current_user_id.set(user_id)
 
 def get_user_id() -> str:
     return current_user_id.get()
+
+def is_in_queue(run=None) -> bool:
+    if in_queue_ctx.get():
+        return True
+    return bool(run is not None and (getattr(run, "node_data", None) or {}).get("in_queue"))
 
 class DamageType(Enum):
     ACID = "acid"
@@ -77,7 +83,7 @@ class UserStats:
     friend_requests_out: List[str] = field(default_factory=list)
     world_mailbox: List[Dict[str, Any]] = field(default_factory=list)
     active_lobby_id: str = ""
-    active_coop_id: str = ""
+    active_run_id: str = ""
     projection_enabled: bool = True
     projection_feed: List[Dict[str, Any]] = field(default_factory=list)
     log_history: List[Dict[str, Any]] = field(default_factory=list)
@@ -394,6 +400,10 @@ class Card:
         """处理 get_selection_spec 生命周期扩展，具体字段与取消语义见事件定义。"""
         return None
 
+    def get_post_selection_spec(self, run: 'GameRun', engine) -> Optional[dict]:
+        """处理 get_post_selection_spec 生命周期扩展，具体字段与取消语义见事件定义。"""
+        return None
+
     def execute(self, run: 'GameRun', target: Optional[str], engine) -> str:
         """处理 execute 生命周期扩展，具体字段与取消语义见事件定义。"""
         return ""
@@ -526,7 +536,6 @@ class PlayerState:
     max_hp: int
     shield: int
     gold: int
-    stage: int
     name: str = "玩家"
     deck: List[CardState] = field(default_factory=list)
     draw_pile: List[CardState] = field(default_factory=list)
@@ -757,12 +766,12 @@ class GameRun:
     node_data: Dict = field(default_factory=dict)
     map_data: Dict = field(default_factory=dict)
     player2: Optional[PlayerState] = None
-    coop_id: str = ""
+    run_id: str = ""
     leader_id: str = ""
     party_order: List[str] = field(default_factory=list)
     players: Dict[str, PlayerState] = field(default_factory=dict)
     floor_map: Optional[FloorMapState] = None
-    coop_end_reason: str = ""
+    end_reason: str = ""
     _hell_raider_chain: int = 0
 
     def __post_init__(self):
@@ -824,9 +833,6 @@ class GameRun:
             return name
         uid = self.uid_for(player) if player is not None else self.user_id
         return f"{name}:{uid}"
-
-    def is_coop(self) -> bool:
-        return self.is_multiplayer()
 
 def check_and_replace_fireball(run: 'GameRun', card_id: str) -> str:
     import random

@@ -13,6 +13,15 @@ class TownHomeCommand(CommandHandler, names=["回城", "home"], allowed_states=[
         stats.town_pos = "square"
         router.town_engine.record_visited_room(stats, "square")
         router.save_manager.save_stats(user_id, stats)
+        from .....models.state import is_in_queue
+        if is_in_queue():
+            from .....data.world.town_map_config import TOWN_ROOM_COORDS
+            yield get_locale_text(
+                "i18n_cli_commands.town_move_success",
+                name=get_locale_text("rooms.square.name"),
+                coord=TOWN_ROOM_COORDS.get("square", "C2"),
+            )
+            return
         yield router.town_engine.render_current_room(user_id, stats)
 
 class TownTeleportCommand(CommandHandler, names=["传送", "tp", "teleport"], allowed_states=["town"], help_key="town_tp"):

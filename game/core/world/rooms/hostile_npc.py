@@ -1,7 +1,7 @@
 import random
 from ....data.world.grid_map_config import FLOOR_CONFIGS, HIGH_DANGER_CONFIG
 from ....data.text.locale_data import get_locale_text
-from ....data.world.map_config import MapConfig
+from ....data.world.grid_map_config import FLOOR_CONFIGS, get_run_floor_index
 from ....data.world.room_interact_data import ROOM_NPCS, STEALTH_PEACE_BUFF_IDS, TRUE_SIGHT_ENEMIES, TRUE_SIGHT_NPCS
 from ..persistent_buffs import add_persistent_buff
 from .big_room import get_effective_alive_npcs, mark_effective_npc_defeated, sync_big_room_clear_state
@@ -113,19 +113,11 @@ def resolve_room_true_sight_enemy(fm, room, npc_id: str, player=None) -> str:
         boss_name = str(room.shared_payload.get("preset_boss_name") or "")
         if not boss_name:
             from ....data.enemies.enemy_data_boss import BOSS_POOLS
-            stage = int(getattr(player, "stage", 1) or 1)
-            if fm is not None:
-                cfg = FLOOR_CONFIGS.get(fm.floor_index)
-                if cfg is not None and "stage_max" in cfg:
-                    stage = max(stage, int(cfg["stage_max"]))
-            if stage == MapConfig.GATE_BOSS_STAGE:
-                boss_name = random.choice(BOSS_POOLS["gate"])
-            elif stage == MapConfig.AVERGOMON_STAGE:
-                boss_name = BOSS_POOLS["aforgomon"][0]
-            elif stage == MapConfig.FINAL_BOSS_STAGE:
-                boss_name = BOSS_POOLS["final"][0]
-            else:
-                boss_name = random.choice(BOSS_POOLS["early"])
+            floor_index = fm.floor_index if fm is not None else 1
+            cfg = FLOOR_CONFIGS.get(floor_index, FLOOR_CONFIGS[1])
+            pool_key = str(cfg.get("boss_pool") or "early")
+            pool = BOSS_POOLS.get(pool_key, BOSS_POOLS["early"])
+            boss_name = pool[0] if len(pool) == 1 else random.choice(pool)
             room.shared_payload["preset_boss_name"] = boss_name
         if has_true_sight_enemy_name(boss_name):
             return boss_name
@@ -156,7 +148,7 @@ def trigger_hostile_npc_battle(
             room.cleared = True
             sync_big_room_clear_state(fm, room)
             grid_map_service.save_manager.save_save(uid, run)
-            return f"{get_locale_text('i18n_grid_map.corpse_gone', coord=coord)}\n\n{GameRenderer.render_game(run)}"
+            return grid_map_service._format_map_output(run, get_locale_text("i18n_grid_map.corpse_gone", coord=coord))
         return grid_map_service._start_battle(
             run, uid, coord, room, "ghost", corpse=corpse, hostile_npc_id=npc_id
         )

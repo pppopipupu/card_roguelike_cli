@@ -193,16 +193,11 @@ class MapAdminCommand(AdminCommandHandler):
             fm = _build_floor_by_index(run, floor_idx, ctx.save_manager)
             run.floor_map = fm
             SessionContextScoper.ensure_full_party_order(run)
-            stage_min = int(FLOOR_CONFIGS[floor_idx].get("stage_min", 1))
-            for uid in run.all_human_uids():
-                pl = run.players.get(uid)
-                if pl is not None:
-                    pl.stage = stage_min
             run.node_type = "grid_map"
             run.enemies.clear()
             run.node_data = {}
             ctx.save_manager.save_save(ctx.target_user_id, run)
-            msg = get_locale_text("i18n_admin.map_floor_switched", floor=floor_idx, stage=stage_min)
+            msg = get_locale_text("i18n_admin.map_floor_switched", floor=floor_idx)
             return get_locale_text(
                 "i18n_cli_core.admin_action_result",
                 msg=msg,

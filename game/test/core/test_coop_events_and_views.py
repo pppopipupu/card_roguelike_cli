@@ -291,9 +291,8 @@ class TestCoopEventsAndViews(CoopTestBase):
     def test_coop_reward_completion_advances_once(self):
         uids = ["once_reward_leader", "once_reward_member"]
         run = self.start_coop(uids)
-        stage = run.players[uids[0]].stage
         _, run = move_to_room(self.plugin, uids[0], ("battle", "elite"), rally=True)
-        stage = run.players[uids[0]].stage
+        floor_idx = floor_of(run).floor_index
         self.assertEqual(run.node_type, "battle")
         for enemy in run.enemies:
             enemy.hp = 0
@@ -301,7 +300,7 @@ class TestCoopEventsAndViews(CoopTestBase):
         reward = load_run(self.plugin, uids[0])
         self.assertEqual(reward.node_type, "reward")
         self.assertTrue(reward.node_data.get("items"))
-        self.assertEqual(reward.players[uids[0]].stage, stage)
+        self.assertEqual(floor_of(reward).floor_index, floor_idx)
 
         waiting = self.run_cmd("c 取消", uids[0])
         self.assertIn("回到迷宫", waiting)
@@ -311,31 +310,29 @@ class TestCoopEventsAndViews(CoopTestBase):
         self.assertEqual(mid.node_type, "reward")
         self.assertTrue(mid.node_data.get("stage_ready", {}).get(uids[0]))
         self.assertFalse(mid.node_data.get("stage_ready", {}).get(uids[1]))
-        self.assertEqual(mid.players[uids[0]].stage, stage)
-        self.assertEqual(mid.players[uids[1]].stage, stage)
+        self.assertEqual(floor_of(mid).floor_index, floor_idx)
 
         completed = self.run_cmd("c 取消", uids[1])
         self.assertIn("回到迷宫", completed)
         for uid in uids:
             advanced = load_run(self.plugin, uid)
             self.assertEqual(advanced.node_type, "grid_map")
-            self.assertEqual(advanced.players[uids[0]].stage, stage)
-            self.assertEqual(advanced.players[uids[1]].stage, stage)
+            self.assertEqual(floor_of(advanced).floor_index, floor_idx)
         self.run_cmd("c 取消", uids[0])
         unchanged = load_run(self.plugin, uids[0])
         self.assertEqual(unchanged.node_type, "grid_map")
-        self.assertEqual(unchanged.players[uids[0]].stage, stage)
+        self.assertEqual(floor_of(unchanged).floor_index, floor_idx)
 
     def test_coop_rest_completion_advances_once(self):
         uids = ["once_rest_leader", "once_rest_member"]
         run = self.start_coop(uids)
-        stage = run.players[uids[0]].stage
+        floor_idx = floor_of(run).floor_index
         SessionContextScoper.create_session(run, "A1", "rest", uids)
         self.plugin.engine.map_engine.explore_engine._init_rest_node(run)
         self.plugin.save_manager.save_save(uids[0], run)
         rest = load_run(self.plugin, uids[0])
         self.assertEqual(rest.node_type, "rest")
-        self.assertEqual(rest.players[uids[0]].stage, stage)
+        self.assertEqual(floor_of(rest).floor_index, floor_idx)
 
         waiting = self.run_cmd("c 4", uids[0])
         self.assertIn("救治", waiting)
@@ -346,24 +343,23 @@ class TestCoopEventsAndViews(CoopTestBase):
         self.assertEqual(mid.node_type, "rest")
         self.assertTrue(mid.node_data.get("stage_ready", {}).get(uids[0]))
         self.assertFalse(mid.node_data.get("stage_ready", {}).get(uids[1]))
-        self.assertEqual(mid.players[uids[0]].stage, stage)
+        self.assertEqual(floor_of(mid).floor_index, floor_idx)
 
         completed = self.run_cmd("c 4", uids[1])
         self.assertIn("回到迷宫", completed)
         for uid in uids:
             advanced = load_run(self.plugin, uid)
             self.assertEqual(advanced.node_type, "grid_map")
-            self.assertEqual(advanced.players[uids[0]].stage, stage)
-            self.assertEqual(advanced.players[uids[1]].stage, stage)
+            self.assertEqual(floor_of(advanced).floor_index, floor_idx)
         self.run_cmd("c 取消", uids[0])
         unchanged = load_run(self.plugin, uids[0])
         self.assertEqual(unchanged.node_type, "grid_map")
-        self.assertEqual(unchanged.players[uids[0]].stage, stage)
+        self.assertEqual(floor_of(unchanged).floor_index, floor_idx)
 
     def test_coop_gem_completion_advances_once(self):
         uids = ["once_gem_leader", "once_gem_member"]
         run = self.start_coop(uids)
-        stage = run.players[uids[0]].stage
+        floor_idx = floor_of(run).floor_index
         gem_id = next(iter(GEM_CONFIG))
         views = {
             uid: {
@@ -409,7 +405,7 @@ class TestCoopEventsAndViews(CoopTestBase):
         self.assertEqual(leader.node_type, "grid_map")
         mid = load_run(self.plugin, uids[1])
         self.assertEqual(mid.node_type, "treasure")
-        self.assertEqual(mid.players[uids[0]].stage, stage)
+        self.assertEqual(floor_of(mid).floor_index, floor_idx)
         self.assertTrue(mid.node_data.get("stage_ready", {}).get(uids[0]))
         self.assertFalse(mid.node_data["items"][0]["taken"])
 
@@ -431,12 +427,11 @@ class TestCoopEventsAndViews(CoopTestBase):
         for uid in uids:
             advanced = load_run(self.plugin, uid)
             self.assertEqual(advanced.node_type, "grid_map")
-            self.assertEqual(advanced.players[uids[0]].stage, stage)
-            self.assertEqual(advanced.players[uids[1]].stage, stage)
+            self.assertEqual(floor_of(advanced).floor_index, floor_idx)
         self.run_cmd("c 取消", uids[0])
         unchanged = load_run(self.plugin, uids[0])
         self.assertEqual(unchanged.node_type, "grid_map")
-        self.assertEqual(unchanged.players[uids[0]].stage, stage)
+        self.assertEqual(floor_of(unchanged).floor_index, floor_idx)
 
 
 if __name__ == "__main__":

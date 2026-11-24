@@ -3,7 +3,6 @@ import re
 from typing import Optional
 from ...models.state import GameRun, PlayerState, EnemyState, Card, UserStats
 from ...models.events import DamageCalculateEvent
-from ...data.world.map_config import MapConfig
 from ...data.enemies.enemy_data import ENEMY_CONFIG
 from ...data.enemies.enemy_data_normal import ENEMY_ENCOUNTER_CONFIG
 from ...data.enemies.enemy_data_boss import BOSS_POOLS
@@ -249,6 +248,7 @@ class BattleEngine(BattleSetupMixin):
         run.node_data.pop("suspended_card_cost_a", None)
         run.node_data.pop("suspended_card_cost_ba", None)
         run.node_data.pop("suspended_card_hand_idx", None)
+        run.node_data.pop("suspended_card_primary_target", None)
         p = run.player
         from ...models.state import ensure_card_state
         suspended_state = ensure_card_state(suspended_state)
@@ -271,6 +271,7 @@ class BattleEngine(BattleSetupMixin):
         cost_a = run.node_data.pop("suspended_card_cost_a", 0)
         cost_ba = run.node_data.pop("suspended_card_cost_ba", 0)
         hand_idx = run.node_data.pop("suspended_card_hand_idx", None)
+        run.node_data.pop("suspended_card_primary_target", None)
         p = run.player
         p.actions += cost_a
         p.bonus_actions += cost_ba

@@ -11,7 +11,10 @@ class StatusCommand(CommandHandler, names=["状态", "status", "r"], allowed_sta
             if finished is not None:
                 yield finished
                 return
-            yield GameRenderer.render_game(run)
+            from ....battle.selection.session_state import render_active_selection_prompt
+            rendered = GameRenderer.render_game(run)
+            prompt = render_active_selection_prompt(run)
+            yield f"{rendered}\n\n{prompt}" if prompt else rendered
             return
         stats = router.save_manager.load_stats(user_id)
         if stats.in_town:

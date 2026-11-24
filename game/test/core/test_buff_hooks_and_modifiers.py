@@ -46,7 +46,6 @@ class TestBuffHooksAndModifiers(unittest.TestCase):
             max_hp=100,
             shield=0,
             gold=100,
-            stage=1,
             deck=list(hand),
             hand=list(hand),
             draw_pile=list(draw_pile) if draw_pile is not None else [CardState(id="warrior_defend")] * 5,

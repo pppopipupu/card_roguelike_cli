@@ -1,9 +1,7 @@
 from ..progression.balance_config import KEY_SCHOLAR_REPLACE_CHANCE, REWARD_CARD_COUNT
-from ..world.grid_map_config import FLOOR_CONFIGS
 from ..progression.reward_config import EPIC_CARD_RARITY, NORMAL_CARD_RARITIES, NORMAL_REWARD_EXCLUDED_RARITIES
 
 LATE_FLOOR_THRESHOLD = 3
-LATE_STAGE_THRESHOLD = int(FLOOR_CONFIGS[3]["stage_min"])
 UPGRADE_SUFFIX = "+"
 
 CLASS_TO_CARD_COLOR: dict[str, str] = {

@@ -3,6 +3,7 @@ import os
 import logging
 import math
 import sqlite3
+import uuid
 from typing import Optional, Dict, List
 from .state import GameRun, UserStats, PlayerState, ensure_card_state
 from .records import Lobby, PlayerProfile
@@ -112,21 +113,25 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
         safe_id = "".join([c for c in user_id if c.isalnum() or c in ("-", "_")])
         return os.path.join(self.data_dir, f"user_{safe_id}.json")
 
-    def get_coop_save_path(self, coop_id: str) -> str:
-        safe_id = "".join([c for c in coop_id if c.isalnum() or c in ("-", "_")])
-        return os.path.join(self.data_dir, f"coop_{safe_id}.json")
+    def get_run_save_path(self, run_id: str) -> str:
+        safe_id = "".join([c for c in run_id if c.isalnum() or c in ("-", "_")])
+        return os.path.join(self.data_dir, f"run_{safe_id}.json")
 
     def get_lobbies_path(self) -> str:
-        return os.path.join(self.data_dir, "coop_lobbies.json")
+        return os.path.join(self.data_dir, "party_lobbies.json")
 
-    def has_personal_save(self, user_id: str) -> bool:
-        return self.store.exists("user_saves", user_id) or os.path.exists(self.get_save_path(user_id))
+    def has_active_save(self, user_id: str) -> bool:
+        stats = self.load_stats(user_id)
+        run_id = getattr(stats, "active_run_id", "")
+        if run_id and (self.store.exists("run_saves", run_id) or os.path.exists(self.get_run_save_path(run_id))):
+            return True
+        return os.path.exists(self.get_save_path(user_id))
 
     def resolve_lock_key(self, user_id: str) -> str:
         stats = self.load_stats(user_id)
-        coop_id = getattr(stats, "active_coop_id", "")
-        if coop_id:
-            return f"coop:{coop_id}"
+        run_id = getattr(stats, "active_run_id", "")
+        if run_id:
+            return f"run:{run_id}"
         lobby_id = getattr(stats, "active_lobby_id", "")
         if lobby_id:
             return f"lobby:{lobby_id}"
@@ -213,7 +218,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 friend_requests_out=d.get("friend_requests_out", []),
                 world_mailbox=world_mailbox,
                 active_lobby_id=d.get("active_lobby_id", ""),
-                active_coop_id=d.get("active_coop_id", ""),
+                active_run_id=d.get("active_run_id") or d.get("active_coop_id") or "",
                 projection_enabled=d.get("projection_enabled", True),
                 projection_feed=projection_feed,
                 log_history=log_history,
@@ -250,6 +255,12 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
 
     def save_stats(self, user_id: str, stats: UserStats) -> bool:
         try:
+            if not getattr(stats, "active_run_id", ""):
+                existing = self.store.get_json("user_stats", user_id)
+                if isinstance(existing, dict):
+                    prev_run_id = existing.get("active_run_id") or existing.get("active_coop_id") or ""
+                    if prev_run_id and self.store.exists("run_saves", prev_run_id):
+                        stats.active_run_id = prev_run_id
             d = dict(stats.__dict__)
             d["total_damage"] = str(int(stats.total_damage))
             self.store.put_json("user_stats", user_id, d)
@@ -291,18 +302,29 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
 
     def load_save(self, user_id: str) -> Optional[GameRun]:
         stats = self.load_stats(user_id)
-        coop_id = getattr(stats, "active_coop_id", "")
-        if coop_id:
-            run = self.load_coop_save(user_id, coop_id)
-            if run:
-                return run
-        path = self.get_save_path(user_id)
+        run_id = getattr(stats, "active_run_id", "")
         try:
-            d = self._load_json_or_legacy("user_saves", user_id, path)
+            d = None
+            if run_id:
+                d = self._load_json_or_legacy("run_saves", run_id, self.get_run_save_path(run_id))
+            if d is None:
+                legacy_path = self.get_save_path(user_id)
+                if os.path.exists(legacy_path):
+                    with open(legacy_path, "r", encoding="utf-8") as f:
+                        legacy_data = load(f)
+                    if isinstance(legacy_data, dict):
+                        run_id = str(legacy_data.get("run_id") or legacy_data.get("coop_id") or uuid.uuid4().hex[:8])
+                        legacy_data["run_id"] = run_id
+                        self.store.put_json("run_saves", run_id, legacy_data, updated_at=os.path.getmtime(legacy_path))
+                        stats.active_run_id = run_id
+                        self.save_stats(user_id, stats)
+                        d = legacy_data
             if d is None:
                 return None
             run = self.from_dict(d)
             if run:
+                if not run.run_id and run_id:
+                    run.run_id = run_id
                 if user_id in run.players:
                     run.player = run.players[user_id]
                     run.user_id = user_id
@@ -351,9 +373,9 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                     run.user_id = save_uid
                     swapped_for_save = True
         try:
-            if run and getattr(run, "coop_id", "") and save_uid in getattr(run, "players", {}):
-                return self.save_coop_save(save_uid, run)
             if run:
+                if not getattr(run, "run_id", ""):
+                    run.run_id = uuid.uuid4().hex[:8]
                 from .coop_view import persist_view
                 from ..core.party.session import SessionContextScoper
                 SessionContextScoper.sync_from_run(run, save_uid)
@@ -363,8 +385,16 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                 if run.node_data.get(PVP_MATCH_KEY):
                     from ..core.battle.pvp_service import PvpService
                     PvpService.sync_match_from_run(self, run, save_uid)
-            d = self.to_dict(run)
-            self.store.put_json("user_saves", save_uid, d)
+                d = self.to_dict(run)
+                self.store.put_json("run_saves", run.run_id, d)
+                human_uids = list(run.all_human_uids())
+                if save_uid not in human_uids:
+                    human_uids.append(save_uid)
+                for uid in human_uids:
+                    st = self.load_stats(uid)
+                    if getattr(st, "active_run_id", "") != run.run_id:
+                        st.active_run_id = run.run_id
+                        self.save_stats(uid, st)
             return True
         except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.save_save_failed", user_id=save_uid, error=exc))
@@ -377,67 +407,34 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
 
     def delete_save(self, user_id: str) -> bool:
         stats = self.load_stats(user_id)
-        if getattr(stats, "active_coop_id", ""):
-            return False
-        path = self.get_save_path(user_id)
+        run_id = getattr(stats, "active_run_id", "")
         try:
-            deleted = self.store.delete("user_saves", user_id)
-            if self._remove_legacy_file(path):
+            deleted = False
+            member_uids = [user_id]
+            if run_id:
+                raw = self.store.get_json("run_saves", run_id)
+                if isinstance(raw, dict):
+                    players = raw.get("players") or {}
+                    if isinstance(players, dict):
+                        for uid, pdata in players.items():
+                            if isinstance(pdata, dict) and pdata.get("is_mercenary"):
+                                continue
+                            if uid not in member_uids:
+                                member_uids.append(uid)
+                if self.store.delete("run_saves", run_id):
+                    deleted = True
+                if self._remove_legacy_file(self.get_run_save_path(run_id)):
+                    deleted = True
+                for uid in member_uids:
+                    st = self.load_stats(uid)
+                    if getattr(st, "active_run_id", "") == run_id:
+                        st.active_run_id = ""
+                        self.save_stats(uid, st)
+            if self._remove_legacy_file(self.get_save_path(user_id)):
                 deleted = True
             return deleted
         except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
             logger.warning(get_locale_text("i18n_models.manager.delete_save_failed", user_id=user_id, error=exc))
-            return False
-
-    def load_coop_save(self, user_id: str, coop_id: str) -> Optional[GameRun]:
-        path = self.get_coop_save_path(coop_id)
-        try:
-            d = self._load_json_or_legacy("coop_saves", coop_id, path)
-            if d is None:
-                return None
-            run = self.from_dict(d)
-            if run and user_id in run.players:
-                run.player = run.players[user_id]
-                run.user_id = user_id
-                from ..core.party.session import SessionContextScoper
-                SessionContextScoper.bind_to_run(run, user_id)
-                from .coop_view import apply_view, scope_view
-                apply_view(run, user_id)
-                scope_view(run, user_id)
-                from ..data.world.pvp_config import PVP_MATCH_KEY
-                if run.node_data.get(PVP_MATCH_KEY):
-                    from ..core.battle.pvp_service import PvpService
-                    PvpService.bind_run_from_match(self, run, user_id)
-            return run
-        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
-            logger.warning(get_locale_text("i18n_models.manager.read_coop_save_failed", user_id=user_id, coop_id=coop_id, error=exc))
-            return None
-
-    def save_coop_save(self, user_id: str, run: GameRun) -> bool:
-        run.players[user_id] = run.player
-        run.user_id = user_id
-        from .coop_view import persist_view
-        from ..core.party.session import SessionContextScoper
-        SessionContextScoper.sync_from_run(run, user_id)
-        persist_view(run, user_id)
-        self._sync_open_world_from_run(run)
-        try:
-            d = self.to_dict(run)
-            self.store.put_json("coop_saves", run.coop_id, d)
-            return True
-        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
-            logger.warning(get_locale_text("i18n_models.manager.save_coop_save_failed", user_id=user_id, coop_id=run.coop_id, error=exc))
-            return False
-
-    def delete_coop_save(self, coop_id: str) -> bool:
-        path = self.get_coop_save_path(coop_id)
-        try:
-            deleted = self.store.delete("coop_saves", coop_id)
-            if self._remove_legacy_file(path):
-                deleted = True
-            return deleted
-        except (OSError, ValueError, KeyError, TypeError, sqlite3.Error) as exc:
-            logger.warning(get_locale_text("i18n_models.manager.delete_coop_save_failed", coop_id=coop_id, error=exc))
             return False
 
     def load_lobbies(self) -> Dict[str, Lobby]:
@@ -519,7 +516,7 @@ class SaveManager(SaveCodecMixin, SettlementMixin):
                     selected_class=data.get("selected_class", "法师"),
                     selected_subclass=data.get("selected_subclass", ""),
                     gp=data.get("gp", 0),
-                    active_coop_id=data.get("active_coop_id", ""),
+                    active_run_id=data.get("active_run_id") or data.get("active_coop_id") or "",
                     active_lobby_id=data.get("active_lobby_id", ""),
                     in_town=data.get("in_town", False),
                     mtime=updated_at,

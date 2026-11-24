@@ -1,4 +1,5 @@
 from ....models.state import GameRun, ensure_card_state
+from .extra_play_flow import complete_extra_play_session, complete_post_play_session
 from .session_flow import _execute_pre_play_card
 from .session_state import (
     _build_selections_payload,
@@ -11,11 +12,12 @@ from .spec import PILE_ATTR_MAP
 def resolve_session_for_mercenary(battle_engine, run: GameRun, merc_uid: str, merc, session: dict, score_card_fn) -> list[str]:
     notes: list[str] = []
     for step in session.get("steps", []):
+        step_id = str(step.get("step_id", ""))
         while not _is_step_complete(step):
             remaining = _remaining_for_step(step)
             if not remaining:
                 break
-            best_cand = max(remaining, key=lambda c: _score_merc_candidate(merc, c, score_card_fn))
+            best_cand = max(remaining, key=lambda c: _score_merc_candidate(merc, c, score_card_fn, step_id=step_id))
             chosen = dict(best_cand)
             chosen["auto_filled"] = False
             step.setdefault("selected", []).append(chosen)
@@ -23,14 +25,15 @@ def resolve_session_for_mercenary(battle_engine, run: GameRun, merc_uid: str, me
     if state_stack and state_stack[-1] is session:
         state_stack.pop()
     if session.get("phase") == "post_play":
-        from ....entities import ALL_CARDS
-        card = ALL_CARDS.get(session.get("card_id"))
-        if card is not None and session.get("upgraded"):
-            card = ALL_CARDS.get(f"{session['card_id']}+") or card
-        if card is not None:
-            res = card.execute_post_selections(run, _build_selections_payload(session), battle_engine)
-            if res:
-                notes.append(res)
+        res, _ = complete_post_play_session(battle_engine.card_player, run, session)
+        if res:
+            notes.append(res)
+        return notes
+
+    if session.get("phase") == "extra_play":
+        res, _ = complete_extra_play_session(battle_engine.card_player, run, session)
+        if res:
+            notes.append(res)
         return notes
 
     from ....entities import ALL_CARDS
@@ -55,15 +58,17 @@ def resolve_session_for_mercenary(battle_engine, run: GameRun, merc_uid: str, me
     return notes
 
 
-def _score_merc_candidate(merc, cand: dict, score_card_fn) -> int:
+def _score_merc_candidate(merc, cand: dict, score_card_fn, step_id: str = "") -> int:
     from ....entities import ALL_CARDS
     scope = cand.get("scope", "")
-    if scope in PILE_ATTR_MAP:
+    if scope in PILE_ATTR_MAP or scope == "generated_card":
         cid = cand.get("card_id", "")
         card_obj = ALL_CARDS.get(cid)
         score = score_card_fn(merc, card_obj)
-        if scope == "hand" and card_obj and (getattr(card_obj, "agile", False) or getattr(card_obj, "cryptic", False)):
-            return score + 1000
+        if scope == "hand" and step_id in ("discard_card", "discard_cards", "exhaust_card"):
+            if card_obj and (getattr(card_obj, "agile", False) or getattr(card_obj, "cryptic", False)):
+                return 1000 - score
+            return -score
         return score
     if scope == "enemy":
         return 100

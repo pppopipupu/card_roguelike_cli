@@ -295,6 +295,8 @@ def _open_treasure_chest(save_manager, run, room, coord: str, map_engine=None) -
         ok, _ = add_bag_item(run.player, bonus_item)
         if not ok:
             add_effective_item(fm, room, bonus_item)
+    from ....models.state import is_in_queue
+    in_queue = is_in_queue(run)
     SessionContextScoper.create_session(run, coord, "treasure", [uid])
     if map_engine is not None and hasattr(map_engine, "explore_engine"):
         map_engine.explore_engine._init_treasure_node(run)
@@ -305,6 +307,8 @@ def _open_treasure_chest(save_manager, run, room, coord: str, map_engine=None) -
         me = MapEngine(save_manager, BattleEngine(save_manager))
         ExploreEngine(save_manager, me)._init_treasure_node(run)
     save_manager.save_save(uid, run)
+    if in_queue:
+        return ""
     return GameRenderer.render_game(run)
 
 
@@ -348,12 +352,16 @@ def touch_in_room(save_manager, run, query: str, map_engine=None) -> str:
     if prop_id in ("descent_tunnel", "temple_gate"):
         from ..landmark_system import open_room_talk
         from ....renderer import GameRenderer
+        from ....models.state import is_in_queue
+        in_queue = is_in_queue(run)
         err = open_room_talk(save_manager, run, run.user_id)
         if err:
             if broken_msg:
                 save_manager.save_save(run.user_id, run)
             return err
         save_manager.save_save(run.user_id, run)
+        if in_queue:
+            return broken_msg or ""
         rendered = GameRenderer.render_game(run)
         return f"{broken_msg}\n\n{rendered}" if broken_msg else rendered
     done = get_effective_interacted_props(fm, room)

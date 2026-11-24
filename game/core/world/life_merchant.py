@@ -236,7 +236,7 @@ def handle_life_merchant(explore_engine, run, option_idx: int, target=None) -> s
         return get_locale_text("i18n_explore_core.err_shop_sold_out")
     itype = item.get("type")
     if itype == "leave":
-        msg = get_locale_text("i18n_explore_core.life_merchant_leave_coop") if run.player_count() > 1 else get_locale_text("i18n_explore_core.life_merchant_leave_next")
+        msg = get_locale_text("i18n_explore_core.life_merchant_leave_coop") if len(run.all_human_uids()) > 1 else get_locale_text("i18n_explore_core.life_merchant_leave_next")
         return finish_player_node(explore_engine.save_manager, explore_engine.map_engine, run, run.user_id, msg)
     if itype == "potion":
         pid = item.get("potion_id")

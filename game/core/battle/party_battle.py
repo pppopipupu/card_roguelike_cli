@@ -190,7 +190,7 @@ def mark_downed(battle_engine, run, player):
     if not run:
         return
     humans = run.all_human_uids() if hasattr(run, "all_human_uids") else list(run.players.keys())
-    if len(humans) <= 1 and not getattr(run, "coop_id", ""):
+    if len(humans) <= 1:
         return
     uid = run.uid_for(player)
     if not uid or player.downed:

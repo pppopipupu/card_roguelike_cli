@@ -46,13 +46,12 @@ class TestSaveManagerPersistence(unittest.TestCase):
             max_hp=60,
             shield=5,
             gold=123,
-            stage=2,
             deck=[CardState(id="science_device", custom_spec="prism|armor|std")],
             hand=[CardState(id="fire_bolt", upgraded=True)],
         )
         run = GameRun(user_id="u_rt", node_type="grid_map", player=p, enemies=[], node_data={"k": "v"})
         self.assertTrue(sm1.save_save("u_rt", run))
-        self.assertTrue(sm1.has_personal_save("u_rt"))
+        self.assertTrue(sm1.has_active_save("u_rt"))
         self.assertTrue(sm1.save_lobbies({"L1": {"lobby_id": "L1", "leader_id": "u_rt", "members": ["u_rt"], "invited": [], "ready": {}, "created_at": "2026-11-24T00:00:00Z"}}))
         self.assertTrue(sm1.save_admin_config({"final_boss": "yog_sothoth"}))
         sm1.close()
@@ -76,7 +75,7 @@ class TestSaveManagerPersistence(unittest.TestCase):
         self.assertEqual(sm2.load_admin_config().get("final_boss"), "yog_sothoth")
 
         self.assertTrue(sm2.delete_save("u_rt"))
-        self.assertFalse(sm2.has_personal_save("u_rt"))
+        self.assertFalse(sm2.has_active_save("u_rt"))
         self.assertIsNone(sm2.load_save("u_rt"))
 
     def test_dirty_read_isolation_without_save(self):
@@ -90,7 +89,7 @@ class TestSaveManagerPersistence(unittest.TestCase):
         self.assertEqual(reloaded_st.gp, 500)
         self.assertEqual(reloaded_st.player_name, "原名")
 
-        run = GameRun(user_id="u_iso", node_type="grid_map", player=PlayerState(hp=30, max_hp=50, shield=0, gold=0, stage=1), enemies=[], node_data={})
+        run = GameRun(user_id="u_iso", node_type="grid_map", player=PlayerState(hp=30, max_hp=50, shield=0, gold=0), enemies=[], node_data={})
         sm.save_save("u_iso", run)
         loaded_run = sm.load_save("u_iso")
         assert loaded_run is not None
@@ -102,7 +101,7 @@ class TestSaveManagerPersistence(unittest.TestCase):
     def test_coop_view_isolation_and_delete_guard(self):
         plugin = CorePlugin(data_dir=self.tmp.name)
         uids = ["iso_a", "iso_b"]
-        plugin.engine.start_party_game(uids, uids[0], shared_save=True)
+        plugin.engine.start_party_game(uids, uids[0])
         asyncio.run(run_command(plugin, "c 1", uids[0]))
         asyncio.run(run_command(plugin, "c 1", uids[1]))
 
@@ -113,16 +112,11 @@ class TestSaveManagerPersistence(unittest.TestCase):
         self.assertEqual(run_a.user_id, uids[0])
         self.assertEqual(run_b.user_id, uids[1])
         self.assertIsNot(run_a.player, run_b.player)
-        self.assertTrue(sm.resolve_lock_key(uids[0]).startswith("coop:"))
-        self.assertFalse(sm.delete_save(uids[0]))
-
-        coop_id = run_a.coop_id
-        self.assertTrue(sm.delete_coop_save(coop_id))
-        for u in uids:
-            st = sm.load_stats(u)
-            st.active_coop_id = ""
-            sm.save_stats(u, st)
+        self.assertTrue(sm.resolve_lock_key(uids[0]).startswith("run:"))
+        self.assertEqual(run_a.run_id, run_b.run_id)
+        self.assertTrue(sm.delete_save(uids[0]))
         self.assertIsNone(sm.load_save(uids[0]))
+        self.assertIsNone(sm.load_save(uids[1]))
 
     def test_registries_presence_profiles_and_cli_restart(self):
         plugin1 = CorePlugin(data_dir=self.tmp.name)
@@ -175,7 +169,7 @@ class TestSaveManagerPersistence(unittest.TestCase):
             self.assertEqual(st.gp, 456)
             self.assertEqual(st.total_damage, 99999999999999999999)
             self.assertIsNotNone(sm.store.get_row("user_stats", "leg1"))
-            self.assertTrue(sm.has_personal_save("leg1"))
+            self.assertTrue(sm.has_active_save("leg1"))
             run = sm.load_save("leg1")
             self.assertIsNotNone(run)
             assert run is not None

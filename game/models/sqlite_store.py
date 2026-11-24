@@ -10,8 +10,7 @@ from ..json_codec import dumps, loads
 
 _TABLE_PK_COLS: dict[str, str] = {
     "user_stats": "user_id",
-    "user_saves": "user_id",
-    "coop_saves": "coop_id",
+    "run_saves": "run_id",
     "kv_store": "key",
 }
 

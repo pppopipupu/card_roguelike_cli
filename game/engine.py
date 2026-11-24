@@ -43,7 +43,6 @@ class GameEngine:
             max_hp=max_hp,
             shield=0,
             gold=20,
-            stage=0,
             name=getattr(stats, "player_name", "玩家"),
             deck=initial_deck,
             draw_pile=[],
@@ -65,7 +64,7 @@ class GameEngine:
         self.save_manager.save_stats(user_id, stats)
         return player
 
-    def start_party_game(self, member_ids: List[str], leader_id: Optional[str] = None, shared_save: bool = False) -> Optional[GameRun]:
+    def start_party_game(self, member_ids: List[str], leader_id: Optional[str] = None) -> Optional[GameRun]:
         import uuid
         from .data.progression.balance_config import COOP_MAX_PLAYERS
         from .core.battle.daily_blessing import apply_pending_blessing
@@ -73,9 +72,9 @@ class GameEngine:
         if not member_ids:
             return None
         if len(member_ids) > COOP_MAX_PLAYERS:
-            raise ValueError(f"Coop party exceeds COOP_MAX_PLAYERS ({COOP_MAX_PLAYERS})")
+            raise ValueError(f"Party exceeds COOP_MAX_PLAYERS ({COOP_MAX_PLAYERS})")
         leader = leader_id or member_ids[0]
-        coop_id = uuid.uuid4().hex[:8] if (shared_save or len(member_ids) > 1) else ""
+        run_id = uuid.uuid4().hex[:8]
         players = {uid: self._build_player_state(uid) for uid in member_ids}
         run = GameRun(
             user_id=leader,
@@ -83,7 +82,7 @@ class GameEngine:
             player=players[leader],
             enemies=[],
             node_data={},
-            coop_id=coop_id,
+            run_id=run_id,
             leader_id=leader,
             party_order=list(member_ids),
             players=players,
@@ -93,9 +92,8 @@ class GameEngine:
             run.player = players[uid]
             run.user_id = uid
             stats = self.save_manager.load_stats(uid)
-            if coop_id:
-                stats.active_coop_id = coop_id
-                stats.active_lobby_id = ""
+            stats.active_run_id = run_id
+            stats.active_lobby_id = ""
             apply_pending_blessing(run, stats)
             hired = list(getattr(stats, "hired_mercenaries", []) or [])
             if hired:
@@ -123,9 +121,14 @@ class GameEngine:
         return run
     def start_new_game(self, user_id: str) -> Optional[GameRun]:
         stats = self.save_manager.load_stats(user_id)
-        if getattr(stats, "active_coop_id", "") or getattr(stats, "active_lobby_id", ""):
+        if getattr(stats, "active_lobby_id", ""):
             return None
-        return self.start_party_game([user_id], user_id, shared_save=False)
+        existing = self.save_manager.load_save(user_id)
+        if existing is not None:
+            if len(existing.all_human_uids()) > 1:
+                return None
+            self.save_manager.delete_save(user_id)
+        return self.start_party_game([user_id], user_id)
 
     def build_player_state(self, user_id: str) -> PlayerState:
         return self._build_player_state(user_id)
@@ -187,25 +190,3 @@ class GameEngine:
 
     def enchant_cancel(self, run: GameRun) -> str:
         return self.map_engine.enchant_cancel(run)
-
-    def jump_to_stage(self, run: GameRun, target_stage: int) -> str:
-        from .core.world.grid_map_generator import generate_floor_map
-        from .core.party.session import SessionContextScoper
-        floor_idx = 1
-        if target_stage >= 32:
-            floor_idx = 4
-        elif target_stage >= 27:
-            floor_idx = 3
-        elif target_stage >= 13:
-            floor_idx = 2
-        run.floor_map = generate_floor_map(run, floor_idx, save_manager=self.save_manager)
-        SessionContextScoper.ensure_full_party_order(run)
-        for uid in run.all_human_uids():
-            pl = run.players.get(uid)
-            if pl is not None:
-                pl.stage = target_stage
-        run.node_type = "grid_map"
-        run.enemies.clear()
-        run.node_data = {}
-        self.save_manager.save_save(run.user_id, run)
-        return f"成功跳转到第 {target_stage} 层（大层 {floor_idx}）。"
